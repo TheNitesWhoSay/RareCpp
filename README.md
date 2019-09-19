@@ -171,3 +171,5 @@ The REFLECT macro takes in the name of the class you're adding reflection to, fo
 4. a "Field" array is generated, similar to the field object defined in the third step, but the simple flavor
 5. The ForEachField method is generated, calling the given function with the enhanced flavor of the Field and a reference to the field
 6. The FieldAt method is generated, calling the given function with the enhanced flavor of the Field and a reference to the field at the given fieldIndex
+
+See [Reflect.h](https://github.com/jjf28/CppRandomAccessReflection/blob/master/CppRandomAccessReflection/Reflect.h) for the full implementation of macro loops and the REFLECT macro.
