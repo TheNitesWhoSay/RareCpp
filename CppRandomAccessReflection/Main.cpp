@@ -1,5 +1,4 @@
 #include <iostream>
-#include <vector>
 #include "Json.h"
 
 class FuelTank {
@@ -105,8 +104,6 @@ int main()
     });
 
     std::cout << Json::out(car) << std::endl;
-
-    //std::cout << Json::out(car) << std::endl;
 
     std::cout << std::endl << "Press any key to exit." << std::endl;
     std::cin.clear();

@@ -155,7 +155,7 @@ namespace MacroLoops {
 /// MacroLoop_Expand_Select_Argument_At_Argument_Max (necessary due to bugs in VS macro handling)
 #define ML_S(...) ML_E(ML_M(__VA_ARGS__))
 
-/// MacroLoop_ForEach_[(Singular), Pair, Triplet, Quartet]N
+/// MacroLoop_ForEach_[(Singular), Pair, Triplet]N
 #define ML_N(N,f,...) ML_E(ML_C(ML_,N)(f,__VA_ARGS__))
 #define ML_PN(N,f,...) ML_E(ML_C(ML_P,N)(f,__VA_ARGS__))
 #define ML_TN(N,f,...) ML_E(ML_C(ML_T,N)(f,__VA_ARGS__))
@@ -220,7 +220,6 @@ public:
 
 namespace Reflect
 {
-#define EXPAND(x) x
 /// B "basic-type": must be used for any type which already has an acceptable representation when streamed
 #define B(type, name) type, name, false
 /// R "reflected-type": must be used for any object which in turn relies on reflection to be streamed
