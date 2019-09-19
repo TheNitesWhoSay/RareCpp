@@ -38,47 +38,33 @@ namespace Json {
             indentLevel++;
 
             using Class = typename T::Class;
-            for ( size_t fieldIndex=0; fieldIndex<Class::totalFields; fieldIndex++ )
-            {
-                os << Indent(indent, indentLevel) << "\"" << Class::fieldNames[fieldIndex] << "\": ";
+            Class::ForEachField(obj, [&](auto field, auto value) {
 
-                if ( Class::isPrimitive(fieldIndex) )
-                    Class::GetPrimitiveField(obj, fieldIndex, [&](auto primitive) { os << primitive; });
-                else if ( Class::isReflectedObject(fieldIndex) )
-                    Class::GetObjectField(obj, fieldIndex, [&](auto reflectedObject) { os << Output<decltype(reflectedObject)>(reflectedObject, indent, indentLevel); });
-                else if ( Class::isPrimitiveArray(fieldIndex) )
-                {
-                    Class::GetPrimitiveArrayField(obj, fieldIndex, [&](auto primitiveArray) {
-                        os << "[ ";
-                        for ( size_t i=0; i<Class::arraySize[fieldIndex]; i++ )
-                            os << (i > 0 ? ", \"" : "\"") << primitiveArray[i] << "\"";
-                        
-                        os << " ]";
-                    });
-                }
-                else if ( Class::isReflectedObjectArray(fieldIndex) )
-                {
+                os << Indent(indent, indentLevel) << "\"" << field.fieldName << "\": ";
+                field.IfPrimitive([&](auto) { os << value; });
+                field.IfObject([&](auto) { os << Output<decltype(field)::type>(value, indent, indentLevel); });
+                field.IfPrimitiveArray([&](auto) {
+                    os << "[ ";
+                    for ( size_t i=0; i<field.arraySize; i++ )
+                        os << (i > 0 ? ", \"" : "\"") << value[i] << "\"";
+
+                    os << " ]";
+                });
+                field.IfObjectArray([&](auto) {
                     os << "[" << std::endl << Indent(indent, indentLevel+1);
-                    Class::GetObjectArrayField(obj, fieldIndex, [&](auto reflectedObjectArray) {
-                        for ( size_t i=0; i<Class::arraySize[fieldIndex]; i++ )
-                        {
-                            auto reflectedObject = reflectedObjectArray[i];
-                            os << Output<decltype(reflectedObject)>(reflectedObject, indent, indentLevel+1);
-                            if ( i < Class::arraySize[fieldIndex]-1 )
-                                os << ",";
-                        }
-                        os << std::endl << Indent(indent, indentLevel) << "]";
-                    });
-                }
+                    for ( size_t i=0; i<field.arraySize; i++ )
+                    {
+                        auto reflectedObject = value[i];
+                        os << Output<decltype(reflectedObject)>(reflectedObject, indent, indentLevel+1);
+                        if ( i < field.arraySize-1 )
+                            os << ",";
+                    }
+                    os << std::endl << Indent(indent, indentLevel) << "]";
+                });
+                os << (field.fieldIndex < Class::totalFields ? "," : "") << std::endl;
+            });
 
-                if ( fieldIndex < Class::totalFields-1 )
-                    os << ",";
-
-                os << std::endl;
-            }
-    
-            indentLevel--;
-            os << Indent(indent, indentLevel) << "}";
+            os << Indent(indent, --indentLevel) << "}";
         }
     };
 
