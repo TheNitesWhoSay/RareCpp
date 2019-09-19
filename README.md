@@ -110,7 +110,7 @@ void TraverseFields(T & t)
 }
 ```
 
-Will cause errors similar to the array access issue, you can guard against these just the same.
+Will cause errors similar to the array access issue as the compiler attempts to create and use Class = T::Class on primitives (e.g. float::Class), you can guard against these just the same.
 
 ```
 template <typename T>
