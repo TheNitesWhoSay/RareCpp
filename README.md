@@ -92,7 +92,7 @@ Placing your array access code inside the appropriate guard method will circumve
 ```
 FuelTank::Class::ForEachField(fuelTank, [&](auto field, auto value) {
     field.IfPrimitive([&](auto) { std::cout << "(fuelTankPrimitive) " << field.fieldName << ": " << value << std::endl; });
-    field.IfPrimitiveArray([&](auto) { std::cout << "(fuelTankPrimitiveArray) " << field.fieldName << ": " << value << std::endl; });
+    field.IfPrimitiveArray([&](auto) { std::cout << "(fuelTankPrimitiveArray) " << field.fieldName << ": " << value[0] << std::endl; });
 });
 ```
 
