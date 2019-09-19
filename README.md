@@ -142,9 +142,9 @@ REFLECT is nothing more than a macro that defines the class Class, it does so us
 (could be longer)
 
 f(a) simply calls the function-like macro "f", with the argument "a".
-If you called ML_3(f, a, b, c), it would be expanded to "f(a) f(b) f(c)"
+If you called FOR_EACH_3(f, a, b, c), it would be expanded to "f(a) f(b) f(c)"
 
-With a count of the arguments we can concatenate ML_ and the count to invoke the correct static macro iteration.
+With a count of the arguments we can concatenate FOR_EACH_ and the count to invoke the correct static macro iteration.
 
 To count we lay out all of the arguments, appended with a list of all numbers from ArgMax to 0
 ```
