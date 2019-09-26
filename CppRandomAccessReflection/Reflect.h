@@ -14,234 +14,324 @@
 /// });
 /* enum_t "enum type (scoped)" documentation minimized for expansion visibility, see definition for description and usage */
 #define enum_t(name, type, ...) struct name ## _ { enum type ## _ : type __VA_ARGS__; }; using name = name ## _::type ## _;
+#pragma warning(disable: 26812) // In the context of using enum_t, enum class is definitely not preferred, disable the warning in visual studios
 #endif
 
-/// Contains everything neccessary to loop over varadic macro arguments
-namespace MacroLoops {
+/// Contains everything neccessary to extract "lhs" and "rhs" from partially parameterized arguments which have the form "(lhs) rhs"
+/// As well as everything neccessary to loop over varadic macro arguments
+namespace ExtractorsAndMacroLoops
+{
+/// ArgMax: 125 (derived from the C spec limiting macros to 126 arguments and the COUNT_ARGUMENTS helper macro "ML_M" requiring ArgMax+1 arguments)
 
-/// ArgMax: 62 (derived from the C spec limiting macros to 126 arguments, and the below macros having the largest argument expansion of __VA_ARGS__, MaxArgs, MaxArgs-1, MaxArgs-2, ..., 2, 1, 0)
+/// Extractor_Expand
+#define EO_E(x) x
 
-/// MacroLoop_Expand (necessary due to bugs in VS macro handling)
-#define ML_E(x) x
+/// Extractor_Concatenate
+#define EO_C(x,y) x##y
 
-/// MacroLoop_Concatenate (necessary due to bugs in VS macro handling)
-#define ML_C(x,y) x##y
+/// Extractor_Blank (when you append "EO_BLANK" with an expression of the form "(LHS) RHS", the "(LHS)" gets blanked out and you're left with just RHS
+#define EO_B(...)
+
+/// Extractor_First
+#define EO_F(x, y) x
+
+/// Extractor_WrapAndAppendComma
+#define EO_W(x) (x),
+
+/// Extractor_GetFirst
+#define EO_G(x) EO_C(EO_F, x)
 
 /// MacroLoop_ForEach[1, ..., ArgMax]
 #define ML_1(f,a,...) f(a)
-#define ML_2(f,a,...) f(a) ML_E(ML_1(f,__VA_ARGS__))
-#define ML_3(f,a,...) f(a) ML_E(ML_2(f,__VA_ARGS__))
-#define ML_4(f,a,...) f(a) ML_E(ML_3(f,__VA_ARGS__))
-#define ML_5(f,a,...) f(a) ML_E(ML_4(f,__VA_ARGS__))
-#define ML_6(f,a,...) f(a) ML_E(ML_5(f,__VA_ARGS__))
-#define ML_7(f,a,...) f(a) ML_E(ML_6(f,__VA_ARGS__))
-#define ML_8(f,a,...) f(a) ML_E(ML_7(f,__VA_ARGS__))
-#define ML_9(f,a,...) f(a) ML_E(ML_8(f,__VA_ARGS__))
-#define ML_10(f,a,...) f(a) ML_E(ML_9(f,__VA_ARGS__))
-#define ML_11(f,a,...) f(a) ML_E(ML_10(f,__VA_ARGS__))
-#define ML_12(f,a,...) f(a) ML_E(ML_11(f,__VA_ARGS__))
-#define ML_13(f,a,...) f(a) ML_E(ML_12(f,__VA_ARGS__))
-#define ML_14(f,a,...) f(a) ML_E(ML_13(f,__VA_ARGS__))
-#define ML_15(f,a,...) f(a) ML_E(ML_14(f,__VA_ARGS__))
-#define ML_16(f,a,...) f(a) ML_E(ML_15(f,__VA_ARGS__))
-#define ML_17(f,a,...) f(a) ML_E(ML_16(f,__VA_ARGS__))
-#define ML_18(f,a,...) f(a) ML_E(ML_17(f,__VA_ARGS__))
-#define ML_19(f,a,...) f(a) ML_E(ML_18(f,__VA_ARGS__))
-#define ML_20(f,a,...) f(a) ML_E(ML_19(f,__VA_ARGS__))
-#define ML_21(f,a,...) f(a) ML_E(ML_20(f,__VA_ARGS__))
-#define ML_22(f,a,...) f(a) ML_E(ML_21(f,__VA_ARGS__))
-#define ML_23(f,a,...) f(a) ML_E(ML_22(f,__VA_ARGS__))
-#define ML_24(f,a,...) f(a) ML_E(ML_23(f,__VA_ARGS__))
-#define ML_25(f,a,...) f(a) ML_E(ML_24(f,__VA_ARGS__))
-#define ML_26(f,a,...) f(a) ML_E(ML_25(f,__VA_ARGS__))
-#define ML_27(f,a,...) f(a) ML_E(ML_26(f,__VA_ARGS__))
-#define ML_28(f,a,...) f(a) ML_E(ML_27(f,__VA_ARGS__))
-#define ML_29(f,a,...) f(a) ML_E(ML_28(f,__VA_ARGS__))
-#define ML_30(f,a,...) f(a) ML_E(ML_29(f,__VA_ARGS__))
-#define ML_31(f,a,...) f(a) ML_E(ML_30(f,__VA_ARGS__))
-#define ML_32(f,a,...) f(a) ML_E(ML_31(f,__VA_ARGS__))
-#define ML_33(f,a,...) f(a) ML_E(ML_32(f,__VA_ARGS__))
-#define ML_34(f,a,...) f(a) ML_E(ML_33(f,__VA_ARGS__))
-#define ML_35(f,a,...) f(a) ML_E(ML_34(f,__VA_ARGS__))
-#define ML_36(f,a,...) f(a) ML_E(ML_35(f,__VA_ARGS__))
-#define ML_37(f,a,...) f(a) ML_E(ML_36(f,__VA_ARGS__))
-#define ML_38(f,a,...) f(a) ML_E(ML_37(f,__VA_ARGS__))
-#define ML_39(f,a,...) f(a) ML_E(ML_38(f,__VA_ARGS__))
-#define ML_40(f,a,...) f(a) ML_E(ML_39(f,__VA_ARGS__))
-#define ML_41(f,a,...) f(a) ML_E(ML_40(f,__VA_ARGS__))
-#define ML_42(f,a,...) f(a) ML_E(ML_41(f,__VA_ARGS__))
-#define ML_43(f,a,...) f(a) ML_E(ML_42(f,__VA_ARGS__))
-#define ML_44(f,a,...) f(a) ML_E(ML_43(f,__VA_ARGS__))
-#define ML_45(f,a,...) f(a) ML_E(ML_44(f,__VA_ARGS__))
-#define ML_46(f,a,...) f(a) ML_E(ML_45(f,__VA_ARGS__))
-#define ML_47(f,a,...) f(a) ML_E(ML_46(f,__VA_ARGS__))
-#define ML_48(f,a,...) f(a) ML_E(ML_47(f,__VA_ARGS__))
-#define ML_49(f,a,...) f(a) ML_E(ML_48(f,__VA_ARGS__))
-#define ML_50(f,a,...) f(a) ML_E(ML_49(f,__VA_ARGS__))
-#define ML_51(f,a,...) f(a) ML_E(ML_50(f,__VA_ARGS__))
-#define ML_52(f,a,...) f(a) ML_E(ML_51(f,__VA_ARGS__))
-#define ML_53(f,a,...) f(a) ML_E(ML_52(f,__VA_ARGS__))
-#define ML_54(f,a,...) f(a) ML_E(ML_53(f,__VA_ARGS__))
-#define ML_55(f,a,...) f(a) ML_E(ML_54(f,__VA_ARGS__))
-#define ML_56(f,a,...) f(a) ML_E(ML_55(f,__VA_ARGS__))
-#define ML_57(f,a,...) f(a) ML_E(ML_56(f,__VA_ARGS__))
-#define ML_58(f,a,...) f(a) ML_E(ML_57(f,__VA_ARGS__))
-#define ML_59(f,a,...) f(a) ML_E(ML_58(f,__VA_ARGS__))
-#define ML_60(f,a,...) f(a) ML_E(ML_59(f,__VA_ARGS__))
-#define ML_61(f,a,...) f(a) ML_E(ML_60(f,__VA_ARGS__))
-#define ML_62(f,a,...) f(a) ML_E(ML_61(f,__VA_ARGS__))
-
-/// MacroLoop_ForEachPair[2, 4, ..., ArgMax-ArgMax%2]
-#define ML_P2(f,a,b,...) f(a,b)
-#define ML_P4(f,a,b,...) f(a,b) ML_E(ML_P2(f,__VA_ARGS__))
-#define ML_P6(f,a,b,...) f(a,b) ML_E(ML_P4(f,__VA_ARGS__))
-#define ML_P8(f,a,b,...) f(a,b) ML_E(ML_P6(f,__VA_ARGS__))
-#define ML_P10(f,a,b,...) f(a,b) ML_E(ML_P8(f,__VA_ARGS__))
-#define ML_P12(f,a,b,...) f(a,b) ML_E(ML_P10(f,__VA_ARGS__))
-#define ML_P14(f,a,b,...) f(a,b) ML_E(ML_P12(f,__VA_ARGS__))
-#define ML_P16(f,a,b,...) f(a,b) ML_E(ML_P14(f,__VA_ARGS__))
-#define ML_P18(f,a,b,...) f(a,b) ML_E(ML_P16(f,__VA_ARGS__))
-#define ML_P20(f,a,b,...) f(a,b) ML_E(ML_P18(f,__VA_ARGS__))
-#define ML_P22(f,a,b,...) f(a,b) ML_E(ML_P20(f,__VA_ARGS__))
-#define ML_P24(f,a,b,...) f(a,b) ML_E(ML_P22(f,__VA_ARGS__))
-#define ML_P26(f,a,b,...) f(a,b) ML_E(ML_P24(f,__VA_ARGS__))
-#define ML_P28(f,a,b,...) f(a,b) ML_E(ML_P26(f,__VA_ARGS__))
-#define ML_P30(f,a,b,...) f(a,b) ML_E(ML_P28(f,__VA_ARGS__))
-#define ML_P32(f,a,b,...) f(a,b) ML_E(ML_P30(f,__VA_ARGS__))
-#define ML_P34(f,a,b,...) f(a,b) ML_E(ML_P32(f,__VA_ARGS__))
-#define ML_P36(f,a,b,...) f(a,b) ML_E(ML_P34(f,__VA_ARGS__))
-#define ML_P38(f,a,b,...) f(a,b) ML_E(ML_P36(f,__VA_ARGS__))
-#define ML_P40(f,a,b,...) f(a,b) ML_E(ML_P38(f,__VA_ARGS__))
-#define ML_P42(f,a,b,...) f(a,b) ML_E(ML_P40(f,__VA_ARGS__))
-#define ML_P44(f,a,b,...) f(a,b) ML_E(ML_P42(f,__VA_ARGS__))
-#define ML_P46(f,a,b,...) f(a,b) ML_E(ML_P44(f,__VA_ARGS__))
-#define ML_P48(f,a,b,...) f(a,b) ML_E(ML_P46(f,__VA_ARGS__))
-#define ML_P50(f,a,b,...) f(a,b) ML_E(ML_P48(f,__VA_ARGS__))
-#define ML_P52(f,a,b,...) f(a,b) ML_E(ML_P50(f,__VA_ARGS__))
-#define ML_P54(f,a,b,...) f(a,b) ML_E(ML_P52(f,__VA_ARGS__))
-#define ML_P56(f,a,b,...) f(a,b) ML_E(ML_P54(f,__VA_ARGS__))
-#define ML_P58(f,a,b,...) f(a,b) ML_E(ML_P56(f,__VA_ARGS__))
-#define ML_P60(f,a,b,...) f(a,b) ML_E(ML_P58(f,__VA_ARGS__))
-#define ML_P62(f,a,b,...) f(a,b) ML_E(ML_P60(f,__VA_ARGS__))
-
-/// MacroLoop_ForEachTriplet[3, 6, ..., ArgMax-ArgMax%3]
-#define ML_T3(f,a,b,c,...) f(a,b,c)
-#define ML_T6(f,a,b,c,...) f(a,b,c) ML_E(ML_T3(f,__VA_ARGS__))
-#define ML_T9(f,a,b,c,...) f(a,b,c) ML_E(ML_T6(f,__VA_ARGS__))
-#define ML_T12(f,a,b,c,...) f(a,b,c) ML_E(ML_T9(f,__VA_ARGS__))
-#define ML_T15(f,a,b,c,...) f(a,b,c) ML_E(ML_T12(f,__VA_ARGS__))
-#define ML_T18(f,a,b,c,...) f(a,b,c) ML_E(ML_T15(f,__VA_ARGS__))
-#define ML_T21(f,a,b,c,...) f(a,b,c) ML_E(ML_T18(f,__VA_ARGS__))
-#define ML_T24(f,a,b,c,...) f(a,b,c) ML_E(ML_T21(f,__VA_ARGS__))
-#define ML_T27(f,a,b,c,...) f(a,b,c) ML_E(ML_T24(f,__VA_ARGS__))
-#define ML_T30(f,a,b,c,...) f(a,b,c) ML_E(ML_T27(f,__VA_ARGS__))
-#define ML_T33(f,a,b,c,...) f(a,b,c) ML_E(ML_T30(f,__VA_ARGS__))
-#define ML_T36(f,a,b,c,...) f(a,b,c) ML_E(ML_T33(f,__VA_ARGS__))
-#define ML_T39(f,a,b,c,...) f(a,b,c) ML_E(ML_T36(f,__VA_ARGS__))
-#define ML_T42(f,a,b,c,...) f(a,b,c) ML_E(ML_T39(f,__VA_ARGS__))
-#define ML_T45(f,a,b,c,...) f(a,b,c) ML_E(ML_T42(f,__VA_ARGS__))
-#define ML_T48(f,a,b,c,...) f(a,b,c) ML_E(ML_T45(f,__VA_ARGS__))
-#define ML_T51(f,a,b,c,...) f(a,b,c) ML_E(ML_T48(f,__VA_ARGS__))
-#define ML_T54(f,a,b,c,...) f(a,b,c) ML_E(ML_T51(f,__VA_ARGS__))
-#define ML_T57(f,a,b,c,...) f(a,b,c) ML_E(ML_T54(f,__VA_ARGS__))
-#define ML_T60(f,a,b,c,...) f(a,b,c) ML_E(ML_T57(f,__VA_ARGS__))
+#define ML_2(f,a,...) f(a) EO_E(ML_1(f,__VA_ARGS__))
+#define ML_3(f,a,...) f(a) EO_E(ML_2(f,__VA_ARGS__))
+#define ML_4(f,a,...) f(a) EO_E(ML_3(f,__VA_ARGS__))
+#define ML_5(f,a,...) f(a) EO_E(ML_4(f,__VA_ARGS__))
+#define ML_6(f,a,...) f(a) EO_E(ML_5(f,__VA_ARGS__))
+#define ML_7(f,a,...) f(a) EO_E(ML_6(f,__VA_ARGS__))
+#define ML_8(f,a,...) f(a) EO_E(ML_7(f,__VA_ARGS__))
+#define ML_9(f,a,...) f(a) EO_E(ML_8(f,__VA_ARGS__))
+#define ML_10(f,a,...) f(a) EO_E(ML_9(f,__VA_ARGS__))
+#define ML_11(f,a,...) f(a) EO_E(ML_10(f,__VA_ARGS__))
+#define ML_12(f,a,...) f(a) EO_E(ML_11(f,__VA_ARGS__))
+#define ML_13(f,a,...) f(a) EO_E(ML_12(f,__VA_ARGS__))
+#define ML_14(f,a,...) f(a) EO_E(ML_13(f,__VA_ARGS__))
+#define ML_15(f,a,...) f(a) EO_E(ML_14(f,__VA_ARGS__))
+#define ML_16(f,a,...) f(a) EO_E(ML_15(f,__VA_ARGS__))
+#define ML_17(f,a,...) f(a) EO_E(ML_16(f,__VA_ARGS__))
+#define ML_18(f,a,...) f(a) EO_E(ML_17(f,__VA_ARGS__))
+#define ML_19(f,a,...) f(a) EO_E(ML_18(f,__VA_ARGS__))
+#define ML_20(f,a,...) f(a) EO_E(ML_19(f,__VA_ARGS__))
+#define ML_21(f,a,...) f(a) EO_E(ML_20(f,__VA_ARGS__))
+#define ML_22(f,a,...) f(a) EO_E(ML_21(f,__VA_ARGS__))
+#define ML_23(f,a,...) f(a) EO_E(ML_22(f,__VA_ARGS__))
+#define ML_24(f,a,...) f(a) EO_E(ML_23(f,__VA_ARGS__))
+#define ML_25(f,a,...) f(a) EO_E(ML_24(f,__VA_ARGS__))
+#define ML_26(f,a,...) f(a) EO_E(ML_25(f,__VA_ARGS__))
+#define ML_27(f,a,...) f(a) EO_E(ML_26(f,__VA_ARGS__))
+#define ML_28(f,a,...) f(a) EO_E(ML_27(f,__VA_ARGS__))
+#define ML_29(f,a,...) f(a) EO_E(ML_28(f,__VA_ARGS__))
+#define ML_30(f,a,...) f(a) EO_E(ML_29(f,__VA_ARGS__))
+#define ML_31(f,a,...) f(a) EO_E(ML_30(f,__VA_ARGS__))
+#define ML_32(f,a,...) f(a) EO_E(ML_31(f,__VA_ARGS__))
+#define ML_33(f,a,...) f(a) EO_E(ML_32(f,__VA_ARGS__))
+#define ML_34(f,a,...) f(a) EO_E(ML_33(f,__VA_ARGS__))
+#define ML_35(f,a,...) f(a) EO_E(ML_34(f,__VA_ARGS__))
+#define ML_36(f,a,...) f(a) EO_E(ML_35(f,__VA_ARGS__))
+#define ML_37(f,a,...) f(a) EO_E(ML_36(f,__VA_ARGS__))
+#define ML_38(f,a,...) f(a) EO_E(ML_37(f,__VA_ARGS__))
+#define ML_39(f,a,...) f(a) EO_E(ML_38(f,__VA_ARGS__))
+#define ML_40(f,a,...) f(a) EO_E(ML_39(f,__VA_ARGS__))
+#define ML_41(f,a,...) f(a) EO_E(ML_40(f,__VA_ARGS__))
+#define ML_42(f,a,...) f(a) EO_E(ML_41(f,__VA_ARGS__))
+#define ML_43(f,a,...) f(a) EO_E(ML_42(f,__VA_ARGS__))
+#define ML_44(f,a,...) f(a) EO_E(ML_43(f,__VA_ARGS__))
+#define ML_45(f,a,...) f(a) EO_E(ML_44(f,__VA_ARGS__))
+#define ML_46(f,a,...) f(a) EO_E(ML_45(f,__VA_ARGS__))
+#define ML_47(f,a,...) f(a) EO_E(ML_46(f,__VA_ARGS__))
+#define ML_48(f,a,...) f(a) EO_E(ML_47(f,__VA_ARGS__))
+#define ML_49(f,a,...) f(a) EO_E(ML_48(f,__VA_ARGS__))
+#define ML_50(f,a,...) f(a) EO_E(ML_49(f,__VA_ARGS__))
+#define ML_51(f,a,...) f(a) EO_E(ML_50(f,__VA_ARGS__))
+#define ML_52(f,a,...) f(a) EO_E(ML_51(f,__VA_ARGS__))
+#define ML_53(f,a,...) f(a) EO_E(ML_52(f,__VA_ARGS__))
+#define ML_54(f,a,...) f(a) EO_E(ML_53(f,__VA_ARGS__))
+#define ML_55(f,a,...) f(a) EO_E(ML_54(f,__VA_ARGS__))
+#define ML_56(f,a,...) f(a) EO_E(ML_55(f,__VA_ARGS__))
+#define ML_57(f,a,...) f(a) EO_E(ML_56(f,__VA_ARGS__))
+#define ML_58(f,a,...) f(a) EO_E(ML_57(f,__VA_ARGS__))
+#define ML_59(f,a,...) f(a) EO_E(ML_58(f,__VA_ARGS__))
+#define ML_60(f,a,...) f(a) EO_E(ML_59(f,__VA_ARGS__))
+#define ML_61(f,a,...) f(a) EO_E(ML_60(f,__VA_ARGS__))
+#define ML_62(f,a,...) f(a) EO_E(ML_61(f,__VA_ARGS__))
+#define ML_63(f,a,...) f(a) EO_E(ML_62(f,__VA_ARGS__))
+#define ML_64(f,a,...) f(a) EO_E(ML_63(f,__VA_ARGS__))
+#define ML_65(f,a,...) f(a) EO_E(ML_64(f,__VA_ARGS__))
+#define ML_66(f,a,...) f(a) EO_E(ML_65(f,__VA_ARGS__))
+#define ML_67(f,a,...) f(a) EO_E(ML_66(f,__VA_ARGS__))
+#define ML_68(f,a,...) f(a) EO_E(ML_67(f,__VA_ARGS__))
+#define ML_69(f,a,...) f(a) EO_E(ML_68(f,__VA_ARGS__))
+#define ML_70(f,a,...) f(a) EO_E(ML_69(f,__VA_ARGS__))
+#define ML_71(f,a,...) f(a) EO_E(ML_70(f,__VA_ARGS__))
+#define ML_72(f,a,...) f(a) EO_E(ML_71(f,__VA_ARGS__))
+#define ML_73(f,a,...) f(a) EO_E(ML_72(f,__VA_ARGS__))
+#define ML_74(f,a,...) f(a) EO_E(ML_73(f,__VA_ARGS__))
+#define ML_75(f,a,...) f(a) EO_E(ML_74(f,__VA_ARGS__))
+#define ML_76(f,a,...) f(a) EO_E(ML_75(f,__VA_ARGS__))
+#define ML_77(f,a,...) f(a) EO_E(ML_76(f,__VA_ARGS__))
+#define ML_78(f,a,...) f(a) EO_E(ML_77(f,__VA_ARGS__))
+#define ML_79(f,a,...) f(a) EO_E(ML_78(f,__VA_ARGS__))
+#define ML_80(f,a,...) f(a) EO_E(ML_79(f,__VA_ARGS__))
+#define ML_81(f,a,...) f(a) EO_E(ML_80(f,__VA_ARGS__))
+#define ML_82(f,a,...) f(a) EO_E(ML_81(f,__VA_ARGS__))
+#define ML_83(f,a,...) f(a) EO_E(ML_82(f,__VA_ARGS__))
+#define ML_84(f,a,...) f(a) EO_E(ML_83(f,__VA_ARGS__))
+#define ML_85(f,a,...) f(a) EO_E(ML_84(f,__VA_ARGS__))
+#define ML_86(f,a,...) f(a) EO_E(ML_85(f,__VA_ARGS__))
+#define ML_87(f,a,...) f(a) EO_E(ML_86(f,__VA_ARGS__))
+#define ML_88(f,a,...) f(a) EO_E(ML_87(f,__VA_ARGS__))
+#define ML_89(f,a,...) f(a) EO_E(ML_88(f,__VA_ARGS__))
+#define ML_90(f,a,...) f(a) EO_E(ML_89(f,__VA_ARGS__))
+#define ML_91(f,a,...) f(a) EO_E(ML_90(f,__VA_ARGS__))
+#define ML_92(f,a,...) f(a) EO_E(ML_91(f,__VA_ARGS__))
+#define ML_93(f,a,...) f(a) EO_E(ML_92(f,__VA_ARGS__))
+#define ML_94(f,a,...) f(a) EO_E(ML_93(f,__VA_ARGS__))
+#define ML_95(f,a,...) f(a) EO_E(ML_94(f,__VA_ARGS__))
+#define ML_96(f,a,...) f(a) EO_E(ML_95(f,__VA_ARGS__))
+#define ML_97(f,a,...) f(a) EO_E(ML_96(f,__VA_ARGS__))
+#define ML_98(f,a,...) f(a) EO_E(ML_97(f,__VA_ARGS__))
+#define ML_99(f,a,...) f(a) EO_E(ML_98(f,__VA_ARGS__))
+#define ML_100(f,a,...) f(a) EO_E(ML_99(f,__VA_ARGS__))
+#define ML_101(f,a,...) f(a) EO_E(ML_100(f,__VA_ARGS__))
+#define ML_102(f,a,...) f(a) EO_E(ML_101(f,__VA_ARGS__))
+#define ML_103(f,a,...) f(a) EO_E(ML_102(f,__VA_ARGS__))
+#define ML_104(f,a,...) f(a) EO_E(ML_103(f,__VA_ARGS__))
+#define ML_105(f,a,...) f(a) EO_E(ML_104(f,__VA_ARGS__))
+#define ML_106(f,a,...) f(a) EO_E(ML_105(f,__VA_ARGS__))
+#define ML_107(f,a,...) f(a) EO_E(ML_106(f,__VA_ARGS__))
+#define ML_108(f,a,...) f(a) EO_E(ML_107(f,__VA_ARGS__))
+#define ML_109(f,a,...) f(a) EO_E(ML_108(f,__VA_ARGS__))
+#define ML_110(f,a,...) f(a) EO_E(ML_109(f,__VA_ARGS__))
+#define ML_111(f,a,...) f(a) EO_E(ML_110(f,__VA_ARGS__))
+#define ML_112(f,a,...) f(a) EO_E(ML_111(f,__VA_ARGS__))
+#define ML_113(f,a,...) f(a) EO_E(ML_112(f,__VA_ARGS__))
+#define ML_114(f,a,...) f(a) EO_E(ML_113(f,__VA_ARGS__))
+#define ML_115(f,a,...) f(a) EO_E(ML_114(f,__VA_ARGS__))
+#define ML_116(f,a,...) f(a) EO_E(ML_115(f,__VA_ARGS__))
+#define ML_117(f,a,...) f(a) EO_E(ML_116(f,__VA_ARGS__))
+#define ML_118(f,a,...) f(a) EO_E(ML_117(f,__VA_ARGS__))
+#define ML_119(f,a,...) f(a) EO_E(ML_118(f,__VA_ARGS__))
+#define ML_120(f,a,...) f(a) EO_E(ML_119(f,__VA_ARGS__))
+#define ML_121(f,a,...) f(a) EO_E(ML_120(f,__VA_ARGS__))
+#define ML_122(f,a,...) f(a) EO_E(ML_121(f,__VA_ARGS__))
+#define ML_123(f,a,...) f(a) EO_E(ML_122(f,__VA_ARGS__))
+#define ML_124(f,a,...) f(a) EO_E(ML_123(f,__VA_ARGS__))
+#define ML_125(f,a,...) f(a) EO_E(ML_124(f,__VA_ARGS__))
 
 /// MacroLoop_ArgumentCounts [ArgMax ... 0]
-#define ML_G() 62,61,60,59,58,57,56,55,54,53,52,51,50,49,48,47,46,45,44,43,42,41,40,39,38,37,36,35,34,33,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0
+#define ML_G() 125,124,123,122,121,120,119,118,117,116,115,114,113,112,111,110,109,108,107,106,105,104,103,102,101,100,99,98,97,96,\
+95,94,93,92,91,90,89,88,87,86,85,84,83,82,81,80,79,78,77,76,75,74,73,72,71,70,69,68,67,66,65,64,63,62,61,60,59,58,57,56,55,54,53,52,51,50,49,48,\
+47,46,45,44,43,42,41,40,39,38,37,36,35,34,33,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0
 
 /// MacroLoop_Select_Argument_At_Argument_Max [a0, ..., a(ArgMax-1), argAtArgMax]
-#define ML_M(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z,a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,b0,b1,b2,b3,b4,b5,b6,b7,b8,b9,c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,d0,d1,d2,d3,d4,d5,argAtArgMax,...) argAtArgMax
+#define ML_M(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z,\
+a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,b0,b1,b2,b3,b4,b5,b6,b7,b8,b9,c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,d0,d1,d2,d3,d4,d5,d6,d7,d8,d9,e0,e1,e2,e3,e4,e5,e6,e7,e8,e9,\
+f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,g0,g1,g2,g3,g4,g5,g6,g7,g8,g9,h0,h1,h2,h3,h4,h5,h6,h7,h8,h9,i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtArgMax
 
 /// MacroLoop_Expand_Select_Argument_At_Argument_Max (necessary due to bugs in VS macro handling)
-#define ML_S(...) ML_E(ML_M(__VA_ARGS__))
+#define ML_S(...) EO_E(ML_M(__VA_ARGS__))
 
-/// MacroLoop_ForEach_[(Singular), Pair, Triplet, Quartet]N
-#define ML_N(N,f,...) ML_E(ML_C(ML_,N)(f,__VA_ARGS__))
-#define ML_PN(N,f,...) ML_E(ML_C(ML_P,N)(f,__VA_ARGS__))
-#define ML_TN(N,f,...) ML_E(ML_C(ML_T,N)(f,__VA_ARGS__))
+/// MacroLoop_ForEach_N
+#define ML_N(N,f,...) EO_E(EO_C(ML_,N)(f,__VA_ARGS__))
 
 /// Selects the count of varadic arguments
 #define COUNT_ARGUMENTS(...) ML_S(__VA_ARGS__,ML_G())
 
 /// Call "f" for each argument
 #define FOR_EACH(f,...) ML_N(COUNT_ARGUMENTS(__VA_ARGS__),f,__VA_ARGS__)
-#define FOR_EACH_PAIR(f,...) ML_PN(COUNT_ARGUMENTS(__VA_ARGS__),f,__VA_ARGS__)
-#define FOR_EACH_TRIPLET(f,...) ML_TN(COUNT_ARGUMENTS(__VA_ARGS__),f,__VA_ARGS__)
+
+// If x takes the form "(LHS) RHS", then this macro returns LHS
+#define LHS(x) EO_G((EO_E EO_W x))
+
+// If x takes the form "(LHS) RHS", then this macro returns RHS
+#define RHS(x) EO_B x
 
 };
 
-/// ConditionalCall uses the template parameter "isCallable" partial template specialization to prevent compile-time generation of inappropriate calls (e.g. array access on non-array fields)
-template <bool isCallable, typename Function> class ConditionalCall;
+/// Contains methods required for manipulating strings at compile time
+namespace ConstexprStr
+{
+    template <size_t N> struct substr {
+        constexpr substr(const char* s) : value() {
+            for ( size_t i = 0; i < N; i++ )
+                value[i] = s[i];
 
-/// Calls function(parameter)
-template <typename Function> class ConditionalCall<true, Function> { public:
-    /// Calls function(0), at least one parameter (0) is neccessary to prevent generation of cases that did not meet the condition
-    constexpr static void call(Function function) { function(0); }
+            value[N] = '\0';
+        }
+        char value[N + 1];
+    };
+
+    template <size_t N> constexpr size_t length_between(const char(&s)[N], const char openChar, const char closeChar)
+    {
+        size_t openPos = 0, closePos = 0;
+        for ( ; openPos < N && s[openPos] != openChar ; openPos++ );
+        for ( closePos = N-1; closePos > openPos && s[closePos] != closeChar; closePos-- );
+        return openPos == N || closePos == openPos ? 0 : closePos - openPos - 1;
+    }
+
+    template <size_t N> constexpr size_t length_after_last(const char(&s)[N], const char character)
+    {
+        size_t pos = N-1;
+        for ( ; pos < N && s[pos] != character; pos-- );
+        return pos > N ? 0 : N-pos-2;
+    }
+
+    template <size_t N> constexpr size_t find(const char(&s)[N], const char character)
+    {
+        size_t pos = 0;
+        for ( ; pos < N && s[pos] != character; pos++ );
+        return pos;
+    }
+
+    template <size_t N> constexpr size_t find_last_of(const char(&s)[N], const char character)
+    {
+        size_t pos = N-1;
+        for ( ; pos < N && s[pos] != character; pos-- );
+        return pos;
+    }
 };
 
-/// Does nothing
-template <typename Function> class ConditionalCall<false, Function> { public:
+/// Contains classes used in Reflect but not meant to be directly referenced outside Reflect
+namespace ReflectSupport
+{
+    /// ConditionalCall uses the template parameter "isCallable" and partial template specialization
+    /// to avoid compile-time generation of bad code (e.g. array access on non-array fields)
+    template <bool isCallable, typename Function> class ConditionalCall;
+
+    /// Calls function(0)
+    template <typename Function> class ConditionalCall<true, Function> { public:
+        /// Calls function(0), at least one parameter (0) is neccessary to prevent generation of cases that did not meet the condition
+        constexpr static void call(Function function) { function(0); }
+    };
+
     /// Does nothing
-    constexpr static void call(Function function) {}
+    template <typename Function> class ConditionalCall<false, Function> { public:
+        /// Does nothing
+        constexpr static void call(Function function) {}
+    };
+
+    template <bool templated, bool fieldIsReflected, bool fieldIsArray, typename T>
+    class Field;
+
+    template <bool fieldIsReflected, bool fieldIsArray, typename T>
+    class Field<true, fieldIsReflected, fieldIsArray, T> {
+    public:
+        size_t fieldIndex;
+        const char* fieldName;
+        const char* fieldType;
+        size_t arraySize;
+        bool isArray;
+        bool isFieldTypeReflected;
+    
+        typedef T type;
+
+        /// Lambda guards: the call to function will only be generated by the compiler if the type fits the guard category
+        template <typename Function> static constexpr void IfPrimitive(Function function) { ConditionalCall<!fieldIsReflected && !fieldIsArray, Function>::call(function); }
+        template <typename Function> static constexpr void IfPrimitiveArray(Function function) { ConditionalCall<!fieldIsReflected && fieldIsArray, Function>::call(function); }
+        template <typename Function> static constexpr void IfObject(Function function) { ConditionalCall<fieldIsReflected && !fieldIsArray, Function>::call(function); }
+        template <typename Function> static constexpr void IfObjectArray(Function function) { ConditionalCall<fieldIsReflected && fieldIsArray, Function>::call(function); }
+    };
+
+    template <typename T>
+    class Field<false, false, false, T> {
+    public:
+        size_t fieldIndex;
+        const char* fieldName;
+        const char* fieldType;
+        size_t arraySize;
+        bool isArray;
+        bool isFieldTypeReflected;
+    };
 };
 
-template <bool templated, bool fieldIsReflected, bool fieldIsArray, typename T>
-class Field;
-
-template <bool fieldIsReflected, bool fieldIsArray, typename T>
-class Field<true, fieldIsReflected, fieldIsArray, T> {
-public:
-    typedef T type;
-    size_t fieldIndex;
-    const char* fieldName;
-    const char* fieldType;
-    size_t arraySize;
-    bool isArray;
-    bool isFieldTypeReflected;
-
-    /// Lambda guards: the call to function will only be generated by the compiler 
-    template <typename Function> static constexpr void IfPrimitive(Function function) { ConditionalCall<!fieldIsReflected && !fieldIsArray, Function>::call(function); }
-    template <typename Function> static constexpr void IfPrimitiveArray(Function function) { ConditionalCall<!fieldIsReflected && fieldIsArray, Function>::call(function); }
-    template <typename Function> static constexpr void IfObject(Function function) { ConditionalCall<fieldIsReflected && !fieldIsArray, Function>::call(function); }
-    template <typename Function> static constexpr void IfObjectArray(Function function) { ConditionalCall<fieldIsReflected && fieldIsArray, Function>::call(function); }
-};
-
-template <typename T>
-class Field<false, false, false, typename T> {
-public:
-    typedef T type;
-    size_t fieldIndex;
-    const char* fieldName;
-    const char* fieldType;
-    size_t arraySize;
-    bool isArray;
-    bool isFieldTypeReflected;
-};
-
+/// Contains the various type classes for declaring reflected fields and the definition for the REFLECT macro and non-generic supporting macros
 namespace Reflect
 {
-#define EXPAND(x) x
-/// B "basic-type": must be used for any type which already has an acceptable representation when streamed
-#define B(type, name) type, name, false
-/// R "reflected-type": must be used for any object which in turn relies on reflection to be streamed
-#define R(type, name) type, name, true
+    /// B "basic-type": must be used for any type which already has an acceptable representation when streamed
+    template <typename T> struct B {
+        static constexpr bool reflected = false;
+        using type = typename T;
+    };
+    
+    /// R "reflected-type": must be used for any object which in turn relies on reflection to be streamed
+    template <typename T> struct R {
+        static constexpr bool reflected = true;
+        using type = typename T;
+    };
 
-#define GET_FIELD_NAME(ignored1, fieldName, ignored2) fieldName,
-#define GET_FIELD(fieldType, fieldName, isReflected) { IndexOf::fieldName, #fieldName, #fieldType, std::extent<fieldType>::value, std::is_array<fieldType>::value, isReflected },
-#define DESCRIBE_FIELD(fieldType, fieldName, isReflected) static constexpr Field<true, isReflected, std::is_array<fieldType>::value, fieldType> f_ ## fieldName = \
-    { IndexOf::fieldName, #fieldName, #fieldType, std::extent<fieldType>::value, std::is_array<fieldType>::value, isReflected };
-#define USE_FIELD(fieldType, fieldName, isReflected) function(f_ ## fieldName, object.fieldName);
-#define USE_FIELD_AT(fieldType, fieldName, isReflected) case IndexOf::fieldName: function(f_ ## fieldName, object.fieldName); break;
+#define GET_FIELD_NAME(x) RHS(x),
+#define DESCRIBE_FIELD(x) struct RHS(x) { \
+    static constexpr auto typeStr = ConstexprStr::substr<ConstexprStr::length_between(#x, '<', '>')>(#x+ConstexprStr::find(#x, '<')+1); \
+    static constexpr auto nameStr = ConstexprStr::substr<ConstexprStr::length_after_last(#x, ' ')>(#x+ConstexprStr::find_last_of(#x, ' ')+1); \
+    static constexpr ReflectSupport::Field<true, LHS(x)::reflected, std::is_array<LHS(x)::type>::value, LHS(x)::type> field = \
+    { IndexOf::RHS(x), &nameStr.value[0], &typeStr.value[0], std::extent<LHS(x)::type>::value, std::is_array<LHS(x)::type>::value, LHS(x)::reflected }; \
+};
+#define GET_FIELD(x) \
+    { IndexOf::RHS(x), &RHS(x)::nameStr.value[0], &RHS(x)::typeStr.value[0], std::extent<LHS(x)::type>::value, std::is_array<LHS(x)::type>::value, LHS(x)::reflected },
+#define USE_FIELD(x) function(RHS(x)::field, object.RHS(x));
+#define USE_FIELD_AT(x) case IndexOf::RHS(x): function(RHS(x)::field, object.RHS(x)); break;
 
-/// One or more sets of (type, name, isReflected) must follow objectType, usually this is done by placing a couple B(...) and R(...)
+/// After the objectType there needs to be at least 1 and at most 123 fields, in the form "(B<type>) fieldName" or "(R<type>) fieldName"
+/// e.g. REFLECT(myObj, (B<int>) myInt, (B<std::string>) myString)
 #define REFLECT(objectType, ...) \
 class Class { public: \
-    static constexpr size_t totalFields = COUNT_ARGUMENTS(__VA_ARGS__)/3; \
-    enum_t(IndexOf, size_t, { FOR_EACH_TRIPLET(GET_FIELD_NAME, __VA_ARGS__) }); \
-    FOR_EACH_TRIPLET(DESCRIBE_FIELD, __VA_ARGS__) \
-    static constexpr Field<false, false, false, void> fields[totalFields] = { FOR_EACH_TRIPLET(GET_FIELD, __VA_ARGS__) }; \
-    template <typename Function> static void ForEachField(objectType & object, Function function) { FOR_EACH_TRIPLET(USE_FIELD, __VA_ARGS__) } \
-    template <typename Function> static void FieldAt(objectType & object, size_t fieldIndex, Function function) { switch ( fieldIndex ) { FOR_EACH_TRIPLET(USE_FIELD_AT, __VA_ARGS__) } } \
+    static constexpr size_t totalFields = COUNT_ARGUMENTS(__VA_ARGS__); \
+    enum_t(IndexOf, size_t, { FOR_EACH(GET_FIELD_NAME, __VA_ARGS__) }); \
+    FOR_EACH(DESCRIBE_FIELD, __VA_ARGS__) \
+    static constexpr ReflectSupport::Field<false, false, false, void> fields[totalFields] = { FOR_EACH(GET_FIELD, __VA_ARGS__) }; \
+    template <typename Function> static void ForEachField(objectType & object, Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
+    template <typename Function> static void FieldAt(objectType & object, size_t fieldIndex, Function function) { \
+        switch ( fieldIndex ) { FOR_EACH(USE_FIELD_AT, __VA_ARGS__) } } \
 };
 
 }

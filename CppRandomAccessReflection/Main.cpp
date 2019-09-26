@@ -1,10 +1,15 @@
 #include <iostream>
-#include <vector>
 #include "Json.h"
+#include <tuple>
+#include <typeinfo>
+#include <algorithm>
+
+using namespace Reflect;
+using u8 = uint8_t;
 
 class FuelTank {
 public:
-    FuelTank() {}
+    FuelTank() : capacity(0.0f), currentLevel(0.0f) { tickMarks[0] = 0.0f; tickMarks[1] = 0.0f; }
     FuelTank(float capacity, float currentLevel, float tickMarkOne, float tickMarkTwo) : capacity(capacity), currentLevel(currentLevel)
     {
         tickMarks[0] = tickMarkOne;
@@ -15,29 +20,29 @@ public:
     float currentLevel;
     float tickMarks[2];
 
-    REFLECT(FuelTank, B(float, capacity), B(float, currentLevel), B(float[2], tickMarks))
+    REFLECT(FuelTank, (B<float>) capacity, (B<float>) currentLevel, (B<float[2]>) tickMarks)
 };
 
 class Wheel {
 public:
-    enum Rim : unsigned int {
+    enum_t(Rim, short, {
         Regular = 0,
         Spinner = 1
-    };
+    })
 
-    Wheel() {}
+    Wheel() : rim(Rim::Regular), size(0), pressure(0.0f) {}
     Wheel(Rim rim, int size, float pressure) : rim(rim), size(size), pressure(pressure) {}
 
     Rim rim;
     int size;
     float pressure;
 
-    REFLECT(Wheel, B(Rim, rim), B(int, size), B(float, pressure))
+    REFLECT(Wheel, (B<Rim>) rim, (B<int>) size, (B<float>) pressure)
 };
 
 class Car {
 public:
-    Car() {}
+    Car() : milesPerGallon(0.0f) {}
     Car(Wheel frontLeft, Wheel frontRight, Wheel backLeft, Wheel backRight, const std::string &driver, const std::string &passenger, const FuelTank &fuelTank, float milesPerGallon)
         : fuelTank(fuelTank), milesPerGallon(milesPerGallon)
     {
@@ -54,11 +59,52 @@ public:
     FuelTank fuelTank;
     float milesPerGallon;
     
-    REFLECT(Car, R(Wheel[4], wheels), B(std::string[2], occupants), R(FuelTank, fuelTank), B(float, milesPerGallon))
+    REFLECT(Car, (R<Wheel[4]>) wheels, (B<std::string[2]>) occupants, (R<FuelTank>) fuelTank, (B<float>) milesPerGallon)
+};
+
+class MassiveObject {
+public:
+    u8 f001; u8 f002; u8 f003; u8 f004; u8 f005; u8 f006; u8 f007; u8 f008; u8 f009; u8 f010; u8 f011; u8 f012; u8 f013; u8 f014; u8 f015; u8 f016;
+    u8 f017; u8 f018; u8 f019; u8 f020; u8 f021; u8 f022; u8 f023; u8 f024; u8 f025; u8 f026; u8 f027; u8 f028; u8 f029; u8 f030; u8 f031; u8 f032;
+    u8 f033; u8 f034; u8 f035; u8 f036; u8 f037; u8 f038; u8 f039; u8 f040; u8 f041; u8 f042; u8 f043; u8 f044; u8 f045; u8 f046; u8 f047; u8 f048;
+    u8 f049; u8 f050; u8 f051; u8 f052; u8 f053; u8 f054; u8 f055; u8 f056; u8 f057; u8 f058; u8 f059; u8 f060; u8 f061; u8 f062; u8 f063; u8 f064;
+    u8 f065; u8 f066; u8 f067; u8 f068; u8 f069; u8 f070; u8 f071; u8 f072; u8 f073; u8 f074; u8 f075; u8 f076; u8 f077; u8 f078; u8 f079; u8 f080;
+    u8 f081; u8 f082; u8 f083; u8 f084; u8 f085; u8 f086; u8 f087; u8 f088; u8 f089; u8 f090; u8 f091; u8 f092; u8 f093; u8 f094; u8 f095; u8 f096;
+    u8 f097; u8 f098; u8 f099; u8 f100; u8 f101; u8 f102; u8 f103; u8 f104; u8 f105; u8 f106; u8 f107; u8 f108; u8 f109; u8 f110; u8 f111; u8 f112;
+    u8 f113; u8 f114; u8 f115; u8 f116; u8 f117; u8 f118; u8 f119; u8 f120; u8 f121; u8 f122; u8 f123; u8 f124;
+
+    REFLECT(MassiveObject,
+        (B<u8>) f001, (B<u8>) f002, (B<u8>) f003, (B<u8>) f004, (B<u8>) f005, (B<u8>) f006, (B<u8>) f007, (B<u8>) f008,
+        (B<u8>) f009, (B<u8>) f010, (B<u8>) f011, (B<u8>) f012, (B<u8>) f013, (B<u8>) f014, (B<u8>) f015, (B<u8>) f016,
+        (B<u8>) f017, (B<u8>) f018, (B<u8>) f019, (B<u8>) f020, (B<u8>) f021, (B<u8>) f022, (B<u8>) f023, (B<u8>) f024,
+        (B<u8>) f025, (B<u8>) f026, (B<u8>) f027, (B<u8>) f028, (B<u8>) f029, (B<u8>) f030, (B<u8>) f031, (B<u8>) f032,
+        (B<u8>) f033, (B<u8>) f034, (B<u8>) f035, (B<u8>) f036, (B<u8>) f037, (B<u8>) f038, (B<u8>) f039, (B<u8>) f040,
+        (B<u8>) f041, (B<u8>) f042, (B<u8>) f043, (B<u8>) f044, (B<u8>) f045, (B<u8>) f046, (B<u8>) f047, (B<u8>) f048,
+        (B<u8>) f049, (B<u8>) f050, (B<u8>) f051, (B<u8>) f052, (B<u8>) f053, (B<u8>) f054, (B<u8>) f055, (B<u8>) f056,
+        (B<u8>) f057, (B<u8>) f058, (B<u8>) f059, (B<u8>) f060, (B<u8>) f061, (B<u8>) f062, (B<u8>) f063, (B<u8>) f064,
+        (B<u8>) f065, (B<u8>) f066, (B<u8>) f067, (B<u8>) f068, (B<u8>) f069, (B<u8>) f070, (B<u8>) f071, (B<u8>) f072,
+        (B<u8>) f073, (B<u8>) f074, (B<u8>) f075, (B<u8>) f076, (B<u8>) f077, (B<u8>) f078, (B<u8>) f079, (B<u8>) f080,
+        (B<u8>) f081, (B<u8>) f082, (B<u8>) f083, (B<u8>) f084, (B<u8>) f085, (B<u8>) f086, (B<u8>) f087, (B<u8>) f088,
+        (B<u8>) f089, (B<u8>) f090, (B<u8>) f091, (B<u8>) f092, (B<u8>) f093, (B<u8>) f094, (B<u8>) f095, (B<u8>) f096,
+        (B<u8>) f097, (B<u8>) f098, (B<u8>) f099, (B<u8>) f100, (B<u8>) f101, (B<u8>) f102, (B<u8>) f103, (B<u8>) f104,
+        (B<u8>) f105, (B<u8>) f106, (B<u8>) f107, (B<u8>) f108, (B<u8>) f109, (B<u8>) f110, (B<u8>) f111, (B<u8>) f112,
+        (B<u8>) f113, (B<u8>) f114, (B<u8>) f115, (B<u8>) f116, (B<u8>) f117, (B<u8>) f118, (B<u8>) f119, (B<u8>) f120,
+        (B<u8>) f121, (B<u8>) f122, (B<u8>) f123
+        //,(B<u8>) f124 // This will cause an error "C1009 - compiler limit: macros nested too deeply"
+    )
 };
 
 int main()
 {
+    for ( size_t i=1; i<=MassiveObject::Class::totalFields; i++ )
+    {
+        std::cout << MassiveObject::Class::fields[i-1].fieldName;
+        if ( i % 16 == 0 || i == MassiveObject::Class::totalFields )
+            std::cout << std::endl;
+        else
+            std::cout << ", ";
+    }
+
     std::string driver = "Fred";
     std::string passenger = "Bob";
     FuelTank fuelTank(15.0f, 14.6f, 1.0f, 7.5f);
@@ -105,8 +151,6 @@ int main()
     });
 
     std::cout << Json::out(car) << std::endl;
-
-    //std::cout << Json::out(car) << std::endl;
 
     std::cout << std::endl << "Press any key to exit." << std::endl;
     std::cin.clear();
