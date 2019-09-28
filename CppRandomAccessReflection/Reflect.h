@@ -1,5 +1,14 @@
 #ifndef REFLECT_H
 #define REFLECT_H
+#include <array>
+#include <vector>
+#include <deque>
+#include <forward_list>
+#include <list>
+#include <set>
+#include <map>
+#include <unordered_set>
+#include <unordered_map>
 
 #ifndef enum_t
 /// enum_t "enum type (scoped)" assumes the property of enum classes that encloses the enum values within a particular scope
@@ -174,9 +183,9 @@ namespace ExtractorsAndMacroLoops
 47,46,45,44,43,42,41,40,39,38,37,36,35,34,33,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0
 
 /// MacroLoop_Select_Argument_At_Argument_Max [a0, ..., a(ArgMax-1), argAtArgMax]
-#define ML_M(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z,\
-a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,b0,b1,b2,b3,b4,b5,b6,b7,b8,b9,c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,d0,d1,d2,d3,d4,d5,d6,d7,d8,d9,e0,e1,e2,e3,e4,e5,e6,e7,e8,e9,\
-f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,g0,g1,g2,g3,g4,g5,g6,g7,g8,g9,h0,h1,h2,h3,h4,h5,h6,h7,h8,h9,i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtArgMax
+#define ML_M(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z,a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,b0,b1,b2,b3,b4,b5,b6,b7,b8,b9,c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,\
+d0,d1,d2,d3,d4,d5,d6,d7,d8,d9,e0,e1,e2,e3,e4,e5,e6,e7,e8,e9,f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,g0,g1,g2,g3,g4,g5,g6,g7,g8,g9,h0,h1,h2,h3,h4,h5,h6,h7,h8,h9,\
+i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtArgMax
 
 /// MacroLoop_Expand_Select_Argument_At_Argument_Max (necessary due to bugs in VS macro handling)
 #define ML_S(...) EO_E(ML_M(__VA_ARGS__))
@@ -241,9 +250,81 @@ namespace ConstexprStr
     }
 };
 
-/// Contains classes used in Reflect but not meant to be directly referenced outside Reflect
-namespace ReflectSupport
+/// "ReflectionSupport" Contains classes used in Reflect but not meant to be directly referenced outside Reflect
+namespace RfS
 {
+    template <typename T>
+    struct is_pointable { static constexpr bool value = std::is_pointer<T>::value; };
+    template <typename T>
+    struct is_pointable<std::shared_ptr<T>> { static constexpr bool value = true; };
+    template <typename T>
+    struct is_pointable<std::unique_ptr<T>> { static constexpr bool value = true; };
+
+    template <typename T> struct is_iterable { static constexpr bool value = false; };
+    template <typename T, size_t N> struct is_iterable<std::array<T, N>> { static constexpr bool value = true; };
+    template <typename T, typename A> struct is_iterable<std::vector<T, A>> { static constexpr bool value = true; };
+    template <typename T, typename A> struct is_iterable<std::deque<T, A>> { static constexpr bool value = true; };
+    template <typename T, typename A> struct is_iterable<std::forward_list<T, A>> { static constexpr bool value = true; };
+    template <typename K, typename C, typename A> struct is_iterable<std::set<K, C, A>> { static constexpr bool value = true; };
+    template <typename K, typename C, typename A> struct is_iterable<std::multiset<K, C, A>> { static constexpr bool value = true; };
+    template <typename K, typename T, typename C, typename A> struct is_iterable<std::map<K, T, C, A>> { static constexpr bool value = true; };
+    template <typename K, typename T, typename C, typename A> struct is_iterable<std::multimap<K, T, C, A>> { static constexpr bool value = true; };
+    template <typename K, typename H, typename E, typename A> struct is_iterable<std::unordered_set<K, H, E, A>> { static constexpr bool value = true; };
+    template <typename K, typename H, typename E, typename A> struct is_iterable<std::unordered_multiset<K, H, E, A>> { static constexpr bool value = true; };
+    template <typename K, typename T, typename H, typename E, typename A> struct is_iterable<std::unordered_map<K, T, H, E, A>>
+    { static constexpr bool value = true; };
+    template <typename K, typename T, typename H, typename E, typename A> struct is_iterable<std::unordered_multimap<K, T, H, E, A>>
+    { static constexpr bool value = true; };
+    
+    template <typename T> struct contains_pointables { static constexpr bool value = false; };
+    template <typename T, size_t N> struct contains_pointables<T(&)[N]> { static constexpr bool value = is_pointable<T>::value; };
+    template <typename T, size_t N> struct contains_pointables<std::array<T, N>> { static constexpr bool value = is_pointable<T>::value; };
+    template <typename T, typename A> struct contains_pointables<std::vector<T, A>> { static constexpr bool value = is_pointable<T>::value; };
+    template <typename T, typename A> struct contains_pointables<std::deque<T, A>> { static constexpr bool value = is_pointable<T>::value; };
+    template <typename T, typename A> struct contains_pointables<std::forward_list<T, A>> { static constexpr bool value = is_pointable<T>::value; };
+    template <typename K, typename C, typename A> struct contains_pointables<std::set<K, C, A>> { static constexpr bool value = is_pointable<K>::value; };
+    template <typename K, typename C, typename A> struct contains_pointables<std::multiset<K, C, A>> { static constexpr bool value = is_pointable<K>::value; };
+    template <typename K, typename T, typename C, typename A> struct contains_pointables<std::map<K, T, C, A>>
+    { static constexpr bool value = is_pointable<T>::value; };
+    template <typename K, typename T, typename C, typename A> struct contains_pointables<std::multimap<K, T, C, A>>
+    { static constexpr bool value = is_pointable<T>::value; };
+    template <typename K, typename H, typename E, typename A> struct contains_pointables<std::unordered_set<K, H, E, A>>
+    { static constexpr bool value = is_pointable<K>::value; };
+    template <typename K, typename H, typename E, typename A> struct contains_pointables<std::unordered_multiset<K, H, E, A>>
+    { static constexpr bool value = is_pointable<K>::value; };
+    template <typename K, typename T, typename H, typename E, typename A> struct contains_pointables<std::unordered_map<K, T, H, E, A>>
+    { static constexpr bool value = is_pointable<T>::value; };
+    template <typename K, typename T, typename H, typename E, typename A> struct contains_pointables<std::unordered_multimap<K, T, H, E, A>>
+    { static constexpr bool value = is_pointable<T>::value; };
+    
+    template <typename T> struct contains_pairs { static constexpr bool value = false; };
+    template <typename L, typename R, size_t N>
+    struct contains_pairs<std::array<std::pair<L, R>, N>> { static constexpr bool value = true; };
+    template <typename L, typename R, typename A>
+    struct contains_pairs<std::vector<std::pair<L, R>, A>> { static constexpr bool value = true; };
+    template <typename L, typename R, typename A>
+    struct contains_pairs<std::deque<std::pair<L, R>, A>> { static constexpr bool value = true; };
+    template <typename L, typename R, typename A>
+    struct contains_pairs<std::forward_list<std::pair<L, R>, A>> { static constexpr bool value = true; };
+    template <typename L, typename R, typename C, typename A>
+    struct contains_pairs<std::set<std::pair<L, R>, C, A>> { static constexpr bool value = true; };
+    template <typename L, typename R, typename C, typename A>
+    struct contains_pairs<std::multiset<std::pair<L, R>, C, A>> { static constexpr bool value = true; };
+    template <typename L, typename R, typename H, typename E, typename A>
+    struct contains_pairs<std::unordered_set<std::pair<L, R>, H, E, A>> { static constexpr bool value = true; };
+    template <typename L, typename R, typename H, typename E, typename A>
+    struct contains_pairs<std::unordered_multiset<std::pair<L, R>, H, E, A>> { static constexpr bool value = true; };
+
+    // Maps are always formed using pairs
+    template <typename K, typename T, typename H, typename E, typename A>
+    struct contains_pairs<std::unordered_map<K, T, H, E, A>> { static constexpr bool value = true; };
+    template <typename K, typename T, typename H, typename E, typename A>
+    struct contains_pairs<std::unordered_multimap<K, T, H, E, A>> { static constexpr bool value = true; };
+    template <typename K, typename T, typename C, typename A>
+    struct contains_pairs<std::map<K, T, C, A>> { static constexpr bool value = true; };
+    template <typename K, typename T, typename C, typename A>
+    struct contains_pairs<std::multimap<K, T, C, A>> { static constexpr bool value = true; };
+
     /// ConditionalCall uses the template parameter "isCallable" and partial template specialization
     /// to avoid compile-time generation of bad code (e.g. array access on non-array fields)
     template <bool isCallable, typename Function> class ConditionalCall;
@@ -259,38 +340,247 @@ namespace ReflectSupport
         /// Does nothing
         constexpr static void call(Function function) {}
     };
-    
-    template <bool templated, bool fieldIsReflected, bool fieldIsArray, typename T>
-    class Field;
 
-    template <bool fieldIsReflected, bool fieldIsArray, typename T>
-    class Field<true, fieldIsReflected, fieldIsArray, T> {
+    template <bool templated,
+        bool fieldIsReflected, bool fieldIsPointer, bool fieldIsArray, bool fieldIsStlIterable, bool fieldContainsPointers, bool fieldContainsPairs, typename T>
+    class Field;
+    
+    template <typename T>
+    class Field<false, false, false, false, false, false, false, T> {
     public:
-        size_t fieldIndex;
-        const char* fieldName;
-        const char* fieldType;
+        size_t index;
+        const char* name;
+        const char* typeStr;
         size_t arraySize;
-        bool isArray;
-        bool isFieldTypeReflected;
+        bool isIterable;
+        bool containsPairs;
+        bool isReflected;
+    };
+
+    template <bool fieldIsReflected, bool fieldIsPointer, bool fieldIsArray, bool fieldIsStlIterable, bool fieldContainsPointers, bool fieldContainsPairs, typename T>
+    class Field<true, fieldIsReflected, fieldIsPointer, fieldIsArray, fieldIsStlIterable, fieldContainsPointers, fieldContainsPairs, T> {
+    public:
+        size_t index;
+        const char* name;
+        const char* typeStr;
+        size_t arraySize;
+        bool isIterable;
+        bool containsPairs;
+        bool isReflected;
         
         typedef T type;
 
-        /// Lambda guards: the call to function will only be generated by the compiler if the type fits the guard category
-        template <typename Function> static constexpr void IfPrimitive(Function function) { ConditionalCall<!fieldIsReflected && !fieldIsArray, Function>::call(function); }
-        template <typename Function> static constexpr void IfPrimitiveArray(Function function) { ConditionalCall<!fieldIsReflected && fieldIsArray, Function>::call(function); }
-        template <typename Function> static constexpr void IfObject(Function function) { ConditionalCall<fieldIsReflected && !fieldIsArray, Function>::call(function); }
-        template <typename Function> static constexpr void IfObjectArray(Function function) { ConditionalCall<fieldIsReflected && fieldIsArray, Function>::call(function); }
-    };
 
-    template <typename T>
-    class Field<false, false, false, T> {
-    public:
-        size_t fieldIndex;
-        const char* fieldName;
-        const char* fieldType;
-        size_t arraySize;
-        bool isArray;
-        bool isFieldTypeReflected;
+        /// Lambda guards: the call to function will only be generated by the compiler if the type fits the guard category
+        template <typename Function> static constexpr void IfPrimitive(Function function)
+            { ConditionalCall<!fieldIsArray && !fieldIsStlIterable && !fieldIsReflected && !fieldContainsPairs && !fieldIsPointer, Function>::call(function); }
+        template <typename Function> static constexpr void IfPrimitivePointer(Function function)
+            { ConditionalCall<!fieldIsArray && !fieldIsStlIterable && !fieldIsReflected && !fieldContainsPairs && fieldIsPointer, Function>::call(function); }
+        
+        template <typename Function> static constexpr void IfObject(Function function)
+            { ConditionalCall<!fieldContainsPointers && !fieldIsStlIterable && fieldIsReflected && !fieldIsArray && !fieldIsPointer, Function>::call(function); }
+        template <typename Function> static constexpr void IfObjectPointer(Function function)
+            { ConditionalCall<!fieldContainsPointers && !fieldIsStlIterable && fieldIsReflected && !fieldIsArray && fieldIsPointer, Function>::call(function); }
+
+        template <typename Function> static constexpr void IfPrimitiveArray(Function function)
+            { ConditionalCall<fieldIsArray && !fieldIsReflected && !fieldContainsPairs && !fieldIsPointer && !fieldContainsPointers, Function>::call(function); }
+        template <typename Function> static constexpr void IfPrimitiveArrayPointer(Function function)
+            { ConditionalCall<fieldIsArray && !fieldIsReflected && !fieldContainsPairs && fieldIsPointer && !fieldContainsPointers, Function>::call(function); }
+        template <typename Function> static constexpr void IfIterablePrimitives(Function function)
+            { ConditionalCall<fieldIsStlIterable && !fieldIsReflected && !fieldContainsPairs && !fieldIsPointer && !fieldContainsPointers, Function>::call(function); }
+        template <typename Function> static constexpr void IfIterablePrimitivesPointer(Function function)
+            { ConditionalCall<fieldIsStlIterable && !fieldIsReflected && !fieldContainsPairs && fieldIsPointer && !fieldContainsPointers, Function>::call(function); }
+
+        template <typename Function> static constexpr void IfPrimitivePointerArray(Function function)
+            { ConditionalCall<fieldIsArray && !fieldIsReflected && !fieldContainsPairs && !fieldIsPointer && fieldContainsPointers, Function>::call(function); }
+        template <typename Function> static constexpr void IfPrimitivePointerArrayPointer(Function function)
+            { ConditionalCall<fieldIsArray && !fieldIsReflected && !fieldContainsPairs && fieldIsPointer && fieldContainsPointers, Function>::call(function); }
+        template <typename Function> static constexpr void IfIterablePrimitivePointers(Function function)
+            { ConditionalCall<fieldIsStlIterable && !fieldIsReflected && !fieldContainsPairs && !fieldIsPointer && fieldContainsPointers, Function>::call(function); }
+        template <typename Function> static constexpr void IfIterablePrimitivePointersPointer(Function function)
+            { ConditionalCall<fieldIsStlIterable && !fieldIsReflected && !fieldContainsPairs && fieldIsPointer && fieldContainsPointers, Function>::call(function); }
+
+        template <typename Function> static constexpr void IfObjectArray(Function function)
+            { ConditionalCall<fieldIsArray && fieldIsReflected && !fieldContainsPairs && !fieldIsPointer && !fieldContainsPointers, Function>::call(function); }
+        template <typename Function> static constexpr void IfObjectArrayPointer(Function function)
+            { ConditionalCall<fieldIsArray && fieldIsReflected && !fieldContainsPairs && fieldIsPointer && !fieldContainsPointers, Function>::call(function); }
+        template <typename Function> static constexpr void IfIterableObjects(Function function)
+            { ConditionalCall<fieldIsStlIterable && fieldIsReflected && !fieldContainsPairs && !fieldIsPointer && !fieldContainsPointers, Function>::call(function); }
+        template <typename Function> static constexpr void IfIterableObjectsPointer(Function function)
+            { ConditionalCall<fieldIsStlIterable && fieldIsReflected && !fieldContainsPairs && fieldIsPointer && !fieldContainsPointers, Function>::call(function); }
+
+        template <typename Function> static constexpr void IfObjectPointerArray(Function function)
+            { ConditionalCall<fieldIsArray && fieldIsReflected && !fieldContainsPairs && !fieldIsPointer && fieldContainsPointers, Function>::call(function); }
+        template <typename Function> static constexpr void IfObjectPointerArrayPointer(Function function)
+            { ConditionalCall<fieldIsArray && fieldIsReflected && !fieldContainsPairs && fieldIsPointer && fieldContainsPointers, Function>::call(function); }
+        template <typename Function> static constexpr void IfIterableObjectPointers(Function function)
+            { ConditionalCall<fieldIsStlIterable && fieldIsReflected && !fieldContainsPairs && !fieldIsPointer && fieldContainsPointers, Function>::call(function); }
+        template <typename Function> static constexpr void IfIterableObjectPointersPointer(Function function)
+            { ConditionalCall<fieldIsStlIterable && fieldIsReflected && !fieldContainsPairs && fieldIsPointer && fieldContainsPointers, Function>::call(function); }
+
+        template <typename Function> static constexpr void IfIterablePrimitivePairs(Function function)
+            { ConditionalCall<fieldIsStlIterable && !fieldIsReflected && fieldContainsPairs && !fieldIsPointer && !fieldContainsPointers, Function>::call(function); }
+        template <typename Function> static constexpr void IfIterablePrimitivePairsPointer(Function function)
+            { ConditionalCall<fieldIsStlIterable && !fieldIsReflected && fieldContainsPairs && fieldIsPointer && !fieldContainsPointers, Function>::call(function); }
+
+        template <typename Function> static constexpr void IfIterablePrimitivePointerPairs(Function function)
+            { ConditionalCall<fieldIsStlIterable && !fieldIsReflected && fieldContainsPairs && !fieldIsPointer && fieldContainsPointers, Function>::call(function); }
+        template <typename Function> static constexpr void IfIterablePrimitivePointerPairsPointer(Function function)
+            { ConditionalCall<fieldIsStlIterable && !fieldIsReflected && fieldContainsPairs && fieldIsPointer && fieldContainsPointers, Function>::call(function); }
+        
+        template <typename Function> static constexpr void IfIterableObjectPairs(Function function)
+            { ConditionalCall<fieldIsStlIterable && fieldIsReflected && fieldContainsPairs && !fieldIsPointer && !fieldContainsPointers, Function>::call(function); }
+        template <typename Function> static constexpr void IfIterableObjectPairsPointer(Function function)
+            { ConditionalCall<fieldIsStlIterable && fieldIsReflected && fieldContainsPairs && fieldIsPointer && !fieldContainsPointers, Function>::call(function); }
+
+        template <typename Function> static constexpr void IfIterableObjectPointerPairs(Function function)
+            { ConditionalCall<fieldIsStlIterable && fieldIsReflected && fieldContainsPairs && !fieldIsPointer && fieldContainsPointers, Function>::call(function); }
+        template <typename Function> static constexpr void IfIterableObjectPointerPairsPointer(Function function)
+            { ConditionalCall<fieldIsStlIterable && fieldIsReflected && fieldContainsPairs && fieldIsPointer && fieldContainsPointers, Function>::call(function); }
+
+
+        /// Access accelerators: obtain access to field data, with lambda guards pre-applied
+        /// and differentiation between pointers and non-pointers as well as arrays and STL-iterables all taken care of
+        template <typename Primitive, typename Function> constexpr void ForPrimitive(Primitive primitive, Function function) {
+            IfPrimitive([&](auto) {
+                function(primitive);
+            });
+            IfPrimitivePointer([&](auto) {
+                function(*primitive);
+            });
+        }
+        template <typename Object, typename Function> constexpr void ForObject(Object object, Function function) {
+            IfObject([&](auto) {
+                function(object);
+            });
+            IfObjectPointer([&](auto) {
+                function(*object);
+            });
+        }
+        template <typename Iterable, typename Function> constexpr void ForPrimitiveElements(Iterable iterable, Function function) {
+            IfPrimitiveArray([&](auto) {
+                for ( size_t i=0; i<arraySize; i++ )
+                    function(i, iterable[i]);
+            });
+            IfPrimitiveArrayPointer([&](auto) {
+                for ( size_t i=0; i<arraySize; i++ )
+                    function(i, (*iterable)[i]);
+            });
+            IfIterablePrimitives([&](auto) {
+                size_t i=0;
+                for ( auto & element : iterable )
+                    function(i++, element);
+            });
+            IfIterablePrimitivesPointer([&](auto) {
+                size_t i=0;
+                for ( auto & element : *iterable )
+                    function(i++, element);
+            });
+
+            IfPrimitivePointerArray([&](auto) {
+                for ( size_t i=0; i<arraySize; i++ )
+                    function(i, *(iterable[i]));
+            });
+            IfPrimitivePointerArrayPointer([&](auto) {
+                for ( size_t i=0; i<arraySize; i++ )
+                    function(i, *((*iterable)[i]));
+            });
+            IfIterablePrimitivePointers([&](auto) {
+                size_t i=0;
+                for ( auto & element : iterable )
+                    function(i++, *element);
+            });
+            IfIterablePrimitivePointersPointer([&](auto) {
+                size_t i=0;
+                for ( auto & element : *iterable )
+                    function(i++, *element);
+            });
+        }
+        template <typename Iterable, typename Function> constexpr void ForObjectElements(Iterable iterable, Function function) {
+            IfObjectArray([&](auto) {
+                for ( size_t i=0; i<arraySize; i++ )
+                    function(i, iterable[i]);
+            });
+            IfObjectArrayPointer([&](auto) {
+                for ( size_t i=0; i<arraySize; i++ )
+                    function(i, (*iterable)[i]);
+            });
+            IfIterableObjects([&](auto) {
+                size_t i=0;
+                for ( auto & element : iterable )
+                    function(i++, element);
+            });
+            IfIterableObjectsPointer([&](auto) {
+                size_t i=0;
+                for ( auto & element : *iterable )
+                    function(i++, element);
+            });
+
+            IfObjectPointerArray([&](auto) {
+                for ( size_t i=0; i<arraySize; i++ )
+                    function(i, *(iterable[i]));
+            });
+            IfObjectPointerArrayPointer([&](auto) {
+                for ( size_t i=0; i<arraySize; i++ )
+                    function(i, *((*iterable)[i]));
+            });
+            IfIterableObjectPointers([&](auto) {
+                size_t i=0;
+                for ( auto & element : iterable )
+                    function(i++, *element);
+            });
+            IfIterableObjectPointersPointer([&](auto) {
+                size_t i=0;
+                for ( auto & element : *iterable )
+                    function(i++, *element);
+            });
+        }
+        template <typename Iterable, typename Function> constexpr void ForPrimitivePairs(Iterable iterable, Function function) {
+            IfIterablePrimitivePairs([&](auto) {
+                size_t i=0;
+                for ( auto & element : iterable )
+                    function(i++, element.first, element.second);
+            });
+            IfIterablePrimitivePairsPointer([&](auto) {
+                size_t i=0;
+                for ( auto & element : *iterable )
+                    function(i++, element.first, element.second);
+            });
+
+            IfIterablePrimitivePointerPairs([&](auto) {
+                size_t i=0;
+                for ( auto & element : iterable )
+                    function(i++, element.first, *element.second);
+            });
+            IfIterablePrimitivePointerPairsPointer([&](auto) {
+                size_t i=0;
+                for ( auto & element : *iterable )
+                    function(i++, element.first, *element.second);
+            });
+        }
+        template <typename Iterable, typename Function> constexpr void ForObjectPairs(Iterable iterable, Function function) {
+            IfIterableObjectPairs([&](auto) {
+                size_t i=0;
+                for ( auto & element : iterable )
+                    function(i++, element.first, element.second);
+            });
+            IfIterableObjectPairsPointer([&](auto) {
+                size_t i=0;
+                for ( auto & element : *iterable )
+                    function(i++, element.first, element.second);
+            });
+
+            IfIterableObjectPointerPairs([&](auto) {
+                size_t i=0;
+                for ( auto & element : iterable )
+                    function(i++, element.first, *element.second);
+            });
+            IfIterableObjectPointerPairsPointer([&](auto) {
+                size_t i=0;
+                for ( auto & element : *iterable )
+                    function(i++, element.first, *element.second);
+            });
+        }
     };
 };
 
@@ -313,11 +603,13 @@ namespace Reflect
 #define DESCRIBE_FIELD(x) struct RHS(x) { \
     static constexpr auto typeStr = ConstexprStr::substr<ConstexprStr::length_between(#x, '<', '>')>(#x+ConstexprStr::find(#x, '<')+1); \
     static constexpr auto nameStr = ConstexprStr::substr<ConstexprStr::length_after_last(#x, ' ')>(#x+ConstexprStr::find_last_of(#x, ' ')+1); \
-    static constexpr ReflectSupport::Field<true, LHS(x)::reflected, std::is_array<LHS(x)::type>::value, LHS(x)::type> field = \
-    { IndexOf::RHS(x), &nameStr.value[0], &typeStr.value[0], std::extent<LHS(x)::type>::value, std::is_array<LHS(x)::type>::value, LHS(x)::reflected }; \
+    static constexpr RfS::Field<true, LHS(x)::reflected, RfS::is_pointable<LHS(x)::type>::value, std::is_array<LHS(x)::type>::value, \
+        RfS::is_iterable<LHS(x)::type>::value, RfS::contains_pointables<LHS(x)::type>::value, RfS::contains_pairs<LHS(x)::type>::value, LHS(x)::type> field = \
+        { IndexOf::RHS(x), &nameStr.value[0], &typeStr.value[0], std::extent<LHS(x)::type>::value, \
+        RfS::is_iterable<LHS(x)::type>::value || std::is_array<LHS(x)::type>::value, RfS::contains_pairs<LHS(x)::type>::value, LHS(x)::reflected }; \
 };
-#define GET_FIELD(x) \
-    { IndexOf::RHS(x), &RHS(x)::nameStr.value[0], &RHS(x)::typeStr.value[0], std::extent<LHS(x)::type>::value, std::is_array<LHS(x)::type>::value, LHS(x)::reflected },
+#define GET_FIELD(x) { IndexOf::RHS(x), &RHS(x)::nameStr.value[0], &RHS(x)::typeStr.value[0], std::extent<LHS(x)::type>::value, \
+    RfS::is_iterable<LHS(x)::type>::value || std::is_array<LHS(x)::type>::value, RfS::contains_pairs<LHS(x)::type>::value, LHS(x)::reflected },
 #define USE_FIELD(x) function(RHS(x)::field, object.RHS(x));
 #define USE_FIELD_AT(x) case IndexOf::RHS(x): function(RHS(x)::field, object.RHS(x)); break;
 
@@ -328,7 +620,7 @@ class Class { public: \
     static constexpr size_t totalFields = COUNT_ARGUMENTS(__VA_ARGS__); \
     enum_t(IndexOf, size_t, { FOR_EACH(GET_FIELD_NAME, __VA_ARGS__) }); \
     FOR_EACH(DESCRIBE_FIELD, __VA_ARGS__) \
-    static constexpr ReflectSupport::Field<false, false, false, void> fields[totalFields] = { FOR_EACH(GET_FIELD, __VA_ARGS__) }; \
+    static constexpr RfS::Field<false, false, false, false, false, false, false, void> fields[totalFields] = { FOR_EACH(GET_FIELD, __VA_ARGS__) }; \
     template <typename Function> static void ForEachField(objectType & object, Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
     template <typename Function> static void FieldAt(objectType & object, size_t fieldIndex, Function function) { \
         switch ( fieldIndex ) { FOR_EACH(USE_FIELD_AT, __VA_ARGS__) } } \

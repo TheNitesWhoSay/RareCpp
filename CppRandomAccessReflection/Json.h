@@ -3,6 +3,7 @@
 #include <string>
 #include <ostream>
 #include "Reflect.h"
+using namespace Reflect;
 
 namespace Json {
 
@@ -40,28 +41,39 @@ namespace Json {
             using Class = typename T::Class;
             Class::ForEachField(obj, [&](auto field, auto value) {
 
-                os << Indent(indent, indentLevel) << "\"" << field.fieldName << "\": ";
-                field.IfPrimitive([&](auto) { os << value; });
-                field.IfObject([&](auto) { os << Output<decltype(field)::type>(value, indent, indentLevel); });
-                field.IfPrimitiveArray([&](auto) {
-                    os << "[ ";
-                    for ( size_t i=0; i<field.arraySize; i++ )
-                        os << (i > 0 ? ", \"" : "\"") << value[i] << "\"";
-
-                    os << " ]";
-                });
-                field.IfObjectArray([&](auto) {
-                    os << "[" << std::endl << Indent(indent, indentLevel+1);
-                    for ( size_t i=0; i<field.arraySize; i++ )
+                os << Indent(indent, indentLevel) << "\"" << field.name << "\": ";
+                field.ForPrimitive(value, [&](auto primitive) { os << primitive; }); // Primitive
+                field.ForObject(value, [&](auto object) { os << Output<std::remove_reference<decltype(object)>::type>(object, indent, indentLevel); }); // Object
+                if ( field.isIterable )
+                {
+                    if ( !field.containsPairs && !field.isReflected ) // Primitive Array
                     {
-                        auto reflectedObject = value[i];
-                        os << Output<decltype(reflectedObject)>(reflectedObject, indent, indentLevel+1);
-                        if ( i < field.arraySize-1 )
-                            os << ",";
+                        os << "[ ";
+                        field.ForPrimitiveElements(value, [&](auto index, auto element) { os << (index > 0 ? ", \"" : "\"") << element << "\""; });
+                        os << " ]";
                     }
-                    os << std::endl << Indent(indent, indentLevel) << "]";
-                });
-                os << (field.fieldIndex < Class::totalFields ? "," : "") << std::endl;
+                    else if ( !field.containsPairs && field.isReflected ) // Object Array
+                    {
+                        os << "[" << std::endl << Indent(indent, indentLevel+1);
+                        field.ForObjectElements(value, [&](auto index, auto element) {
+                            os << (index > 0 ? ", " : "") << Output<std::remove_reference<decltype(element)>::type>(element, indent, indentLevel+1);
+                        });
+                        os << std::endl << Indent(indent, indentLevel) << "]";
+                    }
+                    else // Map
+                    {
+                        os << "{";
+                        field.ForPrimitivePairs(value, [&](auto index, auto first, auto second) { // Primitive Map
+                            os << (index > 0 ? ", " : "") << std::endl << Indent(indent, indentLevel+1) << "\"" << first << "\": \"" << second << "\"";
+                        });
+                        field.ForObjectPairs(value, [&](auto index, auto first, auto second) { // Object Map
+                            os << (index > 0 ? ", " : "") << std::endl << Indent(indent, indentLevel+1) << "\"" << first << "\": "
+                                << Output<std::remove_reference<decltype(second)>::type>(second, indent, indentLevel+1);
+                        });
+                        os << std::endl << Indent(indent, indentLevel) << "}";
+                    }
+                }
+                os << (field.index < Class::totalFields ? "," : "") << std::endl;
             });
 
             os << Indent(indent, --indentLevel) << "}";

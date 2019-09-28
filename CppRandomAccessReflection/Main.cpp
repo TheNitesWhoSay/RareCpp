@@ -3,6 +3,7 @@
 #include <tuple>
 #include <typeinfo>
 #include <algorithm>
+#include <memory>
 
 using namespace Reflect;
 using u8 = uint8_t;
@@ -40,26 +41,50 @@ public:
     REFLECT(Wheel, (B<Rim>) rim, (B<int>) size, (B<float>) pressure)
 };
 
+class CupHolder {
+public:
+    CupHolder() : width(0), height(0), occupied(false) {}
+    CupHolder(int width, int height, bool occupied) : width(width), height(height), occupied(occupied) {}
+
+    int width;
+    int height;
+    bool occupied;
+
+    REFLECT(CupHolder, (B<int>) width, (B<int>) height, (B<bool>) occupied)
+};
+using CupHolderPtr = std::shared_ptr<CupHolder>;
+
 class Car {
 public:
     Car() : milesPerGallon(0.0f) {}
-    Car(Wheel frontLeft, Wheel frontRight, Wheel backLeft, Wheel backRight, const std::string &driver, const std::string &passenger, const FuelTank &fuelTank, float milesPerGallon)
-        : fuelTank(fuelTank), milesPerGallon(milesPerGallon)
+    Car(Wheel frontLeft, Wheel frontRight, Wheel backLeft, Wheel backRight, const std::string &driver, const std::string &passenger,
+        const std::map<std::string, std::string> & occupantId, std::map<std::string, CupHolderPtr> occupantCupHolderUsage,
+        const std::vector<CupHolderPtr> & cupHolders, const FuelTank &fuelTank, float milesPerGallon)
+        : occupantId(occupantId), occupantCupHolderUsage(occupantCupHolderUsage), cupHolders(cupHolders), fuelTank(fuelTank), milesPerGallon(milesPerGallon)
     {
         wheels[0] = frontLeft;
         wheels[1] = frontRight;
         wheels[2] = backLeft;
         wheels[3] = backRight;
-        occupants[0] = driver;
-        occupants[1] = passenger;
+        occupants.push_back(driver);
+        occupants.push_back(passenger);
     }
 
     Wheel wheels[4];
-    std::string occupants[2];
+    std::vector<std::string> occupants;
+    std::map<std::string, std::string> occupantId;
+    std::map<std::string, CupHolderPtr> occupantCupHolderUsage;
+    std::vector<CupHolderPtr> cupHolders;
     FuelTank fuelTank;
     float milesPerGallon;
     
-    REFLECT(Car, (R<Wheel[4]>) wheels, (B<std::string[2]>) occupants, (R<FuelTank>) fuelTank, (B<float>) milesPerGallon)
+    using OccupantIdType = std::map<std::string, std::string>;
+    using OccupantCupHolderUsageType = std::map<std::string, CupHolderPtr>;
+    REFLECT(Car, (R<Wheel[4]>) wheels, (B<std::vector<std::string>>) occupants, (B<OccupantIdType>) occupantId,
+        (R<OccupantCupHolderUsageType>) occupantCupHolderUsage,
+        (R<std::vector<CupHolderPtr>>) cupHolders,
+        (R<FuelTank>) fuelTank, (B<float>) milesPerGallon)
+
 };
 
 class MassiveObject {
@@ -98,60 +123,69 @@ int main()
 {
     for ( size_t i=1; i<=MassiveObject::Class::totalFields; i++ )
     {
-        std::cout << MassiveObject::Class::fields[i-1].fieldName;
+        std::cout << MassiveObject::Class::fields[i-1].name;
         if ( i % 16 == 0 || i == MassiveObject::Class::totalFields )
             std::cout << std::endl;
         else
             std::cout << ", ";
     }
-
+    
+    std::vector<CupHolderPtr> cupHolders;
+    std::map<std::string, std::string> occupantId;
+    std::map<std::string, CupHolderPtr> occupantCupHolderUsage;
+    Wheel frontLeft(Wheel::Rim::Regular, 14, 32.2f), frontRight(Wheel::Rim::Regular, 14, 31.9f), backLeft(Wheel::Rim::Spinner, 15, 33.0f), backRight(Wheel::Rim::Spinner, 15, 30.9f);
     std::string driver = "Fred";
     std::string passenger = "Bob";
+    occupantId.insert(std::pair<std::string, std::string>(driver, "B252-123-839-244"));
+    occupantId.insert(std::pair<std::string, std::string>(passenger, "B252-612-321-245"));
+    cupHolders.push_back(CupHolderPtr(new CupHolder(3, 3, true)));
+    cupHolders.push_back(CupHolderPtr(new CupHolder(2, 2, false)));
+    occupantCupHolderUsage.insert(std::pair<std::string, CupHolderPtr>(driver, cupHolders[0]));
+    occupantCupHolderUsage.insert(std::pair<std::string, CupHolderPtr>(passenger, cupHolders[1]));
     FuelTank fuelTank(15.0f, 14.6f, 1.0f, 7.5f);
-    Wheel frontLeft(Wheel::Rim::Regular, 14, 32.2f), frontRight(Wheel::Rim::Regular, 14, 31.9f), backLeft(Wheel::Rim::Spinner, 15, 33.0f), backRight(Wheel::Rim::Spinner, 15, 30.9f);
-    Car car(frontLeft, frontRight, backLeft, backRight, driver, passenger, fuelTank, 22.5f);
+    Car car(frontLeft, frontRight, backLeft, backRight, driver, passenger, occupantId, occupantCupHolderUsage, cupHolders, fuelTank, 22.5f);
     
     for ( size_t i=0; i<Wheel::Class::totalFields; i++ )
-        std::cout << Wheel::Class::fields[i].fieldName << std::endl;
+        std::cout << Wheel::Class::fields[i].name << std::endl;
 
     for ( size_t i=0; i<Wheel::Class::totalFields; i++ )
     {
         Wheel::Class::FieldAt(frontLeft, i, [&](auto field, auto value) {
-            std::cout << field.fieldName << ": " << value << std::endl;
+            std::cout << field.name << ": " << value << std::endl;
         });
     }
 
     Wheel::Class::ForEachField(backRight, [&](auto field, auto value) {
-        std::cout << field.fieldName << ": " << value << std::endl;
+        std::cout << field.name << ": " << value << std::endl;
     });
 
     Car::Class::ForEachField(car, [&](auto field, auto value) {
-        //std::cout << field.fieldName << ": " << value << std::endl; // This will cause a compiler error as there's no ostream operator overload for the FuelTank type!
+        //std::cout << field.name << ": " << value << std::endl; // This will cause a compiler error as there's no ostream operator overload for the FuelTank type!
     });
 
     Car::Class::ForEachField(car, [&](auto field, auto value) {
-        field.IfPrimitive([&](auto) { std::cout << "(carPrimitive) " << field.fieldName << ": " << value << std::endl; });
-        field.IfObject([&](auto) { std::cout << "(carObject) " << field.fieldName << ": " << "[Skipped, this would be a good place for recursion!]" << std::endl; });
-        field.IfObjectArray([&](auto) { std::cout << "(carObjectArray) " << field.fieldName << ": " << "[Skipped, this would be a good place for recursion!]" << std::endl; });
+        field.IfPrimitive([&](auto) { std::cout << "(carPrimitive) " << field.name << ": " << value << std::endl; });
+        field.IfObject([&](auto) { std::cout << "(carObject) " << field.name << ": " << "[Skipped, this would be a good place for recursion!]" << std::endl; });
+        field.IfObjectArray([&](auto) { std::cout << "(carObjectArray) " << field.name << ": " << "[Skipped, this would be a good place for recursion!]" << std::endl; });
     });
 
     FuelTank::Class::ForEachField(fuelTank, [&](auto field, auto value) {
-        std::cout << field.fieldName << ": " << value << std::endl; // This will print out a pointer, not the array values!
+        std::cout << field.name << ": " << value << std::endl; // This will print out a pointer, not the array values!
     });
 
     FuelTank::Class::ForEachField(fuelTank, [&](auto field, auto value) {
-        if ( field.isArray ) {
-            //std::cout << field.fieldName << ": " << value[0] << std::endl; // This will cause a compiler error as not every field in the FuelTank class is an array!
+        if ( field.isIterable ) {
+            //std::cout << field.name << ": " << value[0] << std::endl; // This will cause a compiler error as not every field in the FuelTank class is an array!
         }
     });
 
     FuelTank::Class::ForEachField(fuelTank, [&](auto field, auto value) {
-        field.IfPrimitive([&](auto) { std::cout << "(fuelTankPrimitive) " << field.fieldName << ": " << value << std::endl; });
-        field.IfPrimitiveArray([&](auto) { std::cout << "(fuelTankPrimitiveArray) " << field.fieldName << ": " << value << std::endl; });
+        field.IfPrimitive([&](auto) { std::cout << "(fuelTankPrimitive) " << field.name << ": " << value << std::endl; });
+        field.IfPrimitiveArray([&](auto) { std::cout << "(fuelTankPrimitiveArray) " << field.name << ": " << value << std::endl; });
     });
 
     std::cout << Json::out(car) << std::endl;
-
+    
     std::cout << std::endl << "Press any key to exit." << std::endl;
     std::cin.clear();
     std::cin.get();
