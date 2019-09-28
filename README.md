@@ -13,11 +13,11 @@ public:
     float currentLevel;
     float tickMarks[2];
 
-    REFLECT(FuelTank, B(float, capacity), B(float, currentLevel), B(float[2], tickMarks))
+    REFLECT(FuelTank, (B<float>) capacity, (B<float>) currentLevel, (B<float[2]>) tickMarks)
 };
 ```
 
-The REFLECT macro takes the class name, then one or more B or R types...
+The REFLECT macro takes the class name, then between 1 and 123 B or R fields or a mix of the two.
 
 - B: Basic-type - a type which already has an acceptable representation when streamed
 - R: Reflected-type - an object or object array which is also reflected
@@ -163,11 +163,11 @@ a, 3, 2, 1, 0
 ```
 With the count, and call to the appropriate static macro iteration, plus a little extra macro expansion and concatenation to avoid bugs with Visual Studios, we have all the magic needed to perform a FOR_EACH loop on a set of macro arguments.
 
-The REFLECT macro takes in the name of the class you're adding reflection to, followed by a list of triplets (fieldType, fieldName, isFieldReflected) - usually as B(fieldType, fieldName), which implicitly adds the false, or R(fieldType, fieldName), which implicity adds the true; using the for each macros we build the class "Class" one piece at a time...
+The REFLECT macro takes in the name of the class you're adding reflection to, followed by a list of fields, in the form "B<type> fieldName", or "R<type> fieldName"; using the LHS and RHS macros to extract type and fieldName respectively and the for each macro we build the class "Class" one piece at a time...
 
-1. totalFields gets set to the count of arguments, not including the class name, divided by 3.
-2. an enum "IndexOf" is generated using each field name, because enums start at 0 and count up, IndexOf::fieldName provides the index of a given field in a manner statically available at compile time (this especially helps us build switches later).
-3. a "Field" object is defined for each fieldName/fieldType named f_(fieldName), using the triplets passed in, together with C++ type support https://en.cppreference.com/w/cpp/types , these Field objects are the enhanced flavor
+1. totalFields gets set to the count of arguments, not including the class name
+2. an enum "IndexOf" is generated using each field name, because enums start at 0 and count up, IndexOf::fieldName provides the index of a given field in a manner statically available at compile time (this especially helps us build switches later)
+3. a subclass is defined for each field named the same as the fieldName, in this subclass a typeStr and nameStr are constructed, and a "Field" object is defined, using the typeStr, nameStr, and a ton of methods from C++ type support https://en.cppreference.com/w/cpp/types , these Field objects are the enhanced flavor
 4. a "Field" array is generated, similar to the field object defined in the third step, but the simple flavor
 5. The ForEachField method is generated, calling the given function with the enhanced flavor of the Field and a reference to the field
 6. The FieldAt method is generated, calling the given function with the enhanced flavor of the Field and a reference to the field at the given fieldIndex
