@@ -8,6 +8,8 @@
 using namespace Reflect;
 using u8 = uint8_t;
 
+std::string myStr("myStr");
+
 class FuelTank {
 public:
     FuelTank() : capacity(0.0f), currentLevel(0.0f) { tickMarks[0] = 0.0f; tickMarks[1] = 0.0f; }
@@ -15,13 +17,16 @@ public:
     {
         tickMarks[0] = tickMarkOne;
         tickMarks[1] = tickMarkTwo;
+        ptrTest[0] = nullptr;
+        ptrTest[1] = &myStr;
     }
 
     float capacity;
     float currentLevel;
     float tickMarks[2];
+    std::string* ptrTest[2];
 
-    REFLECT(FuelTank, (B<float>) capacity, (B<float>) currentLevel, (B<float[2]>) tickMarks)
+    REFLECT(FuelTank, (B<float>) capacity, (B<float>) currentLevel, (B<float[2]>) tickMarks, (B<std::string*[2]>) ptrTest)
 };
 
 class Wheel {
