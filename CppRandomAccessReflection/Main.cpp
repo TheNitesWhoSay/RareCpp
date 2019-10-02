@@ -17,16 +17,13 @@ public:
     {
         tickMarks[0] = tickMarkOne;
         tickMarks[1] = tickMarkTwo;
-        ptrTest[0] = nullptr;
-        ptrTest[1] = &myStr;
     }
 
     float capacity;
     float currentLevel;
     float tickMarks[2];
-    std::string* ptrTest[2];
 
-    REFLECT(FuelTank, (B<float>) capacity, (B<float>) currentLevel, (B<float[2]>) tickMarks, (B<std::string*[2]>) ptrTest)
+    REFLECT(FuelTank, (B<float>) capacity, (B<float>) currentLevel, (B<float[2]>) tickMarks)
 };
 
 class Wheel {
@@ -190,7 +187,7 @@ int main()
     });
 
     std::cout << Json::out(car) << std::endl;
-    
+
     std::cout << std::endl << "Press any key to exit." << std::endl;
     std::cin.clear();
     std::cin.get();

@@ -40,61 +40,68 @@ namespace Json {
 
             using Class = typename T::Class;
             Class::ForEachField(obj, [&](auto field, auto value) {
+                auto & constField = field.as_const();
 
-                os << Indent(indent, indentLevel) << "\"" << field.name << "\": ";
-                if ( field.IfNull(value, [&](auto) { os << "null"; }) );
-                else if ( !field.isIterable )
+                os << Indent(indent, indentLevel) << "\"" << constField.name << "\": ";
+                if ( constField.IfNull(value, [&](auto) { os << "null"; }) );
+                else if ( !constField.isIterable )
                 {
-                    field.ForPrimitive(value, [&](auto primitive) { os << "\"" << primitive << "\""; }); // Primitive
-                    field.ForObject(value, [&](auto object) { os << Output<std::remove_reference<decltype(object)>::type>(object, indent, indentLevel); }); // Object
+                    constField.ForPrimitive(value, [&](auto primitive) { os << "\"" << primitive << "\""; }); // Primitive
+                    constField.ForObject(value, [&](auto object) { os << Output<std::remove_reference<decltype(object)>::type>(object, indent, indentLevel); }); // Object
                 }
-                else if ( !field.containsPairs && !field.isReflected ) // Primitive Array
+                else if ( !constField.containsPairs && !constField.isReflected ) // Primitive Array
                 {
                     os << "[ ";
-                    field.ForPrimitives(value, [&](auto index, auto element) { os << (index > 0 ? ", \"" : "\"") << element << "\""; }); // Primitive Array
-                    field.ForPrimitivePointers(value, [&](auto index, auto element) { // Primitive Pointer Array
+                    constField.ForPrimitives(value, [&](auto index, auto element) { os << (index > 0 ? ", \"" : "\"") << element << "\""; }); // Primitive Array
+                    constField.ForPrimitivePointers(value, [&](auto index, auto element) { // Primitive Pointer Array
                         if ( index > 0 ) { os << ", "; }
                         if ( element == nullptr ) { os << "null"; }
                         else { os << "\"" << *element << "\""; }
                     });
                     os << " ]";
                 }
-                else if ( !field.containsPairs && field.isReflected ) // Object Array
+                else if ( !constField.containsPairs && constField.isReflected ) // Object Array
                 {
                     os << "[" << std::endl << Indent(indent, indentLevel + 1);
-                    field.ForObjects(value, [&](auto index, auto element) { // Object Array
+                    constField.ForObjects(value, [&](auto index, auto element) { // Object Array
                         os << (index > 0 ? ", " : "") << Output<std::remove_reference<decltype(element)>::type>(element, indent, indentLevel + 1);
                     });
-                    field.ForObjectPointers(value, [&](auto index, auto element) { // Object Pointer Array
+                    constField.ForObjectPointers(value, [&](auto index, auto element) { // Object Pointer Array
                         if ( index > 0 ) { os << ", "; }
                         if ( element == nullptr ) { os << "null"; }
                         else { os << Output<std::remove_reference<decltype(*element)>::type>(*element, indent, indentLevel + 1); }
                     });
                     os << std::endl << Indent(indent, indentLevel) << "]";
                 }
-                else // if ( field.containsPairs) // Map
+                else // if ( constField.containsPairs) // Map
                 {
                     os << "{";
-                    field.ForPrimitivePairs(value, [&](auto index, auto first, auto second) { // Primitive Map
-                        os << (index > 0 ? ", " : "") << std::endl << Indent(indent, indentLevel + 1) << "\"" << first << "\": \"" << second << "\"";
-                    });
-                    field.ForPrimitivePointerPairs(value, [&](auto index, auto first, auto second) { // Primitive Pointer Map
-                        os << (index > 0 ? ", " : "") << std::endl << Indent(indent, indentLevel + 1) << "\"" << first << "\": ";
-                        if ( second == nullptr ) { os << "null"; }
-                        else { os << "\"" << *second << "\""; }
-                    });
-                    field.ForObjectPairs(value, [&](auto index, auto first, auto second) { // Object Map
-                        os << (index > 0 ? ", " : "") << std::endl << Indent(indent, indentLevel + 1) << "\"" << first << "\": "
-                            << Output<std::remove_reference<decltype(second)>::type>(second, indent, indentLevel + 1);
-                    });
-                    field.ForObjectPointerPairs(value, [&](auto index, auto first, auto second) { // Object Pointer Map
-                        os << (index > 0 ? ", " : "") << std::endl << Indent(indent, indentLevel + 1) << "\"" << first << "\": ";
-                        if ( second == nullptr ) { os << "null"; }
-                        else { os << Output<std::remove_reference<decltype(*second)>::type>(*second, indent, indentLevel + 1); }
-                    });
+                    if ( !constField.isReflected )
+                    {
+                        constField.ForPrimitivePairs(value, [&](auto index, auto first, auto second) { // Primitive Map
+                            os << (index > 0 ? ", " : "") << std::endl << Indent(indent, indentLevel + 1) << "\"" << first << "\": \"" << second << "\"";
+                        });
+                        constField.ForPrimitivePointerPairs(value, [&](auto index, auto first, auto second) { // Primitive Pointer Map
+                            os << (index > 0 ? ", " : "") << std::endl << Indent(indent, indentLevel + 1) << "\"" << first << "\": ";
+                            if ( second == nullptr ) { os << "null"; }
+                            else { os << "\"" << *second << "\""; }
+                        });
+                    }
+                    else
+                    {
+                        constField.ForObjectPairs(value, [&](auto index, auto first, auto second) { // Object Map
+                            os << (index > 0 ? ", " : "") << std::endl << Indent(indent, indentLevel + 1) << "\"" << first << "\": "
+                                << Output<std::remove_reference<decltype(second)>::type>(second, indent, indentLevel + 1);
+                        });
+                        constField.ForObjectPointerPairs(value, [&](auto index, auto first, auto second) { // Object Pointer Map
+                            os << (index > 0 ? ", " : "") << std::endl << Indent(indent, indentLevel + 1) << "\"" << first << "\": ";
+                            if ( second == nullptr ) { os << "null"; }
+                            else { os << Output<std::remove_reference<decltype(*second)>::type>(*second, indent, indentLevel + 1); }
+                        });
+                    }
                     os << std::endl << Indent(indent, indentLevel) << "}";
 				}
-                os << (field.index < Class::totalFields-1 ? "," : "") << std::endl;
+                os << (constField.index < Class::totalFields-1 ? "," : "") << std::endl;
             });
 
             os << Indent(indent, --indentLevel) << "}";
