@@ -264,21 +264,21 @@ namespace RfS
     template <typename T>
     struct is_pointable<std::unique_ptr<T>> { static constexpr bool value = true; };
 
-    template <typename T> struct is_iterable { static constexpr bool value = false; };
-    template <typename T, size_t N> struct is_iterable<std::array<T, N>> { static constexpr bool value = true; };
-    template <typename T, typename A> struct is_iterable<std::vector<T, A>> { static constexpr bool value = true; };
-    template <typename T, typename A> struct is_iterable<std::deque<T, A>> { static constexpr bool value = true; };
-    template <typename T, typename A> struct is_iterable<std::forward_list<T, A>> { static constexpr bool value = true; };
-    template <typename T, typename A> struct is_iterable<std::list<T, A>> { static constexpr bool value = true; };
-    template <typename K, typename C, typename A> struct is_iterable<std::set<K, C, A>> { static constexpr bool value = true; };
-    template <typename K, typename C, typename A> struct is_iterable<std::multiset<K, C, A>> { static constexpr bool value = true; };
-    template <typename K, typename T, typename C, typename A> struct is_iterable<std::map<K, T, C, A>> { static constexpr bool value = true; };
-    template <typename K, typename T, typename C, typename A> struct is_iterable<std::multimap<K, T, C, A>> { static constexpr bool value = true; };
-    template <typename K, typename H, typename E, typename A> struct is_iterable<std::unordered_set<K, H, E, A>> { static constexpr bool value = true; };
-    template <typename K, typename H, typename E, typename A> struct is_iterable<std::unordered_multiset<K, H, E, A>> { static constexpr bool value = true; };
-    template <typename K, typename T, typename H, typename E, typename A> struct is_iterable<std::unordered_map<K, T, H, E, A>>
+    template <typename T> struct is_stl_iterable { static constexpr bool value = false; };
+    template <typename T, size_t N> struct is_stl_iterable<std::array<T, N>> { static constexpr bool value = true; };
+    template <typename T, typename A> struct is_stl_iterable<std::vector<T, A>> { static constexpr bool value = true; };
+    template <typename T, typename A> struct is_stl_iterable<std::deque<T, A>> { static constexpr bool value = true; };
+    template <typename T, typename A> struct is_stl_iterable<std::forward_list<T, A>> { static constexpr bool value = true; };
+    template <typename T, typename A> struct is_stl_iterable<std::list<T, A>> { static constexpr bool value = true; };
+    template <typename K, typename C, typename A> struct is_stl_iterable<std::set<K, C, A>> { static constexpr bool value = true; };
+    template <typename K, typename C, typename A> struct is_stl_iterable<std::multiset<K, C, A>> { static constexpr bool value = true; };
+    template <typename K, typename T, typename C, typename A> struct is_stl_iterable<std::map<K, T, C, A>> { static constexpr bool value = true; };
+    template <typename K, typename T, typename C, typename A> struct is_stl_iterable<std::multimap<K, T, C, A>> { static constexpr bool value = true; };
+    template <typename K, typename H, typename E, typename A> struct is_stl_iterable<std::unordered_set<K, H, E, A>> { static constexpr bool value = true; };
+    template <typename K, typename H, typename E, typename A> struct is_stl_iterable<std::unordered_multiset<K, H, E, A>> { static constexpr bool value = true; };
+    template <typename K, typename T, typename H, typename E, typename A> struct is_stl_iterable<std::unordered_map<K, T, H, E, A>>
     { static constexpr bool value = true; };
-    template <typename K, typename T, typename H, typename E, typename A> struct is_iterable<std::unordered_multimap<K, T, H, E, A>>
+    template <typename K, typename T, typename H, typename E, typename A> struct is_stl_iterable<std::unordered_multimap<K, T, H, E, A>>
     { static constexpr bool value = true; };
 
     template <typename T> struct is_adaptor { static constexpr bool value = false; };
@@ -879,14 +879,14 @@ namespace Reflect
     static constexpr auto typeStr = ConstexprStr::substr<ConstexprStr::length_between(#x, '<', '>')>(#x+ConstexprStr::find(#x, '<')+1); \
     static constexpr auto nameStr = ConstexprStr::substr<ConstexprStr::length_after_last(#x, ' ')>(#x+ConstexprStr::find_last_of(#x, ' ')+1); \
     static constexpr RfS::Field<true, LHS(x)::reflected, RfS::is_pointable<LHS(x)::type>::value, std::is_array<LHS(x)::type>::value, \
-        RfS::is_iterable<LHS(x)::type>::value, RfS::is_adaptor<LHS(x)::type>::value, \
+        RfS::is_stl_iterable<LHS(x)::type>::value, RfS::is_adaptor<LHS(x)::type>::value, \
         RfS::contains_pointables<LHS(x)::type>::value, RfS::contains_pairs<LHS(x)::type>::value, LHS(x)::type> field = \
         { IndexOf::RHS(x), &nameStr.value[0], &typeStr.value[0], std::extent<LHS(x)::type>::value, \
-        RfS::is_iterable<LHS(x)::type>::value || std::is_array<LHS(x)::type>::value || RfS::is_adaptor<LHS(x)::type>::value, \
+        RfS::is_stl_iterable<LHS(x)::type>::value || std::is_array<LHS(x)::type>::value || RfS::is_adaptor<LHS(x)::type>::value, \
         RfS::contains_pairs<LHS(x)::type>::value, LHS(x)::reflected }; \
 };
 #define GET_FIELD(x) { IndexOf::RHS(x), &RHS(x)::nameStr.value[0], &RHS(x)::typeStr.value[0], std::extent<LHS(x)::type>::value, \
-    RfS::is_iterable<LHS(x)::type>::value || std::is_array<LHS(x)::type>::value || RfS::is_adaptor<LHS(x)::type>::value, \
+    RfS::is_stl_iterable<LHS(x)::type>::value || std::is_array<LHS(x)::type>::value || RfS::is_adaptor<LHS(x)::type>::value, \
     RfS::contains_pairs<LHS(x)::type>::value, LHS(x)::reflected },
 #define USE_FIELD(x) function(RHS(x)::field, object.RHS(x));
 #define USE_FIELD_AT(x) case IndexOf::RHS(x): function(RHS(x)::field, object.RHS(x)); break;
