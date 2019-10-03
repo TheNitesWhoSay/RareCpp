@@ -903,9 +903,9 @@ namespace Reflect
 /// e.g. REFLECT(myObj, (B<int>) myInt, (B<std::string>) myString)
 #define REFLECT(objectType, ...) \
 class Class { public: \
-    FOR_EACH(ALIAS_TYPE, __VA_ARGS__) \
     static constexpr size_t totalFields = COUNT_ARGUMENTS(__VA_ARGS__); \
     enum_t(IndexOf, size_t, { FOR_EACH(GET_FIELD_NAME, __VA_ARGS__) }); \
+    FOR_EACH(ALIAS_TYPE, __VA_ARGS__) \
     FOR_EACH(DESCRIBE_FIELD, __VA_ARGS__) \
     static constexpr RfS::Field<false, false, false, false, false, false, false, false, void> fields[totalFields] = { FOR_EACH(GET_FIELD, __VA_ARGS__) }; \
     template <typename Function> static void ForEachField(objectType & object, Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
