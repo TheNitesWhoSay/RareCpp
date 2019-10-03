@@ -40,7 +40,7 @@ namespace Json {
 
             using Class = typename T::Class;
             Class::ForEachField(obj, [&](auto field, auto value) {
-                auto & constField = field.as_const();
+                const auto & constField = field;
 
                 os << Indent(indent, indentLevel) << "\"" << constField.name << "\": ";
                 if ( constField.IfNull(value, [&](auto) { os << "null"; }) );

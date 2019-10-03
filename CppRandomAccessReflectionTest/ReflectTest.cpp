@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include <utility>
 #include <type_traits>
+#include <functional>
 
 TEST(ReflectTest, MacroEnumT)
 {
@@ -913,6 +914,18 @@ TEST(ReflectTest, IsPointable)
     EXPECT_TRUE(RfS::is_pointable<std::unique_ptr<int>>::value);
 }
 
+TEST(ReflectTest, RemovePointer)
+{
+    bool isEqual = std::is_same<int, RfS::remove_pointer<int>::type>::value;
+    EXPECT_TRUE(isEqual);
+    isEqual = std::is_same<int, RfS::remove_pointer<int*>::type>::value;
+    EXPECT_TRUE(isEqual);
+    isEqual = std::is_same<int, RfS::remove_pointer<std::shared_ptr<int>>::type>::value;
+    EXPECT_TRUE(isEqual);
+    isEqual = std::is_same<int, RfS::remove_pointer<std::unique_ptr<int>>::type>::value;
+    EXPECT_TRUE(isEqual);
+}
+
 TEST(ReflectTest, IsStlIterable)
 {
     EXPECT_FALSE(RfS::is_stl_iterable<int>::value);
@@ -935,6 +948,272 @@ TEST(ReflectTest, IsStlIterable)
     using ExampleUnorderedMultiMapType = std::multimap<int, int>;
     EXPECT_TRUE(RfS::is_stl_iterable<ExampleUnorderedMapType>::value);
     EXPECT_TRUE(RfS::is_stl_iterable<ExampleUnorderedMultiMapType>::value);
+}
 
-    //EXPECT_TRUE(RfS::is_stl_iterable<std::vector<int>*>::value); // Work in progress, see https://github.com/jjf28/CppRandomAccessReflection/issues/5
+TEST(ReflectTest, IsAdaptor)
+{
+    EXPECT_FALSE(RfS::is_adaptor<int>::value);
+    EXPECT_FALSE(RfS::is_adaptor<std::vector<int>>::value);
+    EXPECT_TRUE(RfS::is_adaptor<std::stack<int>>::value);
+    EXPECT_TRUE(RfS::is_adaptor<std::queue<int>>::value);
+    EXPECT_TRUE(RfS::is_adaptor<std::priority_queue<int>>::value);
+}
+
+TEST(ReflectTest, ContainsPointables)
+{
+    EXPECT_FALSE(RfS::contains_pointables<int>::value);
+    EXPECT_FALSE(RfS::contains_pointables<int[2]>::value);
+    EXPECT_FALSE(RfS::contains_pointables<std::vector<int>>::value);
+    EXPECT_FALSE(RfS::contains_pointables<std::queue<int>>::value);
+    EXPECT_FALSE(RfS::contains_pointables<std::set<int>>::value);
+
+    EXPECT_FALSE(RfS::contains_pointables<int*>::value);
+    EXPECT_TRUE(RfS::contains_pointables<int*[2]>::value);
+    EXPECT_TRUE(RfS::contains_pointables<std::vector<int*>>::value);
+    EXPECT_TRUE(RfS::contains_pointables<std::queue<int*>>::value);
+    EXPECT_TRUE(RfS::contains_pointables<std::set<int*>>::value);
+
+    EXPECT_FALSE(RfS::contains_pointables<std::shared_ptr<int>>::value);
+    EXPECT_TRUE(RfS::contains_pointables<std::shared_ptr<int>[2]>::value);
+    EXPECT_TRUE(RfS::contains_pointables<std::vector<std::shared_ptr<int>>>::value);
+    EXPECT_TRUE(RfS::contains_pointables<std::queue<std::shared_ptr<int>>>::value);
+    EXPECT_TRUE(RfS::contains_pointables<std::set<std::shared_ptr<int>>>::value);
+
+    EXPECT_FALSE(RfS::contains_pointables<std::unique_ptr<int>>::value);
+    EXPECT_TRUE(RfS::contains_pointables<std::unique_ptr<int>[2]>::value);
+    EXPECT_TRUE(RfS::contains_pointables<std::vector<std::unique_ptr<int>>>::value);
+    EXPECT_TRUE(RfS::contains_pointables<std::queue<std::unique_ptr<int>>>::value);
+    EXPECT_TRUE(RfS::contains_pointables<std::set<std::unique_ptr<int>>>::value);
+}
+
+TEST(ReflectTest, ElementType)
+{
+    bool isEqual = std::is_same<void, RfS::element_type<int>::type>::value;
+    EXPECT_TRUE(isEqual);
+    isEqual = std::is_same<void, RfS::element_type<int*>::type>::value;
+    EXPECT_TRUE(isEqual);
+    isEqual = std::is_same<int, RfS::element_type<int[2]>::type>::value;
+    EXPECT_TRUE(isEqual);
+    isEqual = std::is_same<int, RfS::element_type<std::vector<int>>::type>::value;
+    EXPECT_TRUE(isEqual);
+}
+
+TEST(ReflectTest, KeyType)
+{
+    bool isEqual = std::is_same<void, RfS::key_type<int>::type>::value;
+    EXPECT_TRUE(isEqual);
+    isEqual = std::is_same<void, RfS::key_type<int*>::type>::value;
+    EXPECT_TRUE(isEqual);
+    isEqual = std::is_same<void, RfS::key_type<int[2]>::type>::value;
+    EXPECT_TRUE(isEqual);
+    isEqual = std::is_same<void, RfS::key_type<std::vector<int>>::type>::value;
+    EXPECT_TRUE(isEqual);
+    isEqual = std::is_same<int, RfS::key_type<std::set<int>>::type>::value;
+    EXPECT_TRUE(isEqual);
+    isEqual = std::is_same<int, RfS::key_type<std::multiset<int>>::type>::value;
+    EXPECT_TRUE(isEqual);
+    
+    using ExampleMapType = std::map<int, short>;
+    isEqual = std::is_same<int, RfS::key_type<ExampleMapType>::type>::value;
+    EXPECT_TRUE(isEqual);
+    using ExampleMultiMapType = std::multimap<int, short>;
+    isEqual = std::is_same<int, RfS::key_type<ExampleMultiMapType>::type>::value;
+    EXPECT_TRUE(isEqual);
+}
+
+TEST(ReflectTest, ContainsPairs)
+{
+    using IntPair = std::pair<int, int>;
+    EXPECT_FALSE(RfS::contains_pairs<int>::value);
+    EXPECT_FALSE(RfS::contains_pairs<int*>::value);
+    EXPECT_FALSE(RfS::contains_pairs<int[]>::value);
+    EXPECT_FALSE(RfS::contains_pairs<int*[]>::value);
+    EXPECT_FALSE(RfS::contains_pairs<std::vector<int>>::value);
+
+    EXPECT_TRUE(RfS::contains_pairs<IntPair[2]>::value);
+    EXPECT_TRUE(RfS::contains_pairs<std::vector<IntPair>>::value);
+    using ExampleMapType = std::map<int, short>;
+    EXPECT_TRUE(RfS::contains_pairs<ExampleMapType>::value);
+    using ExampleMultiMapType = std::multimap<int, short>;
+    EXPECT_TRUE(RfS::contains_pairs<ExampleMultiMapType>::value);
+}
+
+TEST(ReflectTest, GetUnderlyingContainer)
+{
+    // Stacks
+    std::stack<int> defaultStack;
+    defaultStack.push(0);
+    defaultStack.push(1);
+    auto stackDefaultUnderlyingContainer = RfS::get_underlying_container(defaultStack);
+    EXPECT_EQ(0, *stackDefaultUnderlyingContainer.begin());
+    EXPECT_EQ(1, *++stackDefaultUnderlyingContainer.begin());
+
+    std::stack<int, std::vector<int>> vectorStack;
+    vectorStack.push(2);
+    vectorStack.push(3);
+    auto stackUnderlyingVector = RfS::get_underlying_container(vectorStack);
+    bool isEqual = std::is_same<std::vector<int>, decltype(stackUnderlyingVector)>::value;
+    EXPECT_TRUE(isEqual);
+    EXPECT_EQ(2, *stackUnderlyingVector.begin());
+    EXPECT_EQ(3, *++stackUnderlyingVector.begin());
+
+    std::stack<int, std::deque<int>> dequeStack;
+    dequeStack.push(4);
+    dequeStack.push(5);
+    auto stackUnderlyingDeque = RfS::get_underlying_container(dequeStack);
+    isEqual = std::is_same<std::deque<int>, decltype(stackUnderlyingDeque)>::value;
+    EXPECT_TRUE(isEqual);
+    EXPECT_EQ(4, *stackUnderlyingDeque.begin());
+    EXPECT_EQ(5, *++stackUnderlyingDeque.begin());
+
+    std::stack<int, std::list<int>> listStack;
+    listStack.push(6);
+    listStack.push(7);
+    auto stackUnderlyingList = RfS::get_underlying_container(listStack);
+    isEqual = std::is_same<std::list<int>, decltype(stackUnderlyingList)>::value;
+    EXPECT_TRUE(isEqual);
+    EXPECT_EQ(6, *stackUnderlyingList.begin());
+    EXPECT_EQ(7, *++stackUnderlyingList.begin());
+    
+    // Queues
+    std::queue<int> defaultQueue;
+    defaultQueue.push(0);
+    defaultQueue.push(1);
+    auto queueDefaultUnderlyingContainer = RfS::get_underlying_container(defaultQueue);
+    EXPECT_EQ(0, *queueDefaultUnderlyingContainer.begin());
+    EXPECT_EQ(1, *++queueDefaultUnderlyingContainer.begin());
+
+    std::queue<int, std::vector<int>> vectorQueue;
+    vectorQueue.push(2);
+    vectorQueue.push(3);
+    auto queueUnderlyingVector = RfS::get_underlying_container(vectorQueue);
+    isEqual = std::is_same<std::vector<int>, decltype(queueUnderlyingVector)>::value;
+    EXPECT_TRUE(isEqual);
+    EXPECT_EQ(2, *queueUnderlyingVector.begin());
+    EXPECT_EQ(3, *++queueUnderlyingVector.begin());
+
+    std::queue<int, std::deque<int>> dequeQueue;
+    dequeQueue.push(4);
+    dequeQueue.push(5);
+    auto queueUnderlyingDeque = RfS::get_underlying_container(dequeQueue);
+    isEqual = std::is_same<std::deque<int>, decltype(queueUnderlyingDeque)>::value;
+    EXPECT_TRUE(isEqual);
+    EXPECT_EQ(4, *queueUnderlyingDeque.begin());
+    EXPECT_EQ(5, *++queueUnderlyingDeque.begin());
+
+    std::queue<int, std::list<int>> listQueue;
+    listQueue.push(6);
+    listQueue.push(7);
+    auto queueUnderlyingList = RfS::get_underlying_container(listQueue);
+    isEqual = std::is_same<std::list<int>, decltype(queueUnderlyingList)>::value;
+    EXPECT_TRUE(isEqual);
+    EXPECT_EQ(6, *queueUnderlyingList.begin());
+    EXPECT_EQ(7, *++queueUnderlyingList.begin());
+
+    // Priority Queues
+    std::priority_queue<int> defaultPriorityQueue;
+    defaultPriorityQueue.push(0);
+    defaultPriorityQueue.push(1);
+    auto priorityQueueDefaultUnderlyingContainer = RfS::get_underlying_container(defaultPriorityQueue);
+    EXPECT_EQ(1, *priorityQueueDefaultUnderlyingContainer.begin());
+    EXPECT_EQ(0, *++priorityQueueDefaultUnderlyingContainer.begin());
+
+    std::priority_queue<int, std::vector<int>> vectorPriorityQueue;
+    vectorPriorityQueue.push(2);
+    vectorPriorityQueue.push(3);
+    auto priorityQueueUnderlyingVector = RfS::get_underlying_container(vectorPriorityQueue);
+    isEqual = std::is_same<std::vector<int>, decltype(priorityQueueUnderlyingVector)>::value;
+    EXPECT_TRUE(isEqual);
+    EXPECT_EQ(3, *priorityQueueUnderlyingVector.begin());
+    EXPECT_EQ(2, *++priorityQueueUnderlyingVector.begin());
+
+    std::priority_queue<int, std::deque<int>> dequePriorityQueue;
+    dequePriorityQueue.push(4);
+    dequePriorityQueue.push(5);
+    auto priorityQueueUnderlyingDeque = RfS::get_underlying_container(dequePriorityQueue);
+    isEqual = std::is_same<std::deque<int>, decltype(priorityQueueUnderlyingDeque)>::value;
+    EXPECT_TRUE(isEqual);
+    EXPECT_EQ(5, *priorityQueueUnderlyingDeque.begin());
+    EXPECT_EQ(4, *++priorityQueueUnderlyingDeque.begin());
+}
+
+template <bool condition, typename Function>
+void IfConditionTest(Function function)
+{
+    RfS::ConditionalCall<condition, Function>::call(function);
+}
+
+TEST(ReflectTest, ConditionalCall)
+{
+    bool value = false;
+    IfConditionTest<false>([&](auto) {
+        value = true;
+    });
+    EXPECT_FALSE(value);
+    IfConditionTest<true>([&](auto) {
+        value = true;
+    });
+    EXPECT_TRUE(value);
+}
+
+TEST(ReflectTest, FieldSimple)
+{
+    size_t fieldIndex = 0;
+    char fieldName[] = "fieldName";
+    char fieldType[] = "int";
+    size_t fieldArraySize = 0;
+    bool fieldIsIterable = false;
+    bool fieldContainsPairs = false;
+    bool fieldIsReflected = false;
+
+    RfS::Field<false, false, false, false, false, false, false, false, void> field = {
+        fieldIndex, fieldName, fieldType, fieldArraySize, fieldIsIterable, fieldContainsPairs, fieldIsReflected
+    };
+    
+    EXPECT_EQ(fieldIndex, field.index);
+    EXPECT_STREQ(fieldName, field.name);
+    EXPECT_STREQ(fieldType, field.typeStr);
+    EXPECT_EQ(fieldArraySize, field.arraySize);
+    EXPECT_EQ(fieldIsIterable, field.isIterable);
+    EXPECT_EQ(fieldContainsPairs, field.containsPairs);
+    EXPECT_EQ(fieldIsReflected, field.isReflected);
+}
+
+TEST(ReflectTest, FieldTemplated)
+{
+    size_t fieldIndex = 0;
+    char fieldName[] = "fieldName";
+    char fieldType[] = "int";
+    size_t fieldArraySize = 0;
+    bool fieldIsIterable = false;
+    bool fieldContainsPairs = false;
+    bool fieldIsReflected = false;
+
+    using Field = RfS::Field<true, false, false, false, false, false, false, false, int>;
+    Field field = {
+        fieldIndex, fieldName, fieldType, fieldArraySize, fieldIsIterable, fieldContainsPairs, fieldIsReflected
+    };
+    
+    EXPECT_EQ(fieldIndex, field.index);
+    EXPECT_STREQ(fieldName, field.name);
+    EXPECT_STREQ(fieldType, field.typeStr);
+    EXPECT_EQ(fieldArraySize, field.arraySize);
+    EXPECT_EQ(fieldIsIterable, field.isIterable);
+    EXPECT_EQ(fieldContainsPairs, field.containsPairs);
+    EXPECT_EQ(fieldIsReflected, field.isReflected);
+    
+    bool isEqual = std::is_same<int, Field::type>::value;
+    EXPECT_TRUE(isEqual);
+    isEqual = std::is_same<void, Field::element_type>::value;
+    EXPECT_TRUE(isEqual);
+    isEqual = std::is_same<void, Field::key_type>::value;
+    EXPECT_TRUE(isEqual);
+
+    const auto constField = field;
+    bool isConst = std::is_const<decltype(constField)>::value;
+    EXPECT_TRUE(isConst);
+
+    const auto & constFieldRef = field;
+    isConst = std::is_const<std::remove_reference<decltype(constFieldRef)>::type>::value;
+    EXPECT_TRUE(isConst);
 }
