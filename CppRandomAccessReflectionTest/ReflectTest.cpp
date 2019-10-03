@@ -1212,7 +1212,11 @@ TEST(ReflectTest, FieldTemplated)
     isEqual = std::is_same<decltype(field.as_const()), const Field &>::value;
     EXPECT_TRUE(isEqual);
 
-    const auto & constField = field;
+    const auto constField = field;
     bool isConst = std::is_const<decltype(constField)>::value;
+    EXPECT_TRUE(isConst);
+
+    const auto & constFieldRef = field;
+    isConst = std::is_const<std::remove_reference<decltype(constFieldRef)>::type>::value;
     EXPECT_TRUE(isConst);
 }
