@@ -17,13 +17,16 @@ public:
     {
         tickMarks[0] = tickMarkOne;
         tickMarks[1] = tickMarkTwo;
+        testStack.push(0);
+        testStack.push(1);
     }
 
     float capacity;
     float currentLevel;
     float tickMarks[2];
+    std::stack<int> testStack;
 
-    REFLECT(FuelTank, (B<float>) capacity, (B<float>) currentLevel, (B<float[2]>) tickMarks)
+    REFLECT(FuelTank, (B<float>) capacity, (B<float>) currentLevel, (B<float[2]>) tickMarks, (B<std::stack<int>>) testStack)
 };
 
 class Wheel {
@@ -172,7 +175,7 @@ int main()
     });
 
     FuelTank::Class::ForEachField(fuelTank, [&](auto field, auto value) {
-        std::cout << field.name << ": " << value << std::endl; // This will print out a pointer, not the array values!
+        //std::cout << field.name << ": " << value << std::endl; // This will print out a pointer, not the array values!
     });
 
     FuelTank::Class::ForEachField(fuelTank, [&](auto field, auto value) {

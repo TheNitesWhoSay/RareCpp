@@ -264,6 +264,13 @@ namespace RfS
     template <typename T>
     struct is_pointable<std::unique_ptr<T>> { static constexpr bool value = true; };
 
+    template <typename T>
+    struct remove_pointer { using type = typename std::remove_pointer<T>::type; };
+    template <typename T>
+    struct remove_pointer<std::shared_ptr<T>> { using type = typename T; };
+    template <typename T>
+    struct remove_pointer<std::unique_ptr<T>> { using type = typename T; };
+
     template <typename T> struct is_stl_iterable { static constexpr bool value = false; };
     template <typename T, size_t N> struct is_stl_iterable<std::array<T, N>> { static constexpr bool value = true; };
     template <typename T, typename A> struct is_stl_iterable<std::vector<T, A>> { static constexpr bool value = true; };
@@ -342,6 +349,8 @@ namespace RfS
 
     template <typename T> struct contains_pairs { static constexpr bool value = false; };
     template <typename L, typename R, size_t N>
+    struct contains_pairs<std::pair<L, R>[N]> { static constexpr bool value = true; };
+    template <typename L, typename R, size_t N>
     struct contains_pairs<std::array<std::pair<L, R>, N>> { static constexpr bool value = true; };
     template <typename L, typename R, typename A>
     struct contains_pairs<std::vector<std::pair<L, R>, A>> { static constexpr bool value = true; };
@@ -359,8 +368,6 @@ namespace RfS
     struct contains_pairs<std::unordered_set<std::pair<L, R>, H, E, A>> { static constexpr bool value = true; };
     template <typename L, typename R, typename H, typename E, typename A>
     struct contains_pairs<std::unordered_multiset<std::pair<L, R>, H, E, A>> { static constexpr bool value = true; };
-
-    // Maps are always formed using pairs
     template <typename K, typename T, typename H, typename E, typename A>
     struct contains_pairs<std::unordered_map<K, T, H, E, A>> { static constexpr bool value = true; };
     template <typename K, typename T, typename H, typename E, typename A>
@@ -400,8 +407,8 @@ namespace RfS
         bool fieldContainsPointers, bool fieldContainsPairs, typename T>
     class Field;
     
-    template <typename T>
-    class Field<false, false, false, false, false, false, false, false, T> {
+    template <>
+    class Field<false, false, false, false, false, false, false, false, void> {
     public:
         size_t index;
         const char* name;
@@ -878,16 +885,17 @@ namespace Reflect
 #define DESCRIBE_FIELD(x) struct RHS(x) { \
     static constexpr auto typeStr = ConstexprStr::substr<ConstexprStr::length_between(#x, '<', '>')>(#x+ConstexprStr::find(#x, '<')+1); \
     static constexpr auto nameStr = ConstexprStr::substr<ConstexprStr::length_after_last(#x, ' ')>(#x+ConstexprStr::find_last_of(#x, ' ')+1); \
-    static constexpr RfS::Field<true, LHS(x)::reflected, RfS::is_pointable<LHS(x)::type>::value, std::is_array<LHS(x)::type>::value, \
-        RfS::is_stl_iterable<LHS(x)::type>::value, RfS::is_adaptor<LHS(x)::type>::value, \
-        RfS::contains_pointables<LHS(x)::type>::value, RfS::contains_pairs<LHS(x)::type>::value, LHS(x)::type> field = \
-        { IndexOf::RHS(x), &nameStr.value[0], &typeStr.value[0], std::extent<LHS(x)::type>::value, \
-        RfS::is_stl_iterable<LHS(x)::type>::value || std::is_array<LHS(x)::type>::value || RfS::is_adaptor<LHS(x)::type>::value, \
-        RfS::contains_pairs<LHS(x)::type>::value, LHS(x)::reflected }; \
+    static constexpr RfS::Field<true, LHS(x)::reflected, RfS::is_pointable<LHS(x)::type>::value, std::is_array<RfS::remove_pointer<LHS(x)::type>::type>::value, \
+        RfS::is_stl_iterable<RfS::remove_pointer<LHS(x)::type>::type>::value, RfS::is_adaptor<RfS::remove_pointer<LHS(x)::type>::type>::value, \
+        RfS::contains_pointables<RfS::remove_pointer<LHS(x)::type>::type>::value, RfS::contains_pairs<RfS::remove_pointer<LHS(x)::type>::type>::value, LHS(x)::type> field = \
+        { IndexOf::RHS(x), &nameStr.value[0], &typeStr.value[0], std::extent<RfS::remove_pointer<LHS(x)::type>::type>::value, \
+        RfS::is_stl_iterable<RfS::remove_pointer<LHS(x)::type>::type>::value || std::is_array<RfS::remove_pointer<LHS(x)::type>::type>::value || \
+        RfS::is_adaptor<RfS::remove_pointer<LHS(x)::type>::type>::value, RfS::contains_pairs<RfS::remove_pointer<LHS(x)::type>>::value, LHS(x)::reflected }; \
 };
-#define GET_FIELD(x) { IndexOf::RHS(x), &RHS(x)::nameStr.value[0], &RHS(x)::typeStr.value[0], std::extent<LHS(x)::type>::value, \
-    RfS::is_stl_iterable<LHS(x)::type>::value || std::is_array<LHS(x)::type>::value || RfS::is_adaptor<LHS(x)::type>::value, \
-    RfS::contains_pairs<LHS(x)::type>::value, LHS(x)::reflected },
+#define GET_FIELD(x) { IndexOf::RHS(x), &RHS(x)::nameStr.value[0], &RHS(x)::typeStr.value[0], std::extent<RfS::remove_pointer<LHS(x)::type>::type>::value, \
+    RfS::is_stl_iterable<RfS::remove_pointer<LHS(x)::type>::type>::value || std::is_array<RfS::remove_pointer<LHS(x)::type>::type>::value || \
+    RfS::is_adaptor<RfS::remove_pointer<LHS(x)::type>::type>::value, \
+    RfS::contains_pairs<RfS::remove_pointer<LHS(x)::type>::type>::value, LHS(x)::reflected },
 #define USE_FIELD(x) function(RHS(x)::field, object.RHS(x));
 #define USE_FIELD_AT(x) case IndexOf::RHS(x): function(RHS(x)::field, object.RHS(x)); break;
 
