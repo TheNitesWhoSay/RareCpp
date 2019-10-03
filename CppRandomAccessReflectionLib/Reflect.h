@@ -258,6 +258,13 @@ namespace ConstexprStr
 namespace RfS
 {
     template <typename T>
+    struct TypeToStr {
+        static constexpr auto Get() {
+            return ConstexprStr::substr<ConstexprStr::length_between(__FUNCTION__, '<', '>')>(__FUNCTION__ + ConstexprStr::find(__FUNCTION__, '<') + 1);
+        }
+    };
+
+    template <typename T>
     struct is_pointable { static constexpr bool value = std::is_pointer<T>::value; };
     template <typename T>
     struct is_pointable<std::shared_ptr<T>> { static constexpr bool value = true; };
@@ -867,39 +874,40 @@ namespace RfS
 namespace Reflect
 {
     /// B "basic-type": must be used for any type which already has an acceptable representation when streamed
-    template <typename T> struct B {
+    struct B {
         static constexpr bool reflected = false;
-        using type = typename T;
     };
     
     /// R "reflected-type": must be used for any object which in turn relies on reflection to be streamed
-    template <typename T> struct R {
+    struct R {
         static constexpr bool reflected = true;
-        using type = typename T;
     };
 
+
+#define ALIAS_TYPE(x) using RHS(x) = decltype(RHS(x));
 #define GET_FIELD_NAME(x) RHS(x),
-#define DESCRIBE_FIELD(x) struct RHS(x) { \
-    static constexpr auto typeStr = ConstexprStr::substr<ConstexprStr::length_between(#x, '<', '>')>(#x+ConstexprStr::find(#x, '<')+1); \
+#define DESCRIBE_FIELD(x) struct RHS(x)_ { \
     static constexpr auto nameStr = ConstexprStr::substr<ConstexprStr::length_after_last(#x, ' ')>(#x+ConstexprStr::find_last_of(#x, ' ')+1); \
-    static constexpr RfS::Field<true, LHS(x)::reflected, RfS::is_pointable<LHS(x)::type>::value, std::is_array<RfS::remove_pointer<LHS(x)::type>::type>::value, \
-        RfS::is_stl_iterable<RfS::remove_pointer<LHS(x)::type>::type>::value, RfS::is_adaptor<RfS::remove_pointer<LHS(x)::type>::type>::value, \
-        RfS::contains_pointables<RfS::remove_pointer<LHS(x)::type>::type>::value, RfS::contains_pairs<RfS::remove_pointer<LHS(x)::type>::type>::value, LHS(x)::type> field = \
-        { IndexOf::RHS(x), &nameStr.value[0], &typeStr.value[0], std::extent<RfS::remove_pointer<LHS(x)::type>::type>::value, \
-        RfS::is_stl_iterable<RfS::remove_pointer<LHS(x)::type>::type>::value || std::is_array<RfS::remove_pointer<LHS(x)::type>::type>::value || \
-        RfS::is_adaptor<RfS::remove_pointer<LHS(x)::type>::type>::value, RfS::contains_pairs<RfS::remove_pointer<LHS(x)::type>>::value, LHS(x)::reflected }; \
+    static constexpr auto typeStr = RfS::TypeToStr<RHS(x)>::Get(); \
+    static constexpr RfS::Field<true, LHS(x)::reflected, RfS::is_pointable<RHS(x)>::value, std::is_array<RfS::remove_pointer<RHS(x)>::type>::value, \
+        RfS::is_stl_iterable<RfS::remove_pointer<RHS(x)>::type>::value, RfS::is_adaptor<RfS::remove_pointer<RHS(x)>::type>::value, \
+        RfS::contains_pointables<RfS::remove_pointer<RHS(x)>::type>::value, RfS::contains_pairs<RfS::remove_pointer<RHS(x)>::type>::value, Class::RHS(x)> field = \
+        { IndexOf::RHS(x), &nameStr.value[0], &typeStr.value[0], std::extent<RfS::remove_pointer<RHS(x)>::type>::value, \
+        RfS::is_stl_iterable<RfS::remove_pointer<RHS(x)>::type>::value || std::is_array<RfS::remove_pointer<RHS(x)>::type>::value || \
+        RfS::is_adaptor<RfS::remove_pointer<RHS(x)>::type>::value, RfS::contains_pairs<RfS::remove_pointer<RHS(x)>::type>::value, LHS(x)::reflected }; \
 };
-#define GET_FIELD(x) { IndexOf::RHS(x), &RHS(x)::nameStr.value[0], &RHS(x)::typeStr.value[0], std::extent<RfS::remove_pointer<LHS(x)::type>::type>::value, \
-    RfS::is_stl_iterable<RfS::remove_pointer<LHS(x)::type>::type>::value || std::is_array<RfS::remove_pointer<LHS(x)::type>::type>::value || \
-    RfS::is_adaptor<RfS::remove_pointer<LHS(x)::type>::type>::value, \
-    RfS::contains_pairs<RfS::remove_pointer<LHS(x)::type>::type>::value, LHS(x)::reflected },
-#define USE_FIELD(x) function(RHS(x)::field, object.RHS(x));
-#define USE_FIELD_AT(x) case IndexOf::RHS(x): function(RHS(x)::field, object.RHS(x)); break;
+#define GET_FIELD(x) { IndexOf::RHS(x), &RHS(x)_::nameStr.value[0], &RHS(x)_::typeStr.value[0], std::extent<RfS::remove_pointer<RHS(x)>::type>::value, \
+    RfS::is_stl_iterable<RfS::remove_pointer<RHS(x)>::type>::value || std::is_array<RfS::remove_pointer<RHS(x)>::type>::value || \
+    RfS::is_adaptor<RfS::remove_pointer<RHS(x)>::type>::value, \
+    RfS::contains_pairs<RfS::remove_pointer<RHS(x)>::type>::value, LHS(x)::reflected },
+#define USE_FIELD(x) function(RHS(x)_::field, object.RHS(x));
+#define USE_FIELD_AT(x) case IndexOf::RHS(x): function(RHS(x)_::field, object.RHS(x)); break;
 
 /// After the objectType there needs to be at least 1 and at most 123 fields, in the form "(B<type>) fieldName" or "(R<type>) fieldName"
 /// e.g. REFLECT(myObj, (B<int>) myInt, (B<std::string>) myString)
 #define REFLECT(objectType, ...) \
 class Class { public: \
+    FOR_EACH(ALIAS_TYPE, __VA_ARGS__) \
     static constexpr size_t totalFields = COUNT_ARGUMENTS(__VA_ARGS__); \
     enum_t(IndexOf, size_t, { FOR_EACH(GET_FIELD_NAME, __VA_ARGS__) }); \
     FOR_EACH(DESCRIBE_FIELD, __VA_ARGS__) \

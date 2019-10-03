@@ -26,7 +26,7 @@ public:
     float tickMarks[2];
     std::stack<int> testStack;
 
-    REFLECT(FuelTank, (B<float>) capacity, (B<float>) currentLevel, (B<float[2]>) tickMarks, (B<std::stack<int>>) testStack)
+    REFLECT(FuelTank, (B) capacity, (B) currentLevel, (B) tickMarks, (B) testStack)
 };
 
 class Wheel {
@@ -43,7 +43,7 @@ public:
     int size;
     float pressure;
 
-    REFLECT(Wheel, (B<Rim>) rim, (B<int>) size, (B<float>) pressure)
+    REFLECT(Wheel, (B) rim, (B) size, (B) pressure)
 };
 
 class CupHolder {
@@ -55,7 +55,7 @@ public:
     int height;
     bool occupied;
 
-    REFLECT(CupHolder, (B<int>) width, (B<int>) height, (B<bool>) occupied)
+    REFLECT(CupHolder, (B) width, (B) height, (B) occupied)
 };
 using CupHolderPtr = std::shared_ptr<CupHolder>;
 
@@ -85,10 +85,7 @@ public:
     
     using OccupantIdType = std::map<std::string, std::string>;
     using OccupantCupHolderUsageType = std::map<std::string, CupHolderPtr>;
-    REFLECT(Car, (R<Wheel[4]>) wheels, (B<std::vector<std::string>>) occupants, (B<OccupantIdType>) occupantId,
-        (R<OccupantCupHolderUsageType>) occupantCupHolderUsage,
-        (R<std::vector<CupHolderPtr>>) cupHolders,
-        (R<FuelTank>) fuelTank, (B<float>) milesPerGallon)
+    REFLECT(Car, (R) wheels, (B) occupants, (B) occupantId, (R) occupantCupHolderUsage, (R) cupHolders, (R) fuelTank, (B) milesPerGallon)
 
 };
 
@@ -104,23 +101,23 @@ public:
     u8 f113; u8 f114; u8 f115; u8 f116; u8 f117; u8 f118; u8 f119; u8 f120; u8 f121; u8 f122; u8 f123; u8 f124;
 
     REFLECT(MassiveObject,
-        (B<u8>) f001, (B<u8>) f002, (B<u8>) f003, (B<u8>) f004, (B<u8>) f005, (B<u8>) f006, (B<u8>) f007, (B<u8>) f008,
-        (B<u8>) f009, (B<u8>) f010, (B<u8>) f011, (B<u8>) f012, (B<u8>) f013, (B<u8>) f014, (B<u8>) f015, (B<u8>) f016,
-        (B<u8>) f017, (B<u8>) f018, (B<u8>) f019, (B<u8>) f020, (B<u8>) f021, (B<u8>) f022, (B<u8>) f023, (B<u8>) f024,
-        (B<u8>) f025, (B<u8>) f026, (B<u8>) f027, (B<u8>) f028, (B<u8>) f029, (B<u8>) f030, (B<u8>) f031, (B<u8>) f032,
-        (B<u8>) f033, (B<u8>) f034, (B<u8>) f035, (B<u8>) f036, (B<u8>) f037, (B<u8>) f038, (B<u8>) f039, (B<u8>) f040,
-        (B<u8>) f041, (B<u8>) f042, (B<u8>) f043, (B<u8>) f044, (B<u8>) f045, (B<u8>) f046, (B<u8>) f047, (B<u8>) f048,
-        (B<u8>) f049, (B<u8>) f050, (B<u8>) f051, (B<u8>) f052, (B<u8>) f053, (B<u8>) f054, (B<u8>) f055, (B<u8>) f056,
-        (B<u8>) f057, (B<u8>) f058, (B<u8>) f059, (B<u8>) f060, (B<u8>) f061, (B<u8>) f062, (B<u8>) f063, (B<u8>) f064,
-        (B<u8>) f065, (B<u8>) f066, (B<u8>) f067, (B<u8>) f068, (B<u8>) f069, (B<u8>) f070, (B<u8>) f071, (B<u8>) f072,
-        (B<u8>) f073, (B<u8>) f074, (B<u8>) f075, (B<u8>) f076, (B<u8>) f077, (B<u8>) f078, (B<u8>) f079, (B<u8>) f080,
-        (B<u8>) f081, (B<u8>) f082, (B<u8>) f083, (B<u8>) f084, (B<u8>) f085, (B<u8>) f086, (B<u8>) f087, (B<u8>) f088,
-        (B<u8>) f089, (B<u8>) f090, (B<u8>) f091, (B<u8>) f092, (B<u8>) f093, (B<u8>) f094, (B<u8>) f095, (B<u8>) f096,
-        (B<u8>) f097, (B<u8>) f098, (B<u8>) f099, (B<u8>) f100, (B<u8>) f101, (B<u8>) f102, (B<u8>) f103, (B<u8>) f104,
-        (B<u8>) f105, (B<u8>) f106, (B<u8>) f107, (B<u8>) f108, (B<u8>) f109, (B<u8>) f110, (B<u8>) f111, (B<u8>) f112,
-        (B<u8>) f113, (B<u8>) f114, (B<u8>) f115, (B<u8>) f116, (B<u8>) f117, (B<u8>) f118, (B<u8>) f119, (B<u8>) f120,
-        (B<u8>) f121, (B<u8>) f122, (B<u8>) f123
-        //,(B<u8>) f124 // This will cause an error "C1009 - compiler limit: macros nested too deeply"
+        (B) f001, (B) f002, (B) f003, (B) f004, (B) f005, (B) f006, (B) f007, (B) f008,
+        (B) f009, (B) f010, (B) f011, (B) f012, (B) f013, (B) f014, (B) f015, (B) f016,
+        (B) f017, (B) f018, (B) f019, (B) f020, (B) f021, (B) f022, (B) f023, (B) f024,
+        (B) f025, (B) f026, (B) f027, (B) f028, (B) f029, (B) f030, (B) f031, (B) f032,
+        (B) f033, (B) f034, (B) f035, (B) f036, (B) f037, (B) f038, (B) f039, (B) f040,
+        (B) f041, (B) f042, (B) f043, (B) f044, (B) f045, (B) f046, (B) f047, (B) f048,
+        (B) f049, (B) f050, (B) f051, (B) f052, (B) f053, (B) f054, (B) f055, (B) f056,
+        (B) f057, (B) f058, (B) f059, (B) f060, (B) f061, (B) f062, (B) f063, (B) f064,
+        (B) f065, (B) f066, (B) f067, (B) f068, (B) f069, (B) f070, (B) f071, (B) f072,
+        (B) f073, (B) f074, (B) f075, (B) f076, (B) f077, (B) f078, (B) f079, (B) f080,
+        (B) f081, (B) f082, (B) f083, (B) f084, (B) f085, (B) f086, (B) f087, (B) f088,
+        (B) f089, (B) f090, (B) f091, (B) f092, (B) f093, (B) f094, (B) f095, (B) f096,
+        (B) f097, (B) f098, (B) f099, (B) f100, (B) f101, (B) f102, (B) f103, (B) f104,
+        (B) f105, (B) f106, (B) f107, (B) f108, (B) f109, (B) f110, (B) f111, (B) f112,
+        (B) f113, (B) f114, (B) f115, (B) f116, (B) f117, (B) f118, (B) f119, (B) f120,
+        (B) f121, (B) f122, (B) f123
+        //,(B) f124 // This will cause an error "C1009 - compiler limit: macros nested too deeply"
     )
 };
 
