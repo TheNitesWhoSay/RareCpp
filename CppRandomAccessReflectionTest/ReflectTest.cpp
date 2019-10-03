@@ -1209,9 +1209,6 @@ TEST(ReflectTest, FieldTemplated)
     isEqual = std::is_same<void, Field::key_type>::value;
     EXPECT_TRUE(isEqual);
 
-    isEqual = std::is_same<decltype(field.as_const()), const Field &>::value;
-    EXPECT_TRUE(isEqual);
-
     const auto constField = field;
     bool isConst = std::is_const<decltype(constField)>::value;
     EXPECT_TRUE(isConst);
