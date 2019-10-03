@@ -13,7 +13,7 @@ public:
     float currentLevel;
     float tickMarks[2];
 
-    REFLECT(FuelTank, (B<float>) capacity, (B<float>) currentLevel, (B<float[2]>) tickMarks)
+    REFLECT(FuelTank, (B) capacity, (B) currentLevel, (B) tickMarks)
 };
 ```
 
@@ -25,12 +25,13 @@ The REFLECT macro takes the class name, then between 1 and 123 B or R fields or 
 ## Field
 Information provided to REFLECT is used to generate meta-data about your classes fields in the form of "Field" objects stored in a sub-class of your object titled "Class", Field objects come in two flavors but both share the following members:
 
-1. fieldIndex
-2. fieldName
-3. fieldType (as string)
+1. index
+2. name
+3. typeStr
 4. arraySize (0 for fields that are not arrays)
-5. isArray
-6. isFieldTypeReflected
+5. isIterable (either an array or STL container)
+6. containsPairs (STL maps always contain pairs, also true for any non-map iterables that have element type pair)
+7. isReflected
 
 ## Class
 As stated, Class is a sub-class of the class you're trying to reflect; Class has the following static data members:
@@ -48,22 +49,37 @@ FieldAt(object, size_t fieldIndex, [&](auto field, auto value) {
 });
 ```
 
-"value" is a reference to the actual field in the object, which you can read or change. "field" is the enhanced flavor of Field, meaning it includes the type (accessible using decltype(field)::type), as well as the "Lambda Guards", which can be used to conviently use fields without hitting compiler errors.
+"value" is a reference to the actual field in the object, which you can read or change. "field" is the enhanced flavor of Field, meaning it includes the type (accessible using decltype(field)::type), as well as the "accelerators", which can be used to conviently use fields without hitting compiler errors.
 ```
-field.IfPrimitive([&](auto) {
+field.ForPrimitive(value, [&](auto primitive) {
 	// Your code here
 });
-field.IfObject([&](auto) {
+field.ForObject(value, [&](auto object) {
 	// Your code here
 });
-field.IfPrimitiveArray([&](auto) {
-	// Your code here
-});
-field.IfObjectArray([&](auto) {
-	// Your code here
-});
+field.ForPrimitives(value, [&](auto index, auto primitive) { /* Your code here (excluded below) */ });
+field.ForObjects(value, [&](auto index, auto object) { });
+field.ForPrimitivePairs(value, [&](auto index, auto first, auto primitive) { });
+field.ForObjectPairs(value, [&](auto index, auto first, auto object) { });
+
+field.ForPrimitivePointers(value, [&](auto index, auto primitivePointer) { });
+field.ForObjectPointers(value, [&](auto index, auto objectPointer) { });
+field.ForPrimitivePointerPairs(value, [&](auto index, auto first, auto primitivePointer) { });
+field.ForObjectPointerPairs(value, [&](auto index, auto first, auto objectPointer) { });
 ```
 
+For the first six accelerators, if some of the fields may be nullpointer (e.g. you have a std::vector<int>* field) you're expected to use the null-check method first (as below), pointer fields are otherwise internally dereferenced by the first six accelerators to allow you to iterate their contents without needing to use a separate accelerator. If a field may contain pointers (e.g. std::vector<int*>) rather than being a pointer themselves, then you need to call one of the last four accelerators, pointers contained in arrays and STL containers will not automatically be dereferenced.
+
+```
+if ( field.IfNull(value) )
+  // Code handling nullpointer
+else
+{
+  field.ForPrimitives(value, [&](auto index, auto primitive) {
+    // Code handling each primitive in some iterable field
+  });
+}
+```
 
 ## Usage
 
@@ -167,9 +183,10 @@ The REFLECT macro takes in the name of the class you're adding reflection to, fo
 
 1. totalFields gets set to the count of arguments, not including the class name
 2. an enum "IndexOf" is generated using each field name, because enums start at 0 and count up, IndexOf::fieldName provides the index of a given field in a manner statically available at compile time (this especially helps us build switches later)
-3. a subclass is defined for each field named the same as the fieldName, in this subclass a typeStr and nameStr are constructed, and a "Field" object is defined, using the typeStr, nameStr, and a ton of methods from C++ type support https://en.cppreference.com/w/cpp/types , these Field objects are the enhanced flavor
-4. a "Field" array is generated, similar to the field object defined in the third step, but the simple flavor
-5. The ForEachField method is generated, calling the given function with the enhanced flavor of the Field and a reference to the field
-6. The FieldAt method is generated, calling the given function with the enhanced flavor of the Field and a reference to the field at the given fieldIndex
+3. An alias for each type is defined (via "using") named the same as the fieldname
+4. a subclass is defined for each field named fieldName_, in this subclass a typeStr and nameStr are constructed, and a "Field" object is defined, using the typeStr, nameStr, and a ton of methods from C++ type support https://en.cppreference.com/w/cpp/types , these Field objects are the enhanced flavor
+5. a "Field" array is generated, similar to the field object defined in the third step, but the simple flavor
+6. The ForEachField method is generated, calling the given function with the enhanced flavor of the Field and a reference to the field
+7. The FieldAt method is generated, calling the given function with the enhanced flavor of the Field and a reference to the field at the given fieldIndex
 
 See [Reflect.h](https://github.com/jjf28/CppRandomAccessReflection/blob/master/CppRandomAccessReflection/Reflect.h) for the full implementation of macro loops and the REFLECT macro.
