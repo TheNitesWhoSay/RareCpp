@@ -536,13 +536,9 @@ namespace RfS
         /// 
         /// All other STL containers are iterated naturally (e.g. vector begin to end, queue front to back, priority queue top to bottom)
 
-		template <typename T, typename Function> static constexpr bool IfNull(T field, Function function) {
+		template <typename T> static constexpr bool IfNull(T field) {
 			bool isNull = false;
-			IfPointer([&](auto) {
-				isNull = field == nullptr;
-				if ( isNull )
-					function(field);
-			});
+			IfPointer([&](auto) { isNull = field == nullptr; });
 			return isNull;
 		}
         

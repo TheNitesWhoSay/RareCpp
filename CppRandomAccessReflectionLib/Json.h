@@ -43,7 +43,8 @@ namespace Json {
                 const auto & constField = field;
 
                 os << Indent(indent, indentLevel) << "\"" << constField.name << "\": ";
-                if ( constField.IfNull(value, [&](auto) { os << "null"; }) );
+                if ( constField.IfNull(value) )
+                    os << "null";
                 else if ( !constField.isIterable )
                 {
                     constField.ForPrimitive(value, [&](auto primitive) { os << "\"" << primitive << "\""; }); // Primitive
