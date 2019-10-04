@@ -905,6 +905,23 @@ TEST(ReflectTest, ConstexprStrFindLastOf)
     EXPECT_EQ(11, ConstexprStr::find_last_of("abcdefabcdef", 'f'));
 }
 
+TEST(ReflectTest, TypeToStr)
+{
+    EXPECT_STREQ("int", RfS::TypeToStr<int>::Get().value);
+
+    // Expecting some junk like how it's a struct or class, but it should still contain the pair text
+    auto pairStrStruct = RfS::TypeToStr<std::pair<int,int>>::Get();
+    std::string typeStr = pairStrStruct.value;
+    typeStr.erase(std::remove(typeStr.begin(), typeStr.end(), ' '), typeStr.end());
+    EXPECT_TRUE(typeStr.find("pair<int,int") != std::string::npos);
+
+    // Expecting some junk like how it's a struct or class and what allocator it's using, but should contain the map text
+    auto mapStrStruct = RfS::TypeToStr<std::map<int,int>>::Get();
+    std::string mapStr = mapStrStruct.value;
+    mapStr.erase(std::remove(mapStr.begin(), mapStr.end(), ' '), mapStr.end());
+    EXPECT_TRUE(mapStr.find("map<int,int") != std::string::npos);
+}
+
 TEST(ReflectTest, IsPointable)
 {
     EXPECT_FALSE(RfS::is_pointable<int>::value);
@@ -918,6 +935,8 @@ TEST(ReflectTest, RemovePointer)
 {
     bool isEqual = std::is_same<int, RfS::remove_pointer<int>::type>::value;
     EXPECT_TRUE(isEqual);
+    isEqual = std::is_same<int[2], RfS::remove_pointer<int[2]>::type>::value;
+    EXPECT_TRUE(isEqual);
     isEqual = std::is_same<int, RfS::remove_pointer<int*>::type>::value;
     EXPECT_TRUE(isEqual);
     isEqual = std::is_same<int, RfS::remove_pointer<std::shared_ptr<int>>::type>::value;
@@ -929,6 +948,7 @@ TEST(ReflectTest, RemovePointer)
 TEST(ReflectTest, IsStlIterable)
 {
     EXPECT_FALSE(RfS::is_stl_iterable<int>::value);
+    EXPECT_FALSE(RfS::is_stl_iterable<int*>::value);
     EXPECT_FALSE(RfS::is_stl_iterable<int[2]>::value);
     using ExampleArrayType = std::array<int, 2>;
     EXPECT_TRUE(RfS::is_stl_iterable<ExampleArrayType>::value);
@@ -936,17 +956,22 @@ TEST(ReflectTest, IsStlIterable)
     EXPECT_TRUE(RfS::is_stl_iterable<std::deque<int>>::value);
     EXPECT_TRUE(RfS::is_stl_iterable<std::forward_list<int>>::value);
     EXPECT_TRUE(RfS::is_stl_iterable<std::list<int>>::value);
+    
+    EXPECT_FALSE(RfS::is_stl_iterable<std::stack<int>>::value);
+    EXPECT_FALSE(RfS::is_stl_iterable<std::queue<int>>::value);
+    EXPECT_FALSE(RfS::is_stl_iterable<std::priority_queue<int>>::value);
+
     EXPECT_TRUE(RfS::is_stl_iterable<std::set<int>>::value);
     EXPECT_TRUE(RfS::is_stl_iterable<std::multiset<int>>::value);
     using ExampleMapType = std::map<int, int>;
-    using ExampleMultiMapType = std::multimap<int, int>;
     EXPECT_TRUE(RfS::is_stl_iterable<ExampleMapType>::value);
+    using ExampleMultiMapType = std::multimap<int, int>;
     EXPECT_TRUE(RfS::is_stl_iterable<ExampleMultiMapType>::value);
     EXPECT_TRUE(RfS::is_stl_iterable<std::unordered_set<int>>::value);
     EXPECT_TRUE(RfS::is_stl_iterable<std::unordered_multiset<int>>::value);
     using ExampleUnorderedMapType = std::map<int, int>;
-    using ExampleUnorderedMultiMapType = std::multimap<int, int>;
     EXPECT_TRUE(RfS::is_stl_iterable<ExampleUnorderedMapType>::value);
+    using ExampleUnorderedMultiMapType = std::multimap<int, int>;
     EXPECT_TRUE(RfS::is_stl_iterable<ExampleUnorderedMultiMapType>::value);
 }
 
@@ -1166,9 +1191,7 @@ TEST(ReflectTest, FieldSimple)
     bool fieldContainsPairs = false;
     bool fieldIsReflected = false;
 
-    RfS::Field<false, false, false, false, false, false, false, false, void> field = {
-        fieldIndex, fieldName, fieldType, fieldArraySize, fieldIsIterable, fieldContainsPairs, fieldIsReflected
-    };
+    RfS::SimpleField field = { fieldIndex, fieldName, fieldType, fieldArraySize, fieldIsIterable, fieldContainsPairs, fieldIsReflected };
     
     EXPECT_EQ(fieldIndex, field.index);
     EXPECT_STREQ(fieldName, field.name);
@@ -1189,10 +1212,8 @@ TEST(ReflectTest, FieldTemplated)
     bool fieldContainsPairs = false;
     bool fieldIsReflected = false;
 
-    using Field = RfS::Field<true, false, false, false, false, false, false, false, int>;
-    Field field = {
-        fieldIndex, fieldName, fieldType, fieldArraySize, fieldIsIterable, fieldContainsPairs, fieldIsReflected
-    };
+    using Field = RfS::TemplatedField<int, false>::type;
+    Field field = { fieldIndex, fieldName, fieldType, fieldArraySize, fieldIsIterable, fieldContainsPairs, fieldIsReflected };
     
     EXPECT_EQ(fieldIndex, field.index);
     EXPECT_STREQ(fieldName, field.name);
@@ -1216,4 +1237,46 @@ TEST(ReflectTest, FieldTemplated)
     const auto & constFieldRef = field;
     isConst = std::is_const<std::remove_reference<decltype(constFieldRef)>::type>::value;
     EXPECT_TRUE(isConst);
+}
+
+struct LambdaGuardTest
+{
+    int first;
+    float second;
+};
+
+TEST(ReflectTest, FieldLambdaGuards)
+{
+    using PrimitiveField = RfS::TemplatedField<int, false>::type;
+
+    using PrimitivePointerField = RfS::TemplatedField<int*, false>::type;
+
+    using ObjectField = RfS::TemplatedField<int, false>::type;
+    using ObjectPointerField = RfS::TemplatedField<int, false>::type;
+
+    using PrimitiveArrayField = RfS::TemplatedField<int, false>::type;
+    using PrimitiveStlArrayField = RfS::TemplatedField<int, false>::type;
+    using PrimitiveVectorField = RfS::TemplatedField<int, false>::type;
+    using PrimitiveDequeField = RfS::TemplatedField<int, false>::type;
+    using PrimitiveForwardList = RfS::TemplatedField<int, false>::type;
+    using PrimitiveList = RfS::TemplatedField<int, false>::type;
+    using PrimitiveStack = RfS::TemplatedField<int, false>::type;
+    using PrimitiveQueue = RfS::TemplatedField<int, false>::type;
+    using PrimitivePriorityQueue = RfS::TemplatedField<int, false>::type;
+    using PrimitiveSet = RfS::TemplatedField<int, false>::type;
+    using PrimitiveMultiSet = RfS::TemplatedField<int, false>::type;
+    using PrimitiveMap = RfS::TemplatedField<int, false>::type;
+    using PrimitiveMultiMap = RfS::TemplatedField<int, false>::type;
+    using PrimitiveUnorderedSet = RfS::TemplatedField<int, false>::type;
+    using PrimitiveUnorderedMultiSet = RfS::TemplatedField<int, false>::type;
+    using PrimitiveUnorderedMap = RfS::TemplatedField<int, false>::type;
+    using PrimitiveUnorderedMultiMap = RfS::TemplatedField<int, false>::type;
+
+    using PrimitiveArrayPointerField = RfS::TemplatedField<int, false>::type;
+    using PrimitiveStlArrayFieldPointer = RfS::TemplatedField<int, false>::type;
+    
+    // Iterable Primitives
+    // Iterable Primitives Pointer
+    // Primitive Adaptor
+    // Primitive Adaptor Pointer
 }

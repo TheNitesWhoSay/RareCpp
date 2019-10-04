@@ -410,12 +410,12 @@ namespace RfS
         constexpr static void call(Function function) {}
     };
 
-    template <bool templated, bool fieldIsReflected, bool fieldIsPointer, bool fieldIsArray, bool fieldIsStlIterable, bool fieldIsStlAdaptor,
-        bool fieldContainsPointers, bool fieldContainsPairs, typename T>
+    template <bool templated, typename T, bool fieldIsReflected, bool fieldIsPointer, bool fieldIsArray, bool fieldIsStlIterable, bool fieldIsStlAdaptor,
+        bool fieldContainsPointers, bool fieldContainsPairs>
     class Field;
     
     template <>
-    class Field<false, false, false, false, false, false, false, false, void> {
+    class Field<false, void, false, false, false, false, false, false, false> {
     public:
         size_t index;
         const char* name;
@@ -425,10 +425,11 @@ namespace RfS
         bool containsPairs;
         bool isReflected;
     };
+    using SimpleField = Field<false, void, false, false, false, false, false, false, false>;
 
-    template <bool fieldIsReflected, bool fieldIsPointer, bool fieldIsArray, bool fieldIsStlIterable, bool fieldIsStlAdaptor,
-        bool fieldContainsPointers, bool fieldContainsPairs, typename T>
-    class Field<true, fieldIsReflected, fieldIsPointer, fieldIsArray, fieldIsStlIterable, fieldIsStlAdaptor, fieldContainsPointers, fieldContainsPairs, T> {
+    template <typename T, bool fieldIsReflected, bool fieldIsPointer, bool fieldIsArray, bool fieldIsStlIterable, bool fieldIsStlAdaptor,
+        bool fieldContainsPointers, bool fieldContainsPairs>
+    class Field<true, T, fieldIsReflected, fieldIsPointer, fieldIsArray, fieldIsStlIterable, fieldIsStlAdaptor, fieldContainsPointers, fieldContainsPairs> {
     public:
         size_t index;
         const char* name;
@@ -864,6 +865,19 @@ namespace RfS
             });
         }
     };
+
+    template <typename T, bool reflected>
+    struct TemplatedField
+    {
+        using type = Field<true, T, reflected,
+            is_pointable<T>::value,
+            std::is_array<typename remove_pointer<T>::type>::value,
+            is_stl_iterable<typename remove_pointer<T>::type>::value,
+            is_adaptor<typename remove_pointer<T>::type>::value,
+            contains_pointables<typename remove_pointer<T>::type>::value,
+            contains_pairs<typename remove_pointer<T>::type>::value
+        >;
+    };
 };
 
 /// Contains the various type classes for declaring reflected fields and the definition for the REFLECT macro and non-generic supporting macros
@@ -885,29 +899,25 @@ namespace Reflect
 #define DESCRIBE_FIELD(x) struct RHS(x)_ { \
     static constexpr auto nameStr = ConstexprStr::substr<ConstexprStr::length_after_last(#x, ' ')>(#x+ConstexprStr::find_last_of(#x, ' ')+1); \
     static constexpr auto typeStr = RfS::TypeToStr<RHS(x)>::Get(); \
-    static constexpr RfS::Field<true, LHS(x)::reflected, RfS::is_pointable<RHS(x)>::value, std::is_array<RfS::remove_pointer<RHS(x)>::type>::value, \
-        RfS::is_stl_iterable<RfS::remove_pointer<RHS(x)>::type>::value, RfS::is_adaptor<RfS::remove_pointer<RHS(x)>::type>::value, \
-        RfS::contains_pointables<RfS::remove_pointer<RHS(x)>::type>::value, RfS::contains_pairs<RfS::remove_pointer<RHS(x)>::type>::value, Class::RHS(x)> field = \
+    static constexpr RfS::TemplatedField<RHS(x), LHS(x)::reflected>::type field = \
         { IndexOf::RHS(x), &nameStr.value[0], &typeStr.value[0], std::extent<RfS::remove_pointer<RHS(x)>::type>::value, \
         RfS::is_stl_iterable<RfS::remove_pointer<RHS(x)>::type>::value || std::is_array<RfS::remove_pointer<RHS(x)>::type>::value || \
         RfS::is_adaptor<RfS::remove_pointer<RHS(x)>::type>::value, RfS::contains_pairs<RfS::remove_pointer<RHS(x)>::type>::value, LHS(x)::reflected }; \
 };
-#define GET_FIELD(x) { IndexOf::RHS(x), &RHS(x)_::nameStr.value[0], &RHS(x)_::typeStr.value[0], std::extent<RfS::remove_pointer<RHS(x)>::type>::value, \
-    RfS::is_stl_iterable<RfS::remove_pointer<RHS(x)>::type>::value || std::is_array<RfS::remove_pointer<RHS(x)>::type>::value || \
-    RfS::is_adaptor<RfS::remove_pointer<RHS(x)>::type>::value, \
-    RfS::contains_pairs<RfS::remove_pointer<RHS(x)>::type>::value, LHS(x)::reflected },
+#define GET_FIELD(x) { Class::RHS(x)_::field.index, Class::RHS(x)_::field.name, Class::RHS(x)_::field.typeStr, Class::RHS(x)_::field.arraySize, \
+    Class::RHS(x)_::field.isIterable, Class::RHS(x)_::field.containsPairs, Class::RHS(x)_::field.isReflected },
 #define USE_FIELD(x) function(RHS(x)_::field, object.RHS(x));
 #define USE_FIELD_AT(x) case IndexOf::RHS(x): function(RHS(x)_::field, object.RHS(x)); break;
 
-/// After the objectType there needs to be at least 1 and at most 123 fields, in the form "(B<type>) fieldName" or "(R<type>) fieldName"
-/// e.g. REFLECT(myObj, (B<int>) myInt, (B<std::string>) myString)
+/// After the objectType there needs to be at least 1 and at most 123 fields, in the form "(B) fieldName" or "(R) fieldName"
+/// e.g. REFLECT(myObj, (B) myInt, (B) myString)
 #define REFLECT(objectType, ...) \
 class Class { public: \
     static constexpr size_t totalFields = COUNT_ARGUMENTS(__VA_ARGS__); \
     enum_t(IndexOf, size_t, { FOR_EACH(GET_FIELD_NAME, __VA_ARGS__) }); \
     FOR_EACH(ALIAS_TYPE, __VA_ARGS__) \
     FOR_EACH(DESCRIBE_FIELD, __VA_ARGS__) \
-    static constexpr RfS::Field<false, false, false, false, false, false, false, false, void> fields[totalFields] = { FOR_EACH(GET_FIELD, __VA_ARGS__) }; \
+    static constexpr RfS::SimpleField fields[totalFields] = { FOR_EACH(GET_FIELD, __VA_ARGS__) }; \
     template <typename Function> static void ForEachField(objectType & object, Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
     template <typename Function> static void FieldAt(objectType & object, size_t fieldIndex, Function function) { \
         switch ( fieldIndex ) { FOR_EACH(USE_FIELD_AT, __VA_ARGS__) } } \
