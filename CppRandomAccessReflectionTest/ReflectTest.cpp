@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 #include "../CppRandomAccessReflectionLib/Reflect.h"
-#include <regex>
 #include <array>
 #include <vector>
 #include <deque>
@@ -14,7 +13,6 @@
 #include <unordered_map>
 #include <utility>
 #include <type_traits>
-#include <functional>
 
 TEST(ReflectTest, MacroEnumT)
 {
@@ -1185,17 +1183,17 @@ TEST(ReflectTest, FieldSimple)
 {
     size_t fieldIndex = 0;
     char fieldName[] = "fieldName";
-    char fieldType[] = "int";
+    char fieldTypeStr[] = "int";
     size_t fieldArraySize = 0;
     bool fieldIsIterable = false;
     bool fieldContainsPairs = false;
     bool fieldIsReflected = false;
 
-    RfS::SimpleField field = { fieldIndex, fieldName, fieldType, fieldArraySize, fieldIsIterable, fieldContainsPairs, fieldIsReflected };
+    RfS::Field<> field = { fieldIndex, fieldName, fieldTypeStr, fieldArraySize, fieldIsIterable, fieldContainsPairs, fieldIsReflected };
     
     EXPECT_EQ(fieldIndex, field.index);
     EXPECT_STREQ(fieldName, field.name);
-    EXPECT_STREQ(fieldType, field.typeStr);
+    EXPECT_STREQ(fieldTypeStr, field.typeStr);
     EXPECT_EQ(fieldArraySize, field.arraySize);
     EXPECT_EQ(fieldIsIterable, field.isIterable);
     EXPECT_EQ(fieldContainsPairs, field.containsPairs);
@@ -1206,28 +1204,27 @@ TEST(ReflectTest, FieldTemplated)
 {
     size_t fieldIndex = 0;
     char fieldName[] = "fieldName";
-    char fieldType[] = "int";
+    char fieldTypeStr[] = "int";
     size_t fieldArraySize = 0;
     bool fieldIsIterable = false;
     bool fieldContainsPairs = false;
     bool fieldIsReflected = false;
 
-    using Field = RfS::TemplatedField<int, false>::type;
-    Field field = { fieldIndex, fieldName, fieldType, fieldArraySize, fieldIsIterable, fieldContainsPairs, fieldIsReflected };
+    RfS::Field<int, false> field = { fieldIndex, fieldName, fieldTypeStr, fieldArraySize, fieldIsIterable, fieldContainsPairs, fieldIsReflected };
     
     EXPECT_EQ(fieldIndex, field.index);
     EXPECT_STREQ(fieldName, field.name);
-    EXPECT_STREQ(fieldType, field.typeStr);
+    EXPECT_STREQ(fieldTypeStr, field.typeStr);
     EXPECT_EQ(fieldArraySize, field.arraySize);
     EXPECT_EQ(fieldIsIterable, field.isIterable);
     EXPECT_EQ(fieldContainsPairs, field.containsPairs);
     EXPECT_EQ(fieldIsReflected, field.isReflected);
     
-    bool isEqual = std::is_same<int, Field::type>::value;
+    bool isEqual = std::is_same<int, RfS::Field<int, false>::type>::value;
     EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<void, Field::element_type>::value;
+    isEqual = std::is_same<void, RfS::Field<int, false>::element_type>::value;
     EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<void, Field::key_type>::value;
+    isEqual = std::is_same<void, RfS::Field<int, false>::key_type>::value;
     EXPECT_TRUE(isEqual);
 
     const auto constField = field;
@@ -1239,44 +1236,139 @@ TEST(ReflectTest, FieldTemplated)
     EXPECT_TRUE(isConst);
 }
 
-struct LambdaGuardTest
+struct Obj
 {
     int first;
     float second;
 };
 
-TEST(ReflectTest, FieldLambdaGuards)
+TEST(ReflectTest, ForPrimitive)
 {
-    using PrimitiveField = RfS::TemplatedField<int, false>::type;
+    RfS::Field<int, false> intField = { 0, "", "", 0, false, false, false };
+    RfS::Field<int*, false> intPointerField = { 0, "", "", 0, false, false, false };
+    RfS::Field<Obj, true> objField = { 0, "", "", 0, false, false, false };
+    int intValue = 0;
+    int* intPointer = &intValue;
+    Obj objValue = {0, 0.0f};
 
-    using PrimitivePointerField = RfS::TemplatedField<int*, false>::type;
+    int timesVisited = 0;
+    intField.ForPrimitive(intValue, [&](auto primitive){
+        EXPECT_EQ(intValue, primitive);
+        timesVisited++;
+    });
+    EXPECT_EQ(1, timesVisited);
 
-    using ObjectField = RfS::TemplatedField<int, false>::type;
-    using ObjectPointerField = RfS::TemplatedField<int, false>::type;
+    timesVisited = 0;
+    intPointerField.ForPrimitive(intPointer, [&](auto primitive){
+        EXPECT_EQ(intValue, primitive);
+        timesVisited++;
+    });
+    EXPECT_EQ(1, timesVisited);
 
-    using PrimitiveArrayField = RfS::TemplatedField<int, false>::type;
-    using PrimitiveStlArrayField = RfS::TemplatedField<int, false>::type;
-    using PrimitiveVectorField = RfS::TemplatedField<int, false>::type;
-    using PrimitiveDequeField = RfS::TemplatedField<int, false>::type;
-    using PrimitiveForwardList = RfS::TemplatedField<int, false>::type;
-    using PrimitiveList = RfS::TemplatedField<int, false>::type;
-    using PrimitiveStack = RfS::TemplatedField<int, false>::type;
-    using PrimitiveQueue = RfS::TemplatedField<int, false>::type;
-    using PrimitivePriorityQueue = RfS::TemplatedField<int, false>::type;
-    using PrimitiveSet = RfS::TemplatedField<int, false>::type;
-    using PrimitiveMultiSet = RfS::TemplatedField<int, false>::type;
-    using PrimitiveMap = RfS::TemplatedField<int, false>::type;
-    using PrimitiveMultiMap = RfS::TemplatedField<int, false>::type;
-    using PrimitiveUnorderedSet = RfS::TemplatedField<int, false>::type;
-    using PrimitiveUnorderedMultiSet = RfS::TemplatedField<int, false>::type;
-    using PrimitiveUnorderedMap = RfS::TemplatedField<int, false>::type;
-    using PrimitiveUnorderedMultiMap = RfS::TemplatedField<int, false>::type;
+    timesVisited = 0;
+    objField.ForPrimitive(objValue, [&](auto primitive){
+        timesVisited++;
+    });
+    EXPECT_EQ(0, timesVisited);
+}
 
-    using PrimitiveArrayPointerField = RfS::TemplatedField<int, false>::type;
-    using PrimitiveStlArrayFieldPointer = RfS::TemplatedField<int, false>::type;
+TEST(ReflectTest, ForObject)
+{
+    RfS::Field<Obj, true> objField = { 0, "", "", 0, false, false, false };
+    RfS::Field<Obj*, true> objPointerField = { 0, "", "", 0, false, false, false };
+    RfS::Field<int, false> intField = { 0, "", "", 0, false, false, false };
+    Obj objValue = {1, 2.2f};
+    Obj* objPointerValue = &objValue;
+    int intValue = 0;
+
+    int timesVisited = 0;
+    objField.ForObject(objValue, [&](auto & object){
+        EXPECT_EQ(&objValue, &object);
+        timesVisited++;
+    });
+    EXPECT_EQ(1, timesVisited);
+
+    timesVisited = 0;
+    objPointerField.ForObject(objPointerValue, [&](auto & object){
+        EXPECT_EQ(&objValue, &object);
+        timesVisited++;
+    });
+    EXPECT_EQ(1, timesVisited);
+
+    timesVisited = 0;
+    intField.ForObject(intValue, [&](auto object){
+        timesVisited++;
+    });
+    EXPECT_EQ(0, timesVisited);
+}
+
+TEST(ReflectTest, ForPrimitives)
+{
+    constexpr size_t arraySize = 3;
+    using IntArray = int[arraySize];
+    RfS::Field<int, false> intField = { 0, "", "", 0, false, false, false };
+    RfS::Field<IntArray, false> intArrayField = { 0, "", "", arraySize, false, false, false };
+    RfS::Field<IntArray*, false> intArrayPointerField = { 0, "", "", arraySize, false, false, false };
+    RfS::Field<std::vector<int>, false> intVectorField = { 0, "", "", 0, false, false, false };
+    RfS::Field<std::vector<int>*, false> intVectorPointerField = { 0, "", "", 0, false, false, false };
+    int intValue = 0;
+    IntArray intArrayValue = { 20, 30, 40 };
+    IntArray* intArrayPointerValue = &intArrayValue;
+    std::vector<int> intVectorValue = {10, 20, 30};
+    std::vector<int>* intVectorPointerValue = &intVectorValue;
+
+    int timesVisited = 0;
+    intField.ForPrimitives(intValue, [&](auto primitive){
+        timesVisited++;
+    });
+    EXPECT_EQ(0, timesVisited);
     
-    // Iterable Primitives
-    // Iterable Primitives Pointer
-    // Primitive Adaptor
-    // Primitive Adaptor Pointer
+    timesVisited = 0;
+    intArrayField.ForPrimitives(intArrayValue, [&](auto index, auto primitive){
+        switch ( index ) {
+            case 0: EXPECT_EQ(primitive, 20); break;
+            case 1: EXPECT_EQ(primitive, 30); break;
+            case 2: EXPECT_EQ(primitive, 40); break;
+            default: EXPECT_TRUE(false); break;
+        }
+        timesVisited++;
+    });
+    EXPECT_EQ(3, timesVisited);
+    
+    timesVisited = 0;
+    intArrayPointerField.ForPrimitives(intArrayPointerValue, [&](auto index, auto primitive){
+        switch ( index ) {
+            case 0: EXPECT_EQ(primitive, 20); break;
+            case 1: EXPECT_EQ(primitive, 30); break;
+            case 2: EXPECT_EQ(primitive, 40); break;
+            default: EXPECT_TRUE(false); break;
+        }
+        timesVisited++;
+    });
+    EXPECT_EQ(3, timesVisited);
+
+    timesVisited = 0;
+    intVectorField.ForPrimitives(intVectorValue, [&](auto index, auto primitive){
+        switch ( index ) {
+            case 0: EXPECT_EQ(primitive, 10); break;
+            case 1: EXPECT_EQ(primitive, 20); break;
+            case 2: EXPECT_EQ(primitive, 30); break;
+            default: EXPECT_TRUE(false); break;
+        }
+        timesVisited++;
+    });
+    EXPECT_EQ(3, timesVisited);
+
+    timesVisited = 0;
+    intVectorPointerField.ForPrimitives(intVectorPointerValue, [&](auto index, auto primitive){
+        switch ( index ) {
+            case 0: EXPECT_EQ(primitive, 10); break;
+            case 1: EXPECT_EQ(primitive, 20); break;
+            case 2: EXPECT_EQ(primitive, 30); break;
+            default: EXPECT_TRUE(false); break;
+        }
+        timesVisited++;
+    });
+    EXPECT_EQ(3, timesVisited);
+
 }

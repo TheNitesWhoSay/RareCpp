@@ -151,9 +151,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="LambdaGuardTest.cpp" />
+    <ClCompile Include="LambdaGuardTest_IOA_IOPA.cpp" />
+    <ClCompile Include="LambdaGuardTest_IO_IOP.cpp" />
+    <ClCompile Include="LambdaGuardTest_IPA_IPPA.cpp" />
+    <ClCompile Include="LambdaGuardTest_IP_IPP.cpp" />
+    <ClCompile Include="LambdaGuardTest_POA_POPA.cpp" />
+    <ClCompile Include="LambdaGuardTest_PO_POP.cpp" />
+    <ClCompile Include="LambdaGuardTest_PPP_PPPA.cpp" />
+    <ClCompile Include="LambdaGuardTest_PP_PPP.cpp" />
     <ClCompile Include="TestMain.cpp" />
     <ClCompile Include="JsonTest.cpp" />
     <ClCompile Include="ReflectTest.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="LambdaGuardTest.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
