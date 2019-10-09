@@ -309,9 +309,12 @@ namespace RfS
     template <typename T, typename A> struct contains_pointables<std::list<T, A>> { static constexpr bool value = is_pointable<T>::value; };
     template <typename T, typename C> struct contains_pointables<std::stack<T, C>> { static constexpr bool value = is_pointable<T>::value; };
     template <typename T, typename C> struct contains_pointables<std::queue<T, C>> { static constexpr bool value = is_pointable<T>::value; };
-    template <typename T, typename C, typename P> struct contains_pointables<std::priority_queue<T, C, P>> { static constexpr bool value = is_pointable<T>::value; };
-    template <typename K, typename C, typename A> struct contains_pointables<std::set<K, C, A>> { static constexpr bool value = is_pointable<K>::value; };
-    template <typename K, typename C, typename A> struct contains_pointables<std::multiset<K, C, A>> { static constexpr bool value = is_pointable<K>::value; };
+    template <typename T, typename C, typename P> struct contains_pointables<std::priority_queue<T, C, P>>
+    { static constexpr bool value = is_pointable<T>::value; };
+    template <typename K, typename C, typename A> struct contains_pointables<std::set<K, C, A>>
+    { static constexpr bool value = is_pointable<K>::value; };
+    template <typename K, typename C, typename A> struct contains_pointables<std::multiset<K, C, A>>
+    { static constexpr bool value = is_pointable<K>::value; };
     template <typename K, typename T, typename C, typename A> struct contains_pointables<std::map<K, T, C, A>>
     { static constexpr bool value = is_pointable<T>::value; };
     template <typename K, typename T, typename C, typename A> struct contains_pointables<std::multimap<K, T, C, A>>
@@ -366,8 +369,35 @@ namespace RfS
     template <typename K, typename T, typename C, typename A> struct element_type<std::multimap<K, T, C, A>> { using type = typename T; };
     template <typename K, typename H, typename E, typename A> struct element_type<std::unordered_set<K, H, E, A>> { using type = typename K; };
     template <typename K, typename H, typename E, typename A> struct element_type<std::unordered_multiset<K, H, E, A>> { using type = typename K; };
-    template <typename K, typename T, typename H, typename E, typename A> struct element_type<std::unordered_map<K, T, H, E, A>> { using type = typename T; };
-    template <typename K, typename T, typename H, typename E, typename A> struct element_type<std::unordered_multimap<K, T, H, E, A>> { using type = typename T; };
+    template <typename K, typename T, typename H, typename E, typename A> struct element_type<std::unordered_map<K, T, H, E, A>>
+    { using type = typename T; };
+    template <typename K, typename T, typename H, typename E, typename A> struct element_type<std::unordered_multimap<K, T, H, E, A>>
+    { using type = typename T; };
+    
+    template <typename L, typename R, size_t N> struct element_type<std::array<std::pair<L, R>, N>>
+    { using type = typename R; };
+    template <typename L, typename R, typename A> struct element_type<std::vector<std::pair<L, R>, A>>
+    { using type = typename R; };
+    template <typename L, typename R, typename A> struct element_type<std::deque<std::pair<L, R>, A>>
+    { using type = typename R; };
+    template <typename L, typename R, typename A> struct element_type<std::forward_list<std::pair<L, R>, A>>
+    { using type = typename R; };
+    template <typename L, typename R, typename A> struct element_type<std::list<std::pair<L, R>, A>>
+    { using type = typename R; };
+    template <typename L, typename R, typename C> struct element_type<std::stack<std::pair<L, R>, C>>
+    { using type = typename R; };
+    template <typename L, typename R, typename C> struct element_type<std::queue<std::pair<L, R>, C>>
+    { using type = typename R; };
+    template <typename L, typename R, typename C, typename P> struct element_type<std::priority_queue<std::pair<L, R>, C, P>>
+    { using type = typename R; };
+    template <typename L, typename R, typename C, typename A> struct element_type<std::set<std::pair<L, R>, C, A>>
+    { using type = typename R; };
+    template <typename L, typename R, typename C, typename A> struct element_type<std::multiset<std::pair<L, R>, C, A>>
+    { using type = typename R; };
+    template <typename L, typename R, typename H, typename E, typename A> struct element_type<std::unordered_set<std::pair<L, R>, H, E, A>>
+    { using type = typename R; };
+    template <typename L, typename R, typename H, typename E, typename A> struct element_type<std::unordered_multiset<std::pair<L, R>, H, E, A>>
+    { using type = typename R; };
 
     template <typename T> struct key_type { using type = void; };
     template <typename K, typename C, typename A> struct key_type<std::set<K, C, A>> { using type = typename K; };
@@ -408,11 +438,16 @@ namespace RfS
     struct contains_pairs<std::map<K, T, C, A>> { static constexpr bool value = true; };
     template <typename K, typename T, typename C, typename A>
     struct contains_pairs<std::multimap<K, T, C, A>> { static constexpr bool value = true; };
+    
+    template <typename Type, typename TypeIfVoid>
+    struct if_void { using type = Type; };
+    template <typename TypeIfVoid>
+    struct if_void<void, TypeIfVoid> { using type = TypeIfVoid; };
 
     template <class Adaptor>
-    typename Adaptor::container_type & get_underlying_container(Adaptor & adaptor) {
+    const typename Adaptor::container_type & get_underlying_container(const Adaptor & adaptor) {
         struct AdaptorSubClass : Adaptor {
-            static typename Adaptor::container_type & get(Adaptor & adaptor) {
+            static const typename Adaptor::container_type & get(const Adaptor & adaptor) {
                 return adaptor.*(&AdaptorSubClass::c);
             }
         };
@@ -470,8 +505,15 @@ namespace RfS
         
 
         using type = T;
-        using element_type = typename element_type<T>::type;
-        using key_type = typename key_type<T>::type;
+
+        /// Key type is the map key type or "first" in contained pairs, void if field is neither a map nor contains pairs
+        using key_type = typename key_type<typename remove_pointer<T>::type>::type;
+
+        /// Element type is the type of the field (if singular) or the type contained in this field (second if pair), void if not iterable
+        using element_type = typename element_type<typename remove_pointer<T>::type>::type;
+
+        /// Sub type is the type you should pass if recursively reading this field (if singular) or the type contained in this field (second if pair)
+        using sub_type = typename if_void<typename remove_pointer<element_type>::type, typename remove_pointer<T>::type>::type;
 
 
         /// Lambda guards: the call to function will only be generated by the compiler if the type fits the guard category
@@ -711,12 +753,12 @@ namespace RfS
         }
 
         template <typename Primitive, typename Function> constexpr void ForPrimitive(Primitive & primitive, Function function) const {
-            IfPrimitive([&](auto) { function((const type &)primitive); });
-            IfPrimitivePointer([&](auto) { function((const type &)*primitive); });
+            IfPrimitive([&](auto) { function((const T &)primitive); });
+            IfPrimitivePointer([&](auto) { function((const T &)*primitive); });
         }
         template <typename Object, typename Function> constexpr void ForObject(Object & object, Function function) const {
-            IfObject([&](auto) { function((const type &)object); });
-            IfObjectPointer([&](auto) { function((const type &)*object); });
+            IfObject([&](auto) { function((const T &)object); });
+            IfObjectPointer([&](auto) { function((const T &)*object); });
         }
         template <typename Iterable, typename Function> constexpr void ForPrimitives(Iterable & iterable, Function function) const {
             IfPrimitiveArray([&](auto) {
@@ -936,6 +978,7 @@ class Class { public: \
     FOR_EACH(DESCRIBE_FIELD, __VA_ARGS__) \
     static constexpr RfS::Field<> fields[totalFields] = { FOR_EACH(GET_FIELD, __VA_ARGS__) }; \
     template <typename Function> static void ForEachField(objectType & object, Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
+    template <typename Function> static void ForEachField(const objectType & object, Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
     template <typename Function> static void FieldAt(objectType & object, size_t fieldIndex, Function function) { \
         switch ( fieldIndex ) { FOR_EACH(USE_FIELD_AT, __VA_ARGS__) } } \
 };
