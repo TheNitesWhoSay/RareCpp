@@ -1061,6 +1061,25 @@ TEST(ReflectTest, ContainsPairs)
     EXPECT_TRUE(RfS::contains_pairs<ExampleMultiMapType>::value);
 }
 
+TEST(ReflectTest, IfVoid)
+{
+    using intType = RfS::if_void<int, float>::type;
+    bool isIntType = std::is_same<int, intType>::value;
+    EXPECT_TRUE(isIntType);
+
+    using charType = RfS::if_void<char, void>::type;
+    bool isCharType = std::is_same<char, charType>::value;
+    EXPECT_TRUE(isCharType);
+
+    using floatType = RfS::if_void<void, float>::type;
+    bool isFloatType = std::is_same<float, floatType>::value;
+    EXPECT_TRUE(isFloatType);
+
+    using voidType = RfS::if_void<void, void>::type;
+    bool isVoidType = std::is_same<void, voidType>::value;
+    EXPECT_TRUE(isVoidType);
+}
+
 TEST(ReflectTest, GetUnderlyingContainer)
 {
     // Stacks

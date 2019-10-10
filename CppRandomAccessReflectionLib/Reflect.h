@@ -952,7 +952,6 @@ namespace Reflect
         static constexpr bool reflected = true;
     };
 
-
 #define ALIAS_TYPE(x) using RHS(x) = decltype(RHS(x));
 #define GET_FIELD_NAME(x) RHS(x),
 #define DESCRIBE_FIELD(x) struct RHS(x)_ { \
