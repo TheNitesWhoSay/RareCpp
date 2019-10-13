@@ -151,6 +151,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ConstexprStrTest.cpp" />
     <ClCompile Include="LambdaGuardTest.cpp" />
     <ClCompile Include="LambdaGuardTest_IOA_IOPA.cpp" />
     <ClCompile Include="LambdaGuardTest_IO_IOP.cpp" />
@@ -160,9 +161,12 @@
     <ClCompile Include="LambdaGuardTest_PO_POP.cpp" />
     <ClCompile Include="LambdaGuardTest_PPP_PPPA.cpp" />
     <ClCompile Include="LambdaGuardTest_PP_PPP.cpp" />
+    <ClCompile Include="AcceleratorsTest.cpp" />
+    <ClCompile Include="ReflectMacroTest.cpp" />
+    <ClCompile Include="ReflectionSupportTest.cpp" />
     <ClCompile Include="TestMain.cpp" />
     <ClCompile Include="JsonTest.cpp" />
-    <ClCompile Include="ReflectTest.cpp" />
+    <ClCompile Include="GenericMacroTest.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="LambdaGuardTest.h" />
