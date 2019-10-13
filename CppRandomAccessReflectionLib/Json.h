@@ -1,125 +1,125 @@
 #ifndef JSON_H
 #define JSON_H
-#include <string>
 #include <ostream>
 #include "Reflect.h"
 using namespace Reflect;
 
 namespace Json {
     
-    class Indent
-    {
-    public:
-        Indent(std::string indent, size_t indentLevel) : indent(indent), indentLevel(indentLevel) {}
-        std::string indent;
-        size_t indentLevel;
-    };
+    constexpr const char twoSpaces[] = "  ";
 
-    std::ostream & operator<<(std::ostream & os, Indent indent)
+    template <size_t indentLevel, const char* indent = twoSpaces>
+    struct Indent { };
+
+    template <size_t indentLevel, const char* indent = twoSpaces>
+    std::ostream & operator<<(std::ostream & os, const Indent<indentLevel, indent>)
     {
-        for ( size_t i=0; i<indent.indentLevel; i++ )
-            os << indent.indent;
+        for ( size_t i=0; i<indentLevel; i++ )
+            os << indent;
 
         return os;
     }
 
-    template <typename T>
+    template <typename T, size_t indentLevel = 0, const char* indent = twoSpaces>
     class Output
     {
     public:
-        Output(T & obj, const std::string &indent = "  ", size_t indentLevel = 0) : obj(obj), indent(indent), indentLevel(indentLevel) {}
+        Output(const T & obj) : obj(obj) {}
 
-        T & obj;
-        const std::string indent;
-        size_t indentLevel;
+        const T & obj;
 
-        void put(std::ostream & os)
+        static constexpr std::ostream & put(std::ostream & os, const T & obj)
         {
             os << "{" << std::endl;
-            indentLevel++;
-
+            
+            using Index = const size_t &;
             using Class = typename T::Class;
-            Class::ForEachField(obj, [&](auto field, auto value) {
-                const auto & constField = field;
+            Class::ForEachField(obj, [&](auto & field, auto & value) {
+                
+                using SubType = typename std::remove_reference<decltype(field)>::type::sub_type;
 
-                os << Indent(indent, indentLevel) << "\"" << constField.name << "\": ";
-                if ( constField.IfNull(value) )
+                os << Indent<indentLevel+1, indent>() << "\"" << field.name << "\": ";
+                if ( field.IfNull(value) )
                     os << "null";
-                else if ( !constField.isIterable )
+                else if ( !field.isIterable )
                 {
-                    constField.ForPrimitive(value, [&](auto primitive) { os << "\"" << primitive << "\""; }); // Primitive
-                    constField.ForObject(value, [&](auto object) { os << Output<std::remove_reference<decltype(object)>::type>(object, indent, indentLevel); }); // Object
+                    field.ForPrimitive(value, [&](auto & primitive) { os << "\"" << primitive << "\""; }); // Primitive
+                    field.ForObject(value, [&](auto & object) { Output<SubType, indentLevel+1>::put(os, object); }); // Object
                 }
-                else if ( !constField.containsPairs && !constField.isReflected ) // Primitive Array
+                else if ( !field.containsPairs && !field.isReflected ) // Primitive Array
                 {
                     os << "[ ";
-                    constField.ForPrimitives(value, [&](auto index, auto element) { os << (index > 0 ? ", \"" : "\"") << element << "\""; }); // Primitive Array
-                    constField.ForPrimitivePointers(value, [&](auto index, auto element) { // Primitive Pointer Array
+                    field.ForPrimitivesConst(value, [&](Index index, auto & element) { // Primitive Array
+                        os << (index > 0 ? ", \"" : "\"") << element << "\"";
+                    });
+                    field.ForPrimitivePointersConst(value, [&](Index index, auto & element) { // Primitive Pointer Array
                         if ( index > 0 ) { os << ", "; }
                         if ( element == nullptr ) { os << "null"; }
                         else { os << "\"" << *element << "\""; }
                     });
                     os << " ]";
                 }
-                else if ( !constField.containsPairs && constField.isReflected ) // Object Array
+                else if ( !field.containsPairs && field.isReflected ) // Object Array
                 {
-                    os << "[" << std::endl << Indent(indent, indentLevel + 1);
-                    constField.ForObjects(value, [&](auto index, auto element) { // Object Array
-                        os << (index > 0 ? ", " : "") << Output<std::remove_reference<decltype(element)>::type>(element, indent, indentLevel + 1);
+                    os << "[" << std::endl << Indent<indentLevel+2, indent>();
+                    field.ForObjectsConst(value, [&](Index index, auto & element) { // Object Array
+                        os << (index > 0 ? ", " : "");
+                        Output<SubType, indentLevel+2>::put(os, element);
                     });
-                    constField.ForObjectPointers(value, [&](auto index, auto element) { // Object Pointer Array
+                    field.ForObjectPointersConst(value, [&](Index index, auto & element) { // Object Pointer Array
                         if ( index > 0 ) { os << ", "; }
                         if ( element == nullptr ) { os << "null"; }
-                        else { os << Output<std::remove_reference<decltype(*element)>::type>(*element, indent, indentLevel + 1); }
+                        else { Output<SubType, indentLevel+2>::put(os, *element); }
                     });
-                    os << std::endl << Indent(indent, indentLevel) << "]";
+                    os << std::endl << Indent<indentLevel+1, indent>() << "]";
                 }
-                else // if ( constField.containsPairs) // Map
+                else // if ( field.containsPairs) // Map
                 {
                     os << "{";
-                    if ( !constField.isReflected )
+                    if ( !field.isReflected )
                     {
-                        constField.ForPrimitivePairs(value, [&](auto index, auto first, auto second) { // Primitive Map
-                            os << (index > 0 ? ", " : "") << std::endl << Indent(indent, indentLevel + 1) << "\"" << first << "\": \"" << second << "\"";
+                        field.ForPrimitivePairs(value, [&](Index index, auto & first, auto & second) { // Primitive Map
+                            os << (index > 0 ? ", " : "") << std::endl
+                                << Indent<indentLevel+2, indent>() << "\"" << first << "\": \"" << second << "\"";
                         });
-                        constField.ForPrimitivePointerPairs(value, [&](auto index, auto first, auto second) { // Primitive Pointer Map
-                            os << (index > 0 ? ", " : "") << std::endl << Indent(indent, indentLevel + 1) << "\"" << first << "\": ";
+                        field.ForPrimitivePointerPairs(value, [&](Index index, auto & first, auto & second) { // Primitive Pointer Map
+                            os << (index > 0 ? ", " : "") << std::endl << Indent<indentLevel+2, indent>() << "\"" << first << "\": ";
                             if ( second == nullptr ) { os << "null"; }
                             else { os << "\"" << *second << "\""; }
                         });
                     }
                     else
                     {
-                        constField.ForObjectPairs(value, [&](auto index, auto first, auto second) { // Object Map
-                            os << (index > 0 ? ", " : "") << std::endl << Indent(indent, indentLevel + 1) << "\"" << first << "\": "
-                                << Output<std::remove_reference<decltype(second)>::type>(second, indent, indentLevel + 1);
+                        field.ForObjectPairs(value, [&](Index index, auto & first, auto & second) { // Object Map
+                            os << (index > 0 ? ", " : "") << std::endl << Indent<indentLevel+2, indent>() << "\"" << first << "\": ";
+                            Output<SubType, indentLevel+2>::put(os, second);
                         });
-                        constField.ForObjectPointerPairs(value, [&](auto index, auto first, auto second) { // Object Pointer Map
-                            os << (index > 0 ? ", " : "") << std::endl << Indent(indent, indentLevel + 1) << "\"" << first << "\": ";
+                        field.ForObjectPointerPairs(value, [&](Index index, auto & first, auto & second) { // Object Pointer Map
+                            os << (index > 0 ? ", " : "") << std::endl << Indent<indentLevel+2, indent>() << "\"" << first << "\": ";
                             if ( second == nullptr ) { os << "null"; }
-                            else { os << Output<std::remove_reference<decltype(*second)>::type>(*second, indent, indentLevel + 1); }
+                            else { Output<SubType, indentLevel+2>::put(os, *second); }
                         });
                     }
-                    os << std::endl << Indent(indent, indentLevel) << "}";
+                    os << std::endl << Indent<indentLevel+1, indent>() << "}";
 				}
-                os << (constField.index < Class::totalFields-1 ? "," : "") << std::endl;
+                os << (field.index < Class::totalFields-1 ? "," : "") << std::endl;
             });
 
-            os << Indent(indent, --indentLevel) << "}";
+            os << Indent<indentLevel, indent>() << "}";
+            return os;
         }
     };
 
-    template <typename T>
-    std::ostream & operator<<(std::ostream & os, Json::Output<T> object)
+    template <typename T, size_t indentLevel = 0, const char* indent = twoSpaces>
+    std::ostream & operator<<(std::ostream & os, const Json::Output<T, indentLevel> object)
     {
-        object.put(os);
-        return os;
+        return object.put(os, object.obj);
     }
 
-    template <typename T>
-    static Output<T> out(T & t, const std::string & indent = "  ", size_t indentLevel = 0)
+    template <typename T, size_t indentLevel = 0, const char* indent = twoSpaces>
+    constexpr Output<T> out(const T & t)
     {
-        return Output<T>(t, indent, indentLevel);
+        return Output<T, indentLevel>(t);
     }
 };
 
