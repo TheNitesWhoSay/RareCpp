@@ -26,7 +26,7 @@ public:
     float tickMarks[2];
     std::stack<int> testStack;
 
-    REFLECT(FuelTank, (B) capacity, (B) currentLevel, (B) tickMarks, (B) testStack)
+    REFLECT(() FuelTank, (B) capacity, (B) currentLevel, (B) tickMarks, (B) testStack)
 };
 
 class Wheel {
@@ -43,7 +43,7 @@ public:
     int size;
     float pressure;
 
-    REFLECT(Wheel, (B) rim, (B) size, (B) pressure)
+    REFLECT(() Wheel, (B) rim, (B) size, (B) pressure)
 };
 
 class CupHolder {
@@ -55,7 +55,7 @@ public:
     int height;
     bool occupied;
 
-    REFLECT(CupHolder, (B) width, (B) height, (B) occupied)
+    REFLECT(() CupHolder, (B) width, (B) height, (B) occupied)
 };
 using CupHolderPtr = std::shared_ptr<CupHolder>;
 
@@ -85,7 +85,7 @@ public:
     
     using OccupantIdType = std::map<std::string, std::string>;
     using OccupantCupHolderUsageType = std::map<std::string, CupHolderPtr>;
-    REFLECT(Car, (R) wheels, (B) occupants, (B) occupantId, (R) occupantCupHolderUsage, (R) cupHolders, (R) fuelTank, (B) milesPerGallon)
+    REFLECT(() Car, (R) wheels, (B) occupants, (B) occupantId, (R) occupantCupHolderUsage, (R) cupHolders, (R) fuelTank, (B) milesPerGallon)
 
 };
 
@@ -100,7 +100,7 @@ public:
     u8 f097; u8 f098; u8 f099; u8 f100; u8 f101; u8 f102; u8 f103; u8 f104; u8 f105; u8 f106; u8 f107; u8 f108; u8 f109; u8 f110; u8 f111; u8 f112;
     u8 f113; u8 f114; u8 f115; u8 f116; u8 f117; u8 f118; u8 f119; u8 f120; u8 f121; u8 f122; u8 f123; u8 f124;
 
-    REFLECT(MassiveObject,
+    REFLECT(() MassiveObject,
         (B) f001, (B) f002, (B) f003, (B) f004, (B) f005, (B) f006, (B) f007, (B) f008,
         (B) f009, (B) f010, (B) f011, (B) f012, (B) f013, (B) f014, (B) f015, (B) f016,
         (B) f017, (B) f018, (B) f019, (B) f020, (B) f021, (B) f022, (B) f023, (B) f024,
@@ -121,6 +121,31 @@ public:
     )
 };
 
+class Super
+{
+public:
+    int val;
+
+    REFLECT(() Super, (B) val)
+};
+
+class OtherSuper
+{
+public:
+    int otherVal;
+    
+    REFLECT(() OtherSuper, (B) otherVal)
+};
+
+class SubTest : public Super, public OtherSuper
+{
+public:
+    int subVal;
+    
+    using Inherit = I<Super, OtherSuper>;
+    REFLECT((Inherit) SubTest, (B) otherVal)
+};
+
 int main()
 {
     for ( size_t i=1; i<=MassiveObject::Class::totalFields; i++ )
@@ -131,7 +156,21 @@ int main()
         else
             std::cout << ", ";
     }
+
+    SubTest sub;
+    sub.val = 1;
+    sub.otherVal = 2;
+    sub.subVal = 3;
     
+    SubTest::Supers::ForEach(sub, [&](size_t index, auto & superObj) {
+        using Super = typename std::remove_reference<decltype(superObj)>::type;
+        std::cout << index << ": " << TypeToStr<Super>() << " {" << std::endl;
+        Super::Class::ForEachField(superObj, [&](auto & field, auto & value) {
+            std::cout << "  " << field.name << ": " << value << std::endl;
+        });
+        std::cout << "}" << std::endl;
+    });
+
     std::vector<CupHolderPtr> cupHolders;
     std::map<std::string, std::string> occupantId;
     std::map<std::string, CupHolderPtr> occupantCupHolderUsage;

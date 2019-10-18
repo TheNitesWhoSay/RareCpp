@@ -14,7 +14,7 @@
 #include <utility>
 #include <type_traits>
 
-TEST(ReflectTest, MacroEnumT)
+TEST(GenericMacroTest, MacroEnumT)
 {
     enum_t(TestEnum, uint16_t, {
         first = 1,
@@ -27,7 +27,7 @@ TEST(ReflectTest, MacroEnumT)
     EXPECT_EQ(TestEnum::third, 3);
 }
 
-TEST(ReflectTest, MacroCountArguments)
+TEST(GenericMacroTest, MacroCountArguments)
 {
     EXPECT_EQ(1, COUNT_ARGUMENTS(a1));
     EXPECT_EQ(2, COUNT_ARGUMENTS(a1,a2));
@@ -356,7 +356,7 @@ TEST(ReflectTest, MacroCountArguments)
         a121,a122,a123,a124,a125));
 }
 
-TEST(ReflectTest, MacroForEach)
+TEST(GenericMacroTest, MacroForEach)
 {
     std::vector<std::string> test;
 
@@ -814,7 +814,7 @@ TEST(ReflectTest, MacroForEach)
     EXPECT_EQ(125, test.size()); for ( size_t i=0; i<125; i++ ) EXPECT_STREQ(std::string("a" + std::to_string(i+1)).c_str(), test[i].c_str()); test.clear();
 }
 
-TEST(ReflectTest, MacroLhs)
+TEST(GenericMacroTest, MacroLhs)
 {
     bool lhs = false;
     bool rhs = true;
@@ -822,20 +822,10 @@ TEST(ReflectTest, MacroLhs)
     EXPECT_EQ(lhs, lhsResult);
 }
 
-TEST(ReflectTest, MacroRhs)
+TEST(GenericMacroTest, MacroRhs)
 {
     bool lhs = false;
     bool rhs = true;
     bool rhsResult = RHS((lhs) rhs);
     EXPECT_EQ(rhs, rhsResult);
-}
-
-TEST(ReflectTest, BasicType)
-{
-    EXPECT_FALSE(Reflect::B::reflected);
-}
-
-TEST(ReflectTest, ReflectedType)
-{
-    EXPECT_TRUE(Reflect::R::reflected);
 }

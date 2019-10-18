@@ -14,6 +14,7 @@ namespace Json {
     template <size_t indentLevel, const char* indent = twoSpaces>
     std::ostream & operator<<(std::ostream & os, const Indent<indentLevel, indent>)
     {
+        #pragma warning(suppress: 6294) // I'll-defined loop warning when indentLevel is 0
         for ( size_t i=0; i<indentLevel; i++ )
             os << indent;
 

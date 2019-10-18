@@ -20,7 +20,7 @@ struct Obj
     float second;
 };
 
-TEST(ReflectTest, ForPrimitive)
+TEST(AcceleratorsTest, ForPrimitive)
 {
     int intValue = 0;
     int* intPointer = &intValue;
@@ -51,7 +51,7 @@ TEST(ReflectTest, ForPrimitive)
     EXPECT_EQ(0, timesVisited);
 }
 
-TEST(ReflectTest, ForObject)
+TEST(AcceleratorsTest, ForObject)
 {
     Obj objValue = {1, 2.2f};
     Obj* objPointerValue = &objValue;
@@ -82,7 +82,7 @@ TEST(ReflectTest, ForObject)
     EXPECT_EQ(0, timesVisited);
 }
 
-TEST(ReflectTest, ForPrimitives)
+TEST(AcceleratorsTest, ForPrimitives)
 {
     constexpr size_t arraySize = 3;
     using IntArray = int[arraySize];
@@ -173,7 +173,7 @@ TEST(ReflectTest, ForPrimitives)
     EXPECT_EQ(0, timesVisited);
 }
 
-TEST(ReflectTest, ForPrimitivesConst)
+TEST(AcceleratorsTest, ForPrimitivesConst)
 {
     constexpr size_t arraySize = 3;
     using IntArray = int[arraySize];
@@ -276,7 +276,7 @@ TEST(ReflectTest, ForPrimitivesConst)
     EXPECT_EQ(3, timesVisited);
 }
 
-TEST(ReflectTest, ForObjects)
+TEST(AcceleratorsTest, ForObjects)
 {
     constexpr size_t arraySize = 3;
     using ObjArray = Obj[arraySize];
@@ -367,7 +367,7 @@ TEST(ReflectTest, ForObjects)
     EXPECT_EQ(0, timesVisited);
 }
 
-TEST(ReflectTest, ForObjectsConst)
+TEST(AcceleratorsTest, ForObjectsConst)
 {
     constexpr size_t arraySize = 3;
     using ObjArray = Obj[arraySize];
@@ -471,7 +471,7 @@ TEST(ReflectTest, ForObjectsConst)
     EXPECT_EQ(3, timesVisited);
 }
 
-TEST(ReflectTest, ForPrimitivePairs)
+TEST(AcceleratorsTest, ForPrimitivePairs)
 {
     int intValue = 0;
     std::vector<std::pair<int, float>> intToFloatVectorValue = { { 20, 20.1f }, { 30, 30.1f }, { 40, 40.1f } };
@@ -540,7 +540,7 @@ TEST(ReflectTest, ForPrimitivePairs)
     EXPECT_EQ(3, timesVisited);
 }
 
-TEST(ReflectTest, ForObjectPairs)
+TEST(AcceleratorsTest, ForObjectPairs)
 {
     Obj objValue = { 0, 0.1f };
     std::vector<std::pair<int, Obj>> intToObjVectorValue = { { 20, { 21, 20.1f } }, { 30, { 31, 30.1f } }, { 40, { 41, 40.1f } } };
@@ -609,7 +609,7 @@ TEST(ReflectTest, ForObjectPairs)
     EXPECT_EQ(3, timesVisited);
 }
 
-TEST(ReflectTest, ForPrimitivePointers)
+TEST(AcceleratorsTest, ForPrimitivePointers)
 {
     constexpr size_t arraySize = 3;
     using IntArray = int[arraySize];
@@ -702,7 +702,7 @@ TEST(ReflectTest, ForPrimitivePointers)
     EXPECT_EQ(0, timesVisited);
 }
 
-TEST(ReflectTest, ForPrimitivePointersConst)
+TEST(AcceleratorsTest, ForPrimitivePointersConst)
 {
     constexpr size_t arraySize = 3;
     using IntArray = int[arraySize];
@@ -807,7 +807,7 @@ TEST(ReflectTest, ForPrimitivePointersConst)
     EXPECT_EQ(3, timesVisited);
 }
 
-TEST(ReflectTest, ForObjectPointers)
+TEST(AcceleratorsTest, ForObjectPointers)
 {
     constexpr size_t arraySize = 3;
     using ObjArray = Obj[arraySize];
@@ -900,7 +900,7 @@ TEST(ReflectTest, ForObjectPointers)
     EXPECT_EQ(0, timesVisited);
 }
 
-TEST(ReflectTest, ForObjectPointersConst)
+TEST(AcceleratorsTest, ForObjectPointersConst)
 {
     constexpr size_t arraySize = 3;
     using ObjArray = Obj[arraySize];
@@ -1005,7 +1005,7 @@ TEST(ReflectTest, ForObjectPointersConst)
     EXPECT_EQ(0, timesVisited);
 }
 
-TEST(ReflectTest, ForPrimitivePointerPairs)
+TEST(AcceleratorsTest, ForPrimitivePointerPairs)
 {
     int intValue = 0;
     float floatValues[] = { 20.1f, 30.1f, 40.1f };
@@ -1075,7 +1075,7 @@ TEST(ReflectTest, ForPrimitivePointerPairs)
     EXPECT_EQ(3, timesVisited);
 }
 
-TEST(ReflectTest, ForObjectPointerPairs)
+TEST(AcceleratorsTest, ForObjectPointerPairs)
 {
     Obj objValue = { 0, 0.1f };
     Obj objArrayValue[] = { { 21, 20.1f }, { 31, 30.1f }, { 41, 40.1f } };
