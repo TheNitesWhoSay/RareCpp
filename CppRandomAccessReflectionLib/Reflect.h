@@ -615,15 +615,15 @@ namespace RfS
 			return isNull;
 		}
         
-        template <typename Primitive, typename Function> constexpr void ForPrimitive(Primitive & primitive, Function function) {
+        template <typename Primitive, typename Function> constexpr void ForPrimitive(Primitive & primitive, Function function) const {
             IfPrimitive([&](auto) { function(primitive); });
             IfPrimitivePointer([&](auto) { function(*primitive); });
         }
-        template <typename Object, typename Function> constexpr void ForObject(Object & object, Function function) {
+        template <typename Object, typename Function> constexpr void ForObject(Object & object, Function function) const {
             IfObject([&](auto) { function(object); });
             IfObjectPointer([&](auto) { function(*object); });
         }
-        template <typename Iterable, typename Function> constexpr void ForPrimitives(Iterable & iterable, Function function) {
+        template <typename Iterable, typename Function> constexpr void ForPrimitives(Iterable & iterable, Function function) const {
             IfPrimitiveArray([&](auto) {
                 for ( size_t i=0; i<arraySize; i++ )
                     function(i, iterable[i]);
@@ -643,124 +643,7 @@ namespace RfS
                     function(i++, element);
             });
         }
-        template <typename Iterable, typename Function> constexpr void ForObjects(Iterable & iterable, Function function) {
-            IfObjectArray([&](auto) {
-                for ( size_t i=0; i<arraySize; i++ )
-                    function(i, iterable[i]);
-            });
-            IfObjectArrayPointer([&](auto) {
-                for ( size_t i=0; i<arraySize; i++ )
-                    function(i, (*iterable)[i]);
-            });
-            IfIterableObjects([&](auto) {
-                size_t i=0;
-                for ( auto & element : iterable )
-                    function(i++, element);
-            });
-            IfIterableObjectsPointer([&](auto) {
-                size_t i=0;
-                for ( auto & element : *iterable )
-                    function(i++, element);
-            });
-        }
-        template <typename Iterable, typename Function> constexpr void ForPrimitivePairs(Iterable & iterable, Function function) {
-            IfIterablePrimitivePairs([&](auto) {
-                size_t i=0;
-                for ( auto & element : iterable )
-                    function(i++, element.first, element.second);
-            });
-            IfIterablePrimitivePairsPointer([&](auto) {
-                size_t i=0;
-                for ( auto & element : *iterable )
-                    function(i++, element.first, element.second);
-            });
-        }
-        template <typename Iterable, typename Function> constexpr void ForObjectPairs(Iterable & iterable, Function function) {
-            IfIterableObjectPairs([&](auto) {
-                size_t i=0;
-                for ( auto & element : iterable )
-                    function(i++, element.first, element.second);
-            });
-            IfIterableObjectPairsPointer([&](auto) {
-                size_t i=0;
-                for ( auto & element : *iterable )
-                    function(i++, element.first, element.second);
-            });
-        }
-        template <typename Iterable, typename Function> constexpr void ForPrimitivePointers(Iterable & iterable, Function function) {
-            IfPrimitivePointerArray([&](auto) {
-                for ( size_t i=0; i<arraySize; i++ )
-                    function(i, iterable[i]);
-            });
-            IfPrimitivePointerArrayPointer([&](auto) {
-                for ( size_t i=0; i<arraySize; i++ )
-                    function(i, (*iterable)[i]);
-            });
-            IfIterablePrimitivePointers([&](auto) {
-                size_t i=0;
-                for ( auto & element : iterable )
-                    function(i++, element);
-            });
-            IfIterablePrimitivePointersPointer([&](auto) {
-                size_t i=0;
-                for ( auto & element : *iterable )
-                    function(i++, element);
-            });
-        }
-        template <typename Iterable, typename Function> constexpr void ForObjectPointers(Iterable & iterable, Function function) {
-            IfObjectPointerArray([&](auto) {
-                for ( size_t i=0; i<arraySize; i++ )
-                    function(i, iterable[i]);
-            });
-            IfObjectPointerArrayPointer([&](auto) {
-                for ( size_t i=0; i<arraySize; i++ )
-                    function(i, (*iterable)[i]);
-            });
-            IfIterableObjectPointers([&](auto) {
-                size_t i=0;
-                for ( auto & element : iterable )
-                    function(i++, element);
-            });
-            IfIterableObjectPointersPointer([&](auto) {
-                size_t i=0;
-                for ( auto & element : *iterable )
-                    function(i++, element);
-            });
-        }
-        template <typename Iterable, typename Function> constexpr void ForPrimitivePointerPairs(Iterable & iterable, Function function) {
-            IfIterablePrimitivePointerPairs([&](auto) {
-                size_t i=0;
-                for ( auto & element : iterable )
-                    function(i++, element.first, element.second);
-            });
-            IfIterablePrimitivePointerPairsPointer([&](auto) {
-                size_t i=0;
-                for ( auto & element : *iterable )
-                    function(i++, element.first, element.second);
-            });
-        }
-        template <typename Iterable, typename Function> constexpr void ForObjectPointerPairs(Iterable & iterable, Function function) {
-            IfIterableObjectPointerPairs([&](auto) {
-                size_t i=0;
-                for ( auto & element : iterable )
-                    function(i++, element.first, (const element_type &)element.second);
-            });
-            IfIterableObjectPointerPairsPointer([&](auto) {
-                size_t i=0;
-                for ( auto & element : *iterable )
-                    function(i++, element.first, (const element_type &)element.second);
-            });
-        }
-
-        template <typename Primitive, typename Function> constexpr void ForPrimitive(Primitive & primitive, Function function) const {
-            IfPrimitive([&](auto) { function((const T &)primitive); });
-            IfPrimitivePointer([&](auto) { function((const T &)*primitive); });
-        }
-        template <typename Object, typename Function> constexpr void ForObject(Object & object, Function function) const {
-            IfObject([&](auto) { function((const T &)object); });
-            IfObjectPointer([&](auto) { function((const T &)*object); });
-        }
-        template <typename Iterable, typename Function> constexpr void ForPrimitives(Iterable & iterable, Function function) const {
+        template <typename Iterable, typename Function> constexpr void ForPrimitivesConst(Iterable & iterable, Function function) const {
             IfPrimitiveArray([&](auto) {
                 for ( size_t i=0; i<arraySize; i++ )
                     function(i, (const element_type &)iterable[i]);
@@ -781,18 +664,38 @@ namespace RfS
             });
             IfPrimitiveAdaptor([&](auto) {
                 size_t i=0;
-                auto sequenceContainer = get_underlying_container(iterable);
+                const auto & sequenceContainer = get_underlying_container(iterable);
                 for ( auto it = sequenceContainer.begin(); it != sequenceContainer.end(); ++it )
                     function(i++, (const element_type &)*it);
             });
             IfPrimitiveAdaptorPointer([&](auto) {
                 size_t i=0;
-                auto sequenceContainer = get_underlying_container(*iterable);
+                const auto & sequenceContainer = get_underlying_container(*iterable);
                 for ( auto it = sequenceContainer.begin(); it != sequenceContainer.end(); ++it )
                     function(i++, (const element_type &)*it);
             });
         }
         template <typename Iterable, typename Function> constexpr void ForObjects(Iterable & iterable, Function function) const {
+            IfObjectArray([&](auto) {
+                for ( size_t i=0; i<arraySize; i++ )
+                    function(i, iterable[i]);
+            });
+            IfObjectArrayPointer([&](auto) {
+                for ( size_t i=0; i<arraySize; i++ )
+                    function(i, (*iterable)[i]);
+            });
+            IfIterableObjects([&](auto) {
+                size_t i=0;
+                for ( auto & element : iterable )
+                    function(i++, element);
+            });
+            IfIterableObjectsPointer([&](auto) {
+                size_t i=0;
+                for ( auto & element : *iterable )
+                    function(i++, element);
+            });
+        }
+        template <typename Iterable, typename Function> constexpr void ForObjectsConst(Iterable & iterable, Function function) const {
             IfObjectArray([&](auto) {
                 for ( size_t i=0; i<arraySize; i++ )
                     function(i, (const element_type &)iterable[i]);
@@ -813,13 +716,13 @@ namespace RfS
             });
             IfObjectAdaptor([&](auto) {
                 size_t i=0;
-                auto sequenceContainer = get_underlying_container(iterable);
+                const auto & sequenceContainer = get_underlying_container(iterable);
                 for ( auto it = sequenceContainer.begin(); it != sequenceContainer.end(); ++it )
                     function(i++, (const element_type &)*it);
             });
             IfObjectAdaptorPointer([&](auto) {
                 size_t i=0;
-                auto sequenceContainer = get_underlying_container(*iterable);
+                const auto & sequenceContainer = get_underlying_container(*iterable);
                 for ( auto it = sequenceContainer.begin(); it != sequenceContainer.end(); ++it )
                     function(i++, (const element_type &)*it);
             });
@@ -828,27 +731,47 @@ namespace RfS
             IfIterablePrimitivePairs([&](auto) {
                 size_t i=0;
                 for ( auto & element : iterable )
-                    function(i++, element.first, (const element_type &)element.second);
+                    function(i++, element.first, element.second);
             });
             IfIterablePrimitivePairsPointer([&](auto) {
                 size_t i=0;
                 for ( auto & element : *iterable )
-                    function(i++, element.first, (const element_type &)element.second);
+                    function(i++, element.first, element.second);
             });
         }
         template <typename Iterable, typename Function> constexpr void ForObjectPairs(Iterable & iterable, Function function) const {
             IfIterableObjectPairs([&](auto) {
                 size_t i=0;
                 for ( auto & element : iterable )
-                    function(i++, element.first, (const element_type &)element.second);
+                    function(i++, element.first, element.second);
             });
             IfIterableObjectPairsPointer([&](auto) {
                 size_t i=0;
                 for ( auto & element : *iterable )
-                    function(i++, element.first, (const element_type &)element.second);
+                    function(i++, element.first, element.second);
             });
         }
         template <typename Iterable, typename Function> constexpr void ForPrimitivePointers(Iterable & iterable, Function function) const {
+            IfPrimitivePointerArray([&](auto) {
+                for ( size_t i=0; i<arraySize; i++ )
+                    function(i, iterable[i]);
+            });
+            IfPrimitivePointerArrayPointer([&](auto) {
+                for ( size_t i=0; i<arraySize; i++ )
+                    function(i, (*iterable)[i]);
+            });
+            IfIterablePrimitivePointers([&](auto) {
+                size_t i=0;
+                for ( auto & element : iterable )
+                    function(i++, element);
+            });
+            IfIterablePrimitivePointersPointer([&](auto) {
+                size_t i=0;
+                for ( auto & element : *iterable )
+                    function(i++, element);
+            });
+        }
+        template <typename Iterable, typename Function> constexpr void ForPrimitivePointersConst(Iterable & iterable, Function function) const {
             IfPrimitivePointerArray([&](auto) {
                 for ( size_t i=0; i<arraySize; i++ )
                     function(i, (const element_type &)iterable[i]);
@@ -869,18 +792,38 @@ namespace RfS
             });
             IfPrimitivePointerAdaptor([&](auto) {
                 size_t i=0;
-                auto sequenceContainer = get_underlying_container(iterable);
+                const auto & sequenceContainer = get_underlying_container(iterable);
                 for ( auto it = sequenceContainer.begin(); it != sequenceContainer.end(); ++it )
                     function(i++, (const element_type &)*it);
             });
             IfPrimitivePointerAdaptorPointer([&](auto) {
                 size_t i=0;
-                auto sequenceContainer = get_underlying_container(*iterable);
+                const auto & sequenceContainer = get_underlying_container(*iterable);
                 for ( auto it = sequenceContainer.begin(); it != sequenceContainer.end(); ++it )
                     function(i++, (const element_type &)*it);
             });
         }
         template <typename Iterable, typename Function> constexpr void ForObjectPointers(Iterable & iterable, Function function) const {
+            IfObjectPointerArray([&](auto) {
+                for ( size_t i=0; i<arraySize; i++ )
+                    function(i, iterable[i]);
+            });
+            IfObjectPointerArrayPointer([&](auto) {
+                for ( size_t i=0; i<arraySize; i++ )
+                    function(i, (*iterable)[i]);
+            });
+            IfIterableObjectPointers([&](auto) {
+                size_t i=0;
+                for ( auto & element : iterable )
+                    function(i++, element);
+            });
+            IfIterableObjectPointersPointer([&](auto) {
+                size_t i=0;
+                for ( auto & element : *iterable )
+                    function(i++, element);
+            });
+        }
+        template <typename Iterable, typename Function> constexpr void ForObjectPointersConst(Iterable & iterable, Function function) const {
             IfObjectPointerArray([&](auto) {
                 for ( size_t i=0; i<arraySize; i++ )
                     function(i, (const element_type &)iterable[i]);
@@ -901,13 +844,13 @@ namespace RfS
             });
             IfObjectPointerAdaptor([&](auto) {
                 size_t i=0;
-                auto sequenceContainer = get_underlying_container(iterable);
+                const auto & sequenceContainer = get_underlying_container(iterable);
                 for ( auto it = sequenceContainer.begin(); it != sequenceContainer.end(); ++it )
                     function(i++, (const element_type &)*it);
             });
             IfObjectPointerAdaptorPointer([&](auto) {
                 size_t i=0;
-                auto sequenceContainer = get_underlying_container(*iterable);
+                const auto & sequenceContainer = get_underlying_container(*iterable);
                 for ( auto it = sequenceContainer.begin(); it != sequenceContainer.end(); ++it )
                     function(i++, (const element_type &)*it);
             });
@@ -916,12 +859,12 @@ namespace RfS
             IfIterablePrimitivePointerPairs([&](auto) {
                 size_t i=0;
                 for ( auto & element : iterable )
-                    function(i++, element.first, (const element_type &)element.second);
+                    function(i++, element.first, element.second);
             });
             IfIterablePrimitivePointerPairsPointer([&](auto) {
                 size_t i=0;
                 for ( auto & element : *iterable )
-                    function(i++, element.first, (const element_type &)element.second);
+                    function(i++, element.first, element.second);
             });
         }
         template <typename Iterable, typename Function> constexpr void ForObjectPointerPairs(Iterable & iterable, Function function) const {
@@ -936,12 +879,18 @@ namespace RfS
                     function(i++, element.first, (const element_type &)element.second);
             });
         }
+
     };
 };
 
 /// Contains the various type classes for declaring reflected fields and the definition for the REFLECT macro and non-generic supporting macros
 namespace Reflect
 {
+    template <typename T>
+    std::string TypeToStr() {
+        return std::string(RfS::TypeToStr<T>::Get().value);
+    }
+
     /// B "basic-type": must be used for any type which already has an acceptable representation when streamed
     struct B {
         static constexpr bool reflected = false;
@@ -951,6 +900,109 @@ namespace Reflect
     struct R {
         static constexpr bool reflected = true;
     };
+
+    // I "inherit-from": used to denote a set of classes whose properties are being inherited by another reflected class
+    template <typename ... Ts>
+    class I;
+
+    template <>
+    class I<> { public:
+        
+        static constexpr size_t totalSupers = 0;
+        
+        template <typename Function, typename SubClass>
+        static void ForEach(SubClass & object, Function function) {}
+
+        template <typename Function, typename SubClass>
+        static void At(SubClass & object, size_t superIndex, Function function) {}
+    };
+
+    template <>
+    class I<I<>> { public:
+        
+        static constexpr size_t totalSupers = 0;
+
+        template <typename Function, typename SubClass>
+        static void ForEach(SubClass & object, Function function) {}
+
+        template <typename Function, typename SubClass>
+        static void At(SubClass & object, size_t superIndex, Function function) {}
+    };
+
+    template <typename T>
+    class I<T> { public:
+        
+        static constexpr size_t totalSupers = 1;
+
+        template <typename Function, typename SubClass>
+        static void ForEach(SubClass & object, Function function) {
+            function(0, (T &)object);
+        }
+
+        template <typename Function, typename SubClass>
+        static void At(SubClass & object, size_t superIndex, Function function) {
+            if ( superIndex == 0 )
+                function((T &)object);
+        }
+    };
+
+    template <typename T>
+    class I<I<T>> { public:
+        
+        static constexpr size_t totalSupers = 1;
+
+        template <typename Function, typename SubClass>
+        static void ForEach(SubClass & object, Function function) {
+            function(0, (T &)object);
+        }
+
+        template <typename Function, typename SubClass>
+        static void At(SubClass & object, size_t superIndex, Function function) {
+            if ( superIndex == 0 )
+                function((T &)object);
+        }
+    };
+
+    template <typename ... Ts>
+    class I<I<Ts ...>> { public:
+        
+        static constexpr size_t totalSupers = sizeof...(Ts);
+
+        template <size_t SuperIndex, typename Function, typename SubClass>
+        static void ForEachRecursion(SubClass &, Function function) {
+            // Base case for recursion
+        }
+
+        template <size_t SuperIndex, typename Function, typename SubClass, typename CurrentSuperClassType, typename... NextSuperClassTypes>
+        static void ForEachRecursion(SubClass & object, Function function) {
+            function(SuperIndex, (CurrentSuperClassType &)object);
+            ForEachRecursion<SuperIndex+1, Function, SubClass, NextSuperClassTypes...>(object, function);
+        }
+
+        template <typename Function, typename SubClass>
+        static void ForEach(SubClass & object, Function function) {
+            ForEachRecursion<0, Function, SubClass, Ts ...>(object, function);
+        }
+        
+        template <size_t SuperIndex, typename Function, typename SubClass>
+        static void AtRecursion(SubClass & object, size_t superIndex, Function function) {
+            // Base case for recursion
+        }
+        
+        template <size_t SuperIndex, typename Function, typename SubClass, typename CurrentSuperClassType, typename... NextSuperClassTypes>
+        static void AtRecursion(SubClass & object, size_t superIndex, Function function) {
+            if ( SuperIndex == superIndex )
+                function((CurrentSuperClassType &)object);
+
+            AtRecursion<SuperIndex+1, Function, SubClass, NextSuperClassTypes...>(object, superIndex, function);
+        }
+
+        template <typename Function, typename SubClass>
+        static void At(SubClass & object, size_t superIndex, Function function) {
+            AtRecursion<0, Function, SubClass, Ts ...>(object, superIndex, function);
+        }
+    };
+
 
 #define ALIAS_TYPE(x) using RHS(x) = decltype(RHS(x));
 #define GET_FIELD_NAME(x) RHS(x),
@@ -967,6 +1019,9 @@ namespace Reflect
 #define USE_FIELD(x) function(RHS(x)_::field, object.RHS(x));
 #define USE_FIELD_AT(x) case IndexOf::RHS(x): function(RHS(x)_::field, object.RHS(x)); break;
 
+
+#pragma warning(disable: 4003) // Not enough arguments warning generated despite macros working perfectly
+
 /// After the objectType there needs to be at least 1 and at most 123 fields, in the form "(B) fieldName" or "(R) fieldName"
 /// e.g. REFLECT(myObj, (B) myInt, (B) myString)
 #define REFLECT(objectType, ...) \
@@ -976,11 +1031,12 @@ class Class { public: \
     FOR_EACH(ALIAS_TYPE, __VA_ARGS__) \
     FOR_EACH(DESCRIBE_FIELD, __VA_ARGS__) \
     static constexpr RfS::Field<> fields[totalFields] = { FOR_EACH(GET_FIELD, __VA_ARGS__) }; \
-    template <typename Function> static void ForEachField(objectType & object, Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
-    template <typename Function> static void ForEachField(const objectType & object, Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
-    template <typename Function> static void FieldAt(objectType & object, size_t fieldIndex, Function function) { \
+    template <typename Function> static void ForEachField(RHS(objectType) & object, Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
+    template <typename Function> static void ForEachField(const RHS(objectType) & object, Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
+    template <typename Function> static void FieldAt(RHS(objectType) & object, size_t fieldIndex, Function function) { \
         switch ( fieldIndex ) { FOR_EACH(USE_FIELD_AT, __VA_ARGS__) } } \
-};
+}; \
+using Supers = I<LHS(objectType)>;
 
 }
 

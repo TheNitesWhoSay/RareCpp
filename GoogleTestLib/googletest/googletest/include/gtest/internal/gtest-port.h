@@ -1731,6 +1731,7 @@ class GTEST_API_ Mutex {
   // This constructor intentionally does nothing.  It relies on type_ being
   // statically initialized to 0 (effectively setting it to kStatic) and on
   // ThreadSafeLazyInit() to lazily initialize the rest of the members.
+  #pragma warning(suppress: 26495 26812) // Suppress warnings from used library
   explicit Mutex(StaticConstructorSelector /*dummy*/) {}
 
   Mutex();

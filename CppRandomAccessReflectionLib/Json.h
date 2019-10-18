@@ -14,6 +14,7 @@ namespace Json {
     template <size_t indentLevel, const char* indent = twoSpaces>
     std::ostream & operator<<(std::ostream & os, const Indent<indentLevel, indent>)
     {
+        #pragma warning(suppress: 6294) // I'll-defined loop warning when indentLevel is 0
         for ( size_t i=0; i<indentLevel; i++ )
             os << indent;
 
@@ -34,7 +35,7 @@ namespace Json {
             
             using Index = const size_t &;
             using Class = typename T::Class;
-            Class::ForEachField(obj, [&](const auto & field, const auto & value) {
+            Class::ForEachField(obj, [&](auto & field, auto & value) {
                 
                 using SubType = typename std::remove_reference<decltype(field)>::type::sub_type;
 
@@ -43,16 +44,16 @@ namespace Json {
                     os << "null";
                 else if ( !field.isIterable )
                 {
-                    field.ForPrimitive(value, [&](const auto & primitive) { os << "\"" << primitive << "\""; }); // Primitive
-                    field.ForObject(value, [&](const auto & object) { Output<SubType, indentLevel+1>::put(os, object); }); // Object
+                    field.ForPrimitive(value, [&](auto & primitive) { os << "\"" << primitive << "\""; }); // Primitive
+                    field.ForObject(value, [&](auto & object) { Output<SubType, indentLevel+1>::put(os, object); }); // Object
                 }
                 else if ( !field.containsPairs && !field.isReflected ) // Primitive Array
                 {
                     os << "[ ";
-                    field.ForPrimitives(value, [&](Index index, const auto & element) { // Primitive Array
+                    field.ForPrimitivesConst(value, [&](Index index, auto & element) { // Primitive Array
                         os << (index > 0 ? ", \"" : "\"") << element << "\"";
                     });
-                    field.ForPrimitivePointers(value, [&](Index index, const auto & element) { // Primitive Pointer Array
+                    field.ForPrimitivePointersConst(value, [&](Index index, auto & element) { // Primitive Pointer Array
                         if ( index > 0 ) { os << ", "; }
                         if ( element == nullptr ) { os << "null"; }
                         else { os << "\"" << *element << "\""; }
@@ -62,11 +63,11 @@ namespace Json {
                 else if ( !field.containsPairs && field.isReflected ) // Object Array
                 {
                     os << "[" << std::endl << Indent<indentLevel+2, indent>();
-                    field.ForObjects(value, [&](Index index, const auto & element) { // Object Array
+                    field.ForObjectsConst(value, [&](Index index, auto & element) { // Object Array
                         os << (index > 0 ? ", " : "");
                         Output<SubType, indentLevel+2>::put(os, element);
                     });
-                    field.ForObjectPointers(value, [&](Index index, const auto & element) { // Object Pointer Array
+                    field.ForObjectPointersConst(value, [&](Index index, auto & element) { // Object Pointer Array
                         if ( index > 0 ) { os << ", "; }
                         if ( element == nullptr ) { os << "null"; }
                         else { Output<SubType, indentLevel+2>::put(os, *element); }
@@ -78,11 +79,11 @@ namespace Json {
                     os << "{";
                     if ( !field.isReflected )
                     {
-                        field.ForPrimitivePairs(value, [&](Index index, const auto & first, const auto & second) { // Primitive Map
+                        field.ForPrimitivePairs(value, [&](Index index, auto & first, auto & second) { // Primitive Map
                             os << (index > 0 ? ", " : "") << std::endl
                                 << Indent<indentLevel+2, indent>() << "\"" << first << "\": \"" << second << "\"";
                         });
-                        field.ForPrimitivePointerPairs(value, [&](Index index, const auto & first, const auto & second) { // Primitive Pointer Map
+                        field.ForPrimitivePointerPairs(value, [&](Index index, auto & first, auto & second) { // Primitive Pointer Map
                             os << (index > 0 ? ", " : "") << std::endl << Indent<indentLevel+2, indent>() << "\"" << first << "\": ";
                             if ( second == nullptr ) { os << "null"; }
                             else { os << "\"" << *second << "\""; }
@@ -90,11 +91,11 @@ namespace Json {
                     }
                     else
                     {
-                        field.ForObjectPairs(value, [&](Index index, const auto & first, const auto & second) { // Object Map
+                        field.ForObjectPairs(value, [&](Index index, auto & first, auto & second) { // Object Map
                             os << (index > 0 ? ", " : "") << std::endl << Indent<indentLevel+2, indent>() << "\"" << first << "\": ";
                             Output<SubType, indentLevel+2>::put(os, second);
                         });
-                        field.ForObjectPointerPairs(value, [&](Index index, const auto & first, const auto & second) { // Object Pointer Map
+                        field.ForObjectPointerPairs(value, [&](Index index, auto & first, auto & second) { // Object Pointer Map
                             os << (index > 0 ? ", " : "") << std::endl << Indent<indentLevel+2, indent>() << "\"" << first << "\": ";
                             if ( second == nullptr ) { os << "null"; }
                             else { Output<SubType, indentLevel+2>::put(os, *second); }
