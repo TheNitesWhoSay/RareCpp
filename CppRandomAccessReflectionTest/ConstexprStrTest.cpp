@@ -14,7 +14,7 @@
 #include <utility>
 #include <type_traits>
 
-TEST(ReflectTest, ConstexprStrSubstr)
+TEST(ConstexprStrTest, ConstexprStrSubstr)
 {
     EXPECT_STREQ("a", ConstexprStr::substr<1>("abcdef").value);
     EXPECT_STREQ("ab", ConstexprStr::substr<2>("abcdef").value);
@@ -44,7 +44,7 @@ TEST(ReflectTest, ConstexprStrSubstr)
     EXPECT_STREQ("f", ConstexprStr::substr<1>("abcdef"+5).value);
 }
 
-TEST(ReflectTest, ConstexprStrLengthBetween)
+TEST(ConstexprStrTest, ConstexprStrLengthBetween)
 {
     EXPECT_EQ(0, ConstexprStr::length_between("<>", '<', '>'));
     EXPECT_EQ(1, ConstexprStr::length_between("<1>", '<', '>'));
@@ -59,7 +59,7 @@ TEST(ReflectTest, ConstexprStrLengthBetween)
     EXPECT_EQ(6, ConstexprStr::length_between("<<1234>>", '<', '>'));
 }
 
-TEST(ReflectTest, ConstexprStrLengthAfterLast)
+TEST(ConstexprStrTest, ConstexprStrLengthAfterLast)
 {
     EXPECT_EQ(0, ConstexprStr::length_after_last("a b ", ' '));
     EXPECT_EQ(1, ConstexprStr::length_after_last("a b 1", ' '));
@@ -67,7 +67,7 @@ TEST(ReflectTest, ConstexprStrLengthAfterLast)
     EXPECT_EQ(3, ConstexprStr::length_after_last("a b 123", ' '));
 }
 
-TEST(ReflectTest, ConstexprStrFind)
+TEST(ConstexprStrTest, ConstexprStrFind)
 {
     EXPECT_EQ(0, ConstexprStr::find("abcdefabcdef", 'a'));
     EXPECT_EQ(1, ConstexprStr::find("abcdefabcdef", 'b'));
@@ -77,7 +77,7 @@ TEST(ReflectTest, ConstexprStrFind)
     EXPECT_EQ(5, ConstexprStr::find("abcdefabcdef", 'f'));
 }
 
-TEST(ReflectTest, ConstexprStrFindLastOf)
+TEST(ConstexprStrTest, ConstexprStrFindLastOf)
 {
     EXPECT_EQ(6, ConstexprStr::find_last_of("abcdefabcdef", 'a'));
     EXPECT_EQ(7, ConstexprStr::find_last_of("abcdefabcdef", 'b'));

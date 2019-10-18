@@ -14,7 +14,7 @@
 #include <utility>
 #include <type_traits>
 
-TEST(ReflectTest, TypeToStr)
+TEST(ReflectionSupportTest, TypeToStr)
 {
     EXPECT_STREQ("int", RfS::TypeToStr<int>::Get().value);
 
@@ -31,7 +31,7 @@ TEST(ReflectTest, TypeToStr)
     EXPECT_TRUE(mapStr.find("map<int,int") != std::string::npos);
 }
 
-TEST(ReflectTest, IsPointable)
+TEST(ReflectionSupportTest, IsPointable)
 {
     EXPECT_FALSE(RfS::is_pointable<int>::value);
     EXPECT_FALSE(RfS::is_pointable<int[2]>::value);
@@ -40,7 +40,7 @@ TEST(ReflectTest, IsPointable)
     EXPECT_TRUE(RfS::is_pointable<std::unique_ptr<int>>::value);
 }
 
-TEST(ReflectTest, RemovePointer)
+TEST(ReflectionSupportTest, RemovePointer)
 {
     bool isEqual = std::is_same<int, RfS::remove_pointer<int>::type>::value;
     EXPECT_TRUE(isEqual);
@@ -54,7 +54,7 @@ TEST(ReflectTest, RemovePointer)
     EXPECT_TRUE(isEqual);
 }
 
-TEST(ReflectTest, IsStlIterable)
+TEST(ReflectionSupportTest, IsStlIterable)
 {
     EXPECT_FALSE(RfS::is_stl_iterable<int>::value);
     EXPECT_FALSE(RfS::is_stl_iterable<int*>::value);
@@ -84,7 +84,7 @@ TEST(ReflectTest, IsStlIterable)
     EXPECT_TRUE(RfS::is_stl_iterable<ExampleUnorderedMultiMapType>::value);
 }
 
-TEST(ReflectTest, IsAdaptor)
+TEST(ReflectionSupportTest, IsAdaptor)
 {
     EXPECT_FALSE(RfS::is_adaptor<int>::value);
     EXPECT_FALSE(RfS::is_adaptor<std::vector<int>>::value);
@@ -93,7 +93,7 @@ TEST(ReflectTest, IsAdaptor)
     EXPECT_TRUE(RfS::is_adaptor<std::priority_queue<int>>::value);
 }
 
-TEST(ReflectTest, ContainsPointables)
+TEST(ReflectionSupportTest, ContainsPointables)
 {
     EXPECT_FALSE(RfS::contains_pointables<int>::value);
     EXPECT_FALSE(RfS::contains_pointables<int[2]>::value);
@@ -120,7 +120,7 @@ TEST(ReflectTest, ContainsPointables)
     EXPECT_TRUE(RfS::contains_pointables<std::set<std::unique_ptr<int>>>::value);
 }
 
-TEST(ReflectTest, ElementType)
+TEST(ReflectionSupportTest, ElementType)
 {
     bool isEqual = std::is_same<void, RfS::element_type<int>::type>::value;
     EXPECT_TRUE(isEqual);
@@ -132,7 +132,7 @@ TEST(ReflectTest, ElementType)
     EXPECT_TRUE(isEqual);
 }
 
-TEST(ReflectTest, KeyType)
+TEST(ReflectionSupportTest, KeyType)
 {
     bool isEqual = std::is_same<void, RfS::key_type<int>::type>::value;
     EXPECT_TRUE(isEqual);
@@ -155,7 +155,7 @@ TEST(ReflectTest, KeyType)
     EXPECT_TRUE(isEqual);
 }
 
-TEST(ReflectTest, ContainsPairs)
+TEST(ReflectionSupportTest, ContainsPairs)
 {
     using IntPair = std::pair<int, int>;
     EXPECT_FALSE(RfS::contains_pairs<int>::value);
@@ -172,7 +172,7 @@ TEST(ReflectTest, ContainsPairs)
     EXPECT_TRUE(RfS::contains_pairs<ExampleMultiMapType>::value);
 }
 
-TEST(ReflectTest, GetUnderlyingContainer)
+TEST(ReflectionSupportTest, GetUnderlyingContainer)
 {
     // Stacks
     std::stack<int> defaultStack;
@@ -277,7 +277,7 @@ void IfConditionTest(Function function)
     RfS::ConditionalCall<condition, Function>::call(function);
 }
 
-TEST(ReflectTest, ConditionalCall)
+TEST(ReflectionSupportTest, ConditionalCall)
 {
     bool value = false;
     IfConditionTest<false>([&](auto) {
@@ -290,7 +290,7 @@ TEST(ReflectTest, ConditionalCall)
     EXPECT_TRUE(value);
 }
 
-TEST(ReflectTest, FieldSimple)
+TEST(ReflectionSupportTest, FieldSimple)
 {
     size_t fieldIndex = 0;
     char fieldName[] = "fieldName";
@@ -311,7 +311,7 @@ TEST(ReflectTest, FieldSimple)
     EXPECT_EQ(fieldIsReflected, field.isReflected);
 }
 
-TEST(ReflectTest, FieldTemplated)
+TEST(ReflectionSupportTest, FieldTemplated)
 {
     size_t fieldIndex = 0;
     char fieldName[] = "fieldName";

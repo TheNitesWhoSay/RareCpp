@@ -15,6 +15,213 @@
 #include <type_traits>
 using namespace Reflect;
 
+TEST(ReflectTest, TypeToStr)
+{
+    EXPECT_STREQ("int", TypeToStr<int>().c_str());
+
+    // Expecting some junk like how it's a struct or class, but it should still contain the pair text
+    std::string typeStr = TypeToStr<std::pair<int,int>>();
+    typeStr.erase(std::remove(typeStr.begin(), typeStr.end(), ' '), typeStr.end());
+    EXPECT_TRUE(typeStr.find("pair<int,int") != std::string::npos);
+
+    // Expecting some junk like how it's a struct or class and what allocator it's using, but should contain the map text
+    std::string mapStr = TypeToStr<std::map<int,int>>();
+    mapStr.erase(std::remove(mapStr.begin(), mapStr.end(), ' '), mapStr.end());
+    EXPECT_TRUE(mapStr.find("map<int,int") != std::string::npos);
+}
+
+TEST(ReflectTest, BasicType)
+{
+    EXPECT_FALSE(Reflect::B::reflected);
+}
+
+TEST(ReflectTest, ReflectedType)
+{
+    EXPECT_TRUE(Reflect::R::reflected);
+}
+
+TEST(ReflectTest, InheritedType)
+{
+    using TwoArg = I<I<int, float>>;
+    using ThreeArg = I<I<int, float, char>>;
+    using FourArg = I<I<int, float, short, char>>;
+
+    EXPECT_EQ(0, I<>::totalSupers);
+    EXPECT_EQ(0, I<I<>>::totalSupers);
+    EXPECT_EQ(1, I<int>::totalSupers);
+    EXPECT_EQ(1, I<I<int>>::totalSupers);
+    EXPECT_EQ(2, TwoArg::totalSupers);
+    EXPECT_EQ(3, ThreeArg::totalSupers);
+    EXPECT_EQ(4, FourArg::totalSupers);
+
+    int val = 0;
+    bool visited = false;
+    I<>::ForEach(val, [&](auto index, auto superClass) { visited = true; });
+    EXPECT_FALSE(visited);
+    visited = false;
+    I<>::At(val, 0, [&](auto superClass) { visited = true; });
+    EXPECT_FALSE(visited);
+
+    visited = false;
+    I<I<>>::ForEach(val, [&](auto index, auto superClass) { visited = true; });
+    EXPECT_FALSE(visited);
+    visited = false;
+    I<I<>>::At(val, 0, [&](auto superClass) { visited = true; });
+    EXPECT_FALSE(visited);
+
+    size_t visitCount = 0;
+    I<int>::ForEach(val, [&](auto index, auto superClass) {
+        EXPECT_EQ(0, index);
+        bool isSame = std::is_same<int, decltype(superClass)>::value;
+        EXPECT_TRUE(isSame);
+        visitCount ++;
+    });
+    EXPECT_EQ(1, visitCount);
+    visited = false;
+    I<int>::At(val, 0, [&](auto superClass) {
+        bool isSame = std::is_same<int, decltype(superClass)>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    I<int>::At(val, 1, [&](auto superClass) { visited = true; });
+    EXPECT_FALSE(visited);
+
+    visitCount = 0;
+    I<I<int>>::ForEach(val, [&](auto index, auto superClass) {
+        EXPECT_EQ(0, index);
+        bool isSame = std::is_same<int, decltype(superClass)>::value;
+        EXPECT_TRUE(isSame);
+        visitCount ++;
+    });
+    EXPECT_EQ(1, visitCount);
+    visited = false;
+    I<I<int>>::At(val, 0, [&](auto superClass) {
+        bool isSame = std::is_same<int, decltype(superClass)>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    I<I<int>>::At(val, 1, [&](auto superClass) { visited = true; });
+    EXPECT_FALSE(visited);
+
+    visitCount = 0;
+    TwoArg::ForEach(val, [&](auto index, auto superClass) {
+        EXPECT_EQ(visitCount, index);
+        bool isSame = false;
+        switch ( index ) {
+            case 0: isSame = std::is_same<int, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
+            case 1: isSame = std::is_same<float, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
+            default: EXPECT_TRUE(false); break;
+        }
+        visitCount ++;
+    });
+    EXPECT_EQ(2, visitCount);
+    visited = false;
+    TwoArg::At(val, 0, [&](auto superClass) {
+        bool isSame = std::is_same<int, decltype(superClass)>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    TwoArg::At(val, 1, [&](auto superClass) {
+        bool isSame = std::is_same<float, decltype(superClass)>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    TwoArg::At(val, 2, [&](auto superClass) { visited = true; });
+    EXPECT_FALSE(visited);
+
+    visitCount = 0;
+    ThreeArg::ForEach(val, [&](auto index, auto superClass) {
+        EXPECT_EQ(visitCount, index);
+        bool isSame = false;
+        switch ( index ) {
+            case 0: isSame = std::is_same<int, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
+            case 1: isSame = std::is_same<float, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
+            case 2: isSame = std::is_same<char, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
+            default: EXPECT_TRUE(false); break;
+        }
+        visitCount ++;
+    });
+    EXPECT_EQ(3, visitCount);
+    visited = false;
+    ThreeArg::At(val, 0, [&](auto superClass) {
+        bool isSame = std::is_same<int, decltype(superClass)>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    ThreeArg::At(val, 1, [&](auto superClass) {
+        bool isSame = std::is_same<float, decltype(superClass)>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    ThreeArg::At(val, 2, [&](auto superClass) {
+        bool isSame = std::is_same<char, decltype(superClass)>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    ThreeArg::At(val, 3, [&](auto superClass) { visited = true; });
+    EXPECT_FALSE(visited);
+
+    visitCount = 0;
+    FourArg::ForEach(val, [&](auto index, auto superClass) {
+        EXPECT_EQ(visitCount, index);
+        bool isSame = false;
+        switch ( index ) {
+            case 0: isSame = std::is_same<int, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
+            case 1: isSame = std::is_same<float, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
+            case 2: isSame = std::is_same<short, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
+            case 3: isSame = std::is_same<char, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
+            default: EXPECT_TRUE(false); break;
+        }
+        visitCount ++;
+    });
+    EXPECT_EQ(4, visitCount);
+    visited = false;
+    FourArg::At(val, 0, [&](auto superClass) {
+        bool isSame = std::is_same<int, decltype(superClass)>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    FourArg::At(val, 1, [&](auto superClass) {
+        bool isSame = std::is_same<float, decltype(superClass)>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    FourArg::At(val, 2, [&](auto superClass) {
+        bool isSame = std::is_same<short, decltype(superClass)>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    FourArg::At(val, 3, [&](auto superClass) {
+        bool isSame = std::is_same<char, decltype(superClass)>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    FourArg::At(val, 4, [&](auto superClass) { visited = true; });
+    EXPECT_FALSE(visited);
+}
+
 TEST(ReflectTest, RfMacroAliasType)
 {
     class Obj {
@@ -271,14 +478,21 @@ TEST(ReflectTest, RfMacroCumulative)
     EXPECT_TRUE(true);
 }
 
+class ReflectSuperObj {
+public:
+    int superVal;
+
+    REFLECT(() ReflectSuperObj, (B) superVal)
+};
+
 class ReflectSubObj {
 public:
     int val;
 
-    REFLECT(ReflectSubObj, (B) val)
+    REFLECT(() ReflectSubObj, (B) val)
 };
 
-class ReflectObj {
+class ReflectObj : public ReflectSuperObj {
 public:
     int primitive;
     ReflectSubObj object;
@@ -287,7 +501,7 @@ public:
     std::vector<ReflectSubObj> objCollection;
     std::stack<int> stack;
 
-    REFLECT(ReflectObj, (B) primitive, (R) object, (B) primitiveArray, (B) map, (R) objCollection, (B) stack)
+    REFLECT((ReflectSuperObj) ReflectObj, (B) primitive, (R) object, (B) primitiveArray, (B) map, (R) objCollection, (B) stack)
 };
 
 TEST(ReflectTest, RfMacroReflect)
@@ -437,8 +651,20 @@ TEST(ReflectTest, RfMacroReflect)
     EXPECT_EQ(ReflectObj::Class::map_::field.isReflected, ReflectObj::Class::fields[3].isReflected);
     EXPECT_EQ(ReflectObj::Class::objCollection_::field.isReflected, ReflectObj::Class::fields[4].isReflected);
     EXPECT_EQ(ReflectObj::Class::stack_::field.isReflected, ReflectObj::Class::fields[5].isReflected);
-
-    ReflectObj reflectObj = { 10, { 20 }, { 30, 40 }, { { 50, 60 }, { 70, 80 } }, { { 90 }, { 99 } } };
+    
+    ReflectSubObj reflectSubObj = { 20 };
+    ReflectSubObj reflectSubObjZero = { 90 };
+    ReflectSubObj reflectSubObjOne = { 99 };
+    ReflectObj reflectObj = {};
+    reflectObj.superVal = 101;
+    reflectObj.primitive = 10;
+    reflectObj.object = reflectSubObj;
+    reflectObj.primitiveArray[0] = 30;
+    reflectObj.primitiveArray[1] = 40;
+    reflectObj.map.insert(std::pair<int, float>(50, 60));
+    reflectObj.map.insert(std::pair<int, float>(70, 80));
+    reflectObj.objCollection.push_back(reflectSubObjZero);
+    reflectObj.objCollection.push_back(reflectSubObjOne);
     reflectObj.stack.push(2);
     reflectObj.stack.push(3);
     size_t index = 0;

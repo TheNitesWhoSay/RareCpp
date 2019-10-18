@@ -59,10 +59,10 @@
     <ClCompile Include="GenericMacroTest.cpp">
       <Filter>Source Files\ReflectTest</Filter>
     </ClCompile>
-    <ClCompile Include="ReflectMacroTest.cpp">
+    <ClCompile Include="ReflectionSupportTest.cpp">
       <Filter>Source Files\ReflectTest</Filter>
     </ClCompile>
-    <ClCompile Include="ReflectionSupportTest.cpp">
+    <ClCompile Include="ReflectTest.cpp">
       <Filter>Source Files\ReflectTest</Filter>
     </ClCompile>
   </ItemGroup>

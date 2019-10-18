@@ -886,6 +886,11 @@ namespace RfS
 /// Contains the various type classes for declaring reflected fields and the definition for the REFLECT macro and non-generic supporting macros
 namespace Reflect
 {
+    template <typename T>
+    std::string TypeToStr() {
+        return std::string(RfS::TypeToStr<T>::Get().value);
+    }
+
     /// B "basic-type": must be used for any type which already has an acceptable representation when streamed
     struct B {
         static constexpr bool reflected = false;
@@ -894,6 +899,108 @@ namespace Reflect
     /// R "reflected-type": must be used for any object which in turn relies on reflection to be streamed
     struct R {
         static constexpr bool reflected = true;
+    };
+
+    // I "inherit-from": used to denote a set of classes whose properties are being inherited by another reflected class
+    template <typename ... Ts>
+    class I;
+
+    template <>
+    class I<> { public:
+        
+        static constexpr size_t totalSupers = 0;
+        
+        template <typename Function, typename SubClass>
+        static void ForEach(SubClass & object, Function function) {}
+
+        template <typename Function, typename SubClass>
+        static void At(SubClass & object, size_t superIndex, Function function) {}
+    };
+
+    template <>
+    class I<I<>> { public:
+        
+        static constexpr size_t totalSupers = 0;
+
+        template <typename Function, typename SubClass>
+        static void ForEach(SubClass & object, Function function) {}
+
+        template <typename Function, typename SubClass>
+        static void At(SubClass & object, size_t superIndex, Function function) {}
+    };
+
+    template <typename T>
+    class I<T> { public:
+        
+        static constexpr size_t totalSupers = 1;
+
+        template <typename Function, typename SubClass>
+        static void ForEach(SubClass & object, Function function) {
+            function(0, (T &)object);
+        }
+
+        template <typename Function, typename SubClass>
+        static void At(SubClass & object, size_t superIndex, Function function) {
+            if ( superIndex == 0 )
+                function((T &)object);
+        }
+    };
+
+    template <typename T>
+    class I<I<T>> { public:
+        
+        static constexpr size_t totalSupers = 1;
+
+        template <typename Function, typename SubClass>
+        static void ForEach(SubClass & object, Function function) {
+            function(0, (T &)object);
+        }
+
+        template <typename Function, typename SubClass>
+        static void At(SubClass & object, size_t superIndex, Function function) {
+            if ( superIndex == 0 )
+                function((T &)object);
+        }
+    };
+
+    template <typename ... Ts>
+    class I<I<Ts ...>> { public:
+        
+        static constexpr size_t totalSupers = sizeof...(Ts);
+
+        template <size_t SuperIndex, typename Function, typename SubClass>
+        static void ForEachRecursion(SubClass &, Function function) {
+            // Base case for recursion
+        }
+
+        template <size_t SuperIndex, typename Function, typename SubClass, typename CurrentSuperClassType, typename... NextSuperClassTypes>
+        static void ForEachRecursion(SubClass & object, Function function) {
+            function(SuperIndex, (CurrentSuperClassType &)object);
+            ForEachRecursion<SuperIndex+1, Function, SubClass, NextSuperClassTypes...>(object, function);
+        }
+
+        template <typename Function, typename SubClass>
+        static void ForEach(SubClass & object, Function function) {
+            ForEachRecursion<0, Function, SubClass, Ts ...>(object, function);
+        }
+        
+        template <size_t SuperIndex, typename Function, typename SubClass>
+        static void AtRecursion(SubClass & object, size_t superIndex, Function function) {
+            // Base case for recursion
+        }
+        
+        template <size_t SuperIndex, typename Function, typename SubClass, typename CurrentSuperClassType, typename... NextSuperClassTypes>
+        static void AtRecursion(SubClass & object, size_t superIndex, Function function) {
+            if ( SuperIndex == superIndex )
+                function((CurrentSuperClassType &)object);
+
+            AtRecursion<SuperIndex+1, Function, SubClass, NextSuperClassTypes...>(object, superIndex, function);
+        }
+
+        template <typename Function, typename SubClass>
+        static void At(SubClass & object, size_t superIndex, Function function) {
+            AtRecursion<0, Function, SubClass, Ts ...>(object, superIndex, function);
+        }
     };
 
 
@@ -912,6 +1019,9 @@ namespace Reflect
 #define USE_FIELD(x) function(RHS(x)_::field, object.RHS(x));
 #define USE_FIELD_AT(x) case IndexOf::RHS(x): function(RHS(x)_::field, object.RHS(x)); break;
 
+
+#pragma warning(disable: 4003) // Not enough arguments warning generated despite macros working perfectly
+
 /// After the objectType there needs to be at least 1 and at most 123 fields, in the form "(B) fieldName" or "(R) fieldName"
 /// e.g. REFLECT(myObj, (B) myInt, (B) myString)
 #define REFLECT(objectType, ...) \
@@ -921,11 +1031,12 @@ class Class { public: \
     FOR_EACH(ALIAS_TYPE, __VA_ARGS__) \
     FOR_EACH(DESCRIBE_FIELD, __VA_ARGS__) \
     static constexpr RfS::Field<> fields[totalFields] = { FOR_EACH(GET_FIELD, __VA_ARGS__) }; \
-    template <typename Function> static void ForEachField(objectType & object, Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
-    template <typename Function> static void ForEachField(const objectType & object, Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
-    template <typename Function> static void FieldAt(objectType & object, size_t fieldIndex, Function function) { \
+    template <typename Function> static void ForEachField(RHS(objectType) & object, Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
+    template <typename Function> static void ForEachField(const RHS(objectType) & object, Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
+    template <typename Function> static void FieldAt(RHS(objectType) & object, size_t fieldIndex, Function function) { \
         switch ( fieldIndex ) { FOR_EACH(USE_FIELD_AT, __VA_ARGS__) } } \
-};
+}; \
+using Supers = I<LHS(objectType)>;
 
 }
 

@@ -162,7 +162,7 @@
     <ClCompile Include="LambdaGuardTest_PPP_PPPA.cpp" />
     <ClCompile Include="LambdaGuardTest_PP_PPP.cpp" />
     <ClCompile Include="AcceleratorsTest.cpp" />
-    <ClCompile Include="ReflectMacroTest.cpp" />
+    <ClCompile Include="ReflectTest.cpp" />
     <ClCompile Include="ReflectionSupportTest.cpp" />
     <ClCompile Include="TestMain.cpp" />
     <ClCompile Include="JsonTest.cpp" />
