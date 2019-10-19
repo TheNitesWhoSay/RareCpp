@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <memory>
 
+ENABLE_JSON_INPUT;
+
 using namespace Reflect;
 using u8 = uint8_t;
 
@@ -146,7 +148,7 @@ public:
     REFLECT((Inherit) SubTest, (B) otherVal)
 };
 
-int main()
+void outputExamples()
 {
     for ( size_t i=1; i<=MassiveObject::Class::totalFields; i++ )
     {
@@ -226,9 +228,49 @@ int main()
     });
 
     std::cout << Json::out(car) << std::endl;
-    
+}
+
+class SuperA {
+public:
+    int superVal;
+
+    REFLECT(() SuperA, (B) superVal)
+};
+
+class A {
+public:
+    int first;
+    int second;
+
+    REFLECT((SuperA) A, (B) first, (B) second)
+};
+
+std::istream & operator >>(std::istream & is, A & a) {
+    is >> a.first;
+    is >> a.second;
+    return is;
+}
+
+int main()
+{
+    A a;
+    do {
+        try {
+            std::cin >> Json::in(a);
+
+            std::cout << "Read in: " << Json::out(a) << std::endl;
+        } catch ( Json::Exception & e ) {
+            std::cout << std::endl << "Exception: " << e.what() << std::endl;
+        }
+        Json::putClassFieldCache(std::cout);
+        std::cout << "..." << std::endl;
+        std::cin.clear();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    } while ( true );
+
     std::cout << std::endl << "Press enter to exit." << std::endl;
     std::cin.clear();
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     std::cin.get();
 
     return 0;
