@@ -975,7 +975,8 @@ namespace Reflect
 
         template <size_t SuperIndex, typename Function, typename SubClass, typename CurrentSuperClassType, typename... NextSuperClassTypes>
         static void ForEachRecursion(SubClass & object, Function function) {
-            function(SuperIndex, (CurrentSuperClassType &)object);
+            size_t superIndex = SuperIndex;
+            function(superIndex, (CurrentSuperClassType &)object);
             ForEachRecursion<SuperIndex+1, Function, SubClass, NextSuperClassTypes...>(object, function);
         }
 
