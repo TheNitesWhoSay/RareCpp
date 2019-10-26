@@ -9,11 +9,11 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
-    <Filter Include="Source Files\LambdaGuardTest">
-      <UniqueIdentifier>{f9b99081-f967-468c-82fc-0af5915913ea}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\ReflectTest">
       <UniqueIdentifier>{0423b888-d68e-491a-af43-adc6a93b26c6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\FieldAggregationsTest">
+      <UniqueIdentifier>{f9b99081-f967-468c-82fc-0af5915913ea}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -22,33 +22,6 @@
     </ClCompile>
     <ClCompile Include="TestMain.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="LambdaGuardTest.cpp">
-      <Filter>Source Files\LambdaGuardTest</Filter>
-    </ClCompile>
-    <ClCompile Include="LambdaGuardTest_IP_IPP.cpp">
-      <Filter>Source Files\LambdaGuardTest</Filter>
-    </ClCompile>
-    <ClCompile Include="LambdaGuardTest_IO_IOP.cpp">
-      <Filter>Source Files\LambdaGuardTest</Filter>
-    </ClCompile>
-    <ClCompile Include="LambdaGuardTest_IPA_IPPA.cpp">
-      <Filter>Source Files\LambdaGuardTest</Filter>
-    </ClCompile>
-    <ClCompile Include="LambdaGuardTest_IOA_IOPA.cpp">
-      <Filter>Source Files\LambdaGuardTest</Filter>
-    </ClCompile>
-    <ClCompile Include="LambdaGuardTest_PP_PPP.cpp">
-      <Filter>Source Files\LambdaGuardTest</Filter>
-    </ClCompile>
-    <ClCompile Include="LambdaGuardTest_PPP_PPPA.cpp">
-      <Filter>Source Files\LambdaGuardTest</Filter>
-    </ClCompile>
-    <ClCompile Include="LambdaGuardTest_PO_POP.cpp">
-      <Filter>Source Files\LambdaGuardTest</Filter>
-    </ClCompile>
-    <ClCompile Include="LambdaGuardTest_POA_POPA.cpp">
-      <Filter>Source Files\LambdaGuardTest</Filter>
     </ClCompile>
     <ClCompile Include="AcceleratorsTest.cpp">
       <Filter>Source Files\ReflectTest</Filter>
@@ -65,9 +38,36 @@
     <ClCompile Include="ReflectTest.cpp">
       <Filter>Source Files\ReflectTest</Filter>
     </ClCompile>
+    <ClCompile Include="FieldAggregationsTest.cpp">
+      <Filter>Source Files\FieldAggregationsTest</Filter>
+    </ClCompile>
+    <ClCompile Include="FieldAggregationsTest_IO_IOP.cpp">
+      <Filter>Source Files\FieldAggregationsTest</Filter>
+    </ClCompile>
+    <ClCompile Include="FieldAggregationsTest_IOA_IOPA.cpp">
+      <Filter>Source Files\FieldAggregationsTest</Filter>
+    </ClCompile>
+    <ClCompile Include="FieldAggregationsTest_IP_IPP.cpp">
+      <Filter>Source Files\FieldAggregationsTest</Filter>
+    </ClCompile>
+    <ClCompile Include="FieldAggregationsTest_IPA_IPPA.cpp">
+      <Filter>Source Files\FieldAggregationsTest</Filter>
+    </ClCompile>
+    <ClCompile Include="FieldAggregationsTest_PO_POP.cpp">
+      <Filter>Source Files\FieldAggregationsTest</Filter>
+    </ClCompile>
+    <ClCompile Include="FieldAggregationsTest_POA_POPA.cpp">
+      <Filter>Source Files\FieldAggregationsTest</Filter>
+    </ClCompile>
+    <ClCompile Include="FieldAggregationsTest_PP_PPP.cpp">
+      <Filter>Source Files\FieldAggregationsTest</Filter>
+    </ClCompile>
+    <ClCompile Include="FieldAggregationsTest_PPA_PPPA.cpp">
+      <Filter>Source Files\FieldAggregationsTest</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="LambdaGuardTest.h">
+    <ClInclude Include="FieldAggregationsTest.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

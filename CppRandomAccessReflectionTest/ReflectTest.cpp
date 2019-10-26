@@ -331,8 +331,8 @@ public:
 
     class Class {
     public:
-        struct first_ { static constexpr RfS::Field<int, false> field = { 0, "first", "int", 0, false, false, false }; };
-        struct second_ { static constexpr RfS::Field<float, false> field = { 1, "second", "float", 0, false, false, false }; };
+        struct first_ { static constexpr RfS::Field<int, false, false> field = { 0, "first", "int", 0, false, false, false }; };
+        struct second_ { static constexpr RfS::Field<float, false, false> field = { 1, "second", "float", 0, false, false, false }; };
         static constexpr RfS::Field<> fields[2] = {
             GET_FIELD((B) first)
             GET_FIELD((B) second)
@@ -366,8 +366,8 @@ class UseFieldTest {
 
         class Class {
         public:
-            struct first_ { static constexpr RfS::Field<int, false> field = { 0, "first", "int", 0, false, false, false }; };
-            struct second_ { static constexpr RfS::Field<float, false> field = { 1, "second", "float", 0, false, false, false }; };
+            struct first_ { static constexpr RfS::Field<int, false, false> field = { 0, "first", "int", 0, false, false, false }; };
+            struct second_ { static constexpr RfS::Field<float, false, false> field = { 1, "second", "float", 0, false, false, false }; };
             template <typename Function>
             static void ForEachField(UseFieldTest & object, Function function) {
                 USE_FIELD((B) first)
@@ -416,8 +416,8 @@ class UseFieldAtTest {
         class Class {
         public:
             enum_t(IndexOf, size_t, { first, second });
-            struct first_ { static constexpr RfS::Field<int, false> field = { 0, "first", "int", 0, false, false, false }; };
-            struct second_ { static constexpr RfS::Field<float, false> field = { 1, "second", "float", 0, false, false, false }; };
+            struct first_ { static constexpr RfS::Field<int, false, false> field = { 0, "first", "int", 0, false, false, false }; };
+            struct second_ { static constexpr RfS::Field<float, false, false> field = { 1, "second", "float", 0, false, false, false }; };
             template <typename Function>
             static void FieldAt(UseFieldAtTest & object, size_t fieldIndex, Function function) {
                 switch ( fieldIndex ) {
@@ -680,8 +680,8 @@ TEST(ReflectTest, RfMacroReflect)
     reflectObj.object = reflectSubObj;
     reflectObj.primitiveArray[0] = 30;
     reflectObj.primitiveArray[1] = 40;
-    reflectObj.map.insert(std::pair<int, float>(50, 60));
-    reflectObj.map.insert(std::pair<int, float>(70, 80));
+    reflectObj.map.insert(std::pair<int, float>(50, 60.0f));
+    reflectObj.map.insert(std::pair<int, float>(70, 80.0f));
     reflectObj.objCollection.push_back(reflectSubObjZero);
     reflectObj.objCollection.push_back(reflectSubObjOne);
     reflectObj.stack.push(2);
@@ -692,57 +692,57 @@ TEST(ReflectTest, RfMacroReflect)
         bool visited = false;
         switch ( index ) {
             case 0:
-                field.IfPrimitive([&](auto) {
+                if constexpr ( field.IsPrimitive ) {
                     EXPECT_EQ(reflectObj.primitive, value);
                     visited = true;
-                });
+                }
                 EXPECT_TRUE(visited);
                 break;
             case 1:
-                field.IfObject([&](auto) {
-                    using ObjClass = std::remove_reference<decltype(value)>::type::Class;
+                if constexpr ( field.IsObject ) {
+                    using ObjClass = typename std::remove_reference<decltype(value)>::type::Class;
                     ObjClass::FieldAt(value, 0, [&](auto & field, auto & value) {
                         EXPECT_EQ(reflectObj.object.val, value);
                         visited = true;
                     });
                     EXPECT_TRUE(visited);
                     visited = true;
-                });
+                }
                 EXPECT_TRUE(visited);
                 break;
             case 2:
-                field.IfPrimitiveArray([&](auto) {
+                if constexpr ( field.IsPrimitiveArray ) {
                     EXPECT_EQ(reflectObj.primitiveArray[0], value[0]);
                     EXPECT_EQ(reflectObj.primitiveArray[1], value[1]);
                     visited = true;
-                });
+                }
                 EXPECT_TRUE(visited);
                 break;
             case 3:
-                field.IfIterablePrimitivePairs([&](auto) {
+                if constexpr ( field.IsIterablePrimitivePairs ) {
                     EXPECT_EQ(reflectObj.map.begin()->first, value.begin()->first);
                     EXPECT_EQ((++reflectObj.map.begin())->first, (++value.begin())->first);
                     visited = true;
-                });
+                }
                 EXPECT_TRUE(visited);
                 break;
             case 4:
-                field.IfIterableObjects([&](auto) {
+                if constexpr ( field.IsIterableObjects ) {
                     EXPECT_EQ(reflectObj.objCollection[0].val, value[0].val);
                     EXPECT_EQ(reflectObj.objCollection[1].val, value[1].val);
                     visited = true;
-                });
+                }
                 EXPECT_TRUE(visited);
                 break;
             case 5:
-                field.IfPrimitiveAdaptor([&](auto) {
-                    RfS::Field<std::stack<int>, false> & intStackField = field;
+                if constexpr ( field.IsPrimitiveAdaptor ) {
+                    RfS::Field<std::stack<int>, false, false> & intStackField = field;
                     intStackField.ForPrimitives(value, [&](auto stackIndex, auto & primitive) {
                         visited = true;
                     });
                     EXPECT_FALSE(visited);
                     visited = true;
-                });
+                }
                 EXPECT_TRUE(visited);
                 break;
             default:

@@ -31,6 +31,31 @@ TEST(ReflectionSupportTest, TypeToStr)
     EXPECT_TRUE(mapStr.find("map<int,int") != std::string::npos);
 }
 
+TEST(ReflectionSupportTest, IsBool)
+{
+    EXPECT_TRUE(RfS::is_bool<bool>::value);
+    EXPECT_FALSE(RfS::is_bool<uint8_t>::value);
+    EXPECT_FALSE(RfS::is_bool<uint16_t>::value);
+    EXPECT_FALSE(RfS::is_bool<uint32_t>::value);
+    EXPECT_FALSE(RfS::is_bool<uint64_t>::value);
+    EXPECT_FALSE(RfS::is_bool<int8_t>::value);
+    EXPECT_FALSE(RfS::is_bool<int16_t>::value);
+    EXPECT_FALSE(RfS::is_bool<int32_t>::value);
+    EXPECT_FALSE(RfS::is_bool<int64_t>::value);
+    EXPECT_FALSE(RfS::is_bool<char>::value);
+    EXPECT_FALSE(RfS::is_bool<short>::value);
+    EXPECT_FALSE(RfS::is_bool<int>::value);
+    EXPECT_FALSE(RfS::is_bool<long>::value);
+    EXPECT_FALSE(RfS::is_bool<unsigned char>::value);
+    EXPECT_FALSE(RfS::is_bool<unsigned short>::value);
+    EXPECT_FALSE(RfS::is_bool<unsigned int>::value);
+    EXPECT_FALSE(RfS::is_bool<unsigned long>::value);
+    EXPECT_FALSE(RfS::is_bool<float>::value);
+    EXPECT_FALSE(RfS::is_bool<double>::value);
+    EXPECT_FALSE(RfS::is_bool<char*>::value);
+    EXPECT_FALSE(RfS::is_bool<std::string>::value);
+}
+
 TEST(ReflectionSupportTest, IsPointable)
 {
     EXPECT_FALSE(RfS::is_pointable<int>::value);
@@ -271,25 +296,6 @@ TEST(ReflectionSupportTest, GetUnderlyingContainer)
     EXPECT_EQ(4, *++priorityQueueUnderlyingDeque.begin());
 }
 
-template <bool condition, typename Function>
-void IfConditionTest(Function function)
-{
-    RfS::ConditionalCall<condition, Function>::call(function);
-}
-
-TEST(ReflectionSupportTest, ConditionalCall)
-{
-    bool value = false;
-    IfConditionTest<false>([&](auto) {
-        value = true;
-    });
-    EXPECT_FALSE(value);
-    IfConditionTest<true>([&](auto) {
-        value = true;
-    });
-    EXPECT_TRUE(value);
-}
-
 TEST(ReflectionSupportTest, FieldSimple)
 {
     size_t fieldIndex = 0;
@@ -321,7 +327,7 @@ TEST(ReflectionSupportTest, FieldTemplated)
     bool fieldContainsPairs = false;
     bool fieldIsReflected = false;
 
-    RfS::Field<int, false> field = { fieldIndex, fieldName, fieldTypeStr, fieldArraySize, fieldIsIterable, fieldContainsPairs, fieldIsReflected };
+    RfS::Field<int, false, false> field = { fieldIndex, fieldName, fieldTypeStr, fieldArraySize, fieldIsIterable, fieldContainsPairs, fieldIsReflected };
     
     EXPECT_EQ(fieldIndex, field.index);
     EXPECT_STREQ(fieldName, field.name);
@@ -331,10 +337,10 @@ TEST(ReflectionSupportTest, FieldTemplated)
     EXPECT_EQ(fieldContainsPairs, field.containsPairs);
     EXPECT_EQ(fieldIsReflected, field.isReflected);
     
-    bool isEqual = std::is_same<int, RfS::Field<int, false>::type>::value;
+    bool isEqual = std::is_same<int, RfS::Field<int, false, false>::type>::value;
     EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<void, RfS::Field<int, false>::element_type>::value;
+    isEqual = std::is_same<void, RfS::Field<int, false, false>::element_type>::value;
     EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<void, RfS::Field<int, false>::key_type>::value;
+    isEqual = std::is_same<void, RfS::Field<int, false, false>::key_type>::value;
     EXPECT_TRUE(isEqual);
 }

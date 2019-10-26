@@ -18,7 +18,7 @@
 #include <type_traits>
 #include <functional>
 
-namespace FieldLambdaGuards
+namespace FieldAggregations
 {
 
     struct Obj {
@@ -41,10 +41,10 @@ namespace FieldLambdaGuards
     };
 
     template <typename T>
-    using PField = RfS::Field<T, false>;
+    using PField = RfS::Field<T, false, false>;
 
     template <typename T>
-    using OField = RfS::Field<T, true>;
+    using OField = RfS::Field<T, true, false>;
 
     /**
         Fields handled in distinct manners...

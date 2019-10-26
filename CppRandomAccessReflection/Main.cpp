@@ -87,7 +87,7 @@ public:
     
     using OccupantIdType = std::map<std::string, std::string>;
     using OccupantCupHolderUsageType = std::map<std::string, CupHolderPtr>;
-    REFLECT(() Car, (R) wheels, (B) occupants, (B) occupantId, (R) occupantCupHolderUsage, (R) cupHolders, (R) fuelTank, (B) milesPerGallon)
+    REFLECT(() Car, (R) wheels, (S) occupants, (S) occupantId, (R) occupantCupHolderUsage, (R) cupHolders, (R) fuelTank, (B) milesPerGallon)
 
 };
 
@@ -207,9 +207,12 @@ void outputExamples()
     });
 
     Car::Class::ForEachField(car, [&](auto field, auto value) {
-        field.IfPrimitive([&](auto) { std::cout << "(carPrimitive) " << field.name << ": " << value << std::endl; });
-        field.IfObject([&](auto) { std::cout << "(carObject) " << field.name << ": " << "[Skipped, this would be a good place for recursion!]" << std::endl; });
-        field.IfObjectArray([&](auto) { std::cout << "(carObjectArray) " << field.name << ": " << "[Skipped, this would be a good place for recursion!]" << std::endl; });
+        if constexpr ( field.IsPrimitive )
+            std::cout << "(carPrimitive) " << field.name << ": " << value << std::endl;
+        else if constexpr ( field.IsObject )
+            std::cout << "(carObject) " << field.name << ": " << "[Skipped, this would be a good place for recursion!]" << std::endl;
+        else if constexpr ( field.IsObjectArray )
+            std::cout << "(carObjectArray) " << field.name << ": " << "[Skipped, this would be a good place for recursion!]" << std::endl;
     });
 
     FuelTank::Class::ForEachField(fuelTank, [&](auto field, auto value) {
@@ -223,8 +226,10 @@ void outputExamples()
     });
 
     FuelTank::Class::ForEachField(fuelTank, [&](auto field, auto value) {
-        field.IfPrimitive([&](auto) { std::cout << "(fuelTankPrimitive) " << field.name << ": " << value << std::endl; });
-        field.IfPrimitiveArray([&](auto) { std::cout << "(fuelTankPrimitiveArray) " << field.name << ": " << value << std::endl; });
+        if constexpr ( field.IsPrimitive )
+            std::cout << "(fuelTankPrimitive) " << field.name << ": " << value << std::endl;
+        else if constexpr ( field.IsPrimitiveArray )
+            std::cout << "(fuelTankPrimitiveArray) " << field.name << ": " << value << std::endl;
     });
 
     std::cout << Json::out(car) << std::endl;
@@ -237,12 +242,27 @@ public:
     REFLECT(() SuperA, (B) superVal)
 };
 
+class SubA {
+public:
+    SubA() : subVal(0) {}
+
+    int subVal;
+
+    REFLECT(() SubA, (B) subVal)
+};
+
 class A {
 public:
+    A() : first(0), second(0), ptr(nullptr), sub(), boolean(false), str("") {}
+
     int first;
     int second;
+    int* ptr;
+    SubA sub;
+    bool boolean;
+    std::string str;
 
-    REFLECT((SuperA) A, (B) first, (B) second)
+    REFLECT((SuperA) A, (R) sub, (B) first, (B) second, (B) ptr, (B) boolean, (S) str)
 };
 
 std::istream & operator >>(std::istream & is, A & a) {
@@ -253,16 +273,22 @@ std::istream & operator >>(std::istream & is, A & a) {
 
 int main()
 {
-    A a;
-    do {
-        try {
-            std::cin >> Json::in(a);
+    outputExamples();
 
-            std::cout << "Read in: " << Json::out(a) << std::endl;
+    A a;
+    a.ptr = nullptr;
+    do {
+        bool successfulRead = false;
+        try {
+            std::cin >> std::ws;
+            std::cin >> Json::in(a);
+            successfulRead = true;
         } catch ( Json::Exception & e ) {
             std::cout << std::endl << "Exception: " << e.what() << std::endl;
         }
-        Json::putClassFieldCache(std::cout);
+        //Json::putClassFieldCache(std::cout);
+        //std::cout << "..." << std::endl;
+        std::cout << "Read in: " << Json::out(a) << std::endl;
         std::cout << "..." << std::endl;
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
