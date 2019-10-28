@@ -484,13 +484,16 @@ namespace RfS
         bool containsPairs;
         bool isReflected;
         bool isString;
-        
+
+        static constexpr bool IsReflected = fieldIsReflected;
         static constexpr bool IsBool = is_bool<T>::value;
         static constexpr bool IsString = fieldIsString;
         static constexpr bool IsPointer = is_pointable<T>::value;
         static constexpr bool IsArray = std::is_array<typename remove_pointer<T>::type>::value;
         static constexpr bool IsStlIterable = is_stl_iterable<typename remove_pointer<T>::type>::value;
         static constexpr bool IsStlAdaptor = is_adaptor<typename remove_pointer<T>::type>::value;
+        static constexpr bool ContainsBools = is_bool<typename element_type<typename remove_pointer<T>::type>::type>::value;
+        static constexpr bool ContainsObjects = IsReflected && (IsArray || IsStlIterable || IsStlAdaptor);
         static constexpr bool ContainsPointers = contains_pointables<typename remove_pointer<T>::type>::value;
         static constexpr bool ContainsPairs = contains_pairs<typename remove_pointer<T>::type>::value;
 
