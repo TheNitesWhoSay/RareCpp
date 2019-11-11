@@ -65,9 +65,11 @@ class Car {
 public:
     Car() : milesPerGallon(0.0f) {}
     Car(Wheel frontLeft, Wheel frontRight, Wheel backLeft, Wheel backRight, const std::string &driver, const std::string &passenger,
+        const std::vector<std::vector<std::vector<std::string>>> & testNest, const std::map<std::string, std::vector<std::vector<std::string>>> & testMapNest,
         const std::map<std::string, std::string> & occupantId, std::map<std::string, CupHolderPtr> occupantCupHolderUsage,
         const std::vector<CupHolderPtr> & cupHolders, const FuelTank &fuelTank, float milesPerGallon)
-        : occupantId(occupantId), occupantCupHolderUsage(occupantCupHolderUsage), cupHolders(cupHolders), fuelTank(fuelTank), milesPerGallon(milesPerGallon)
+        : testNest(testNest), testMapNest(testMapNest), occupantId(occupantId), occupantCupHolderUsage(occupantCupHolderUsage), cupHolders(cupHolders),
+        fuelTank(fuelTank), milesPerGallon(milesPerGallon)
     {
         wheels[0] = frontLeft;
         wheels[1] = frontRight;
@@ -79,6 +81,8 @@ public:
 
     Wheel wheels[4];
     std::vector<std::string> occupants;
+    std::vector<std::vector<std::vector<std::string>>> testNest;
+    std::map<std::string, std::vector<std::vector<std::string>>> testMapNest;
     std::map<std::string, std::string> occupantId;
     std::map<std::string, CupHolderPtr> occupantCupHolderUsage;
     std::vector<CupHolderPtr> cupHolders;
@@ -87,7 +91,7 @@ public:
     
     using OccupantIdType = std::map<std::string, std::string>;
     using OccupantCupHolderUsageType = std::map<std::string, CupHolderPtr>;
-    REFLECT(() Car, (R) wheels, (S) occupants, (S) occupantId, (R) occupantCupHolderUsage, (R) cupHolders, (R) fuelTank, (B) milesPerGallon)
+    REFLECT(() Car, (R) wheels, (S) occupants, (S) testNest, (S) testMapNest, (S) occupantId, (R) occupantCupHolderUsage, (R) cupHolders, (R) fuelTank, (B) milesPerGallon)
 
 };
 
@@ -179,6 +183,14 @@ void outputExamples()
     Wheel frontLeft(Wheel::Rim::Regular, 14, 32.2f), frontRight(Wheel::Rim::Regular, 14, 31.9f), backLeft(Wheel::Rim::Spinner, 15, 33.0f), backRight(Wheel::Rim::Spinner, 15, 30.9f);
     std::string driver = "Fred";
     std::string passenger = "Bob";
+    std::vector<std::vector<std::vector<std::string>>> testNest = {
+        {{ "a", "b", "c" }, { "d", "e" }},
+        {{ "f", "g", "h", "i" }, {"j"}}
+    };
+    std::map<std::string, std::vector<std::vector<std::string>>> testMapNest = {
+        { "one", {{ "a", "b", "c" }, { "d", "e" }} },
+        { "two", {{ "f", "g" }, { "h" }}}
+    };
     occupantId.insert(std::pair<std::string, std::string>(driver, "B252-123-839-244"));
     occupantId.insert(std::pair<std::string, std::string>(passenger, "B252-612-321-245"));
     cupHolders.push_back(CupHolderPtr(new CupHolder(3, 3, true)));
@@ -186,7 +198,7 @@ void outputExamples()
     occupantCupHolderUsage.insert(std::pair<std::string, CupHolderPtr>(driver, cupHolders[0]));
     occupantCupHolderUsage.insert(std::pair<std::string, CupHolderPtr>(passenger, cupHolders[1]));
     FuelTank fuelTank(15.0f, 14.6f, 1.0f, 7.5f);
-    Car car(frontLeft, frontRight, backLeft, backRight, driver, passenger, occupantId, occupantCupHolderUsage, cupHolders, fuelTank, 22.5f);
+    Car car(frontLeft, frontRight, backLeft, backRight, driver, passenger, testNest, testMapNest, occupantId, occupantCupHolderUsage, cupHolders, fuelTank, 22.5f);
     
     for ( size_t i=0; i<Wheel::Class::totalFields; i++ )
         std::cout << Wheel::Class::fields[i].name << std::endl;
@@ -261,8 +273,10 @@ public:
     SubA sub;
     bool boolean;
     std::string str;
+    std::map<std::string, std::string> map;
+    int ray[2];
 
-    REFLECT((SuperA) A, (R) sub, (B) first, (B) second, (B) ptr, (B) boolean, (S) str)
+    REFLECT((SuperA) A, (R) sub, (B) first, (B) second, (B) ptr, (B) boolean, (S) str, (S) map, (B) ray)
 };
 
 std::istream & operator >>(std::istream & is, A & a) {

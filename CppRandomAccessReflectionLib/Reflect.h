@@ -264,24 +264,32 @@ namespace RfS
         }
     };
     
-    template <typename T>
-    struct is_bool { static constexpr bool value = std::is_same<bool, T>::value; };
+    template <typename Type, typename TypeIfVoid> struct if_void { using type = Type; };
+    template <typename TypeIfVoid> struct if_void<void, TypeIfVoid> { using type = TypeIfVoid; };
+    template <typename TypeIfVoid> struct if_void<const void, TypeIfVoid> { using type = TypeIfVoid; };
+    
+    template <typename Type, typename TypeIfNotVoid> struct if_not_void { using type = TypeIfNotVoid; };
+    template <typename TypeIfNotVoid> struct if_not_void<void, TypeIfNotVoid> { using type = void; };
+    template <typename TypeIfNotVoid> struct if_not_void<const void, TypeIfNotVoid> { using type = void; };
 
-    template <typename T>
-    struct is_pointable { static constexpr bool value = std::is_pointer<T>::value; };
-    template <typename T>
-    struct is_pointable<std::shared_ptr<T>> { static constexpr bool value = true; };
-    template <typename T>
-    struct is_pointable<std::unique_ptr<T>> { static constexpr bool value = true; };
-
-    template <typename T>
-    struct remove_pointer { using type = typename std::remove_pointer<T>::type; };
-    template <typename T>
-    struct remove_pointer<std::shared_ptr<T>> { using type = typename T; };
-    template <typename T>
-    struct remove_pointer<std::unique_ptr<T>> { using type = typename T; };
-
+    template <typename Type> struct is_void { static constexpr bool value = false; };
+    template <> struct is_void<void> { static constexpr bool value = true; };
+    template <> struct is_void<const void> { static constexpr bool value = true; };
+    
+    template <typename T> struct is_bool { static constexpr bool value = std::is_same<bool, std::remove_const<T>::type>::value; };
+    
+    template <typename T> struct is_pointable { static constexpr bool value = std::is_pointer<T>::value; };
+    template <typename T> struct is_pointable<const T> { static constexpr bool value = is_pointable<T>::value; };
+    template <typename T> struct is_pointable<std::unique_ptr<T>> { static constexpr bool value = true; };
+    template <typename T> struct is_pointable<std::shared_ptr<T>> { static constexpr bool value = true; };
+    
+    template <typename T> struct remove_pointer { using type = typename std::remove_pointer<T>::type; };
+    template <typename T> struct remove_pointer<const T> { using type = typename remove_pointer<T>::type; };
+    template <typename T> struct remove_pointer<std::unique_ptr<T>> { using type = typename T; };
+    template <typename T> struct remove_pointer<std::shared_ptr<T>> { using type = typename T; };
+    
     template <typename T> struct is_stl_iterable { static constexpr bool value = false; };
+    template <typename T> struct is_stl_iterable<const T> { static constexpr bool value = is_stl_iterable<T>::value; };
     template <typename T, size_t N> struct is_stl_iterable<std::array<T, N>> { static constexpr bool value = true; };
     template <typename T, typename A> struct is_stl_iterable<std::vector<T, A>> { static constexpr bool value = true; };
     template <typename T, typename A> struct is_stl_iterable<std::deque<T, A>> { static constexpr bool value = true; };
@@ -290,20 +298,25 @@ namespace RfS
     template <typename K, typename C, typename A> struct is_stl_iterable<std::set<K, C, A>> { static constexpr bool value = true; };
     template <typename K, typename C, typename A> struct is_stl_iterable<std::multiset<K, C, A>> { static constexpr bool value = true; };
     template <typename K, typename T, typename C, typename A> struct is_stl_iterable<std::map<K, T, C, A>> { static constexpr bool value = true; };
-    template <typename K, typename T, typename C, typename A> struct is_stl_iterable<std::multimap<K, T, C, A>> { static constexpr bool value = true; };
-    template <typename K, typename H, typename E, typename A> struct is_stl_iterable<std::unordered_set<K, H, E, A>> { static constexpr bool value = true; };
-    template <typename K, typename H, typename E, typename A> struct is_stl_iterable<std::unordered_multiset<K, H, E, A>> { static constexpr bool value = true; };
+    template <typename K, typename T, typename C, typename A> struct is_stl_iterable<std::multimap<K, T, C, A>>
+    { static constexpr bool value = true; };
+    template <typename K, typename H, typename E, typename A> struct is_stl_iterable<std::unordered_set<K, H, E, A>>
+    { static constexpr bool value = true; };
+    template <typename K, typename H, typename E, typename A> struct is_stl_iterable<std::unordered_multiset<K, H, E, A>>
+    { static constexpr bool value = true; };
     template <typename K, typename T, typename H, typename E, typename A> struct is_stl_iterable<std::unordered_map<K, T, H, E, A>>
     { static constexpr bool value = true; };
     template <typename K, typename T, typename H, typename E, typename A> struct is_stl_iterable<std::unordered_multimap<K, T, H, E, A>>
     { static constexpr bool value = true; };
-
+    
     template <typename T> struct is_adaptor { static constexpr bool value = false; };
+    template <typename T> struct is_adaptor<const T> { static constexpr bool value = is_adaptor<T>::value; };
     template <typename T, typename C> struct is_adaptor<std::stack<T, C>> { static constexpr bool value = true; };
     template <typename T, typename C> struct is_adaptor<std::queue<T, C>> { static constexpr bool value = true; };
     template <typename T, typename C, typename P> struct is_adaptor<std::priority_queue<T, C, P>> { static constexpr bool value = true; };
-
+    
     template <typename T> struct contains_pointables { static constexpr bool value = false; };
+    template <typename T> struct contains_pointables<const T> { static constexpr bool value = contains_pointables<T>::value; };
     template <typename T, size_t N> struct contains_pointables<T[N]> { static constexpr bool value = is_pointable<T>::value; };
     template <typename T, size_t N> struct contains_pointables<std::array<T, N>> { static constexpr bool value = is_pointable<T>::value; };
     template <typename T, typename A> struct contains_pointables<std::vector<T, A>> { static constexpr bool value = is_pointable<T>::value; };
@@ -355,8 +368,9 @@ namespace RfS
     { static constexpr bool value = is_pointable<R>::value; };
     template <typename L, typename R, typename H, typename E, typename A> struct contains_pointables<std::unordered_multiset<std::pair<L, R>, H, E, A>>
     { static constexpr bool value = is_pointable<R>::value; };
-
+    
     template <typename T> struct element_type { using type = void; };
+    template <typename T> struct element_type<const T> { using type = typename element_type<T>::type; };
     template <typename T, size_t N> struct element_type<T[N]> { using type = typename T; };
     template <typename T, size_t N> struct element_type<std::array<T, N>> { using type = typename T; };
     template <typename T, typename A> struct element_type<std::vector<T, A>> { using type = typename T; };
@@ -402,7 +416,37 @@ namespace RfS
     template <typename L, typename R, typename H, typename E, typename A> struct element_type<std::unordered_multiset<std::pair<L, R>, H, E, A>>
     { using type = typename R; };
 
+    /// Finds the most deeply nested type in an iterable hierarchy (up to 10 levels), always taking the second type in maps or pairs, removing pointers if present
+    static constexpr size_t maxNestedIterables = 10;
+    template <typename T> struct nested_element_type {
+        using nest_1 = typename element_type<typename remove_pointer<T>::type>::type;
+        using nest_2 = typename if_void<typename element_type<typename remove_pointer<nest_1>::type>::type, nest_1>::type;
+        using nest_3 = typename if_void<typename element_type<typename remove_pointer<nest_2>::type>::type, nest_2>::type;
+        using nest_4 = typename if_void<typename element_type<typename remove_pointer<nest_3>::type>::type, nest_3>::type;
+        using nest_5 = typename if_void<typename element_type<typename remove_pointer<nest_4>::type>::type, nest_4>::type;
+        using nest_6 = typename if_void<typename element_type<typename remove_pointer<nest_5>::type>::type, nest_5>::type;
+        using nest_7 = typename if_void<typename element_type<typename remove_pointer<nest_6>::type>::type, nest_6>::type;
+        using nest_8 = typename if_void<typename element_type<typename remove_pointer<nest_7>::type>::type, nest_7>::type;
+        using nest_9 = typename if_void<typename element_type<typename remove_pointer<nest_8>::type>::type, nest_8>::type;
+        using type = typename if_void<typename element_type<typename remove_pointer<nest_9>::type>::type, nest_9>::type;
+
+        using type_container =
+            typename if_not_void<nest_9,
+            typename if_not_void<nest_8,
+            typename if_not_void<nest_7,
+            typename if_not_void<nest_6,
+            typename if_not_void<nest_5,
+            typename if_not_void<nest_4,
+            typename if_not_void<nest_3,
+            typename if_not_void<nest_2,
+            typename if_not_void<nest_1, void
+        >::type>::type>::type>::type>::type>::type>::type>::type>::type;
+    };
+
+    template <typename T> struct is_iterable { static constexpr bool value = !std::is_same<void, element_type<T>::type>::value; };
+    
     template <typename T> struct key_type { using type = void; };
+    template <typename T> struct key_type<const T> { using type = typename key_type<T>::type; };
     template <typename K, typename C, typename A> struct key_type<std::set<K, C, A>> { using type = typename K; };
     template <typename K, typename C, typename A> struct key_type<std::multiset<K, C, A>> { using type = typename K; };
     template <typename K, typename T, typename C, typename A> struct key_type<std::map<K, T, C, A>> { using type = typename K; };
@@ -411,8 +455,16 @@ namespace RfS
     template <typename K, typename H, typename E, typename A> struct key_type<std::unordered_multiset<K, H, E, A>> { using type = typename K; };
     template <typename K, typename T, typename H, typename E, typename A> struct key_type<std::unordered_map<K, T, H, E, A>> { using type = typename K; };
     template <typename K, typename T, typename H, typename E, typename A> struct key_type<std::unordered_multimap<K, T, H, E, A>> { using type = typename K; };
-
+    
+    template <typename L, typename R, size_t N> struct key_type<std::pair<L, R>[N]> { using type = typename L; };
+    template <typename L, typename R, size_t N> struct key_type<std::array<std::pair<L, R>, N>> { using type = typename L; };
+    template <typename L, typename R, typename A> struct key_type<std::vector<std::pair<L, R>, A>> { using type = typename L; };
+    template <typename L, typename R, typename A> struct key_type<std::deque<std::pair<L, R>, A>> { using type = typename L; };
+    template <typename L, typename R, typename A> struct key_type<std::forward_list<std::pair<L, R>, A>> { using type = typename L; };
+    template <typename L, typename R, typename A> struct key_type<std::list<std::pair<L, R>, A>> { using type = typename L; };
+    
     template <typename T> struct contains_pairs { static constexpr bool value = false; };
+    template <typename T> struct contains_pairs<const T> { static constexpr bool value = contains_pairs<T>::value; };
     template <typename L, typename R, size_t N>
     struct contains_pairs<std::pair<L, R>[N]> { static constexpr bool value = true; };
     template <typename L, typename R, size_t N>
@@ -441,11 +493,6 @@ namespace RfS
     struct contains_pairs<std::map<K, T, C, A>> { static constexpr bool value = true; };
     template <typename K, typename T, typename C, typename A>
     struct contains_pairs<std::multimap<K, T, C, A>> { static constexpr bool value = true; };
-    
-    template <typename Type, typename TypeIfVoid>
-    struct if_void { using type = Type; };
-    template <typename TypeIfVoid>
-    struct if_void<void, TypeIfVoid> { using type = TypeIfVoid; };
 
     template <class Adaptor>
     const typename Adaptor::container_type & get_underlying_container(const Adaptor & adaptor) {
@@ -457,11 +504,11 @@ namespace RfS
         return AdaptorSubClass::get(adaptor);
     }
     
-    template <typename T = void, bool fieldIsReflected = false, bool fieldIsString = false>
+    template <typename T = void, bool fieldIsReflected = false, bool fieldIsString = false, size_t fieldIndex = 0>
     class Field;
     
     template <>
-    class Field<void, false, false> {
+    class Field<void, false, false, 0> {
     public:
         size_t index;
         const char* name;
@@ -473,7 +520,7 @@ namespace RfS
         bool isString;
     };
 
-    template <typename T, bool fieldIsReflected, bool fieldIsString>
+    template <typename T, bool fieldIsReflected, bool fieldIsString, size_t fieldIndex>
     class Field {
     public:
         size_t index;
@@ -485,6 +532,19 @@ namespace RfS
         bool isReflected;
         bool isString;
 
+        static constexpr size_t Index = fieldIndex;
+        static constexpr size_t ArraySizes[maxNestedIterables] = {
+            std::extent<std::remove_pointer<T>::type>::value,
+            std::extent<std::remove_pointer<nested_element_type<T>::nest_1>::type>::value,
+            std::extent<std::remove_pointer<nested_element_type<T>::nest_2>::type>::value,
+            std::extent<std::remove_pointer<nested_element_type<T>::nest_3>::type>::value,
+            std::extent<std::remove_pointer<nested_element_type<T>::nest_4>::type>::value,
+            std::extent<std::remove_pointer<nested_element_type<T>::nest_5>::type>::value,
+            std::extent<std::remove_pointer<nested_element_type<T>::nest_6>::type>::value,
+            std::extent<std::remove_pointer<nested_element_type<T>::nest_7>::type>::value,
+            std::extent<std::remove_pointer<nested_element_type<T>::nest_8>::type>::value,
+            std::extent<std::remove_pointer<nested_element_type<T>::nest_9>::type>::value,
+        };
         static constexpr bool IsReflected = fieldIsReflected;
         static constexpr bool IsBool = is_bool<T>::value;
         static constexpr bool IsString = fieldIsString;
@@ -492,10 +552,22 @@ namespace RfS
         static constexpr bool IsArray = std::is_array<typename remove_pointer<T>::type>::value;
         static constexpr bool IsStlIterable = is_stl_iterable<typename remove_pointer<T>::type>::value;
         static constexpr bool IsStlAdaptor = is_adaptor<typename remove_pointer<T>::type>::value;
-        static constexpr bool ContainsBools = is_bool<typename element_type<typename remove_pointer<T>::type>::type>::value;
-        static constexpr bool ContainsObjects = IsReflected && (IsArray || IsStlIterable || IsStlAdaptor);
+        static constexpr bool IsIterable = IsArray || IsStlIterable || IsStlAdaptor;
+        static constexpr bool ContainsObjects = IsIterable && IsReflected;
+        static constexpr bool ContainsBools = IsIterable && is_bool<typename element_type<typename remove_pointer<T>::type>::type>::value;
+        static constexpr bool ContainsStrings = IsIterable && IsString;
         static constexpr bool ContainsPointers = contains_pointables<typename remove_pointer<T>::type>::value;
         static constexpr bool ContainsPairs = contains_pairs<typename remove_pointer<T>::type>::value;
+        static constexpr bool ContainsPrimitives = IsIterable && !IsReflected && !ContainsPairs;
+        
+
+        using type = T;
+
+        /// Element type is the type of the field (if singular) or the type contained in this field (second if pair), void if not iterable
+        using element_type = typename nested_element_type<T>::type;
+
+        /// Sub type is the type you should pass if recursively reading this field (if singular) or the type contained in this field (second if pair)
+        using sub_type = typename if_void<typename remove_pointer<element_type>::type, typename remove_pointer<T>::type>::type;
 
 
         /// Aggregations
@@ -545,18 +617,6 @@ namespace RfS
         
         static constexpr bool IsIterableObjectPointerPairs = IsStlIterable && fieldIsReflected && ContainsPairs && !IsPointer && ContainsPointers;
         static constexpr bool IsIterableObjectPointerPairsPointer = IsStlIterable && fieldIsReflected && ContainsPairs && IsPointer && ContainsPointers;
-        
-
-        using type = T;
-
-        /// Key type is the map key type or "first" in contained pairs, void if field is neither a map nor contains pairs
-        using key_type = typename key_type<typename remove_pointer<T>::type>::type;
-
-        /// Element type is the type of the field (if singular) or the type contained in this field (second if pair), void if not iterable
-        using element_type = typename element_type<typename remove_pointer<T>::type>::type;
-
-        /// Sub type is the type you should pass if recursively reading this field (if singular) or the type contained in this field (second if pair)
-        using sub_type = typename if_void<typename remove_pointer<element_type>::type, typename remove_pointer<T>::type>::type;
 
 
         /// Access accelerators: obtain access to field data, with constexpr-if guards pre-applied
@@ -841,13 +901,27 @@ namespace RfS
                     function(i++, element.first, (const element_type &)element.second);
             }
         }
-
+    
     };
 };
 
 /// Contains the various type classes for declaring reflected fields and the definition for the REFLECT macro and non-generic supporting macros
 namespace Reflect
 {
+    using RfS::if_void;
+    using RfS::is_bool;
+    using RfS::is_pointable;
+    using RfS::remove_pointer;
+    using RfS::is_stl_iterable;
+    using RfS::is_adaptor;
+    using RfS::contains_pointables;
+    using RfS::element_type;
+    using RfS::nested_element_type;
+    using RfS::is_iterable;
+    using RfS::key_type;
+    using RfS::contains_pairs;
+    using RfS::get_underlying_container;
+
     template <typename T>
     std::string TypeToStr() {
         return std::string(RfS::TypeToStr<T>::Get().value);
@@ -979,7 +1053,7 @@ namespace Reflect
 #define DESCRIBE_FIELD(x) struct RHS(x)_ { \
     static constexpr auto nameStr = ConstexprStr::substr<ConstexprStr::length_after_last(#x, ' ')>(#x+ConstexprStr::find_last_of(#x, ' ')+1); \
     static constexpr auto typeStr = RfS::TypeToStr<RHS(x)>::Get(); \
-    static constexpr RfS::Field<Class::RHS(x), LHS(x)::reflected, LHS(x)::isString> field = \
+    static constexpr RfS::Field<Class::RHS(x), LHS(x)::reflected, LHS(x)::isString, IndexOf::RHS(x)> field = \
         { IndexOf::RHS(x), &nameStr.value[0], &typeStr.value[0], std::extent<RfS::remove_pointer<RHS(x)>::type>::value, \
         RfS::is_stl_iterable<RfS::remove_pointer<RHS(x)>::type>::value || std::is_array<RfS::remove_pointer<RHS(x)>::type>::value || \
         RfS::is_adaptor<RfS::remove_pointer<RHS(x)>::type>::value, RfS::contains_pairs<RfS::remove_pointer<RHS(x)>::type>::value, \

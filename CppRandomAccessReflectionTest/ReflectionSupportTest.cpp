@@ -341,6 +341,4 @@ TEST(ReflectionSupportTest, FieldTemplated)
     EXPECT_TRUE(isEqual);
     isEqual = std::is_same<void, RfS::Field<int, false, false>::element_type>::value;
     EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<void, RfS::Field<int, false, false>::key_type>::value;
-    EXPECT_TRUE(isEqual);
 }
