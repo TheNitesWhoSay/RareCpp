@@ -467,7 +467,7 @@ namespace Json {
             os << "{";
             return os;
         }
-
+        
         template <size_t indentLevel, const char* indent = twoSpaces>
         struct ObjectSuffix { };
 
@@ -475,6 +475,86 @@ namespace Json {
         std::ostream & operator<<(std::ostream & os, const ObjectSuffix<indentLevel, indent>)
         {
             os << std::endl << Indent<indentLevel, indent>() << "}";
+            return os;
+        }
+        
+        template <bool isArray, bool containsPrimitives, size_t indentLevel, const char* indent = twoSpaces>
+        struct NestedPrefix { };
+
+        template <bool isArray, bool containsPrimitives, size_t indentLevel, const char* indent = twoSpaces>
+        std::ostream & operator<<(std::ostream & os, const NestedPrefix<isArray, containsPrimitives, indentLevel, indent>)
+        {
+            if constexpr ( isArray )
+                os << ArrayPrefix<containsPrimitives, indentLevel, indent>();
+            else
+                os << ObjectPrefix<indentLevel, indent>();
+
+            return os;
+        }
+
+        template <bool isArray, bool containsPrimitives, size_t indentLevel, const char* indent = twoSpaces>
+        struct NestedSuffix { };
+
+        template <bool isArray, bool containsPrimitives, size_t indentLevel, const char* indent = twoSpaces>
+        std::ostream & operator<<(std::ostream & os, const NestedSuffix<isArray, containsPrimitives, indentLevel, indent>)
+        {
+            if constexpr ( isArray )
+                os << ArraySuffix<containsPrimitives, indentLevel, indent>();
+            else
+                os << ObjectSuffix<indentLevel, indent>();
+
+            return os;
+        }
+        
+        template <bool isFirst, size_t indentLevel, const char* indent = twoSpaces>
+        struct FieldPrefix { };
+
+        template <bool isFirst, size_t indentLevel, const char* indent = twoSpaces>
+        std::ostream & operator<<(std::ostream & os, const FieldPrefix<isFirst, indentLevel, indent>)
+        {
+            if constexpr ( isFirst )
+                os << std::endl << Indent<indentLevel, indent>();
+            else 
+                os << "," << std::endl << Indent<indentLevel, indent>();
+
+            return os;
+        }
+
+        struct FieldNameValueSeparator { };
+
+        std::ostream & operator<<(std::ostream & os, const FieldNameValueSeparator)
+        {
+            os << ": ";
+            return os;
+        }
+                
+        template <bool isJsonField, bool nestedSeparator, size_t indentLevel, const char* indent = twoSpaces>
+        struct Separator
+        {
+            bool isFirst;
+
+            Separator() : isFirst(false) {}
+            Separator(bool isFirst) : isFirst(isFirst) {}
+        };
+
+        template <bool isJsonField, bool nestedSeparator, size_t indentLevel, const char* indent = twoSpaces>
+        std::ostream & operator<<(std::ostream & os, const Separator<isJsonField, nestedSeparator, indentLevel, indent> separator)
+        {
+            if constexpr ( isJsonField )
+            {
+                if ( separator.isFirst )
+                    os << std::endl << Indent<indentLevel, indent>();
+                else 
+                    os << "," << std::endl << Indent<indentLevel, indent>();
+            }
+            else if ( !separator.isFirst )
+            {
+                if constexpr ( nestedSeparator )
+                    os << "," << std::endl << Indent<indentLevel, indent>();
+                else
+                    os << ", ";
+            }
+
             return os;
         }
     };
@@ -623,185 +703,100 @@ namespace Json {
             }
             os << "\"";
         }
+
+        template <typename T>
+        static constexpr void putString(std::ostream & os, const T & t)
+        {
+            std::stringstream ss;
+            ss << t;
+            putString(os, ss.str());
+        }
         
         template <size_t totalParentIterables, typename Field, typename Element>
-        static constexpr void putElement(std::ostream & os, const Element & element)
+        static constexpr void putValue(std::ostream & os, const Element & element)
         {
             if constexpr ( is_pointable<Element>::value )
             {
                 if ( element == nullptr )
                     os << "null";
+                else if constexpr ( is_iterable<Element>::value )
+                    putIterable<totalParentIterables, Field, Element>(os, *element);
                 else if constexpr ( Field::IsReflected )
-                    Output<Field::sub_type, indentLevel+totalParentIterables+2>::put(os, *element);
+                    Output<Field::sub_type, indentLevel+totalParentIterables+1>::put(os, *element);
                 else if constexpr ( Field::IsString )
                     putString(os, *element);
                 else
                     os << *element;
             }
+            else if constexpr ( is_iterable<Element>::value )
+                putIterable<totalParentIterables, Field, Element>(os, element);
             else if constexpr ( Field::IsReflected )
-                Output<Field::sub_type, indentLevel+totalParentIterables+2>::put(os, element);
+                Output<Field::sub_type, indentLevel+totalParentIterables+1>::put(os, element);
             else if constexpr ( Field::IsString )
                 putString(os, element);
             else
                 os << element;
         }
 
-        template<size_t totalParentIterables, typename Field, typename Element, typename Key>
-        static constexpr void putElement(std::ostream & os, const std::pair<Key, Element> & element)
-        {
-            putElement<totalParentIterables, Field, Element>(os, element.second);
-        }
-
-        template <size_t totalParentIterables, typename Field, typename Iterable, typename Element>
-        static constexpr void putIterableElements(std::ostream & os, const Iterable & iterable)
-        {
-            if constexpr ( is_stl_iterable<Iterable>::value )
-            {
-                size_t i=0;
-                for ( auto & element : iterable )
-                {
-                    if ( i++ > 0 )
-                    {
-                        if constexpr ( contains_pairs<Iterable>::value )
-                            os << ",";
-                        else if constexpr ( is_iterable<Element>::value )
-                            os << "," << std::endl << Indent<indentLevel+totalParentIterables+2, indent>();
-                        else
-                            os << ", ";
-                    }
-
-                    if constexpr ( contains_pairs<Iterable>::value )
-                    {
-                        os << std::endl << Indent<indentLevel+totalParentIterables+2, indent>();
-                        putString(os, element.first);
-                        os << ": ";
-                        
-                        if constexpr ( is_iterable<Element>::value && is_pointable<Element>::value )
-                            putIterable<totalParentIterables+1, Field>(os, *element.second);
-                        else if constexpr ( is_iterable<Element>::value )
-                            putIterable<totalParentIterables+1, Field>(os, element.second);
-                        else
-                            putElement<totalParentIterables, Field, Element>(os, element.second);
-                    }
-                    else // Not pairs
-                    {
-                        if constexpr ( is_iterable<Element>::value && is_pointable<Element>::value )
-                            putIterable<totalParentIterables+1, Field>(os, *element);
-                        else if constexpr ( is_iterable<Element>::value )
-                            putIterable<totalParentIterables+1, Field>(os, element);
-                        else
-                            putElement<totalParentIterables, Field, Element>(os, element);
-                    }
-
-                }
-            }
-            else if constexpr ( is_adaptor<Iterable>::value )
-            {
-                size_t i=0;
-                const auto & sequenceContainer = get_underlying_container(iterable);
-                for ( auto it = sequenceContainer.begin(); it != sequenceContainer.end(); ++it )
-                {
-                    if ( i++ > 0 )
-                    {
-                        if constexpr ( is_iterable<Element>::value )
-                            os << "," << std::endl << Indent<indentLevel+totalParentIterables+2>();
-                        else
-                            os << ", ";
-                    }
-
-                    if constexpr ( is_iterable<Element>::value )
-                    {
-                        if constexpr ( is_pointable<Element>::value && it == nullptr ) // Pointer
-                        {
-                            if ( it == nullptr )
-                                os << "null";
-                            else
-                                putIterable<totalParentIterables+1>(os, *it);
-                        }
-                        else // Not pointer
-                            putIterable<totalParentIterables+1>(os, it);
-                    }
-                    else // Element not iterable
-                        putElement<totalParentIterables, Field, Element>(os, *it);
-                }
-            }
-            else if constexpr ( std::is_array<Iterable>::value && Field::ArraySizes[totalParentIterables] > 0 )
-            {
-                for ( size_t i=0; i<Field::ArraySizes[totalParentIterables]; i++ )
-                {
-                    if ( i > 0 )
-                        os << ", ";
-
-                    putElement<totalParentIterables, Field, Element>(os, iterable[i]);
-                }
-            }
-        }
-
         template <size_t totalParentIterables, typename Field, typename Iterable>
         static constexpr void putIterable(std::ostream & os, const Iterable & iterable)
         {
             using Element = typename element_type<Iterable>::type;
-            if constexpr ( contains_pairs<Iterable>::value )
+            constexpr bool containsPrimitives = !Field::IsReflected && !is_iterable<Element>::value;
+            constexpr bool containsPairs = contains_pairs<Iterable>::value;
+            
+            size_t i=0;
+            os << NestedPrefix<!contains_pairs<Iterable>::value, containsPrimitives, indentLevel+totalParentIterables+2, indent>();
+            if constexpr ( is_stl_iterable<Iterable>::value )
             {
-                os << ObjectPrefix<indentLevel+totalParentIterables+2, indent>();
-                putIterableElements<totalParentIterables, Field, Iterable, Element>(os, iterable);
-                os << ObjectSuffix<indentLevel+totalParentIterables+1, indent>();
+                for ( auto & element : iterable )
+                {
+                    os << Separator<containsPairs, is_iterable<Element>::value, indentLevel+totalParentIterables+2, indent>(0 == i++);
+                    if constexpr ( containsPairs )
+                    {
+                        putString(os, element.first);
+                        os << FieldNameValueSeparator();
+                        putValue<totalParentIterables+1, Field, Element>(os, element.second);
+                    }
+                    else // Not pairs
+                        putValue<totalParentIterables+1, Field, Element>(os, element);
+                }
             }
-            else
+            else if constexpr ( is_adaptor<Iterable>::value )
             {
-                os << ArrayPrefix<!Field::IsReflected && !is_iterable<Element>::value, indentLevel+totalParentIterables+2, indent>();
-                putIterableElements<totalParentIterables, Field, Iterable, Element>(os, iterable);
-                os << ArraySuffix<!Field::IsReflected && !is_iterable<Element>::value, indentLevel+totalParentIterables+1, indent>();
+                const auto & sequenceContainer = get_underlying_container(iterable);
+                for ( auto it = sequenceContainer.begin(); it != sequenceContainer.end(); ++it )
+                {
+                    os << Separator<containsPairs, is_iterable<Element>::value, indentLevel+totalParentIterables+2, indent>(0 == i++);
+                    putValue<totalParentIterables+1, Field, Element>(os, *it);
+                }
             }
+            else if constexpr ( std::is_array<Iterable>::value && Field::ArraySizes[totalParentIterables] > 0 )
+            {
+                for ( ; i<Field::ArraySizes[totalParentIterables]; i++ )
+                {
+                    os << Separator<containsPairs, is_iterable<Element>::value, indentLevel+totalParentIterables+2, indent>(0 == i);
+                    putValue<totalParentIterables+1, Field, Element>(os, iterable[i]);
+                }
+            }
+            os << NestedSuffix<!contains_pairs<Iterable>::value, containsPrimitives, indentLevel+totalParentIterables+1, indent>();
         }
         
         static constexpr std::ostream & put(std::ostream & os, const T & obj)
         {
-            os << "{" << std::endl;
-            
-            using Class = typename T::Class;
-            Class::ForEachField(obj, [&](auto & field, auto & value) {
-                
+            os << ObjectPrefix<indentLevel, indent>();
+
+            T::Class::ForEachField(obj, [&](auto & field, auto & value)
+            {
                 using Field = typename std::remove_reference<decltype(field)>::type;
-                using Value = typename std::remove_reference<decltype(value)>::type;
-                using SubType = typename Field::sub_type;
 
-                os << Indent<indentLevel+1, indent>() << "\"" << field.name << "\": ";
-
-                if ( field.IsNull(value) )
-                    os << "null";
-                else if constexpr ( !Field::IsIterable )
-                {
-                    if constexpr ( is_pointable<Value>::value )
-                    {
-                        if ( value == nullptr )
-                            os << "null";
-                        else if constexpr ( Field::IsReflected )
-                            Output<Field::sub_type, indentLevel+1>::put(os, *value);
-                        else if constexpr ( Field::IsString )
-                            putString(os, *value);
-                        else
-                            os << *value;
-                    }
-                    else if constexpr ( Field::IsReflected )
-                        Output<Field::sub_type, indentLevel+1>::put(os, value);
-                    else if constexpr ( Field::IsString )
-                        putString(os, value);
-                    else
-                        os << value;
-                }
-                else if constexpr ( is_pointable<Value>::value ) // Pointer
-                    putIterable<0, Field>(os, *value);
-                else
-                    putIterable<0, Field>(os, value);
-
-                if constexpr ( Field::Index < Class::totalFields-1 ) // Not last field
-                    os << "," << std::endl;
-                else // Last field
-                    os << std::endl;
+                os << FieldPrefix<Field::Index == 0, indentLevel+1, indent>();
+                putString(os, field.name);
+                os << FieldNameValueSeparator();
+                putValue<0, Field>(os, value);
             });
 
-            os << Indent<indentLevel, indent>() << "}";
+            os << ObjectSuffix<indentLevel, indent>();
             return os;
         }
     };
