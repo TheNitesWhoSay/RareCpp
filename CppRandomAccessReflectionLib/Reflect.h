@@ -269,27 +269,96 @@ namespace Reflect
         return std::string(type_to_str<T>::get().value);
     }
 
-    template <typename T> struct is_bool { static constexpr bool value = std::is_same<bool, std::remove_const<T>::type>::value; };
+    template <typename T> struct pair_rhs { using type = T; };
+    template <typename L, typename R> struct pair_rhs<std::pair<L, R>> { using type = typename R; };
+    template <typename L, typename R> struct pair_rhs<const std::pair<L, R>> { using type = typename R; };
+
+    template <typename T> struct element_type { using type = void; };
+    template <typename T> struct element_type<const T> { using type = typename element_type<T>::type; };
+    template <typename T, size_t N> struct element_type<T[N]> { using type = typename T; };
+    template <typename T, size_t N> struct element_type<std::array<T, N>> { using type = typename T; };
+    template <typename T, typename A> struct element_type<std::vector<T, A>> { using type = typename T; };
+    template <typename T, typename A> struct element_type<std::deque<T, A>> { using type = typename T; };
+    template <typename T, typename A> struct element_type<std::list<T, A>> { using type = typename T; };
+    template <typename T, typename A> struct element_type<std::forward_list<T, A>> { using type = typename T; };
+    template <typename T, typename C> struct element_type<std::stack<T, C>> { using type = typename T; };
+    template <typename T, typename C> struct element_type<std::queue<T, C>> { using type = typename T; };
+    template <typename T, typename C, typename P> struct element_type<std::priority_queue<T, C, P>> { using type = typename T; };
+    template <typename K, typename C, typename A> struct element_type<std::set<K, C, A>> { using type = typename K; };
+    template <typename K, typename C, typename A> struct element_type<std::multiset<K, C, A>> { using type = typename K; };
+    template <typename K, typename H, typename E, typename A> struct element_type<std::unordered_set<K, H, E, A>> { using type = typename K; };
+    template <typename K, typename H, typename E, typename A> struct element_type<std::unordered_multiset<K, H, E, A>> { using type = typename K; };
+    template <typename K, typename T, typename C, typename A> struct element_type<std::map<K, T, C, A>> { using type = typename std::pair<K, T>; };
+    template <typename K, typename T, typename C, typename A> struct element_type<std::multimap<K, T, C, A>> { using type = typename std::pair<K, T>; };
+    template <typename K, typename T, typename H, typename E, typename A> struct element_type<std::unordered_map<K, T, H, E, A>>
+    { using type = typename std::pair<K, T>; };
+    template <typename K, typename T, typename H, typename E, typename A> struct element_type<std::unordered_multimap<K, T, H, E, A>>
+    { using type = typename std::pair<K, T>; };
     
-    template <typename T> struct is_static_array { static constexpr bool value = false; };
-    template <typename T> struct is_static_array<const T> { static constexpr bool value = is_static_array<T>::value; };
-    template <typename T, size_t N> struct is_static_array<T[N]> { static constexpr bool value = true; };
-    template <typename T, size_t N> struct is_static_array<std::array<T, N>> { static constexpr bool value = true; };
+    template <typename T> struct remove_pointer { using type = typename std::remove_pointer<T>::type; };
+    template <typename T> struct remove_pointer<const T> { using type = typename remove_pointer<T>::type; };
+    template <typename T> struct remove_pointer<std::unique_ptr<T>> { using type = typename T; };
+    template <typename T> struct remove_pointer<std::shared_ptr<T>> { using type = typename T; };
+    
+    template <typename T> struct is_pointable { static constexpr bool value = std::is_pointer<T>::value; };
+    template <typename T> struct is_pointable<const T> { static constexpr bool value = is_pointable<T>::value; };
+    template <typename T> struct is_pointable<std::unique_ptr<T>> { static constexpr bool value = true; };
+    template <typename T> struct is_pointable<std::shared_ptr<T>> { static constexpr bool value = true; };
 
     template <typename T> struct static_array_size { static constexpr size_t value = 0; };
     template <typename T> struct static_array_size<const T> { static constexpr size_t value = static_array_size<T>::value; };
     template <typename T, size_t N> struct static_array_size<T[N]> { static constexpr size_t value = N; };
     template <typename T, size_t N> struct static_array_size<std::array<T, N>> { static constexpr size_t value = N; };
 
+    template <typename T> struct is_static_array { static constexpr bool value = false; };
+    template <typename T> struct is_static_array<const T> { static constexpr bool value = is_static_array<T>::value; };
+    template <typename T, size_t N> struct is_static_array<T[N]> { static constexpr bool value = true; };
+    template <typename T, size_t N> struct is_static_array<std::array<T, N>> { static constexpr bool value = true; };
+
+    template <typename T> struct is_iterable { static constexpr bool value = !std::is_same<void, element_type<T>::type>::value; };
+
+    template <typename T> struct is_stl_iterable { static constexpr bool value = false; };
+    template <typename T> struct is_stl_iterable<const T> { static constexpr bool value = is_stl_iterable<T>::value; };
+    template <typename T, size_t N> struct is_stl_iterable<std::array<T, N>> { static constexpr bool value = true; };
+    template <typename T, typename A> struct is_stl_iterable<std::vector<T, A>> { static constexpr bool value = true; };
+    template <typename T, typename A> struct is_stl_iterable<std::deque<T, A>> { static constexpr bool value = true; };
+    template <typename T, typename A> struct is_stl_iterable<std::list<T, A>> { static constexpr bool value = true; };
+    template <typename T, typename A> struct is_stl_iterable<std::forward_list<T, A>> { static constexpr bool value = true; };
+    template <typename K, typename C, typename A> struct is_stl_iterable<std::set<K, C, A>> { static constexpr bool value = true; };
+    template <typename K, typename C, typename A> struct is_stl_iterable<std::multiset<K, C, A>> { static constexpr bool value = true; };
+    template <typename K, typename H, typename E, typename A> struct is_stl_iterable<std::unordered_set<K, H, E, A>>
+    { static constexpr bool value = true; };
+    template <typename K, typename H, typename E, typename A> struct is_stl_iterable<std::unordered_multiset<K, H, E, A>>
+    { static constexpr bool value = true; };
+    template <typename K, typename T, typename C, typename A> struct is_stl_iterable<std::map<K, T, C, A>> { static constexpr bool value = true; };
+    template <typename K, typename T, typename C, typename A> struct is_stl_iterable<std::multimap<K, T, C, A>>
+    { static constexpr bool value = true; };
+    template <typename K, typename T, typename H, typename E, typename A> struct is_stl_iterable<std::unordered_map<K, T, H, E, A>>
+    { static constexpr bool value = true; };
+    template <typename K, typename T, typename H, typename E, typename A> struct is_stl_iterable<std::unordered_multimap<K, T, H, E, A>>
+    { static constexpr bool value = true; };
+    
+    template <typename T> struct is_adaptor { static constexpr bool value = false; };
+    template <typename T> struct is_adaptor<const T> { static constexpr bool value = is_adaptor<T>::value; };
+    template <typename T, typename C> struct is_adaptor<std::stack<T, C>> { static constexpr bool value = true; };
+    template <typename T, typename C> struct is_adaptor<std::queue<T, C>> { static constexpr bool value = true; };
+    template <typename T, typename C, typename P> struct is_adaptor<std::priority_queue<T, C, P>> { static constexpr bool value = true; };
+    
+    template <typename T> struct is_forward_list { static constexpr bool value = false; };
+    template <typename T, typename A> struct is_forward_list<std::forward_list<T, A>> { static constexpr bool value = true; };
+    template <typename T, typename A> struct is_forward_list<const std::forward_list<T, A>> { static constexpr bool value = true; };
+
+    template <typename T> struct is_pair { static constexpr bool value = false; };
+    template <typename L, typename R> struct is_pair<std::pair<L, R>> { static constexpr bool value = true; };
+    template <typename L, typename R> struct is_pair<const std::pair<L, R>> { static constexpr bool value = true; };
+
+    template <typename T> struct is_bool { static constexpr bool value = std::is_same<bool, std::remove_const<T>::type>::value; };
+    
     template <typename T> struct has_push_back { static constexpr bool value = false; };
     template <typename T> struct has_push_back<const T> { static constexpr bool value = has_push_back<T>::value; };
     template <typename T, typename A> struct has_push_back<std::vector<T, A>> { static constexpr bool value = true; };
     template <typename T, typename A> struct has_push_back<std::deque<T, A>> { static constexpr bool value = true; };
     template <typename T, typename A> struct has_push_back<std::list<T, A>> { static constexpr bool value = true; };
-
-    template <typename T> struct is_forward_list { static constexpr bool value = false; };
-    template <typename T, typename A> struct is_forward_list<std::forward_list<T, A>> { static constexpr bool value = true; };
-    template <typename T, typename A> struct is_forward_list<const std::forward_list<T, A>> { static constexpr bool value = true; };
 
     template <typename T> struct has_push { static constexpr bool value = false; };
     template <typename T> struct has_push<const T> { static constexpr bool value = has_push<T>::value; };
@@ -326,75 +395,6 @@ namespace Reflect
     { static constexpr bool value = true; };
     template <typename K, typename T, typename H, typename E, typename A> struct has_clear<std::unordered_multimap<K, T, H, E, A>>
     { static constexpr bool value = true; };
-
-    template <typename T> struct is_pointable { static constexpr bool value = std::is_pointer<T>::value; };
-    template <typename T> struct is_pointable<const T> { static constexpr bool value = is_pointable<T>::value; };
-    template <typename T> struct is_pointable<std::unique_ptr<T>> { static constexpr bool value = true; };
-    template <typename T> struct is_pointable<std::shared_ptr<T>> { static constexpr bool value = true; };
-    
-    template <typename T> struct remove_pointer { using type = typename std::remove_pointer<T>::type; };
-    template <typename T> struct remove_pointer<const T> { using type = typename remove_pointer<T>::type; };
-    template <typename T> struct remove_pointer<std::unique_ptr<T>> { using type = typename T; };
-    template <typename T> struct remove_pointer<std::shared_ptr<T>> { using type = typename T; };
-    
-    template <typename T> struct is_stl_iterable { static constexpr bool value = false; };
-    template <typename T> struct is_stl_iterable<const T> { static constexpr bool value = is_stl_iterable<T>::value; };
-    template <typename T, size_t N> struct is_stl_iterable<std::array<T, N>> { static constexpr bool value = true; };
-    template <typename T, typename A> struct is_stl_iterable<std::vector<T, A>> { static constexpr bool value = true; };
-    template <typename T, typename A> struct is_stl_iterable<std::deque<T, A>> { static constexpr bool value = true; };
-    template <typename T, typename A> struct is_stl_iterable<std::list<T, A>> { static constexpr bool value = true; };
-    template <typename T, typename A> struct is_stl_iterable<std::forward_list<T, A>> { static constexpr bool value = true; };
-    template <typename K, typename C, typename A> struct is_stl_iterable<std::set<K, C, A>> { static constexpr bool value = true; };
-    template <typename K, typename C, typename A> struct is_stl_iterable<std::multiset<K, C, A>> { static constexpr bool value = true; };
-    template <typename K, typename H, typename E, typename A> struct is_stl_iterable<std::unordered_set<K, H, E, A>>
-    { static constexpr bool value = true; };
-    template <typename K, typename H, typename E, typename A> struct is_stl_iterable<std::unordered_multiset<K, H, E, A>>
-    { static constexpr bool value = true; };
-    template <typename K, typename T, typename C, typename A> struct is_stl_iterable<std::map<K, T, C, A>> { static constexpr bool value = true; };
-    template <typename K, typename T, typename C, typename A> struct is_stl_iterable<std::multimap<K, T, C, A>>
-    { static constexpr bool value = true; };
-    template <typename K, typename T, typename H, typename E, typename A> struct is_stl_iterable<std::unordered_map<K, T, H, E, A>>
-    { static constexpr bool value = true; };
-    template <typename K, typename T, typename H, typename E, typename A> struct is_stl_iterable<std::unordered_multimap<K, T, H, E, A>>
-    { static constexpr bool value = true; };
-    
-    template <typename T> struct is_adaptor { static constexpr bool value = false; };
-    template <typename T> struct is_adaptor<const T> { static constexpr bool value = is_adaptor<T>::value; };
-    template <typename T, typename C> struct is_adaptor<std::stack<T, C>> { static constexpr bool value = true; };
-    template <typename T, typename C> struct is_adaptor<std::queue<T, C>> { static constexpr bool value = true; };
-    template <typename T, typename C, typename P> struct is_adaptor<std::priority_queue<T, C, P>> { static constexpr bool value = true; };
-    
-    template <typename T> struct element_type { using type = void; };
-    template <typename T> struct element_type<const T> { using type = typename element_type<T>::type; };
-    template <typename T, size_t N> struct element_type<T[N]> { using type = typename T; };
-    template <typename T, size_t N> struct element_type<std::array<T, N>> { using type = typename T; };
-    template <typename T, typename A> struct element_type<std::vector<T, A>> { using type = typename T; };
-    template <typename T, typename A> struct element_type<std::deque<T, A>> { using type = typename T; };
-    template <typename T, typename A> struct element_type<std::list<T, A>> { using type = typename T; };
-    template <typename T, typename A> struct element_type<std::forward_list<T, A>> { using type = typename T; };
-    template <typename T, typename C> struct element_type<std::stack<T, C>> { using type = typename T; };
-    template <typename T, typename C> struct element_type<std::queue<T, C>> { using type = typename T; };
-    template <typename T, typename C, typename P> struct element_type<std::priority_queue<T, C, P>> { using type = typename T; };
-    template <typename K, typename C, typename A> struct element_type<std::set<K, C, A>> { using type = typename K; };
-    template <typename K, typename C, typename A> struct element_type<std::multiset<K, C, A>> { using type = typename K; };
-    template <typename K, typename H, typename E, typename A> struct element_type<std::unordered_set<K, H, E, A>> { using type = typename K; };
-    template <typename K, typename H, typename E, typename A> struct element_type<std::unordered_multiset<K, H, E, A>> { using type = typename K; };
-    template <typename K, typename T, typename C, typename A> struct element_type<std::map<K, T, C, A>> { using type = typename std::pair<K, T>; };
-    template <typename K, typename T, typename C, typename A> struct element_type<std::multimap<K, T, C, A>> { using type = typename std::pair<K, T>; };
-    template <typename K, typename T, typename H, typename E, typename A> struct element_type<std::unordered_map<K, T, H, E, A>>
-    { using type = typename std::pair<K, T>; };
-    template <typename K, typename T, typename H, typename E, typename A> struct element_type<std::unordered_multimap<K, T, H, E, A>>
-    { using type = typename std::pair<K, T>; };
-    
-    template <typename T> struct is_iterable { static constexpr bool value = !std::is_same<void, element_type<T>::type>::value; };
-    
-    template <typename T> struct is_pair { static constexpr bool value = false; };
-    template <typename L, typename R> struct is_pair<std::pair<L, R>> { static constexpr bool value = true; };
-    template <typename L, typename R> struct is_pair<const std::pair<L, R>> { static constexpr bool value = true; };
-
-    template <typename T> struct pair_rhs { using type = T; };
-    template <typename L, typename R> struct pair_rhs<std::pair<L, R>> { using type = typename R; };
-    template <typename L, typename R> struct pair_rhs<const std::pair<L, R>> { using type = typename R; };
 
     template <class Adaptor>
     const typename Adaptor::container_type & get_underlying_container(const Adaptor & adaptor) {
