@@ -415,107 +415,107 @@ namespace Json {
     {
         constexpr const char twoSpaces[] = "  ";
 
-        template <size_t indentLevel, const char* indent = twoSpaces>
+        template <size_t IndentLevel, const char* indent = twoSpaces>
         struct Indent { };
 
-        template <size_t indentLevel, const char* indent = twoSpaces>
-        std::ostream & operator<<(std::ostream & os, const Indent<indentLevel, indent>)
+        template <size_t IndentLevel, const char* indent = twoSpaces>
+        std::ostream & operator<<(std::ostream & os, const Indent<IndentLevel, indent>)
         {
-            if constexpr ( indentLevel > 0 )
+            if constexpr ( IndentLevel > 0 )
             {
-                for ( size_t i=0; i<indentLevel; i++ )
+                for ( size_t i=0; i<IndentLevel; i++ )
                     os << indent;
             }
 
             return os;
         }
 
-        template <bool containsPrimitives, size_t indentLevel, const char* indent = twoSpaces>
+        template <bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
         struct ArrayPrefix { };
 
-        template <bool containsPrimitives, size_t indentLevel, const char* indent = twoSpaces>
-        std::ostream & operator<<(std::ostream & os, const ArrayPrefix<containsPrimitives, indentLevel, indent>)
+        template <bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
+        std::ostream & operator<<(std::ostream & os, const ArrayPrefix<ContainsPrimitives, IndentLevel, indent>)
         {
-            if constexpr ( containsPrimitives )
+            if constexpr ( ContainsPrimitives )
                 os << "[ ";
             else
-                os << "[" << std::endl << Indent<indentLevel, indent>();
+                os << "[" << std::endl << Indent<IndentLevel, indent>();
 
             return os;
         }
 
-        template <bool containsPrimitives, size_t indentLevel, const char* indent = twoSpaces>
+        template <bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
         struct ArraySuffix { };
 
-        template <bool containsPrimitives, size_t indentLevel, const char* indent = twoSpaces>
-        std::ostream & operator<<(std::ostream & os, const ArraySuffix<containsPrimitives, indentLevel, indent>)
+        template <bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
+        std::ostream & operator<<(std::ostream & os, const ArraySuffix<ContainsPrimitives, IndentLevel, indent>)
         {
-            if constexpr ( containsPrimitives )
+            if constexpr ( ContainsPrimitives )
                 os << " ]";
             else
-                os << std::endl << Indent<indentLevel, indent>() << "]";
+                os << std::endl << Indent<IndentLevel, indent>() << "]";
 
             return os;
         }
 
-        template <size_t indentLevel, const char* indent = twoSpaces>
+        template <size_t IndentLevel, const char* indent = twoSpaces>
         struct ObjectPrefix { };
 
-        template <size_t indentLevel, const char* indent = twoSpaces>
-        std::ostream & operator<<(std::ostream & os, const ObjectPrefix<indentLevel, indent>)
+        template <size_t IndentLevel, const char* indent = twoSpaces>
+        std::ostream & operator<<(std::ostream & os, const ObjectPrefix<IndentLevel, indent>)
         {
             os << "{";
             return os;
         }
         
-        template <size_t indentLevel, const char* indent = twoSpaces>
+        template <size_t IndentLevel, const char* indent = twoSpaces>
         struct ObjectSuffix { };
 
-        template <size_t indentLevel, const char* indent = twoSpaces>
-        std::ostream & operator<<(std::ostream & os, const ObjectSuffix<indentLevel, indent>)
+        template <size_t IndentLevel, const char* indent = twoSpaces>
+        std::ostream & operator<<(std::ostream & os, const ObjectSuffix<IndentLevel, indent>)
         {
-            os << std::endl << Indent<indentLevel, indent>() << "}";
+            os << std::endl << Indent<IndentLevel, indent>() << "}";
             return os;
         }
         
-        template <bool isArray, bool containsPrimitives, size_t indentLevel, const char* indent = twoSpaces>
+        template <bool IsArray, bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
         struct NestedPrefix { };
 
-        template <bool isArray, bool containsPrimitives, size_t indentLevel, const char* indent = twoSpaces>
-        std::ostream & operator<<(std::ostream & os, const NestedPrefix<isArray, containsPrimitives, indentLevel, indent>)
+        template <bool IsArray, bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
+        std::ostream & operator<<(std::ostream & os, const NestedPrefix<IsArray, ContainsPrimitives, IndentLevel, indent>)
         {
-            if constexpr ( isArray )
-                os << ArrayPrefix<containsPrimitives, indentLevel, indent>();
+            if constexpr ( IsArray )
+                os << ArrayPrefix<ContainsPrimitives, IndentLevel, indent>();
             else
-                os << ObjectPrefix<indentLevel, indent>();
+                os << ObjectPrefix<IndentLevel, indent>();
 
             return os;
         }
 
-        template <bool isArray, bool containsPrimitives, size_t indentLevel, const char* indent = twoSpaces>
+        template <bool IsArray, bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
         struct NestedSuffix { };
 
-        template <bool isArray, bool containsPrimitives, size_t indentLevel, const char* indent = twoSpaces>
-        std::ostream & operator<<(std::ostream & os, const NestedSuffix<isArray, containsPrimitives, indentLevel, indent>)
+        template <bool IsArray, bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
+        std::ostream & operator<<(std::ostream & os, const NestedSuffix<IsArray, ContainsPrimitives, IndentLevel, indent>)
         {
-            if constexpr ( isArray )
-                os << ArraySuffix<containsPrimitives, indentLevel, indent>();
+            if constexpr ( IsArray )
+                os << ArraySuffix<ContainsPrimitives, IndentLevel, indent>();
             else
-                os << ObjectSuffix<indentLevel, indent>();
+                os << ObjectSuffix<IndentLevel, indent>();
 
             return os;
         }
         
-        template <bool isFirst, size_t indentLevel, const char* indent = twoSpaces>
+        template <bool IsFirst, size_t IndentLevel, const char* indent = twoSpaces>
         struct FieldPrefix { };
 
-        template <bool isFirst, size_t indentLevel, const char* indent = twoSpaces>
-        std::ostream & operator<<(std::ostream & os, const FieldPrefix<isFirst, indentLevel, indent>)
+        template <bool IsFirst, size_t IndentLevel, const char* indent = twoSpaces>
+        std::ostream & operator<<(std::ostream & os, const FieldPrefix<IsFirst, IndentLevel, indent>)
         {
-            if constexpr ( isFirst )
-                os << std::endl << Indent<indentLevel, indent>();
+            if constexpr ( IsFirst )
+                os << std::endl << Indent<IndentLevel, indent>();
             else 
-                os << "," << std::endl << Indent<indentLevel, indent>();
+                os << "," << std::endl << Indent<IndentLevel, indent>();
 
             return os;
         }
@@ -528,7 +528,7 @@ namespace Json {
             return os;
         }
                 
-        template <bool isJsonField, bool nestedSeparator, size_t indentLevel, const char* indent = twoSpaces>
+        template <bool IsJsonField, bool NestedSeparator, size_t IndentLevel, const char* indent = twoSpaces>
         struct Separator
         {
             bool isFirst;
@@ -537,20 +537,20 @@ namespace Json {
             Separator(bool isFirst) : isFirst(isFirst) {}
         };
 
-        template <bool isJsonField, bool nestedSeparator, size_t indentLevel, const char* indent = twoSpaces>
-        std::ostream & operator<<(std::ostream & os, const Separator<isJsonField, nestedSeparator, indentLevel, indent> separator)
+        template <bool IsJsonField, bool NestedSeparator, size_t IndentLevel, const char* indent = twoSpaces>
+        std::ostream & operator<<(std::ostream & os, const Separator<IsJsonField, NestedSeparator, IndentLevel, indent> separator)
         {
-            if constexpr ( isJsonField )
+            if constexpr ( IsJsonField )
             {
                 if ( separator.isFirst )
-                    os << std::endl << Indent<indentLevel, indent>();
+                    os << std::endl << Indent<IndentLevel, indent>();
                 else 
-                    os << "," << std::endl << Indent<indentLevel, indent>();
+                    os << "," << std::endl << Indent<IndentLevel, indent>();
             }
             else if ( !separator.isFirst )
             {
-                if constexpr ( nestedSeparator )
-                    os << "," << std::endl << Indent<indentLevel, indent>();
+                if constexpr ( NestedSeparator )
+                    os << "," << std::endl << Indent<IndentLevel, indent>();
                 else
                     os << ", ";
             }
@@ -606,18 +606,18 @@ namespace Json {
                 if ( !inserted.second )
                     throw Exception("Failed to create cache for class!");
 
-                if constexpr ( Class::totalFields > 0 )
+                if constexpr ( Class::TotalFields > 0 )
                 {
-                    for ( size_t fieldIndex = 0; fieldIndex < Class::totalFields; fieldIndex++ )
+                    for ( size_t fieldIndex = 0; fieldIndex < Class::TotalFields; fieldIndex++ )
                     {
                         inserted.first->second.insert(std::pair<size_t, JsonField>(
-                            strHash(Class::fields[fieldIndex].name), JsonField(fieldIndex, JsonField::Type::Regular, Class::fields[fieldIndex].name)));
+                            strHash(Class::Fields[fieldIndex].name), JsonField(fieldIndex, JsonField::Type::Regular, Class::Fields[fieldIndex].name)));
                     }
                 }
 
-                if constexpr ( Supers::totalSupers > 0 )
+                if constexpr ( Supers::TotalSupers > 0 )
                 {
-                    for ( size_t superIndex = 0; superIndex < Supers::totalSupers; superIndex++ )
+                    for ( size_t superIndex = 0; superIndex < Supers::TotalSupers; superIndex++ )
                     {
                         Supers::At(t, superIndex, [&](auto & superObj) {
                             using Super = typename std::remove_reference<decltype(superObj)>::type;
@@ -687,12 +687,10 @@ namespace Json {
     };
     using namespace Cache;
 
-    template <typename T, size_t indentLevel = 0, const char* indent = twoSpaces>
+    template <typename T, size_t IndentLevel = 0, const char* indent = twoSpaces>
     class Output
     {
     public:
-        using Index = const size_t &;
-
         Output(const T & obj) : obj(obj) {}
 
         const T & obj;
@@ -726,7 +724,7 @@ namespace Json {
             putString(os, ss.str());
         }
         
-        template <size_t totalParentIterables, typename Field, typename Element>
+        template <size_t TotalParentIterables, typename Field, typename Element>
         static constexpr void putValue(std::ostream & os, const Element & element)
         {
             if constexpr ( is_pointable<Element>::value )
@@ -734,46 +732,48 @@ namespace Json {
                 if ( element == nullptr )
                     os << "null";
                 else if constexpr ( is_iterable<Element>::value )
-                    putIterable<totalParentIterables, Field, Element>(os, *element);
+                    putIterable<TotalParentIterables, Field, Element>(os, *element);
                 else if constexpr ( Field::IsReflected )
-                    Output<Field::sub_type, indentLevel+totalParentIterables+1>::put(os, *element);
+                    Output<typename remove_pointer<Element>::type, IndentLevel+TotalParentIterables+1>::put(os, *element);
                 else if constexpr ( Field::IsString )
                     putString(os, *element);
                 else
                     os << *element;
             }
             else if constexpr ( is_iterable<Element>::value )
-                putIterable<totalParentIterables, Field, Element>(os, element);
+                putIterable<TotalParentIterables, Field, Element>(os, element);
             else if constexpr ( Field::IsReflected )
-                Output<Field::sub_type, indentLevel+totalParentIterables+1>::put(os, element);
+                Output<Element, IndentLevel+TotalParentIterables+1>::put(os, element);
             else if constexpr ( Field::IsString )
                 putString(os, element);
             else
                 os << element;
         }
 
-        template <size_t totalParentIterables, typename Field, typename Iterable>
+        template <size_t TotalParentIterables, typename Field, typename Element, typename Key>
+        static constexpr void putValue(std::ostream & os, const std::pair<Key, Element> & pair)
+        {
+            putString(os, pair.first);
+            os << FieldNameValueSeparator();
+            putValue<TotalParentIterables, Field>(os, pair.second);
+        }
+        
+        template <size_t TotalParentIterables, typename Field, typename Iterable>
         static constexpr void putIterable(std::ostream & os, const Iterable & iterable)
         {
             using Element = typename element_type<Iterable>::type;
-            constexpr bool containsPrimitives = !Field::IsReflected && !is_iterable<Element>::value;
-            constexpr bool containsPairs = contains_pairs<Iterable>::value;
+            constexpr bool ContainsIterables = is_iterable<typename pair_rhs<Element>::type>::value;
+            constexpr bool ContainsPrimitives = !Field::IsReflected && !ContainsIterables;
+            constexpr bool ContainsPairs = is_pair<Element>::value;
             
             size_t i=0;
-            os << NestedPrefix<!contains_pairs<Iterable>::value, containsPrimitives, indentLevel+totalParentIterables+2, indent>();
+            os << NestedPrefix<!contains_pairs<Iterable>::value, ContainsPrimitives, IndentLevel+TotalParentIterables+2, indent>();
             if constexpr ( is_stl_iterable<Iterable>::value )
             {
                 for ( auto & element : iterable )
                 {
-                    os << Separator<containsPairs, is_iterable<Element>::value, indentLevel+totalParentIterables+2, indent>(0 == i++);
-                    if constexpr ( containsPairs )
-                    {
-                        putString(os, element.first);
-                        os << FieldNameValueSeparator();
-                        putValue<totalParentIterables+1, Field, Element>(os, element.second);
-                    }
-                    else // Not pairs
-                        putValue<totalParentIterables+1, Field, Element>(os, element);
+                    os << Separator<ContainsPairs, ContainsIterables, IndentLevel+TotalParentIterables+2, indent>(0 == i++);
+                    putValue<TotalParentIterables+1, Field>(os, element);
                 }
             }
             else if constexpr ( is_adaptor<Iterable>::value )
@@ -781,36 +781,36 @@ namespace Json {
                 const auto & sequenceContainer = get_underlying_container(iterable);
                 for ( auto it = sequenceContainer.begin(); it != sequenceContainer.end(); ++it )
                 {
-                    os << Separator<containsPairs, is_iterable<Element>::value, indentLevel+totalParentIterables+2, indent>(0 == i++);
-                    putValue<totalParentIterables+1, Field, Element>(os, *it);
+                    os << Separator<ContainsPairs, ContainsIterables, IndentLevel+TotalParentIterables+2, indent>(0 == i++);
+                    putValue<TotalParentIterables+1, Field>(os, *it);
                 }
             }
-            else if constexpr ( std::is_array<Iterable>::value && Field::ArraySize > 0 )
+            else if constexpr ( std::is_array<Iterable>::value && std::extent<Field::Type>::value > 0 )
             {
-                for ( ; i<Field::ArraySize; i++ )
+                for ( ; i<std::extent<Field::Type>::value; i++ )
                 {
-                    os << Separator<containsPairs, is_iterable<Element>::value, indentLevel+totalParentIterables+2, indent>(0 == i);
-                    putValue<totalParentIterables+1, Field, Element>(os, iterable[i]);
+                    os << Separator<ContainsPairs, ContainsIterables, IndentLevel+TotalParentIterables+2, indent>(0 == i);
+                    putValue<TotalParentIterables+1, Field>(os, iterable[i]);
                 }
             }
-            os << NestedSuffix<!contains_pairs<Iterable>::value, containsPrimitives, indentLevel+totalParentIterables+1, indent>();
+            os << NestedSuffix<!contains_pairs<Iterable>::value, ContainsPrimitives, IndentLevel+TotalParentIterables+1, indent>();
         }
         
         static constexpr std::ostream & put(std::ostream & os, const T & obj)
         {
-            os << ObjectPrefix<indentLevel, indent>();
+            os << ObjectPrefix<IndentLevel, indent>();
 
             T::Class::ForEachField(obj, [&](auto & field, auto & value)
             {
                 using Field = typename std::remove_reference<decltype(field)>::type;
 
-                os << FieldPrefix<Field::Index == 0, indentLevel+1, indent>();
+                os << FieldPrefix<Field::Index == 0, IndentLevel+1, indent>();
                 putString(os, field.name);
                 os << FieldNameValueSeparator();
                 putValue<0, Field>(os, value);
             });
 
-            os << ObjectSuffix<indentLevel, indent>();
+            os << ObjectSuffix<IndentLevel, indent>();
             return os;
         }
     };
@@ -1017,7 +1017,7 @@ namespace Json {
                 iterable.insert(element);
         }
 
-        template <bool inArray>
+        template <bool InArray>
         static constexpr void readTrue(std::istream & is, char & c)
         {
             Checked::whitespaceGet(is, "completion of field value");
@@ -1027,13 +1027,13 @@ namespace Json {
 
             Checked::whitespaceGet(is, "completion of field value");
             Checked::peek(is, c, "\",\" or \"}\"");
-            if ( inArray && c != ',' && c != ']' )
+            if ( InArray && c != ',' && c != ']' )
                 throw Exception("Expected: \",\" or \"]\"");
-            else if ( !inArray && c != ',' && c != '}' )
+            else if ( !InArray && c != ',' && c != '}' )
                 throw Exception("Expected: \",\" or \"}\"");
         }
 
-        template <bool inArray>
+        template <bool InArray>
         static constexpr void readFalse(std::istream & is, char & c)
         {
             Checked::whitespaceGet(is, "completion of field value");
@@ -1043,32 +1043,32 @@ namespace Json {
 
             Checked::whitespaceGet(is, "completion of field value");
             Checked::peek(is, c, "\",\" or \"}\"");
-            if ( inArray && c != ',' && c != ']' )
+            if ( InArray && c != ',' && c != ']' )
                 throw Exception("Expected: \",\" or \"]\"");
-            else if ( !inArray && c != ',' && c != '}' )
+            else if ( !InArray && c != ',' && c != '}' )
                 throw Exception("Expected: \",\" or \"}\"");
         }
 
-        template <bool inArray, typename Value>
+        template <bool InArray, typename Value>
         static constexpr void readBool(std::istream & is, char & c, Value & value)
         {
             Checked::whitespaceGet(is, "true or false");
             Checked::peek(is, c, "true or false");
             if ( c == 't' )
             {
-                readTrue<inArray>(is, c);
+                readTrue<InArray>(is, c);
                 value = true;
             }
             else if ( c == 'f' )
             {
-                readFalse<inArray>(is, c);
+                readFalse<InArray>(is, c);
                 value = false;
             }
             else
                 throw Exception("Expected: \"true\" or \"false\"");
         }
 
-        template <bool inArray>
+        template <bool InArray>
         static constexpr void readNull(std::istream & is, char & c)
         {
             Checked::whitespaceGet(is, "completion of field value");
@@ -1078,13 +1078,13 @@ namespace Json {
 
             Checked::whitespaceGet(is, "completion of field value");
             Checked::peek(is, c, "\",\" or \"}\"");
-            if ( inArray && c != ',' && c != ']' )
+            if ( InArray && c != ',' && c != ']' )
                 throw Exception("Expected: \",\" or \"]\"");
-            else if ( !inArray && c != ',' && c != '}' )
+            else if ( !InArray && c != ',' && c != '}' )
                 throw Exception("Expected: \",\" or \"}\"");
         }
 
-        template <bool inArray>
+        template <bool InArray>
         static constexpr bool tryReadNull(std::istream & is, char & c)
         {
             Checked::whitespaceGet(is, "completion of field value");
@@ -1097,9 +1097,9 @@ namespace Json {
 
                 Checked::whitespaceGet(is, "completion of \"null\"");
                 Checked::peek(is, c, "\",\" or \"}\"");
-                if ( inArray && c != ',' && c != ']' )
+                if ( InArray && c != ',' && c != ']' )
                     throw Exception("Expected: \",\" or \"]\"");
-                else if ( !inArray && c != ',' && c != '}' )
+                else if ( !InArray && c != ',' && c != '}' )
                     throw Exception("Expected: \",\" or \"}\"");
                 
                 return true;
@@ -1107,7 +1107,7 @@ namespace Json {
             return false;
         }
 
-        template <bool inArray>
+        template <bool InArray>
         static constexpr void ignoreNumber(std::istream & is, char & c)
         {
             bool decimal = false;
@@ -1119,10 +1119,10 @@ namespace Json {
                 case '5': case '6': case '7': case '8': case '9': break;
                 default: throw InvalidNumericCharacter(c, "\"-\" or [0-9]");
             }
-            constexpr char terminator = inArray ? ']' : '}';
+            constexpr char terminator = InArray ? ']' : '}';
             do
             {
-                Checked::get<inArray>(is, c, "\",\" or \"]\"", "\",\" or \"}\"");
+                Checked::get<InArray>(is, c, "\",\" or \"]\"", "\",\" or \"}\"");
 
                 switch ( c )
                 {
@@ -1138,12 +1138,12 @@ namespace Json {
                     case ',': Checked::unget(is, ','); break;
                     case terminator: Checked::unget(is, terminator); break;
                     case ' ': case '\t': case '\n': case '\r':
-                        Checked::whitespaceGet<inArray>(is, decimal ? "[0-9], \",\", or \"]\"" : "\".\", [0-9], \",\", or \"]\"",
+                        Checked::whitespaceGet<InArray>(is, decimal ? "[0-9], \",\", or \"]\"" : "\".\", [0-9], \",\", or \"]\"",
                             decimal ? "[0-9], \",\", or \"}\"" : "\".\", [0-9], \",\", or \"}\"");
-                        Checked::get<inArray>(is, c, decimal ? "[0-9], \",\", or \"]\"" : "\".\", [0-9], \",\", or \"]\"",
+                        Checked::get<InArray>(is, c, decimal ? "[0-9], \",\", or \"]\"" : "\".\", [0-9], \",\", or \"]\"",
                             decimal ? "[0-9], \",\", or \"}\"" : "\".\", [0-9], \",\", or \"}\"");
 
-                        if ( inArray && c != ',' && c != ']' )
+                        if ( InArray && c != ',' && c != ']' )
                             throw InvalidNumericCharacter(c, (decimal ? "[0-9], \",\", or \"]\"" : "\".\", [0-9], \",\", or \"]\""));
                         else if ( c != ',' && c != '}' )
                             throw InvalidNumericCharacter(c, (decimal ? "[0-9], \",\", or \"}\"" : "\".\", [0-9], \",\", or \"}\""));
@@ -1266,7 +1266,7 @@ namespace Json {
             ss >> t;
         }
         
-        template <bool inArray>
+        template <bool InArray>
         static constexpr void ignoreValue(std::istream & is, char & c)
         {
             Checked::whitespaceGet(is, "completion of field value");
@@ -1275,72 +1275,72 @@ namespace Json {
             {
                 case '\"': ignoreString(is, c); break; // String or error
                 case '-': case '0': case '1': case '2': case '3': case '4': case '5':
-                case '6': case '7': case '8': case '9': ignoreNumber<inArray>(is, c); break; // Number or error
+                case '6': case '7': case '8': case '9': ignoreNumber<InArray>(is, c); break; // Number or error
                 case '{': ignoreIterable<false>(is, c); break; // JSON object or error
                 case '[': ignoreIterable<true>(is, c); break; // JSON array or error
-                case 't': readTrue<inArray>(is, c); break; // "true" or error
-                case 'f': readFalse<inArray>(is, c); break; // "false" or error
-                case 'n': readNull<inArray>(is, c); break; // "null" or error
+                case 't': readTrue<InArray>(is, c); break; // "true" or error
+                case 'f': readFalse<InArray>(is, c); break; // "false" or error
+                case 'n': readNull<InArray>(is, c); break; // "null" or error
                 default: throw InvalidUnknownFieldValue(); break;
             }
         }
 
-        template <bool inArray, typename Field, typename Element>
+        template <bool InArray, typename Field, typename Element>
         static constexpr void getValue(std::istream & is, char & c, Element & element)
         {
             if constexpr ( is_pointable<Element>::value )
             {
                 if ( element == nullptr ) // If element pointer is nullptr the only valid value is "null"
-                    readNull<inArray>(is, c);
-                else if ( tryReadNull<inArray>(is, c) ) // If element pointer is not nullptr, "null" is a possible value
+                    readNull<InArray>(is, c);
+                else if ( tryReadNull<InArray>(is, c) ) // If element pointer is not nullptr, "null" is a possible value
                     element = nullptr;
                 else if constexpr ( is_iterable<Element>::value )
                     getIterable<Field, Element>(is, c, *element);
                 else if constexpr ( Field::IsReflected )
-                    Input<Field::sub_type>::get(is, c, *element);
+                    Input<typename remove_pointer<Element>::type>::get(is, c, *element);
                 else if constexpr ( Field::IsString )
                     getString(is, *element);
-                else if constexpr ( Field::IsBool )
-                    readBool<inArray>(is, c, *element);
+                else if constexpr ( is_bool<typename remove_pointer<Element>::type>::value )
+                    readBool<InArray>(is, c, *element);
                 else
                     is >> *element;
             }
             else if constexpr ( is_iterable<Element>::value )
                 getIterable<Field, Element>(is, c, element);
             else if constexpr ( Field::IsReflected )
-                Input<Field::sub_type>::get(is, c, element);
+                Input<Element>::get(is, c, element);
             else if constexpr ( Field::IsString )
                 getString(is, c, element);
-            else if constexpr ( Field::IsBool )
-                readBool<inArray>(is, c, element);
+            else if constexpr ( is_bool<typename remove_pointer<Element>::type>::value )
+                readBool<InArray>(is, c, element);
             else
                 is >> element;
         }
 
-        template <bool inArray, typename Field, typename Element, typename Key>
+        template <bool InArray, typename Field, typename Key, typename Element>
         static constexpr void getValue(std::istream & is, char & c, std::pair<Key, Element> & pair)
         {
             getString(is, c, pair.first);
             Checked::get(is, c, ':', "field name-value separator \":\"");
-            getValue<inArray, Field, Element>(is, c, pair.second);
+            getValue<InArray, Field, Element>(is, c, pair.second);
         }
         
-        template <bool isArray>
+        template <bool IsArray>
         static constexpr void ignoreIterable(std::istream & is, char & c)
         {
-            Checked::get<isArray>(is, c, '[', "array opening \"[\"", '{', "object opening \"{\"");
-            if ( !Checked::tryGet<isArray>(is, ']', '}', "array closing \"]\" or array element", "object closing \"}\" or field name opening \"") )
+            Checked::get<IsArray>(is, c, '[', "array opening \"[\"", '{', "object opening \"{\"");
+            if ( !Checked::tryGet<IsArray>(is, ']', '}', "array closing \"]\" or array element", "object closing \"}\" or field name opening \"") )
             {
                 do
                 {
-                    if ( !isArray )
+                    if ( !IsArray )
                     {
                         ignoreString(is, c);
                         Checked::get(is, c, ':', "field name-value separator \":\"");
                     }
-                    ignoreValue<isArray>(is, c);
+                    ignoreValue<IsArray>(is, c);
                 }
-                while ( Checked::get<isArray>(is, ',', ']', '}', "\",\" or array closing \"]\"", "\",\" or object closing \"}\"") );
+                while ( Checked::get<IsArray>(is, ',', ']', '}', "\",\" or array closing \"]\"", "\",\" or object closing \"}\"") );
             }
         }
 
@@ -1362,12 +1362,12 @@ namespace Json {
                         if ( i >= static_array_size<Iterable>::value )
                             throw Exception("Array size exceeded!");
                         else
-                            getValue<!containsPairs, Field, Element>(is, c, iterable[i++]);
+                            getValue<!containsPairs, Field>(is, c, iterable[i++]);
                     }
                     else // Appendable STL container
                     {
                         typename append_type<Iterable>::type value;
-                        getValue<!containsPairs, Field, Element>(is, c, value);
+                        getValue<!containsPairs, Field>(is, c, value);
                         append<Iterable, typename append_type<Iterable>::type>(iterable, value);
                     }
                 }
@@ -1398,9 +1398,8 @@ namespace Json {
                         Class::FieldAt(t, jsonField->index, [&](auto & field, auto & value) {
 
                             using Field = typename std::remove_reference<decltype(field)>::type;
-                            using Element = typename std::remove_reference<decltype(value)>::type;
 
-                            getValue<false, Field, Element>(is, c, value);
+                            getValue<false, Field>(is, c, value);
                         });
                     }
                     else // Unknown field
@@ -1412,14 +1411,14 @@ namespace Json {
         }
     };
 
-    template <typename T, size_t indentLevel = 0, const char* indent = twoSpaces>
+    template <typename T, size_t IndentLevel = 0, const char* indent = twoSpaces>
     constexpr Output<T> out(const T & t)
     {
-        return Output<T, indentLevel>(t);
+        return Output<T, IndentLevel, indent>(t);
     }
     
-    template <typename T, size_t indentLevel = 0, const char* indent = twoSpaces>
-    std::ostream & operator<<(std::ostream & os, const Json::Output<T, indentLevel> object)
+    template <typename T, size_t IndentLevel = 0, const char* indent = twoSpaces>
+    std::ostream & operator<<(std::ostream & os, const Json::Output<T, IndentLevel> object)
     {
         return object.put(os, object.obj);
     }

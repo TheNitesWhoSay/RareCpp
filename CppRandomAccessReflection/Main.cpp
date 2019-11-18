@@ -154,10 +154,10 @@ public:
 
 void outputExamples()
 {
-    for ( size_t i=1; i<=MassiveObject::Class::totalFields; i++ )
+    for ( size_t i=1; i<=MassiveObject::Class::TotalFields; i++ )
     {
-        std::cout << MassiveObject::Class::fields[i-1].name;
-        if ( i % 16 == 0 || i == MassiveObject::Class::totalFields )
+        std::cout << MassiveObject::Class::Fields[i-1].name;
+        if ( i % 16 == 0 || i == MassiveObject::Class::TotalFields )
             std::cout << std::endl;
         else
             std::cout << ", ";
@@ -200,47 +200,49 @@ void outputExamples()
     FuelTank fuelTank(15.0f, 14.6f, 1.0f, 7.5f);
     Car car(frontLeft, frontRight, backLeft, backRight, driver, passenger, testNest, testMapNest, occupantId, occupantCupHolderUsage, cupHolders, fuelTank, 22.5f);
     
-    for ( size_t i=0; i<Wheel::Class::totalFields; i++ )
-        std::cout << Wheel::Class::fields[i].name << std::endl;
+    for ( size_t i=0; i<Wheel::Class::TotalFields; i++ )
+        std::cout << Wheel::Class::Fields[i].name << std::endl;
 
-    for ( size_t i=0; i<Wheel::Class::totalFields; i++ )
+    for ( size_t i=0; i<Wheel::Class::TotalFields; i++ )
     {
-        Wheel::Class::FieldAt(frontLeft, i, [&](auto field, auto value) {
+        Wheel::Class::FieldAt(frontLeft, i, [&](auto & field, auto & value) {
             std::cout << field.name << ": " << value << std::endl;
         });
     }
 
-    Wheel::Class::ForEachField(backRight, [&](auto field, auto value) {
+    Wheel::Class::ForEachField(backRight, [&](auto & field, auto & value) {
         std::cout << field.name << ": " << value << std::endl;
     });
 
-    Car::Class::ForEachField(car, [&](auto field, auto value) {
+    Car::Class::ForEachField(car, [&](auto & field, auto & value) {
         //std::cout << field.name << ": " << value << std::endl; // This will cause a compiler error as there's no ostream operator overload for the FuelTank type!
     });
 
-    Car::Class::ForEachField(car, [&](auto field, auto value) {
-        if constexpr ( field.IsPrimitive )
+    Car::Class::ForEachField(car, [&](auto & field, auto & value) {
+        using Type = std::remove_reference<decltype(value)>::type;
+        if constexpr ( !is_iterable<Type>::value && !field.IsReflected )
             std::cout << "(carPrimitive) " << field.name << ": " << value << std::endl;
-        else if constexpr ( field.IsObject )
+        else if constexpr ( !is_iterable<Type>::value && !field.IsReflected )
             std::cout << "(carObject) " << field.name << ": " << "[Skipped, this would be a good place for recursion!]" << std::endl;
-        else if constexpr ( field.IsObjectArray )
+        else if constexpr ( !is_iterable<Type>::value && !field.IsReflected )
             std::cout << "(carObjectArray) " << field.name << ": " << "[Skipped, this would be a good place for recursion!]" << std::endl;
     });
 
-    FuelTank::Class::ForEachField(fuelTank, [&](auto field, auto value) {
+    FuelTank::Class::ForEachField(fuelTank, [&](auto & field, auto & value) {
         //std::cout << field.name << ": " << value << std::endl; // This will print out a pointer, not the array values!
     });
 
-    FuelTank::Class::ForEachField(fuelTank, [&](auto field, auto value) {
+    FuelTank::Class::ForEachField(fuelTank, [&](auto & field, auto & value) {
         if ( field.isIterable ) {
             //std::cout << field.name << ": " << value[0] << std::endl; // This will cause a compiler error as not every field in the FuelTank class is an array!
         }
     });
 
-    FuelTank::Class::ForEachField(fuelTank, [&](auto field, auto value) {
-        if constexpr ( field.IsPrimitive )
+    FuelTank::Class::ForEachField(fuelTank, [&](auto & field, auto & value) {
+        using Type = std::remove_reference<decltype(value)>::type;
+        if constexpr ( !is_iterable<Type>::value && !field.IsReflected )
             std::cout << "(fuelTankPrimitive) " << field.name << ": " << value << std::endl;
-        else if constexpr ( field.IsPrimitiveArray )
+        else if constexpr ( is_static_array<decltype(value)>::value && !field.IsReflected )
             std::cout << "(fuelTankPrimitiveArray) " << field.name << ": " << value << std::endl;
     });
 
