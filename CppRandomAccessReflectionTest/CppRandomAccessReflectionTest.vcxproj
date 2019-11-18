@@ -157,7 +157,6 @@
   <ItemGroup>
     <ClCompile Include="ConstexprStrTest.cpp" />
     <ClCompile Include="FieldAggregationsTest.cpp" />
-    <ClCompile Include="AcceleratorsTest.cpp" />
     <ClCompile Include="ReflectTest.cpp" />
     <ClCompile Include="ReflectionSupportTest.cpp" />
     <ClCompile Include="TestMain.cpp" />

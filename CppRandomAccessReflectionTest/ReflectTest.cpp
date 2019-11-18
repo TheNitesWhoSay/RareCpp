@@ -32,12 +32,12 @@ TEST(ReflectTest, TypeToStr)
 
 TEST(ReflectTest, BasicType)
 {
-    EXPECT_FALSE(Reflect::B::reflected);
+    EXPECT_FALSE(Reflect::B::Reflected);
 }
 
 TEST(ReflectTest, ReflectedType)
 {
-    EXPECT_TRUE(Reflect::R::reflected);
+    EXPECT_TRUE(Reflect::R::Reflected);
 }
 
 TEST(ReflectTest, InheritedType)
@@ -46,13 +46,13 @@ TEST(ReflectTest, InheritedType)
     using ThreeArg = I<I<int, float, char>>;
     using FourArg = I<I<int, float, short, char>>;
 
-    EXPECT_EQ(0, I<>::totalSupers);
-    EXPECT_EQ(0, I<I<>>::totalSupers);
-    EXPECT_EQ(1, I<int>::totalSupers);
-    EXPECT_EQ(1, I<I<int>>::totalSupers);
-    EXPECT_EQ(2, TwoArg::totalSupers);
-    EXPECT_EQ(3, ThreeArg::totalSupers);
-    EXPECT_EQ(4, FourArg::totalSupers);
+    EXPECT_EQ(0, I<>::TotalSupers);
+    EXPECT_EQ(0, I<I<>>::TotalSupers);
+    EXPECT_EQ(1, I<int>::TotalSupers);
+    EXPECT_EQ(1, I<I<int>>::TotalSupers);
+    EXPECT_EQ(2, TwoArg::TotalSupers);
+    EXPECT_EQ(3, ThreeArg::TotalSupers);
+    EXPECT_EQ(4, FourArg::TotalSupers);
 
     int val = 0;
     bool visited = false;
@@ -278,15 +278,14 @@ TEST(ReflectTest, RfMacroDescribeField)
     firstTypeStr.erase(std::remove(firstTypeStr.begin(), firstTypeStr.end(), ' '), firstTypeStr.end());
     EXPECT_TRUE(firstTypeStr.find("int") != std::string::npos);
 
-    EXPECT_EQ(0, DescribeFieldTest::Class::first_::field.index);
     EXPECT_STREQ("first", DescribeFieldTest::Class::first_::field.name);
     std::string firstTypeFieldStr = DescribeFieldTest::Class::first_::field.typeStr;
     firstTypeFieldStr.erase(std::remove(firstTypeFieldStr.begin(), firstTypeFieldStr.end(), ' '), firstTypeFieldStr.end());
     EXPECT_TRUE(firstTypeFieldStr.find("int") != std::string::npos);
     EXPECT_EQ(0, DescribeFieldTest::Class::first_::field.arraySize);
     EXPECT_EQ(false, DescribeFieldTest::Class::first_::field.isIterable);
-    EXPECT_EQ(false, DescribeFieldTest::Class::first_::field.containsPairs);
     EXPECT_EQ(false, DescribeFieldTest::Class::first_::field.isReflected);
+    EXPECT_EQ(false, DescribeFieldTest::Class::first_::field.isString);
 
 
     EXPECT_STREQ("second", DescribeFieldTest::Class::second_::nameStr.value);
@@ -294,34 +293,14 @@ TEST(ReflectTest, RfMacroDescribeField)
     secondTypeStr.erase(std::remove(secondTypeStr.begin(), secondTypeStr.end(), ' '), secondTypeStr.end());
     EXPECT_TRUE(secondTypeStr.find("float") != std::string::npos);
 
-    EXPECT_EQ(1, DescribeFieldTest::Class::second_::field.index);
     EXPECT_STREQ("second", DescribeFieldTest::Class::second_::field.name);
     std::string secondTypeFieldStr = DescribeFieldTest::Class::second_::field.typeStr;
     secondTypeFieldStr.erase(std::remove(secondTypeFieldStr.begin(), secondTypeFieldStr.end(), ' '), secondTypeFieldStr.end());
     EXPECT_TRUE(secondTypeFieldStr.find("float") != std::string::npos);
     EXPECT_EQ(0, DescribeFieldTest::Class::second_::field.arraySize);
     EXPECT_EQ(false, DescribeFieldTest::Class::second_::field.isIterable);
-    EXPECT_EQ(false, DescribeFieldTest::Class::second_::field.containsPairs);
     EXPECT_EQ(false, DescribeFieldTest::Class::second_::field.isReflected);
-}
-
-TEST(ReflectTest, IfVoid)
-{
-    using intType = if_void<int, float>::type;
-    bool isIntType = std::is_same<int, intType>::value;
-    EXPECT_TRUE(isIntType);
-
-    using charType = if_void<char, void>::type;
-    bool isCharType = std::is_same<char, charType>::value;
-    EXPECT_TRUE(isCharType);
-
-    using floatType = if_void<void, float>::type;
-    bool isFloatType = std::is_same<float, floatType>::value;
-    EXPECT_TRUE(isFloatType);
-
-    using voidType = if_void<void, void>::type;
-    bool isVoidType = std::is_same<void, voidType>::value;
-    EXPECT_TRUE(isVoidType);
+    EXPECT_EQ(false, DescribeFieldTest::Class::second_::field.isString);
 }
 
 class GetFieldTest {
@@ -331,9 +310,9 @@ public:
 
     class Class {
     public:
-        struct first_ { static constexpr Field<int, false, false> field = { 0, "first", "int", 0, false, false, false }; };
-        struct second_ { static constexpr Field<float, false, false> field = { 1, "second", "float", 0, false, false, false }; };
-        static constexpr Field<> fields[2] = {
+        struct first_ { static constexpr Field<int, false, false> field = { "first", "int", 0, false, false, false }; };
+        struct second_ { static constexpr Field<float, false, false> field = { "second", "float", 0, false, false, false }; };
+        static constexpr Field<> Fields[2] = {
             GET_FIELD((B) first)
             GET_FIELD((B) second)
         };
@@ -342,21 +321,19 @@ public:
 
 TEST(ReflectTest, RfMacroGetField)
 {
-    EXPECT_EQ(0, GetFieldTest::Class::fields[0].index);
-    EXPECT_STREQ("first", GetFieldTest::Class::fields[0].name);
-    EXPECT_STREQ("int", GetFieldTest::Class::fields[0].typeStr);
-    EXPECT_EQ(0, GetFieldTest::Class::fields[0].arraySize);
-    EXPECT_EQ(false, GetFieldTest::Class::fields[0].isIterable);
-    EXPECT_EQ(false, GetFieldTest::Class::fields[0].containsPairs);
-    EXPECT_EQ(false, GetFieldTest::Class::fields[0].isReflected);
+    EXPECT_STREQ("first", GetFieldTest::Class::Fields[0].name);
+    EXPECT_STREQ("int", GetFieldTest::Class::Fields[0].typeStr);
+    EXPECT_EQ(0, GetFieldTest::Class::Fields[0].arraySize);
+    EXPECT_EQ(false, GetFieldTest::Class::Fields[0].isIterable);
+    EXPECT_EQ(false, GetFieldTest::Class::Fields[0].isReflected);
+    EXPECT_EQ(false, GetFieldTest::Class::Fields[0].isString);
 
-    EXPECT_EQ(1, GetFieldTest::Class::fields[1].index);
-    EXPECT_STREQ("second", GetFieldTest::Class::fields[1].name);
-    EXPECT_STREQ("float", GetFieldTest::Class::fields[1].typeStr);
-    EXPECT_EQ(0, GetFieldTest::Class::fields[1].arraySize);
-    EXPECT_EQ(false, GetFieldTest::Class::fields[1].isIterable);
-    EXPECT_EQ(false, GetFieldTest::Class::fields[1].containsPairs);
-    EXPECT_EQ(false, GetFieldTest::Class::fields[1].isReflected);
+    EXPECT_STREQ("second", GetFieldTest::Class::Fields[1].name);
+    EXPECT_STREQ("float", GetFieldTest::Class::Fields[1].typeStr);
+    EXPECT_EQ(0, GetFieldTest::Class::Fields[1].arraySize);
+    EXPECT_EQ(false, GetFieldTest::Class::Fields[1].isIterable);
+    EXPECT_EQ(false, GetFieldTest::Class::Fields[1].isReflected);
+    EXPECT_EQ(false, GetFieldTest::Class::Fields[1].isString);
 }
 
 class UseFieldTest {
@@ -366,8 +343,8 @@ class UseFieldTest {
 
         class Class {
         public:
-            struct first_ { static constexpr Field<int, false, false> field = { 0, "first", "int", 0, false, false, false }; };
-            struct second_ { static constexpr Field<float, false, false> field = { 1, "second", "float", 0, false, false, false }; };
+            struct first_ { static constexpr Field<int, false, false, 0> field = { "first", "int", 0, false, false, false }; };
+            struct second_ { static constexpr Field<float, false, false, 1> field = { "second", "float", 0, false, false, false }; };
             template <typename Function>
             static void ForEachField(UseFieldTest & object, Function function) {
                 USE_FIELD((B) first)
@@ -381,15 +358,18 @@ TEST(ReflectTest, RfMacroUseField)
     UseFieldTest useFieldTest = { 1, 1.1f };
     size_t index = 0;
     UseFieldTest::Class::ForEachField(useFieldTest, [&](auto & field, auto & value) {
-        EXPECT_EQ(index, field.index);
+
+        using Field = std::remove_reference<decltype(field)>::type;
+
+        EXPECT_EQ(index, Field::Index);
         switch ( index ) {
         case 0:
             EXPECT_STREQ("first", field.name);
             EXPECT_STREQ("int", field.typeStr);
             EXPECT_EQ(0, field.arraySize);
             EXPECT_EQ(false, field.isIterable);
-            EXPECT_EQ(false, field.containsPairs);
             EXPECT_EQ(false, field.isReflected);
+            EXPECT_EQ(false, field.isString);
             EXPECT_EQ(useFieldTest.first, value);
             break;
         case 1:
@@ -397,8 +377,8 @@ TEST(ReflectTest, RfMacroUseField)
             EXPECT_STREQ("float", field.typeStr);
             EXPECT_EQ(0, field.arraySize);
             EXPECT_EQ(false, field.isIterable);
-            EXPECT_EQ(false, field.containsPairs);
             EXPECT_EQ(false, field.isReflected);
+            EXPECT_EQ(false, field.isString);
             EXPECT_EQ(useFieldTest.second, value);
             break;
         default: EXPECT_TRUE(false); break;
@@ -416,8 +396,8 @@ class UseFieldAtTest {
         class Class {
         public:
             enum_t(IndexOf, size_t, { first, second });
-            struct first_ { static constexpr Field<int, false, false> field = { 0, "first", "int", 0, false, false, false }; };
-            struct second_ { static constexpr Field<float, false, false> field = { 1, "second", "float", 0, false, false, false }; };
+            struct first_ { static constexpr Field<int, false, false> field = { "first", "int", 0, false, false, false }; };
+            struct second_ { static constexpr Field<float, false, false> field = { "second", "float", 0, false, false, false }; };
             template <typename Function>
             static void FieldAt(UseFieldAtTest & object, size_t fieldIndex, Function function) {
                 switch ( fieldIndex ) {
@@ -439,8 +419,8 @@ TEST(ReflectTest, RfMacroUseFieldAt)
         EXPECT_STREQ("int", field.typeStr);
         EXPECT_EQ(0, field.arraySize);
         EXPECT_EQ(false, field.isIterable);
-        EXPECT_EQ(false, field.containsPairs);
         EXPECT_EQ(false, field.isReflected);
+        EXPECT_EQ(false, field.isString);
         EXPECT_EQ(useFieldTest.first, value);
         visited = true;
     });
@@ -452,8 +432,8 @@ TEST(ReflectTest, RfMacroUseFieldAt)
         EXPECT_STREQ("float", field.typeStr);
         EXPECT_EQ(0, field.arraySize);
         EXPECT_EQ(false, field.isIterable);
-        EXPECT_EQ(false, field.containsPairs);
         EXPECT_EQ(false, field.isReflected);
+        EXPECT_EQ(false, field.isString);
         EXPECT_EQ(useFieldTest.second, value);
         visited = true;
     });
@@ -473,7 +453,7 @@ public:
         });
         FOR_EACH(ALIAS_TYPE, (B) first, (B) second)
         FOR_EACH(DESCRIBE_FIELD, (B) first, (B) second)
-        static constexpr Field<> fields[totalFields] = {
+        static constexpr Field<> Fields[totalFields] = {
             FOR_EACH(GET_FIELD, (B) first, (B) second)
         };
         template <typename Function> static void ForEachField(CumulativeMacroTest & object, Function function) {
@@ -525,7 +505,7 @@ public:
 
 TEST(ReflectTest, RfMacroReflect)
 {
-    EXPECT_EQ(6, ReflectObj::Class::totalFields);
+    EXPECT_EQ(6, ReflectObj::Class::TotalFields);
 
     EXPECT_EQ(0, ReflectObj::Class::IndexOf::primitive);
     EXPECT_EQ(1, ReflectObj::Class::IndexOf::object);
@@ -573,13 +553,6 @@ TEST(ReflectTest, RfMacroReflect)
     typeStr.erase(std::remove(typeStr.begin(), typeStr.end(), ' '), typeStr.end());
     EXPECT_TRUE(typeStr.find("stack<int") != std::string::npos);
     
-    EXPECT_EQ(0, ReflectObj::Class::primitive_::field.index);
-    EXPECT_EQ(1, ReflectObj::Class::object_::field.index);
-    EXPECT_EQ(2, ReflectObj::Class::primitiveArray_::field.index);
-    EXPECT_EQ(3, ReflectObj::Class::map_::field.index);
-    EXPECT_EQ(4, ReflectObj::Class::objCollection_::field.index);
-    EXPECT_EQ(5, ReflectObj::Class::stack_::field.index);
-
     EXPECT_STREQ("primitive", ReflectObj::Class::primitive_::field.name);
     EXPECT_STREQ("object", ReflectObj::Class::object_::field.name);
     EXPECT_STREQ("primitiveArray", ReflectObj::Class::primitiveArray_::field.name);
@@ -608,13 +581,6 @@ TEST(ReflectTest, RfMacroReflect)
     EXPECT_EQ(true, ReflectObj::Class::objCollection_::field.isIterable);
     EXPECT_EQ(true, ReflectObj::Class::stack_::field.isIterable);
     
-    EXPECT_EQ(false, ReflectObj::Class::primitive_::field.containsPairs);
-    EXPECT_EQ(false, ReflectObj::Class::object_::field.containsPairs);
-    EXPECT_EQ(false, ReflectObj::Class::primitiveArray_::field.containsPairs);
-    EXPECT_EQ(true, ReflectObj::Class::map_::field.containsPairs);
-    EXPECT_EQ(false, ReflectObj::Class::objCollection_::field.containsPairs);
-    EXPECT_EQ(false, ReflectObj::Class::stack_::field.containsPairs);
-    
     EXPECT_EQ(false, ReflectObj::Class::primitive_::field.isReflected);
     EXPECT_EQ(true, ReflectObj::Class::object_::field.isReflected);
     EXPECT_EQ(false, ReflectObj::Class::primitiveArray_::field.isReflected);
@@ -622,54 +588,54 @@ TEST(ReflectTest, RfMacroReflect)
     EXPECT_EQ(true, ReflectObj::Class::objCollection_::field.isReflected);
     EXPECT_EQ(false, ReflectObj::Class::stack_::field.isReflected);
     
-    EXPECT_EQ(ReflectObj::Class::primitive_::field.index, ReflectObj::Class::fields[0].index);
-    EXPECT_EQ(ReflectObj::Class::object_::field.index, ReflectObj::Class::fields[1].index);
-    EXPECT_EQ(ReflectObj::Class::primitiveArray_::field.index, ReflectObj::Class::fields[2].index);
-    EXPECT_EQ(ReflectObj::Class::map_::field.index, ReflectObj::Class::fields[3].index);
-    EXPECT_EQ(ReflectObj::Class::objCollection_::field.index, ReflectObj::Class::fields[4].index);
-    EXPECT_EQ(ReflectObj::Class::stack_::field.index, ReflectObj::Class::fields[5].index);
+    EXPECT_EQ(false, ReflectObj::Class::primitive_::field.isString);
+    EXPECT_EQ(false, ReflectObj::Class::object_::field.isString);
+    EXPECT_EQ(false, ReflectObj::Class::primitiveArray_::field.isString);
+    EXPECT_EQ(false, ReflectObj::Class::map_::field.isString);
+    EXPECT_EQ(false, ReflectObj::Class::objCollection_::field.isString);
+    EXPECT_EQ(false, ReflectObj::Class::stack_::field.isString);
     
-    EXPECT_STREQ(ReflectObj::Class::primitive_::field.name, ReflectObj::Class::fields[0].name);
-    EXPECT_STREQ(ReflectObj::Class::object_::field.name, ReflectObj::Class::fields[1].name);
-    EXPECT_STREQ(ReflectObj::Class::primitiveArray_::field.name, ReflectObj::Class::fields[2].name);
-    EXPECT_STREQ(ReflectObj::Class::map_::field.name, ReflectObj::Class::fields[3].name);
-    EXPECT_STREQ(ReflectObj::Class::objCollection_::field.name, ReflectObj::Class::fields[4].name);
-    EXPECT_STREQ(ReflectObj::Class::stack_::field.name, ReflectObj::Class::fields[5].name);
+    EXPECT_STREQ(ReflectObj::Class::primitive_::field.name, ReflectObj::Class::Fields[0].name);
+    EXPECT_STREQ(ReflectObj::Class::object_::field.name, ReflectObj::Class::Fields[1].name);
+    EXPECT_STREQ(ReflectObj::Class::primitiveArray_::field.name, ReflectObj::Class::Fields[2].name);
+    EXPECT_STREQ(ReflectObj::Class::map_::field.name, ReflectObj::Class::Fields[3].name);
+    EXPECT_STREQ(ReflectObj::Class::objCollection_::field.name, ReflectObj::Class::Fields[4].name);
+    EXPECT_STREQ(ReflectObj::Class::stack_::field.name, ReflectObj::Class::Fields[5].name);
     
-    EXPECT_STREQ(ReflectObj::Class::primitive_::field.typeStr, ReflectObj::Class::fields[0].typeStr);
-    EXPECT_STREQ(ReflectObj::Class::object_::field.typeStr, ReflectObj::Class::fields[1].typeStr);
-    EXPECT_STREQ(ReflectObj::Class::primitiveArray_::field.typeStr, ReflectObj::Class::fields[2].typeStr);
-    EXPECT_STREQ(ReflectObj::Class::map_::field.typeStr, ReflectObj::Class::fields[3].typeStr);
-    EXPECT_STREQ(ReflectObj::Class::objCollection_::field.typeStr, ReflectObj::Class::fields[4].typeStr);
-    EXPECT_STREQ(ReflectObj::Class::stack_::field.typeStr, ReflectObj::Class::fields[5].typeStr);
+    EXPECT_STREQ(ReflectObj::Class::primitive_::field.typeStr, ReflectObj::Class::Fields[0].typeStr);
+    EXPECT_STREQ(ReflectObj::Class::object_::field.typeStr, ReflectObj::Class::Fields[1].typeStr);
+    EXPECT_STREQ(ReflectObj::Class::primitiveArray_::field.typeStr, ReflectObj::Class::Fields[2].typeStr);
+    EXPECT_STREQ(ReflectObj::Class::map_::field.typeStr, ReflectObj::Class::Fields[3].typeStr);
+    EXPECT_STREQ(ReflectObj::Class::objCollection_::field.typeStr, ReflectObj::Class::Fields[4].typeStr);
+    EXPECT_STREQ(ReflectObj::Class::stack_::field.typeStr, ReflectObj::Class::Fields[5].typeStr);
     
-    EXPECT_EQ(ReflectObj::Class::primitive_::field.arraySize, ReflectObj::Class::fields[0].arraySize);
-    EXPECT_EQ(ReflectObj::Class::object_::field.arraySize, ReflectObj::Class::fields[1].arraySize);
-    EXPECT_EQ(ReflectObj::Class::primitiveArray_::field.arraySize, ReflectObj::Class::fields[2].arraySize);
-    EXPECT_EQ(ReflectObj::Class::map_::field.arraySize, ReflectObj::Class::fields[3].arraySize);
-    EXPECT_EQ(ReflectObj::Class::objCollection_::field.arraySize, ReflectObj::Class::fields[4].arraySize);
-    EXPECT_EQ(ReflectObj::Class::stack_::field.arraySize, ReflectObj::Class::fields[5].arraySize);
+    EXPECT_EQ(ReflectObj::Class::primitive_::field.arraySize, ReflectObj::Class::Fields[0].arraySize);
+    EXPECT_EQ(ReflectObj::Class::object_::field.arraySize, ReflectObj::Class::Fields[1].arraySize);
+    EXPECT_EQ(ReflectObj::Class::primitiveArray_::field.arraySize, ReflectObj::Class::Fields[2].arraySize);
+    EXPECT_EQ(ReflectObj::Class::map_::field.arraySize, ReflectObj::Class::Fields[3].arraySize);
+    EXPECT_EQ(ReflectObj::Class::objCollection_::field.arraySize, ReflectObj::Class::Fields[4].arraySize);
+    EXPECT_EQ(ReflectObj::Class::stack_::field.arraySize, ReflectObj::Class::Fields[5].arraySize);
     
-    EXPECT_EQ(ReflectObj::Class::primitive_::field.isIterable, ReflectObj::Class::fields[0].isIterable);
-    EXPECT_EQ(ReflectObj::Class::object_::field.isIterable, ReflectObj::Class::fields[1].isIterable);
-    EXPECT_EQ(ReflectObj::Class::primitiveArray_::field.isIterable, ReflectObj::Class::fields[2].isIterable);
-    EXPECT_EQ(ReflectObj::Class::map_::field.isIterable, ReflectObj::Class::fields[3].isIterable);
-    EXPECT_EQ(ReflectObj::Class::objCollection_::field.isIterable, ReflectObj::Class::fields[4].isIterable);
-    EXPECT_EQ(ReflectObj::Class::stack_::field.isIterable, ReflectObj::Class::fields[5].isIterable);
+    EXPECT_EQ(ReflectObj::Class::primitive_::field.isIterable, ReflectObj::Class::Fields[0].isIterable);
+    EXPECT_EQ(ReflectObj::Class::object_::field.isIterable, ReflectObj::Class::Fields[1].isIterable);
+    EXPECT_EQ(ReflectObj::Class::primitiveArray_::field.isIterable, ReflectObj::Class::Fields[2].isIterable);
+    EXPECT_EQ(ReflectObj::Class::map_::field.isIterable, ReflectObj::Class::Fields[3].isIterable);
+    EXPECT_EQ(ReflectObj::Class::objCollection_::field.isIterable, ReflectObj::Class::Fields[4].isIterable);
+    EXPECT_EQ(ReflectObj::Class::stack_::field.isIterable, ReflectObj::Class::Fields[5].isIterable);
     
-    EXPECT_EQ(ReflectObj::Class::primitive_::field.containsPairs, ReflectObj::Class::fields[0].containsPairs);
-    EXPECT_EQ(ReflectObj::Class::object_::field.containsPairs, ReflectObj::Class::fields[1].containsPairs);
-    EXPECT_EQ(ReflectObj::Class::primitiveArray_::field.containsPairs, ReflectObj::Class::fields[2].containsPairs);
-    EXPECT_EQ(ReflectObj::Class::map_::field.containsPairs, ReflectObj::Class::fields[3].containsPairs);
-    EXPECT_EQ(ReflectObj::Class::objCollection_::field.containsPairs, ReflectObj::Class::fields[4].containsPairs);
-    EXPECT_EQ(ReflectObj::Class::stack_::field.containsPairs, ReflectObj::Class::fields[5].containsPairs);
+    EXPECT_EQ(ReflectObj::Class::primitive_::field.isReflected, ReflectObj::Class::Fields[0].isReflected);
+    EXPECT_EQ(ReflectObj::Class::object_::field.isReflected, ReflectObj::Class::Fields[1].isReflected);
+    EXPECT_EQ(ReflectObj::Class::primitiveArray_::field.isReflected, ReflectObj::Class::Fields[2].isReflected);
+    EXPECT_EQ(ReflectObj::Class::map_::field.isReflected, ReflectObj::Class::Fields[3].isReflected);
+    EXPECT_EQ(ReflectObj::Class::objCollection_::field.isReflected, ReflectObj::Class::Fields[4].isReflected);
+    EXPECT_EQ(ReflectObj::Class::stack_::field.isReflected, ReflectObj::Class::Fields[5].isReflected);
     
-    EXPECT_EQ(ReflectObj::Class::primitive_::field.isReflected, ReflectObj::Class::fields[0].isReflected);
-    EXPECT_EQ(ReflectObj::Class::object_::field.isReflected, ReflectObj::Class::fields[1].isReflected);
-    EXPECT_EQ(ReflectObj::Class::primitiveArray_::field.isReflected, ReflectObj::Class::fields[2].isReflected);
-    EXPECT_EQ(ReflectObj::Class::map_::field.isReflected, ReflectObj::Class::fields[3].isReflected);
-    EXPECT_EQ(ReflectObj::Class::objCollection_::field.isReflected, ReflectObj::Class::fields[4].isReflected);
-    EXPECT_EQ(ReflectObj::Class::stack_::field.isReflected, ReflectObj::Class::fields[5].isReflected);
+    EXPECT_EQ(ReflectObj::Class::primitive_::field.isString, ReflectObj::Class::Fields[0].isString);
+    EXPECT_EQ(ReflectObj::Class::object_::field.isString, ReflectObj::Class::Fields[1].isString);
+    EXPECT_EQ(ReflectObj::Class::primitiveArray_::field.isString, ReflectObj::Class::Fields[2].isString);
+    EXPECT_EQ(ReflectObj::Class::map_::field.isString, ReflectObj::Class::Fields[3].isString);
+    EXPECT_EQ(ReflectObj::Class::objCollection_::field.isString, ReflectObj::Class::Fields[4].isString);
+    EXPECT_EQ(ReflectObj::Class::stack_::field.isString, ReflectObj::Class::Fields[5].isString);
     
     ReflectSubObj reflectSubObj = { 20 };
     ReflectSubObj reflectSubObjZero = { 90 };
@@ -688,19 +654,23 @@ TEST(ReflectTest, RfMacroReflect)
     reflectObj.stack.push(3);
     size_t index = 0;
     ReflectObj::Class::ForEachField(reflectObj, [&](auto field, auto & value) {
-        EXPECT_EQ(index, field.index);
+        
+        using Field = std::remove_reference<decltype(field)>::type;
+        using Value = std::remove_reference<decltype(value)>::type;
+
+        EXPECT_EQ(index, Field::Index);
         bool visited = false;
         switch ( index ) {
             case 0:
-                if constexpr ( field.IsPrimitive ) {
+                if constexpr ( !Field::IsReflected && !is_iterable<Value>::value ) {
                     EXPECT_EQ(reflectObj.primitive, value);
                     visited = true;
                 }
                 EXPECT_TRUE(visited);
                 break;
             case 1:
-                if constexpr ( field.IsObject ) {
-                    using ObjClass = typename std::remove_reference<decltype(value)>::type::Class;
+                if constexpr ( Field::IsReflected && !is_iterable<Value>::value ) {
+                    using ObjClass = typename Value::Class;
                     ObjClass::FieldAt(value, 0, [&](auto & field, auto & value) {
                         EXPECT_EQ(reflectObj.object.val, value);
                         visited = true;
@@ -711,7 +681,7 @@ TEST(ReflectTest, RfMacroReflect)
                 EXPECT_TRUE(visited);
                 break;
             case 2:
-                if constexpr ( field.IsPrimitiveArray ) {
+                if constexpr ( !Field::IsReflected && is_static_array<Value>::value ) {
                     EXPECT_EQ(reflectObj.primitiveArray[0], value[0]);
                     EXPECT_EQ(reflectObj.primitiveArray[1], value[1]);
                     visited = true;
@@ -719,7 +689,7 @@ TEST(ReflectTest, RfMacroReflect)
                 EXPECT_TRUE(visited);
                 break;
             case 3:
-                if constexpr ( field.IsIterablePrimitivePairs ) {
+                if constexpr ( !Field::IsReflected && is_iterable<Value>::value && is_pair<element_type<Value>::type>::value ) {
                     EXPECT_EQ(reflectObj.map.begin()->first, value.begin()->first);
                     EXPECT_EQ((++reflectObj.map.begin())->first, (++value.begin())->first);
                     visited = true;
@@ -727,7 +697,7 @@ TEST(ReflectTest, RfMacroReflect)
                 EXPECT_TRUE(visited);
                 break;
             case 4:
-                if constexpr ( field.IsIterableObjects ) {
+                if constexpr ( Field::IsReflected && is_iterable<Value>::value ) {
                     EXPECT_EQ(reflectObj.objCollection[0].val, value[0].val);
                     EXPECT_EQ(reflectObj.objCollection[1].val, value[1].val);
                     visited = true;
@@ -735,14 +705,9 @@ TEST(ReflectTest, RfMacroReflect)
                 EXPECT_TRUE(visited);
                 break;
             case 5:
-                if constexpr ( field.IsPrimitiveAdaptor ) {
-                    Field<std::stack<int>, false, false> & intStackField = field;
-                    intStackField.ForPrimitives(value, [&](auto stackIndex, auto & primitive) {
-                        visited = true;
-                    });
-                    EXPECT_FALSE(visited);
+                if constexpr ( !Field::IsReflected && is_adaptor<Value>::value )
                     visited = true;
-                }
+
                 EXPECT_TRUE(visited);
                 break;
             default:

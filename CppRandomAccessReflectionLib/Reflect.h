@@ -562,10 +562,10 @@ namespace Reflect
 #define ALIAS_TYPE(x) using RHS(x) = decltype(RHS(x));
 #define GET_FIELD_NAME(x) RHS(x),
 #define DESCRIBE_FIELD(x) struct RHS(x)_ { \
-    static constexpr auto NameStr = ConstexprStr::substr<ConstexprStr::length_after_last(#x, ' ')>(#x+ConstexprStr::find_last_of(#x, ' ')+1); \
-    static constexpr auto TypeStr = type_to_str<RHS(x)>::get(); \
+    static constexpr auto nameStr = ConstexprStr::substr<ConstexprStr::length_after_last(#x, ' ')>(#x+ConstexprStr::find_last_of(#x, ' ')+1); \
+    static constexpr auto typeStr = type_to_str<RHS(x)>::get(); \
     static constexpr Field<Class::RHS(x), LHS(x)::Reflected, LHS(x)::IsString, IndexOf::RHS(x)> field = \
-        { &NameStr.value[0], &TypeStr.value[0], std::extent<remove_pointer<RHS(x)>::type>::value, \
+        { &nameStr.value[0], &typeStr.value[0], std::extent<remove_pointer<RHS(x)>::type>::value, \
         is_stl_iterable<remove_pointer<RHS(x)>::type>::value || std::is_array<remove_pointer<RHS(x)>::type>::value || \
         is_adaptor<remove_pointer<RHS(x)>::type>::value, \
         LHS(x)::Reflected, LHS(x)::IsString }; \

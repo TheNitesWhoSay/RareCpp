@@ -13,19 +13,20 @@
 #include <unordered_map>
 #include <utility>
 #include <type_traits>
+using namespace Reflect;
 
 TEST(ReflectionSupportTest, TypeToStr)
 {
-    EXPECT_STREQ("int", TypeToStr<int>::Get().value);
+    EXPECT_STREQ("int", type_to_str<int>::get().value);
 
     // Expecting some junk like how it's a struct or class, but it should still contain the pair text
-    auto pairStrStruct = TypeToStr<std::pair<int,int>>::Get();
+    auto pairStrStruct = type_to_str<std::pair<int,int>>::get();
     std::string typeStr = pairStrStruct.value;
     typeStr.erase(std::remove(typeStr.begin(), typeStr.end(), ' '), typeStr.end());
     EXPECT_TRUE(typeStr.find("pair<int,int") != std::string::npos);
 
     // Expecting some junk like how it's a struct or class and what allocator it's using, but should contain the map text
-    auto mapStrStruct = TypeToStr<std::map<int,int>>::Get();
+    auto mapStrStruct = type_to_str<std::map<int,int>>::get();
     std::string mapStr = mapStrStruct.value;
     mapStr.erase(std::remove(mapStr.begin(), mapStr.end(), ' '), mapStr.end());
     EXPECT_TRUE(mapStr.find("map<int,int") != std::string::npos);
@@ -118,33 +119,6 @@ TEST(ReflectionSupportTest, IsAdaptor)
     EXPECT_TRUE(is_adaptor<std::priority_queue<int>>::value);
 }
 
-TEST(ReflectionSupportTest, ContainsPointables)
-{
-    EXPECT_FALSE(contains_pointables<int>::value);
-    EXPECT_FALSE(contains_pointables<int[2]>::value);
-    EXPECT_FALSE(contains_pointables<std::vector<int>>::value);
-    EXPECT_FALSE(contains_pointables<std::queue<int>>::value);
-    EXPECT_FALSE(contains_pointables<std::set<int>>::value);
-
-    EXPECT_FALSE(contains_pointables<int*>::value);
-    EXPECT_TRUE(contains_pointables<int*[2]>::value);
-    EXPECT_TRUE(contains_pointables<std::vector<int*>>::value);
-    EXPECT_TRUE(contains_pointables<std::queue<int*>>::value);
-    EXPECT_TRUE(contains_pointables<std::set<int*>>::value);
-
-    EXPECT_FALSE(contains_pointables<std::shared_ptr<int>>::value);
-    EXPECT_TRUE(contains_pointables<std::shared_ptr<int>[2]>::value);
-    EXPECT_TRUE(contains_pointables<std::vector<std::shared_ptr<int>>>::value);
-    EXPECT_TRUE(contains_pointables<std::queue<std::shared_ptr<int>>>::value);
-    EXPECT_TRUE(contains_pointables<std::set<std::shared_ptr<int>>>::value);
-
-    EXPECT_FALSE(contains_pointables<std::unique_ptr<int>>::value);
-    EXPECT_TRUE(contains_pointables<std::unique_ptr<int>[2]>::value);
-    EXPECT_TRUE(contains_pointables<std::vector<std::unique_ptr<int>>>::value);
-    EXPECT_TRUE(contains_pointables<std::queue<std::unique_ptr<int>>>::value);
-    EXPECT_TRUE(contains_pointables<std::set<std::unique_ptr<int>>>::value);
-}
-
 TEST(ReflectionSupportTest, ElementType)
 {
     bool isEqual = std::is_same<void, element_type<int>::type>::value;
@@ -155,46 +129,6 @@ TEST(ReflectionSupportTest, ElementType)
     EXPECT_TRUE(isEqual);
     isEqual = std::is_same<int, element_type<std::vector<int>>::type>::value;
     EXPECT_TRUE(isEqual);
-}
-
-TEST(ReflectionSupportTest, KeyType)
-{
-    bool isEqual = std::is_same<void, key_type<int>::type>::value;
-    EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<void, key_type<int*>::type>::value;
-    EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<void, key_type<int[2]>::type>::value;
-    EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<void, key_type<std::vector<int>>::type>::value;
-    EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<int, key_type<std::set<int>>::type>::value;
-    EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<int, key_type<std::multiset<int>>::type>::value;
-    EXPECT_TRUE(isEqual);
-    
-    using ExampleMapType = std::map<int, short>;
-    isEqual = std::is_same<int, key_type<ExampleMapType>::type>::value;
-    EXPECT_TRUE(isEqual);
-    using ExampleMultiMapType = std::multimap<int, short>;
-    isEqual = std::is_same<int, key_type<ExampleMultiMapType>::type>::value;
-    EXPECT_TRUE(isEqual);
-}
-
-TEST(ReflectionSupportTest, ContainsPairs)
-{
-    using IntPair = std::pair<int, int>;
-    EXPECT_FALSE(contains_pairs<int>::value);
-    EXPECT_FALSE(contains_pairs<int*>::value);
-    EXPECT_FALSE(contains_pairs<int[]>::value);
-    EXPECT_FALSE(contains_pairs<int*[]>::value);
-    EXPECT_FALSE(contains_pairs<std::vector<int>>::value);
-
-    EXPECT_TRUE(contains_pairs<IntPair[2]>::value);
-    EXPECT_TRUE(contains_pairs<std::vector<IntPair>>::value);
-    using ExampleMapType = std::map<int, short>;
-    EXPECT_TRUE(contains_pairs<ExampleMapType>::value);
-    using ExampleMultiMapType = std::multimap<int, short>;
-    EXPECT_TRUE(contains_pairs<ExampleMultiMapType>::value);
 }
 
 TEST(ReflectionSupportTest, GetUnderlyingContainer)
@@ -298,47 +232,46 @@ TEST(ReflectionSupportTest, GetUnderlyingContainer)
 
 TEST(ReflectionSupportTest, FieldSimple)
 {
-    size_t fieldIndex = 0;
     char fieldName[] = "fieldName";
     char fieldTypeStr[] = "int";
     size_t fieldArraySize = 0;
     bool fieldIsIterable = false;
-    bool fieldContainsPairs = false;
     bool fieldIsReflected = false;
+    bool fieldIsString = false;
 
-    Field<> field = { fieldIndex, fieldName, fieldTypeStr, fieldArraySize, fieldIsIterable, fieldContainsPairs, fieldIsReflected };
+    Field<> field = { fieldName, fieldTypeStr, fieldArraySize, fieldIsIterable, fieldIsReflected, fieldIsString };
     
-    EXPECT_EQ(fieldIndex, field.index);
     EXPECT_STREQ(fieldName, field.name);
     EXPECT_STREQ(fieldTypeStr, field.typeStr);
     EXPECT_EQ(fieldArraySize, field.arraySize);
     EXPECT_EQ(fieldIsIterable, field.isIterable);
-    EXPECT_EQ(fieldContainsPairs, field.containsPairs);
     EXPECT_EQ(fieldIsReflected, field.isReflected);
+    EXPECT_EQ(fieldIsString, field.isString);
 }
 
 TEST(ReflectionSupportTest, FieldTemplated)
 {
-    size_t fieldIndex = 0;
+    constexpr size_t fieldIndex = 2;
     char fieldName[] = "fieldName";
     char fieldTypeStr[] = "int";
     size_t fieldArraySize = 0;
     bool fieldIsIterable = false;
-    bool fieldContainsPairs = false;
     bool fieldIsReflected = false;
+    bool fieldIsString = false;
 
-    Field<int, false, false> field = { fieldIndex, fieldName, fieldTypeStr, fieldArraySize, fieldIsIterable, fieldContainsPairs, fieldIsReflected };
-    
-    EXPECT_EQ(fieldIndex, field.index);
+    Field<int, false, false, fieldIndex> field = { fieldName, fieldTypeStr, fieldArraySize, fieldIsIterable, fieldIsReflected, fieldIsString };
+    using IntField = decltype(field);
+
     EXPECT_STREQ(fieldName, field.name);
     EXPECT_STREQ(fieldTypeStr, field.typeStr);
     EXPECT_EQ(fieldArraySize, field.arraySize);
     EXPECT_EQ(fieldIsIterable, field.isIterable);
-    EXPECT_EQ(fieldContainsPairs, field.containsPairs);
     EXPECT_EQ(fieldIsReflected, field.isReflected);
+    EXPECT_EQ(fieldIsReflected, field.isString);
     
-    bool isEqual = std::is_same<int, Field<int, false, false>::type>::value;
+    bool isEqual = std::is_same<int, Field<int, false, false>::Type>::value;
     EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<void, Field<int, false, false>::element_type>::value;
-    EXPECT_TRUE(isEqual);
+    EXPECT_FALSE(IntField::IsReflected);
+    EXPECT_FALSE(IntField::IsString);
+    EXPECT_EQ(fieldIndex, IntField::Index);
 }

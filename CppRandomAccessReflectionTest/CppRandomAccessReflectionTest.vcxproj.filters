@@ -23,9 +23,6 @@
     <ClCompile Include="TestMain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="AcceleratorsTest.cpp">
-      <Filter>Source Files\ReflectTest</Filter>
-    </ClCompile>
     <ClCompile Include="ConstexprStrTest.cpp">
       <Filter>Source Files\ReflectTest</Filter>
     </ClCompile>
