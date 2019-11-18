@@ -926,8 +926,8 @@ namespace Json {
             }
 
             template <bool usePrimary>
-            static constexpr inline void get(std::istream & is, char & c, int expectedChar, const char* expectedDescription,
-                int secondaryChar, const char* secondaryDescription)
+            static constexpr inline void get(std::istream & is, char & c, int expectedChar, int secondaryChar,
+                const char* expectedDescription, const char* secondaryDescription)
             {
                 if constexpr ( usePrimary )
                     get(is, c, expectedChar, expectedDescription);
@@ -956,7 +956,7 @@ namespace Json {
                 }
             }
 
-            static constexpr inline void whitespaceGet(std::istream & is, const char* expectedDescription)
+            static constexpr inline void consumeWhitespace(std::istream & is, const char* expectedDescription)
             {
                 is >> std::ws;
                 if ( !is.good() )
@@ -969,12 +969,12 @@ namespace Json {
             }
 
             template <bool usePrimary>
-            static constexpr inline void whitespaceGet(std::istream & is, const char* expectedDescription, const char* secondaryDescription)
+            static constexpr inline void consumeWhitespace(std::istream & is, const char* expectedDescription, const char* secondaryDescription)
             {
                 if constexpr ( usePrimary )
-                    whitespaceGet(is, expectedDescription);
+                    consumeWhitespace(is, expectedDescription);
                 else
-                    whitespaceGet(is, secondaryDescription);
+                    consumeWhitespace(is, secondaryDescription);
             }
         };
         
@@ -1006,12 +1006,12 @@ namespace Json {
         template <bool InArray>
         static constexpr void readTrue(std::istream & is, char & c)
         {
-            Checked::whitespaceGet(is, "completion of field value");
+            Checked::consumeWhitespace(is, "completion of field value");
             int expectation[] = { 't', 'r', 'u', 'e' };
             for ( size_t i=0; i<4; i++ )
                 Checked::get(is, c, expectation[i], "completion of field value");
 
-            Checked::whitespaceGet(is, "completion of field value");
+            Checked::consumeWhitespace(is, "\",\" or \"}\"");
             Checked::peek(is, c, "\",\" or \"}\"");
             if ( InArray && c != ',' && c != ']' )
                 throw Exception("Expected: \",\" or \"]\"");
@@ -1022,12 +1022,12 @@ namespace Json {
         template <bool InArray>
         static constexpr void readFalse(std::istream & is, char & c)
         {
-            Checked::whitespaceGet(is, "completion of field value");
+            Checked::consumeWhitespace(is, "completion of field value");
             int expectation[] = { 'f', 'a', 'l', 's', 'e' };
             for ( size_t i=0; i<5; i++ )
                 Checked::get(is, c, expectation[i], "completion of field value");
 
-            Checked::whitespaceGet(is, "completion of field value");
+            Checked::consumeWhitespace(is, "\",\" or \"}\"");
             Checked::peek(is, c, "\",\" or \"}\"");
             if ( InArray && c != ',' && c != ']' )
                 throw Exception("Expected: \",\" or \"]\"");
@@ -1038,7 +1038,7 @@ namespace Json {
         template <bool InArray, typename Value>
         static constexpr void readBool(std::istream & is, char & c, Value & value)
         {
-            Checked::whitespaceGet(is, "true or false");
+            Checked::consumeWhitespace(is, "true or false");
             Checked::peek(is, c, "true or false");
             if ( c == 't' )
             {
@@ -1057,12 +1057,12 @@ namespace Json {
         template <bool InArray>
         static constexpr void readNull(std::istream & is, char & c)
         {
-            Checked::whitespaceGet(is, "completion of field value");
+            Checked::consumeWhitespace(is, "completion of field value");
             int expectation[] = { 'n', 'u', 'l', 'l' };
             for ( size_t i=0; i<4; i++ )
                 Checked::get(is, c, expectation[i], "completion of field value");
 
-            Checked::whitespaceGet(is, "completion of field value");
+            Checked::consumeWhitespace(is, "\",\" or \"}\"");
             Checked::peek(is, c, "\",\" or \"}\"");
             if ( InArray && c != ',' && c != ']' )
                 throw Exception("Expected: \",\" or \"]\"");
@@ -1073,7 +1073,7 @@ namespace Json {
         template <bool InArray>
         static constexpr bool tryReadNull(std::istream & is, char & c)
         {
-            Checked::whitespaceGet(is, "completion of field value");
+            Checked::consumeWhitespace(is, "null or field value");
             Checked::peek(is, c, "null or field value");
             if ( c == 'n' )
             {
@@ -1081,7 +1081,7 @@ namespace Json {
                 for ( size_t i=0; i<4; i++ )
                     Checked::get(is, c, expectation[i], "completion of \"null\"");
 
-                Checked::whitespaceGet(is, "completion of \"null\"");
+                Checked::consumeWhitespace(is, "\",\" or \"}\"");
                 Checked::peek(is, c, "\",\" or \"}\"");
                 if ( InArray && c != ',' && c != ']' )
                     throw Exception("Expected: \",\" or \"]\"");
@@ -1124,7 +1124,7 @@ namespace Json {
                     case ',': Checked::unget(is, ','); break;
                     case terminator: Checked::unget(is, terminator); break;
                     case ' ': case '\t': case '\n': case '\r':
-                        Checked::whitespaceGet<InArray>(is, decimal ? "[0-9], \",\", or \"]\"" : "\".\", [0-9], \",\", or \"]\"",
+                        Checked::consumeWhitespace<InArray>(is, decimal ? "[0-9], \",\", or \"]\"" : "\".\", [0-9], \",\", or \"]\"",
                             decimal ? "[0-9], \",\", or \"}\"" : "\".\", [0-9], \",\", or \"}\"");
                         Checked::get<InArray>(is, c, decimal ? "[0-9], \",\", or \"]\"" : "\".\", [0-9], \",\", or \"]\"",
                             decimal ? "[0-9], \",\", or \"}\"" : "\".\", [0-9], \",\", or \"}\"");
@@ -1255,7 +1255,7 @@ namespace Json {
         template <bool InArray>
         static constexpr void ignoreValue(std::istream & is, char & c)
         {
-            Checked::whitespaceGet(is, "completion of field value");
+            Checked::consumeWhitespace(is, "completion of field value");
             Checked::peek(is, c, "completion of field value");
             switch ( c )
             {
@@ -1314,7 +1314,7 @@ namespace Json {
         template <bool IsArray>
         static constexpr void ignoreIterable(std::istream & is, char & c)
         {
-            Checked::get<IsArray>(is, c, '[', "array opening \"[\"", '{', "object opening \"{\"");
+            Checked::get<IsArray>(is, c, '[', '{', "array opening \"[\"", "object opening \"{\"");
             if ( !Checked::tryGet<IsArray>(is, ']', '}', "array closing \"]\" or array element", "object closing \"}\" or field name opening \"") )
             {
                 do
@@ -1336,7 +1336,7 @@ namespace Json {
             using Element = typename element_type<Iterable>::type;
             constexpr bool ContainsPairs = is_pair<Element>::value;
             
-            Checked::get<ContainsPairs>(is, c, '{', "object opening \"{\"", '[', "array opening \"[\"");
+            Checked::get<ContainsPairs>(is, c, '{', '[', "object opening \"{\"", "array opening \"[\"");
             if ( !Checked::tryGet<ContainsPairs>(is, '}', ']', "object closing \"}\" or field name opening \"", "array closing \"]\" or array element") )
             {
                 clear(iterable);
