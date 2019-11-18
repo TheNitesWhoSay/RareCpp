@@ -307,19 +307,19 @@ TEST(ReflectTest, RfMacroDescribeField)
 
 TEST(ReflectTest, IfVoid)
 {
-    using intType = RfS::if_void<int, float>::type;
+    using intType = if_void<int, float>::type;
     bool isIntType = std::is_same<int, intType>::value;
     EXPECT_TRUE(isIntType);
 
-    using charType = RfS::if_void<char, void>::type;
+    using charType = if_void<char, void>::type;
     bool isCharType = std::is_same<char, charType>::value;
     EXPECT_TRUE(isCharType);
 
-    using floatType = RfS::if_void<void, float>::type;
+    using floatType = if_void<void, float>::type;
     bool isFloatType = std::is_same<float, floatType>::value;
     EXPECT_TRUE(isFloatType);
 
-    using voidType = RfS::if_void<void, void>::type;
+    using voidType = if_void<void, void>::type;
     bool isVoidType = std::is_same<void, voidType>::value;
     EXPECT_TRUE(isVoidType);
 }
@@ -331,9 +331,9 @@ public:
 
     class Class {
     public:
-        struct first_ { static constexpr RfS::Field<int, false, false> field = { 0, "first", "int", 0, false, false, false }; };
-        struct second_ { static constexpr RfS::Field<float, false, false> field = { 1, "second", "float", 0, false, false, false }; };
-        static constexpr RfS::Field<> fields[2] = {
+        struct first_ { static constexpr Field<int, false, false> field = { 0, "first", "int", 0, false, false, false }; };
+        struct second_ { static constexpr Field<float, false, false> field = { 1, "second", "float", 0, false, false, false }; };
+        static constexpr Field<> fields[2] = {
             GET_FIELD((B) first)
             GET_FIELD((B) second)
         };
@@ -366,8 +366,8 @@ class UseFieldTest {
 
         class Class {
         public:
-            struct first_ { static constexpr RfS::Field<int, false, false> field = { 0, "first", "int", 0, false, false, false }; };
-            struct second_ { static constexpr RfS::Field<float, false, false> field = { 1, "second", "float", 0, false, false, false }; };
+            struct first_ { static constexpr Field<int, false, false> field = { 0, "first", "int", 0, false, false, false }; };
+            struct second_ { static constexpr Field<float, false, false> field = { 1, "second", "float", 0, false, false, false }; };
             template <typename Function>
             static void ForEachField(UseFieldTest & object, Function function) {
                 USE_FIELD((B) first)
@@ -416,8 +416,8 @@ class UseFieldAtTest {
         class Class {
         public:
             enum_t(IndexOf, size_t, { first, second });
-            struct first_ { static constexpr RfS::Field<int, false, false> field = { 0, "first", "int", 0, false, false, false }; };
-            struct second_ { static constexpr RfS::Field<float, false, false> field = { 1, "second", "float", 0, false, false, false }; };
+            struct first_ { static constexpr Field<int, false, false> field = { 0, "first", "int", 0, false, false, false }; };
+            struct second_ { static constexpr Field<float, false, false> field = { 1, "second", "float", 0, false, false, false }; };
             template <typename Function>
             static void FieldAt(UseFieldAtTest & object, size_t fieldIndex, Function function) {
                 switch ( fieldIndex ) {
@@ -473,7 +473,7 @@ public:
         });
         FOR_EACH(ALIAS_TYPE, (B) first, (B) second)
         FOR_EACH(DESCRIBE_FIELD, (B) first, (B) second)
-        static constexpr RfS::Field<> fields[totalFields] = {
+        static constexpr Field<> fields[totalFields] = {
             FOR_EACH(GET_FIELD, (B) first, (B) second)
         };
         template <typename Function> static void ForEachField(CumulativeMacroTest & object, Function function) {
@@ -736,7 +736,7 @@ TEST(ReflectTest, RfMacroReflect)
                 break;
             case 5:
                 if constexpr ( field.IsPrimitiveAdaptor ) {
-                    RfS::Field<std::stack<int>, false, false> & intStackField = field;
+                    Field<std::stack<int>, false, false> & intStackField = field;
                     intStackField.ForPrimitives(value, [&](auto stackIndex, auto & primitive) {
                         visited = true;
                     });

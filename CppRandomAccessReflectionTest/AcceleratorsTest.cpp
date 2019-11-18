@@ -26,9 +26,9 @@ TEST(AcceleratorsTest, ForPrimitive)
     int* intPointer = &intValue;
     Obj objValue = {0, 0.0f};
 
-    RfS::Field<int, false, false> intField = { 0, "intValue", "int", 0, false, false, false };
-    RfS::Field<int*, false, false> intPointerField = { 0, "intPointer", "int*", 0, false, false, false };
-    RfS::Field<Obj, true, false> objField = { 0, "objValue", "Obj", 0, false, false, false };
+    Field<int, false, false> intField = { 0, "intValue", "int", 0, false, false, false };
+    Field<int*, false, false> intPointerField = { 0, "intPointer", "int*", 0, false, false, false };
+    Field<Obj, true, false> objField = { 0, "objValue", "Obj", 0, false, false, false };
 
     int timesVisited = 0;
     intField.ForPrimitive(intValue, [&](auto primitive) {
@@ -57,9 +57,9 @@ TEST(AcceleratorsTest, ForObject)
     Obj* objPointerValue = &objValue;
     int intValue = 0;
     
-    RfS::Field<Obj, true, false> objField = { 0, "objValue", "Obj", 0, false, false, true };
-    RfS::Field<Obj*, true, false> objPointerField = { 0, "objPointerValue", "Obj*", 0, false, false, true };
-    RfS::Field<int, false, false> intField = { 0, "intValue", "int", 0, false, false, true };
+    Field<Obj, true, false> objField = { 0, "objValue", "Obj", 0, false, false, true };
+    Field<Obj*, true, false> objPointerField = { 0, "objPointerValue", "Obj*", 0, false, false, true };
+    Field<int, false, false> intField = { 0, "intValue", "int", 0, false, false, true };
 
     int timesVisited = 0;
     objField.ForObject(objValue, [&](auto & object) {
@@ -98,13 +98,13 @@ TEST(AcceleratorsTest, ForPrimitives)
     intStackValue.push(30);
     std::stack<int>* intStackPointerValue = &intStackValue;
     
-    RfS::Field<int, false, false> intField = { 0, "intValue", "int", 0, false, false, false };
-    RfS::Field<IntArray, false, false> intArrayField = { 0, "intArrayValue", "int[3]", arraySize, true, false, false };
-    RfS::Field<IntArray*, false, false> intArrayPointerField = { 0, "intArrayPointerValue", "int[3]*", arraySize, true, false, false };
-    RfS::Field<std::vector<int>, false, false> intVectorField = { 0, "intVectorValue", "std::vector<int>", 0, true, false, false };
-    RfS::Field<std::vector<int>*, false, false> intVectorPointerField = { 0, "intVectorPointerValue", "std::vector<int>*", 0, true, false, false };
-    RfS::Field<std::stack<int>, false, false> intStackField = { 0, "intStackValue", "std::stack<int>", 0, true, false, false };
-    RfS::Field<std::stack<int>*, false, false> intStackPointerField = { 0, "intStackPointerValue", "std::stack<int>*", 0, true, false, false };
+    Field<int, false, false> intField = { 0, "intValue", "int", 0, false, false, false };
+    Field<IntArray, false, false> intArrayField = { 0, "intArrayValue", "int[3]", arraySize, true, false, false };
+    Field<IntArray*, false, false> intArrayPointerField = { 0, "intArrayPointerValue", "int[3]*", arraySize, true, false, false };
+    Field<std::vector<int>, false, false> intVectorField = { 0, "intVectorValue", "std::vector<int>", 0, true, false, false };
+    Field<std::vector<int>*, false, false> intVectorPointerField = { 0, "intVectorPointerValue", "std::vector<int>*", 0, true, false, false };
+    Field<std::stack<int>, false, false> intStackField = { 0, "intStackValue", "std::stack<int>", 0, true, false, false };
+    Field<std::stack<int>*, false, false> intStackPointerField = { 0, "intStackPointerValue", "std::stack<int>*", 0, true, false, false };
 
     int timesVisited = 0;
     intField.ForPrimitives(intValue, [&](auto primitive) {
@@ -189,13 +189,13 @@ TEST(AcceleratorsTest, ForPrimitivesConst)
     intStackValue.push(30);
     std::stack<int>* intStackPointerValue = &intStackValue;
     
-    RfS::Field<int, false, false> intField = { 0, "intValue", "int", 0, false, false, false };
-    RfS::Field<IntArray, false, false> intArrayField = { 0, "intArrayValue", "int[3]", arraySize, true, false, false };
-    RfS::Field<IntArray*, false, false> intArrayPointerField = { 0, "intArrayPointerValue", "int[3]*", arraySize, true, false, false };
-    RfS::Field<std::vector<int>, false, false> intVectorField = { 0, "intVectorValue", "std::vector<int>", 0, true, false, false };
-    RfS::Field<std::vector<int>*, false, false> intVectorPointerField = { 0, "intVectorPointerValue", "std::vector<int>*", 0, true, false, false };
-    RfS::Field<std::stack<int>, false, false> intStackField = { 0, "intStackValue", "std::stack<int>", 0, true, false, false };
-    RfS::Field<std::stack<int>*, false, false> intStackPointerField = { 0, "intStackPointerValue", "std::stack<int>*", 0, true, false, false };
+    Field<int, false, false> intField = { 0, "intValue", "int", 0, false, false, false };
+    Field<IntArray, false, false> intArrayField = { 0, "intArrayValue", "int[3]", arraySize, true, false, false };
+    Field<IntArray*, false, false> intArrayPointerField = { 0, "intArrayPointerValue", "int[3]*", arraySize, true, false, false };
+    Field<std::vector<int>, false, false> intVectorField = { 0, "intVectorValue", "std::vector<int>", 0, true, false, false };
+    Field<std::vector<int>*, false, false> intVectorPointerField = { 0, "intVectorPointerValue", "std::vector<int>*", 0, true, false, false };
+    Field<std::stack<int>, false, false> intStackField = { 0, "intStackValue", "std::stack<int>", 0, true, false, false };
+    Field<std::stack<int>*, false, false> intStackPointerField = { 0, "intStackPointerValue", "std::stack<int>*", 0, true, false, false };
 
     int timesVisited = 0;
     intField.ForPrimitivesConst(intValue, [&](auto primitive) {
@@ -292,13 +292,13 @@ TEST(AcceleratorsTest, ForObjects)
     objStackValue.push(objArrayValue[2]);
     std::stack<Obj>* objStackPointerValue = &objStackValue;
     
-    RfS::Field<Obj, true, false> objField = { 0, "objValue", "Obj", 0, false, false, true };
-    RfS::Field<ObjArray, true, false> objArrayField = { 0, "objArrayValue", "Obj[3]", arraySize, true, false, true };
-    RfS::Field<ObjArray*, true, false> objArrayPointerField = { 0, "objArrayPointerValue", "Obj[3]*", arraySize, true, false, true };
-    RfS::Field<std::vector<Obj>, true, false> objVectorField = { 0, "objVectorValue", "std::vector<Obj>", 0, true, false, true };
-    RfS::Field<std::vector<Obj>*, true, false> objVectorPointerField = { 0, "objVectorPointerValue", "std::vector<Obj>*", 0, true, false, true };
-    RfS::Field<std::stack<Obj>, false, false> objStackField = { 0, "objStackValue", "std::stack<Obj>", 0, true, false, true };
-    RfS::Field<std::stack<Obj>*, false, false> objStackPointerField = { 0, "objStackPointerValue", "std::stack<Obj>*", 0, true, false, true };
+    Field<Obj, true, false> objField = { 0, "objValue", "Obj", 0, false, false, true };
+    Field<ObjArray, true, false> objArrayField = { 0, "objArrayValue", "Obj[3]", arraySize, true, false, true };
+    Field<ObjArray*, true, false> objArrayPointerField = { 0, "objArrayPointerValue", "Obj[3]*", arraySize, true, false, true };
+    Field<std::vector<Obj>, true, false> objVectorField = { 0, "objVectorValue", "std::vector<Obj>", 0, true, false, true };
+    Field<std::vector<Obj>*, true, false> objVectorPointerField = { 0, "objVectorPointerValue", "std::vector<Obj>*", 0, true, false, true };
+    Field<std::stack<Obj>, false, false> objStackField = { 0, "objStackValue", "std::stack<Obj>", 0, true, false, true };
+    Field<std::stack<Obj>*, false, false> objStackPointerField = { 0, "objStackPointerValue", "std::stack<Obj>*", 0, true, false, true };
 
     int timesVisited = 0;
     objField.ForObjects(objValue, [&](auto & object) {
@@ -383,13 +383,13 @@ TEST(AcceleratorsTest, ForObjectsConst)
     objStackValue.push(objArrayValue[2]);
     std::stack<Obj>* objStackPointerValue = &objStackValue;
     
-    RfS::Field<Obj, true, false> objField = { 0, "objValue", "Obj", 0, false, false, true };
-    RfS::Field<ObjArray, true, false> objArrayField = { 0, "objArrayValue", "Obj[3]", arraySize, true, false, true };
-    RfS::Field<ObjArray*, true, false> objArrayPointerField = { 0, "objArrayPointerValue", "Obj[3]*", arraySize, true, false, true };
-    RfS::Field<std::vector<Obj>, true, false> objVectorField = { 0, "objVectorValue", "std::vector<Obj>", 0, true, false, true };
-    RfS::Field<std::vector<Obj>*, true, false> objVectorPointerField = { 0, "objVectorPointerValue", "std::vector<Obj>*", 0, true, false, true };
-    RfS::Field<std::stack<Obj>, true, false> objStackField = { 0, "objStackValue", "std::stack<Obj>", 0, true, false, true };
-    RfS::Field<std::stack<Obj>*, true, false> objStackPointerField = { 0, "objStackPointerValue", "std::stack<Obj>*", 0, true, false, true };
+    Field<Obj, true, false> objField = { 0, "objValue", "Obj", 0, false, false, true };
+    Field<ObjArray, true, false> objArrayField = { 0, "objArrayValue", "Obj[3]", arraySize, true, false, true };
+    Field<ObjArray*, true, false> objArrayPointerField = { 0, "objArrayPointerValue", "Obj[3]*", arraySize, true, false, true };
+    Field<std::vector<Obj>, true, false> objVectorField = { 0, "objVectorValue", "std::vector<Obj>", 0, true, false, true };
+    Field<std::vector<Obj>*, true, false> objVectorPointerField = { 0, "objVectorPointerValue", "std::vector<Obj>*", 0, true, false, true };
+    Field<std::stack<Obj>, true, false> objStackField = { 0, "objStackValue", "std::stack<Obj>", 0, true, false, true };
+    Field<std::stack<Obj>*, true, false> objStackPointerField = { 0, "objStackPointerValue", "std::stack<Obj>*", 0, true, false, true };
 
     int timesVisited = 0;
     objField.ForObjectsConst(objValue, [&](auto & object) {
@@ -446,7 +446,7 @@ TEST(AcceleratorsTest, ForObjectsConst)
     EXPECT_EQ(3, timesVisited);
 
     timesVisited = 0;
-    const auto & stackUnderlyingContainer = RfS::get_underlying_container(objStackValue);
+    const auto & stackUnderlyingContainer = get_underlying_container(objStackValue);
     objStackField.ForObjectsConst((const std::stack<Obj> &)objStackValue, [&](auto index, const auto & object) {
         switch ( index ) {
             case 0: EXPECT_EQ(&(*(stackUnderlyingContainer.begin())), &object); break;
@@ -479,11 +479,11 @@ TEST(AcceleratorsTest, ForPrimitivePairs)
     std::map<int, float> intToFloatMapValue = { { 10, 10.1f }, { 20, 20.1f }, { 30, 30.1f } };
     std::map<int, float>* intToFloatMapPointerValue = &intToFloatMapValue;
     
-    RfS::Field<int, false, false> intField = { 0, "intValue", "int", 0, false, false, false };
-    RfS::Field<std::vector<std::pair<int, float>>, false, false> intToFloatVectorField = { 0, "intToFloatVectorValue", "std::vector<std::pair<int,float>>", 0, true, true, false };
-    RfS::Field<std::vector<std::pair<int, float>>*, false, false> intToFloatVectorPointerField = { 0, "intToFloatVectorPointerValue", "std::vector<std::pair<int,float>>*", 0, true, true, false };
-    RfS::Field<std::map<int, float>, false, false> intToFloatMapField = { 0, "intToFloatMapValue", "std::map<int,float>", 0, true, true, false };
-    RfS::Field<std::map<int, float>*, false, false> intToFloatMapPointerField = { 0, "intToFloatMapPointerValue", "std::map<int,float>*", 0, true, true, false };
+    Field<int, false, false> intField = { 0, "intValue", "int", 0, false, false, false };
+    Field<std::vector<std::pair<int, float>>, false, false> intToFloatVectorField = { 0, "intToFloatVectorValue", "std::vector<std::pair<int,float>>", 0, true, true, false };
+    Field<std::vector<std::pair<int, float>>*, false, false> intToFloatVectorPointerField = { 0, "intToFloatVectorPointerValue", "std::vector<std::pair<int,float>>*", 0, true, true, false };
+    Field<std::map<int, float>, false, false> intToFloatMapField = { 0, "intToFloatMapValue", "std::map<int,float>", 0, true, true, false };
+    Field<std::map<int, float>*, false, false> intToFloatMapPointerField = { 0, "intToFloatMapPointerValue", "std::map<int,float>*", 0, true, true, false };
 
     int timesVisited = 0;
     intField.ForPrimitivePairs(intValue, [&](auto index, auto first, auto second) {
@@ -548,11 +548,11 @@ TEST(AcceleratorsTest, ForObjectPairs)
     std::map<int, Obj> intToObjMapValue = { { 10, { 11, 10.1f } }, { 20, { 21, 20.1f } }, { 30, { 31, 30.1f } } };
     std::map<int, Obj>* intToObjMapPointerValue = &intToObjMapValue;
     
-    RfS::Field<Obj, true, false> objField = { 0, "objValue", "Obj", 0, false, false, true };
-    RfS::Field<std::vector<std::pair<int, Obj>>, true, false> objToFloatVectorField = { 0, "intToObjVectorValue", "std::vector<std::pair<int,Obj>>", 0, true, true, true };
-    RfS::Field<std::vector<std::pair<int, Obj>>*, true, false> objToFloatVectorPointerField = { 0, "intToObjVectorPointerValue", "std::vector<std::pair<int,Obj>>", 0, true, true, true };
-    RfS::Field<std::map<int, Obj>, true, false> objToFloatMapField = { 0, "intToObjMapValue", "std::map<int,Obj>", 0, true, true, true };
-    RfS::Field<std::map<int, Obj>*, true, false> objToFloatMapPointerField = { 0, "intToObjMapPointerValue", "std::map<int,Obj>", 0, true, true, true };
+    Field<Obj, true, false> objField = { 0, "objValue", "Obj", 0, false, false, true };
+    Field<std::vector<std::pair<int, Obj>>, true, false> objToFloatVectorField = { 0, "intToObjVectorValue", "std::vector<std::pair<int,Obj>>", 0, true, true, true };
+    Field<std::vector<std::pair<int, Obj>>*, true, false> objToFloatVectorPointerField = { 0, "intToObjVectorPointerValue", "std::vector<std::pair<int,Obj>>", 0, true, true, true };
+    Field<std::map<int, Obj>, true, false> objToFloatMapField = { 0, "intToObjMapValue", "std::map<int,Obj>", 0, true, true, true };
+    Field<std::map<int, Obj>*, true, false> objToFloatMapPointerField = { 0, "intToObjMapPointerValue", "std::map<int,Obj>", 0, true, true, true };
 
     int timesVisited = 0;
     objField.ForObjectPairs(objValue, [&](auto index, auto first, auto & second) {
@@ -627,13 +627,13 @@ TEST(AcceleratorsTest, ForPrimitivePointers)
     intPointerStackValue.push(&intArrayValue[2]);
     std::stack<int*>* intPointerStackPointerValue = &intPointerStackValue;
     
-    RfS::Field<int, false, false> intField = { 0, "intValue", "int", 0, false, false, false };
-    RfS::Field<IntPointerArray, false, false> intPointerArrayField = { 0, "intPointerArrayValue", "int*[3]", arraySize, true, false, true };
-    RfS::Field<IntPointerArray*, false, false> intPointerArrayPointerField = { 0, "intPointerArrayPointerValue", "int*[3]*", arraySize, true, false, true };
-    RfS::Field<std::vector<int*>, false, false> intPointerVectorField = { 0, "intPointerVectorValue", "std::vector<int*>", 0, true, false, true };
-    RfS::Field<std::vector<int*>*, false, false> intPointerVectorPointerField = { 0, "intPointerVectorPointerValue", "std::vector<int*>*", 0, true, false, true };
-    RfS::Field<std::stack<int*>, false, false> intPointerStackField = { 0, "intPointerStackValue", "std::stack<int*>", 0, true, false, false };
-    RfS::Field<std::stack<int*>*, false, false> intPointerStackPointerField = { 0, "intPointerStackPointerValue", "std::stack<int*>*", 0, true, false, false };
+    Field<int, false, false> intField = { 0, "intValue", "int", 0, false, false, false };
+    Field<IntPointerArray, false, false> intPointerArrayField = { 0, "intPointerArrayValue", "int*[3]", arraySize, true, false, true };
+    Field<IntPointerArray*, false, false> intPointerArrayPointerField = { 0, "intPointerArrayPointerValue", "int*[3]*", arraySize, true, false, true };
+    Field<std::vector<int*>, false, false> intPointerVectorField = { 0, "intPointerVectorValue", "std::vector<int*>", 0, true, false, true };
+    Field<std::vector<int*>*, false, false> intPointerVectorPointerField = { 0, "intPointerVectorPointerValue", "std::vector<int*>*", 0, true, false, true };
+    Field<std::stack<int*>, false, false> intPointerStackField = { 0, "intPointerStackValue", "std::stack<int*>", 0, true, false, false };
+    Field<std::stack<int*>*, false, false> intPointerStackPointerField = { 0, "intPointerStackPointerValue", "std::stack<int*>*", 0, true, false, false };
 
     int timesVisited = 0;
     intField.ForPrimitivePointers(intValue, [&](auto index, auto primitivePointer) {
@@ -720,13 +720,13 @@ TEST(AcceleratorsTest, ForPrimitivePointersConst)
     intPointerStackValue.push(&intArrayValue[2]);
     std::stack<int*>* intPointerStackPointerValue = &intPointerStackValue;
     
-    RfS::Field<int, false, false> intField = { 0, "intValue", "int", 0, false, false, false };
-    RfS::Field<IntPointerArray, false, false> intPointerArrayField = { 0, "intPointerArrayValue", "int*[3]", arraySize, true, false, true };
-    RfS::Field<IntPointerArray*, false, false> intPointerArrayPointerField = { 0, "intPointerArrayPointerValue", "int*[3]*", arraySize, true, false, true };
-    RfS::Field<std::vector<int*>, false, false> intPointerVectorField = { 0, "intPointerVectorValue", "std::vector<int*>", 0, true, false, true };
-    RfS::Field<std::vector<int*>*, false, false> intPointerVectorPointerField = { 0, "intPointerVectorPointerValue", "std::vector<int*>*", 0, true, false, true };
-    RfS::Field<std::stack<int*>, false, false> intPointerStackField = { 0, "intPointerStackValue", "std::stack<int*>", 0, true, false, false };
-    RfS::Field<std::stack<int*>*, false, false> intPointerStackPointerField = { 0, "intPointerStackPointerValue", "std::stack<int*>*", 0, true, false, false };
+    Field<int, false, false> intField = { 0, "intValue", "int", 0, false, false, false };
+    Field<IntPointerArray, false, false> intPointerArrayField = { 0, "intPointerArrayValue", "int*[3]", arraySize, true, false, true };
+    Field<IntPointerArray*, false, false> intPointerArrayPointerField = { 0, "intPointerArrayPointerValue", "int*[3]*", arraySize, true, false, true };
+    Field<std::vector<int*>, false, false> intPointerVectorField = { 0, "intPointerVectorValue", "std::vector<int*>", 0, true, false, true };
+    Field<std::vector<int*>*, false, false> intPointerVectorPointerField = { 0, "intPointerVectorPointerValue", "std::vector<int*>*", 0, true, false, true };
+    Field<std::stack<int*>, false, false> intPointerStackField = { 0, "intPointerStackValue", "std::stack<int*>", 0, true, false, false };
+    Field<std::stack<int*>*, false, false> intPointerStackPointerField = { 0, "intPointerStackPointerValue", "std::stack<int*>*", 0, true, false, false };
 
     int timesVisited = 0;
     intField.ForPrimitivePointersConst(intValue, [&](auto index, auto primitivePointer) {
@@ -825,13 +825,13 @@ TEST(AcceleratorsTest, ForObjectPointers)
     objPointerStackValue.push(&objArrayValue[2]);
     std::stack<Obj*>* objPointerStackPointerValue = &objPointerStackValue;
     
-    RfS::Field<Obj, true, false> objField = { 0, "objValue", "Obj", 0, false, false, true };
-    RfS::Field<ObjPointerArray, true, false> objPointerArrayField = { 0, "objPointerArrayValue", "Obj*[3]", arraySize, true, false, true };
-    RfS::Field<ObjPointerArray*, true, false> objPointerArrayPointerField = { 0, "objPointerArrayPointerValue", "Obj*[3]*", arraySize, true, false, true };
-    RfS::Field<std::vector<Obj*>, true, false> objPointerVectorField = { 0, "objPointerVectorValue", "std::vector<Obj*>", 0, true, false, true };
-    RfS::Field<std::vector<Obj*>*, true, false> objPointerVectorPointerField = { 0, "objPointerVectorPointerValue", "std::vector<Obj*>", 0, true, false, true };
-    RfS::Field<std::stack<Obj*>, false, false> objPointerStackField = { 0, "objPointerStackValue", "std::stack<Obj*>", 0, true, false, true };
-    RfS::Field<std::stack<Obj*>*, false, false> objPointerStackPointerField = { 0, "objPointerStackPointerValue", "std::stack<Obj*>*", 0, true, false, true };
+    Field<Obj, true, false> objField = { 0, "objValue", "Obj", 0, false, false, true };
+    Field<ObjPointerArray, true, false> objPointerArrayField = { 0, "objPointerArrayValue", "Obj*[3]", arraySize, true, false, true };
+    Field<ObjPointerArray*, true, false> objPointerArrayPointerField = { 0, "objPointerArrayPointerValue", "Obj*[3]*", arraySize, true, false, true };
+    Field<std::vector<Obj*>, true, false> objPointerVectorField = { 0, "objPointerVectorValue", "std::vector<Obj*>", 0, true, false, true };
+    Field<std::vector<Obj*>*, true, false> objPointerVectorPointerField = { 0, "objPointerVectorPointerValue", "std::vector<Obj*>", 0, true, false, true };
+    Field<std::stack<Obj*>, false, false> objPointerStackField = { 0, "objPointerStackValue", "std::stack<Obj*>", 0, true, false, true };
+    Field<std::stack<Obj*>*, false, false> objPointerStackPointerField = { 0, "objPointerStackPointerValue", "std::stack<Obj*>*", 0, true, false, true };
 
     int timesVisited = 0;
     objField.ForObjectPointers(objValue, [&](auto index, auto & objectPointer) {
@@ -918,13 +918,13 @@ TEST(AcceleratorsTest, ForObjectPointersConst)
     objPointerStackValue.push(&objArrayValue[2]);
     std::stack<Obj*>* objPointerStackPointerValue = &objPointerStackValue;
     
-    RfS::Field<Obj, true, false> objField = { 0, "objValue", "Obj", 0, false, false, true };
-    RfS::Field<ObjPointerArray, true, false> objPointerArrayField = { 0, "objPointerArrayValue", "Obj*[3]", arraySize, true, false, true };
-    RfS::Field<ObjPointerArray*, true, false> objPointerArrayPointerField = { 0, "objPointerArrayPointerValue", "Obj*[3]*", arraySize, true, false, true };
-    RfS::Field<std::vector<Obj*>, true, false> objPointerVectorField = { 0, "objPointerVectorValue", "std::vector<Obj*>", 0, true, false, true };
-    RfS::Field<std::vector<Obj*>*, true, false> objPointerVectorPointerField = { 0, "objPointerVectorPointerValue", "std::vector<Obj*>", 0, true, false, true };
-    RfS::Field<std::stack<Obj*>, false, false> objPointerStackField = { 0, "objPointerStackValue", "std::stack<Obj*>", 0, true, false, true };
-    RfS::Field<std::stack<Obj*>*, false, false> objPointerStackPointerField = { 0, "objPointerStackPointerValue", "std::stack<Obj*>*", 0, true, false, true };
+    Field<Obj, true, false> objField = { 0, "objValue", "Obj", 0, false, false, true };
+    Field<ObjPointerArray, true, false> objPointerArrayField = { 0, "objPointerArrayValue", "Obj*[3]", arraySize, true, false, true };
+    Field<ObjPointerArray*, true, false> objPointerArrayPointerField = { 0, "objPointerArrayPointerValue", "Obj*[3]*", arraySize, true, false, true };
+    Field<std::vector<Obj*>, true, false> objPointerVectorField = { 0, "objPointerVectorValue", "std::vector<Obj*>", 0, true, false, true };
+    Field<std::vector<Obj*>*, true, false> objPointerVectorPointerField = { 0, "objPointerVectorPointerValue", "std::vector<Obj*>", 0, true, false, true };
+    Field<std::stack<Obj*>, false, false> objPointerStackField = { 0, "objPointerStackValue", "std::stack<Obj*>", 0, true, false, true };
+    Field<std::stack<Obj*>*, false, false> objPointerStackPointerField = { 0, "objPointerStackPointerValue", "std::stack<Obj*>*", 0, true, false, true };
 
     int timesVisited = 0;
     objField.ForObjectPointers(objValue, [&](auto index, auto & objectPointer) {
@@ -1014,11 +1014,11 @@ TEST(AcceleratorsTest, ForPrimitivePointerPairs)
     std::map<int, float*> intToFloatPointerMapValue = { { 20, &floatValues[0] }, { 30, &floatValues[1] }, { 40, &floatValues[2] } };
     std::map<int, float*>* intToFloatPointerMapPointerValue = &intToFloatPointerMapValue;
     
-    RfS::Field<int, false, false> intField = { 0, "intValue", "int", 0, false, false, false };
-    RfS::Field<std::vector<std::pair<int, float*>>, false, false> intToFloatPointerVectorField = { 0, "intToFloatPointerVectorValue", "std::vector<std::pair<int,float*>>", 0, true, true, true };
-    RfS::Field<std::vector<std::pair<int, float*>>*, false, false> intToFloatPointerVectorPointerField = { 0, "intToFloatPointerVectorPointerValue", "std::vector<std::pair<int,float*>>*", 0, true, true, true };
-    RfS::Field<std::map<int, float*>, false, false> intToFloatPointerMapField = { 0, "intToFloatPointerMapValue", "std::map<int,float*>", 0, true, true, true };
-    RfS::Field<std::map<int, float*>*, false, false> intToFloatPointerMapPointerField = { 0, "intToFloatPointerMapPointerValue", "std::map<int,float*>*", 0, true, true, true };
+    Field<int, false, false> intField = { 0, "intValue", "int", 0, false, false, false };
+    Field<std::vector<std::pair<int, float*>>, false, false> intToFloatPointerVectorField = { 0, "intToFloatPointerVectorValue", "std::vector<std::pair<int,float*>>", 0, true, true, true };
+    Field<std::vector<std::pair<int, float*>>*, false, false> intToFloatPointerVectorPointerField = { 0, "intToFloatPointerVectorPointerValue", "std::vector<std::pair<int,float*>>*", 0, true, true, true };
+    Field<std::map<int, float*>, false, false> intToFloatPointerMapField = { 0, "intToFloatPointerMapValue", "std::map<int,float*>", 0, true, true, true };
+    Field<std::map<int, float*>*, false, false> intToFloatPointerMapPointerField = { 0, "intToFloatPointerMapPointerValue", "std::map<int,float*>*", 0, true, true, true };
 
     int timesVisited = 0;
     intField.ForPrimitivePointerPairs(intValue, [&](auto index, auto first, auto second) {
@@ -1084,11 +1084,11 @@ TEST(AcceleratorsTest, ForObjectPointerPairs)
     std::map<int, Obj*> intToObjPointerMapValue = { { 20, &objArrayValue[0] }, { 30, &objArrayValue[1] }, { 40, &objArrayValue[2] } };
     std::map<int, Obj*>* intToObjPointerMapPointerValue = &intToObjPointerMapValue;
     
-    RfS::Field<Obj, true, false> objField = { 0, "objValue", "Obj", 0, false, false, false };
-    RfS::Field<std::vector<std::pair<int, Obj*>>, true, false> objPointerToFloatVectorField = { 0, "intToObjPointerVectorValue", "std::vector<std::pair<int,Obj*>>", 0, true, true, true };
-    RfS::Field<std::vector<std::pair<int, Obj*>>*, true, false> objPointerToFloatVectorPointerField = { 0, "intToObjPointerVectorPointerValue", "std::vector<std::pair<int,Obj*>>", 0, true, true, true };
-    RfS::Field<std::map<int, Obj*>, true, false> objPointerToFloatMapField = { 0, "intToObjPointerMapValue", "std::map<int,Obj*>", 0, true, true, true };
-    RfS::Field<std::map<int, Obj*>*, true, false> objPointerToFloatMapPointerField = { 0, "intToObjPointerMapPointerValue", "std::map<int,Obj*>*", 0, true, true, true };
+    Field<Obj, true, false> objField = { 0, "objValue", "Obj", 0, false, false, false };
+    Field<std::vector<std::pair<int, Obj*>>, true, false> objPointerToFloatVectorField = { 0, "intToObjPointerVectorValue", "std::vector<std::pair<int,Obj*>>", 0, true, true, true };
+    Field<std::vector<std::pair<int, Obj*>>*, true, false> objPointerToFloatVectorPointerField = { 0, "intToObjPointerVectorPointerValue", "std::vector<std::pair<int,Obj*>>", 0, true, true, true };
+    Field<std::map<int, Obj*>, true, false> objPointerToFloatMapField = { 0, "intToObjPointerMapValue", "std::map<int,Obj*>", 0, true, true, true };
+    Field<std::map<int, Obj*>*, true, false> objPointerToFloatMapPointerField = { 0, "intToObjPointerMapPointerValue", "std::map<int,Obj*>*", 0, true, true, true };
 
     int timesVisited = 0;
     objField.ForObjectPointerPairs(objValue, [&](auto object) {

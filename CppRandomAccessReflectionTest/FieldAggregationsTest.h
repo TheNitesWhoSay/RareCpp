@@ -41,10 +41,10 @@ namespace FieldAggregations
     };
 
     template <typename T>
-    using PField = RfS::Field<T, false, false>;
+    using PField = Field<T, false, false, 0>;
 
     template <typename T>
-    using OField = RfS::Field<T, true, false>;
+    using OField = Field<T, true, false, 0>;
 
     /**
         Fields handled in distinct manners...
@@ -196,7 +196,7 @@ namespace FieldAggregations
 
     // Begin Pointers...
     // Pointer to iterable containing primitives (PP_)
-    using PP_Array = PField<IP_Array::type*>;
+    using PP_Array = PField<IP_Array::Type*>;
     using PP_StlArray = PField<std::array<int,2>*>;
     using PP_Vector = PField<std::vector<int>*>;
     using PP_Deque = PField<std::deque<int>*>;
@@ -211,7 +211,7 @@ namespace FieldAggregations
     using PP_UnorderedMultiSet = PField<std::unordered_multiset<int>*>;
     
     // Pointer to iterable containing primitive pointers (PPP_)
-    using PPP_Array = PField<IPP_Array::type*>;
+    using PPP_Array = PField<IPP_Array::Type*>;
     using PPP_StlArray = PField<std::array<int*,2>*>;
     using PPP_Vector = PField<std::vector<int*>*>;
     using PPP_Deque = PField<std::deque<int*>*>;
@@ -226,7 +226,7 @@ namespace FieldAggregations
     using PPP_UnorderedMultiSet = PField<std::unordered_multiset<int*>*>;
     
     // Pointer to iterable containing primitive pairs (PPA_)
-    using PPA_Array = PField<IPA_Array::type*>;
+    using PPA_Array = PField<IPA_Array::Type*>;
     using PPA_StlArray = PField<std::array<std::pair<int,int>, 2>*>;
     using PPA_Vector = PField<std::vector<std::pair<int,int>>*>;
     using PPA_Deque = PField<std::deque<std::pair<int,int>>*>;
@@ -240,7 +240,7 @@ namespace FieldAggregations
     using PPA_UnorderedMultimap = PField<std::unordered_multimap<short,int>*>;
 
     // Pointer to iterable containing primitive pointer pairs (PPPA_)
-    using PPPA_Array = PField<IPPA_Array::type*>;
+    using PPPA_Array = PField<IPPA_Array::Type*>;
     using PPPA_StlArray = PField<std::array<std::pair<int,int*>, 2>*>;
     using PPPA_Vector = PField<std::vector<std::pair<int,int*>>*>;
     using PPPA_Deque = PField<std::deque<std::pair<int,int*>>*>;
@@ -254,7 +254,7 @@ namespace FieldAggregations
     using PPPA_UnorderedMultimap = PField<std::unordered_multimap<short,int*>*>;
 
     // Pointer to iterable containing objects (PO_)
-    using PO_Array = OField<IO_Array::type*>;
+    using PO_Array = OField<IO_Array::Type*>;
     using PO_StlArray = OField<std::array<Obj,2>*>;
     using PO_Vector = OField<std::vector<Obj>*>;
     using PO_Deque = OField<std::deque<Obj>*>;
@@ -269,7 +269,7 @@ namespace FieldAggregations
     using PO_UnorderedMultiSet = OField<std::unordered_multiset<Obj, ObjHasher>*>;
     
     // Pointer to iterable containing object pointers (POP_)
-    using POP_Array = OField<IOP_Array::type*>;
+    using POP_Array = OField<IOP_Array::Type*>;
     using POP_StlArray = OField<std::array<Obj*,2>*>;
     using POP_Vector = OField<std::vector<Obj*>*>;
     using POP_Deque = OField<std::deque<Obj*>*>;
@@ -284,7 +284,7 @@ namespace FieldAggregations
     using POP_UnorderedMultiSet = OField<std::unordered_multiset<Obj*, ObjPointerHasher>*>;
     
     // Pointer to iterable containing object pairs (POA_)
-    using POA_Array = OField<IOA_Array::type*>;
+    using POA_Array = OField<IOA_Array::Type*>;
     using POA_StlArray = OField<std::array<std::pair<int,Obj>, 2>*>;
     using POA_Vector = OField<std::vector<std::pair<int,Obj>>*>;
     using POA_Deque = OField<std::deque<std::pair<int,Obj>>*>;
@@ -298,7 +298,7 @@ namespace FieldAggregations
     using POA_UnorderedMultimap = OField<std::unordered_multimap<short,Obj>*>;
 
     // Pointer to iterable containing object pointer pairs (POPA_)
-    using POPA_Array = OField<IOPA_Array::type*>;
+    using POPA_Array = OField<IOPA_Array::Type*>;
     using POPA_StlArray = OField<std::array<std::pair<int,Obj*>, 2>*>;
     using POPA_Vector = OField<std::vector<std::pair<int,Obj*>>*>;
     using POPA_Deque = OField<std::deque<std::pair<int,Obj*>>*>;

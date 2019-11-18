@@ -41,30 +41,6 @@
     <ClCompile Include="FieldAggregationsTest.cpp">
       <Filter>Source Files\FieldAggregationsTest</Filter>
     </ClCompile>
-    <ClCompile Include="FieldAggregationsTest_IO_IOP.cpp">
-      <Filter>Source Files\FieldAggregationsTest</Filter>
-    </ClCompile>
-    <ClCompile Include="FieldAggregationsTest_IOA_IOPA.cpp">
-      <Filter>Source Files\FieldAggregationsTest</Filter>
-    </ClCompile>
-    <ClCompile Include="FieldAggregationsTest_IP_IPP.cpp">
-      <Filter>Source Files\FieldAggregationsTest</Filter>
-    </ClCompile>
-    <ClCompile Include="FieldAggregationsTest_IPA_IPPA.cpp">
-      <Filter>Source Files\FieldAggregationsTest</Filter>
-    </ClCompile>
-    <ClCompile Include="FieldAggregationsTest_PO_POP.cpp">
-      <Filter>Source Files\FieldAggregationsTest</Filter>
-    </ClCompile>
-    <ClCompile Include="FieldAggregationsTest_POA_POPA.cpp">
-      <Filter>Source Files\FieldAggregationsTest</Filter>
-    </ClCompile>
-    <ClCompile Include="FieldAggregationsTest_PP_PPP.cpp">
-      <Filter>Source Files\FieldAggregationsTest</Filter>
-    </ClCompile>
-    <ClCompile Include="FieldAggregationsTest_PPA_PPPA.cpp">
-      <Filter>Source Files\FieldAggregationsTest</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="FieldAggregationsTest.h">
