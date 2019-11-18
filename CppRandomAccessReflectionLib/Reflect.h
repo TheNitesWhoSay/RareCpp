@@ -465,8 +465,8 @@ namespace Reflect
 
         using Type = T;
         
-        static constexpr bool IsReflected = Annotate<Annotations>::template Has<Reflected>;
         static constexpr size_t Index = FieldIndex;
+        static constexpr bool IsReflected = Annotate<Annotations>::template Has<Reflected>;
 
         template <typename Annotation>
         static constexpr bool HasAnnotation = Annotate<Annotations>::template Has<Annotation>;
