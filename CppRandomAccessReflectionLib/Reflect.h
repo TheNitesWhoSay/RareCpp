@@ -254,21 +254,9 @@ namespace ConstexprStr
     }
 };
 
-/// Contains the various type classes for declaring reflected fields and the definition for the REFLECT macro and non-generic supporting macros
+/// Contains support for working with reflected fields, the definition for the REFLECT macro and non-generic supporting macros
 namespace Reflect
 {
-    template <typename T>
-    struct type_to_str {
-        static constexpr auto get() {
-            return ConstexprStr::substr<ConstexprStr::length_between(__FUNCTION__, '<', '>')>(__FUNCTION__ + ConstexprStr::find(__FUNCTION__, '<') + 1);
-        }
-    };
-    
-    template <typename T>
-    std::string TypeToStr() {
-        return std::string(type_to_str<T>::get().value);
-    }
-
     template <typename T> struct pair_rhs { using type = T; };
     template <typename L, typename R> struct pair_rhs<std::pair<L, R>> { using type = typename R; };
     template <typename L, typename R> struct pair_rhs<const std::pair<L, R>> { using type = typename R; };
@@ -395,6 +383,18 @@ namespace Reflect
     { static constexpr bool value = true; };
     template <typename K, typename T, typename H, typename E, typename A> struct has_clear<std::unordered_multimap<K, T, H, E, A>>
     { static constexpr bool value = true; };
+
+    template <typename T>
+    struct type_to_str {
+        static constexpr auto get() {
+            return ConstexprStr::substr<ConstexprStr::length_between(__FUNCTION__, '<', '>')>(__FUNCTION__ + ConstexprStr::find(__FUNCTION__, '<') + 1);
+        }
+    };
+    
+    template <typename T>
+    std::string TypeToStr() {
+        return std::string(type_to_str<T>::get().value);
+    }
 
     template <class Adaptor>
     const typename Adaptor::container_type & get_underlying_container(const Adaptor & adaptor) {
