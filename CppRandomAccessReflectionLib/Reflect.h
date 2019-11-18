@@ -386,28 +386,6 @@ namespace Reflect
     template <typename K, typename T, typename H, typename E, typename A> struct element_type<std::unordered_multimap<K, T, H, E, A>>
     { using type = typename std::pair<K, T>; };
     
-    template <typename T> struct append_type { using type = void; };
-    template <typename T> struct append_type<const T> { using type = typename element_type<T>::type; };
-    template <typename T, size_t N> struct append_type<T[N]> { using type = typename T; };
-    template <typename T, size_t N> struct append_type<std::array<T, N>> { using type = typename T; };
-    template <typename T, typename A> struct append_type<std::vector<T, A>> { using type = typename T; };
-    template <typename T, typename A> struct append_type<std::deque<T, A>> { using type = typename T; };
-    template <typename T, typename A> struct append_type<std::list<T, A>> { using type = typename T; };
-    template <typename T, typename A> struct append_type<std::forward_list<T, A>> { using type = typename T; };
-    template <typename T, typename C> struct append_type<std::stack<T, C>> { using type = typename T; };
-    template <typename T, typename C> struct append_type<std::queue<T, C>> { using type = typename T; };
-    template <typename T, typename C, typename P> struct append_type<std::priority_queue<T, C, P>> { using type = typename T; };
-    template <typename K, typename C, typename A> struct append_type<std::set<K, C, A>> { using type = typename K; };
-    template <typename K, typename C, typename A> struct append_type<std::multiset<K, C, A>> { using type = typename K; };
-    template <typename K, typename H, typename E, typename A> struct append_type<std::unordered_set<K, H, E, A>> { using type = typename K; };
-    template <typename K, typename H, typename E, typename A> struct append_type<std::unordered_multiset<K, H, E, A>> { using type = typename K; };
-    template <typename K, typename T, typename C, typename A> struct append_type<std::map<K, T, C, A>> { using type = typename std::pair<K, T>; };
-    template <typename K, typename T, typename C, typename A> struct append_type<std::multimap<K, T, C, A>> { using type = typename std::pair<K, T>; };
-    template <typename K, typename T, typename H, typename E, typename A> struct append_type<std::unordered_map<K, T, H, E, A>>
-    { using type = typename std::pair<K, T>; };
-    template <typename K, typename T, typename H, typename E, typename A> struct append_type<std::unordered_multimap<K, T, H, E, A>>
-    { using type = typename std::pair<K, T>; };
-
     template <typename T> struct is_iterable { static constexpr bool value = !std::is_same<void, element_type<T>::type>::value; };
     
     template <typename T> struct is_pair { static constexpr bool value = false; };

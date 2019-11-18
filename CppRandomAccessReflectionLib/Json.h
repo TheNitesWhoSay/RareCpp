@@ -1311,7 +1311,7 @@ namespace Json {
                 Input<Element>::get(is, c, element);
             else if constexpr ( Field::IsString )
                 getString(is, c, element);
-            else if constexpr ( is_bool<typename remove_pointer<Element>::type>::value )
+            else if constexpr ( is_bool<Element>::value )
                 readBool<InArray>(is, c, element);
             else
                 is >> element;
@@ -1366,9 +1366,9 @@ namespace Json {
                     }
                     else // Appendable STL container
                     {
-                        typename append_type<Iterable>::type value;
+                        typename element_type<Iterable>::type value;
                         getValue<!ContainsPairs, Field>(is, c, value);
-                        append<Iterable, typename append_type<Iterable>::type>(iterable, value);
+                        append<Iterable, typename element_type<Iterable>::type>(iterable, value);
                     }
                 }
                 while ( Checked::get<ContainsPairs>(is, ',', '}', ']', "\",\" or object closing \"}\"", "\",\" or array closing \"]\"") );
