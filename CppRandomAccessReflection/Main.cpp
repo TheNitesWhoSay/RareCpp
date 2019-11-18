@@ -10,8 +10,6 @@ ENABLE_JSON_INPUT;
 using namespace Reflect;
 using u8 = uint8_t;
 
-std::string myStr("myStr");
-
 class FuelTank {
 public:
     FuelTank() : capacity(0.0f), currentLevel(0.0f) { tickMarks[0] = 0.0f; tickMarks[1] = 0.0f; }
