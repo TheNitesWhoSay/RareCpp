@@ -767,7 +767,7 @@ namespace Json {
             constexpr bool ContainsPairs = is_pair<Element>::value;
             
             size_t i=0;
-            os << NestedPrefix<!contains_pairs<Iterable>::value, ContainsPrimitives, IndentLevel+TotalParentIterables+2, indent>();
+            os << NestedPrefix<!ContainsPairs, ContainsPrimitives, IndentLevel+TotalParentIterables+2, indent>();
             if constexpr ( is_stl_iterable<Iterable>::value )
             {
                 for ( auto & element : iterable )
@@ -793,7 +793,7 @@ namespace Json {
                     putValue<TotalParentIterables+1, Field>(os, iterable[i]);
                 }
             }
-            os << NestedSuffix<!contains_pairs<Iterable>::value, ContainsPrimitives, IndentLevel+TotalParentIterables+1, indent>();
+            os << NestedSuffix<!ContainsPairs, ContainsPrimitives, IndentLevel+TotalParentIterables+1, indent>();
         }
         
         static constexpr std::ostream & put(std::ostream & os, const T & obj)
@@ -1348,10 +1348,10 @@ namespace Json {
         static constexpr void getIterable(std::istream & is, char & c, Iterable & iterable)
         {
             using Element = typename element_type<Iterable>::type;
-            constexpr bool containsPairs = contains_pairs<Iterable>::value;
+            constexpr bool ContainsPairs = is_pair<Element>::value;
             
-            Checked::get<containsPairs>(is, c, '{', "object opening \"{\"", '[', "array opening \"[\"");
-            if ( !Checked::tryGet<containsPairs>(is, '}', ']', "object closing \"}\" or field name opening \"", "array closing \"]\" or array element") )
+            Checked::get<ContainsPairs>(is, c, '{', "object opening \"{\"", '[', "array opening \"[\"");
+            if ( !Checked::tryGet<ContainsPairs>(is, '}', ']', "object closing \"}\" or field name opening \"", "array closing \"]\" or array element") )
             {
                 clear(iterable);
                 size_t i=0;
@@ -1362,16 +1362,16 @@ namespace Json {
                         if ( i >= static_array_size<Iterable>::value )
                             throw Exception("Array size exceeded!");
                         else
-                            getValue<!containsPairs, Field>(is, c, iterable[i++]);
+                            getValue<!ContainsPairs, Field>(is, c, iterable[i++]);
                     }
                     else // Appendable STL container
                     {
                         typename append_type<Iterable>::type value;
-                        getValue<!containsPairs, Field>(is, c, value);
+                        getValue<!ContainsPairs, Field>(is, c, value);
                         append<Iterable, typename append_type<Iterable>::type>(iterable, value);
                     }
                 }
-                while ( Checked::get<containsPairs>(is, ',', '}', ']', "\",\" or object closing \"}\"", "\",\" or array closing \"]\"") );
+                while ( Checked::get<ContainsPairs>(is, ',', '}', ']', "\",\" or object closing \"}\"", "\",\" or array closing \"]\"") );
             }
         }
 

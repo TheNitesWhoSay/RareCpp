@@ -418,37 +418,6 @@ namespace Reflect
     template <typename L, typename R> struct pair_rhs<std::pair<L, R>> { using type = typename R; };
     template <typename L, typename R> struct pair_rhs<const std::pair<L, R>> { using type = typename R; };
 
-    template <typename T> struct contains_pairs { static constexpr bool value = false; };
-    template <typename T> struct contains_pairs<const T> { static constexpr bool value = contains_pairs<T>::value; };
-    template <typename L, typename R, size_t N>
-    struct contains_pairs<std::pair<L, R>[N]> { static constexpr bool value = true; };
-    template <typename L, typename R, size_t N>
-    struct contains_pairs<std::array<std::pair<L, R>, N>> { static constexpr bool value = true; };
-    template <typename L, typename R, typename A>
-    struct contains_pairs<std::vector<std::pair<L, R>, A>> { static constexpr bool value = true; };
-    template <typename L, typename R, typename A>
-    struct contains_pairs<std::deque<std::pair<L, R>, A>> { static constexpr bool value = true; };
-    template <typename L, typename R, typename A>
-    struct contains_pairs<std::list<std::pair<L, R>, A>> { static constexpr bool value = true; };
-    template <typename L, typename R, typename A>
-    struct contains_pairs<std::forward_list<std::pair<L, R>, A>> { static constexpr bool value = true; };
-    template <typename L, typename R, typename C, typename A>
-    struct contains_pairs<std::set<std::pair<L, R>, C, A>> { static constexpr bool value = true; };
-    template <typename L, typename R, typename C, typename A>
-    struct contains_pairs<std::multiset<std::pair<L, R>, C, A>> { static constexpr bool value = true; };
-    template <typename L, typename R, typename H, typename E, typename A>
-    struct contains_pairs<std::unordered_set<std::pair<L, R>, H, E, A>> { static constexpr bool value = true; };
-    template <typename L, typename R, typename H, typename E, typename A>
-    struct contains_pairs<std::unordered_multiset<std::pair<L, R>, H, E, A>> { static constexpr bool value = true; };
-    template <typename K, typename T, typename C, typename A>
-    struct contains_pairs<std::map<K, T, C, A>> { static constexpr bool value = true; };
-    template <typename K, typename T, typename C, typename A>
-    struct contains_pairs<std::multimap<K, T, C, A>> { static constexpr bool value = true; };
-    template <typename K, typename T, typename H, typename E, typename A>
-    struct contains_pairs<std::unordered_map<K, T, H, E, A>> { static constexpr bool value = true; };
-    template <typename K, typename T, typename H, typename E, typename A>
-    struct contains_pairs<std::unordered_multimap<K, T, H, E, A>> { static constexpr bool value = true; };
-
     template <class Adaptor>
     const typename Adaptor::container_type & get_underlying_container(const Adaptor & adaptor) {
         struct AdaptorSubClass : Adaptor {
@@ -624,7 +593,7 @@ namespace Reflect
     static constexpr Field<Class::RHS(x), LHS(x)::Reflected, LHS(x)::IsString, IndexOf::RHS(x)> field = \
         { IndexOf::RHS(x), &NameStr.value[0], &TypeStr.value[0], std::extent<remove_pointer<RHS(x)>::type>::value, \
         is_stl_iterable<remove_pointer<RHS(x)>::type>::value || std::is_array<remove_pointer<RHS(x)>::type>::value || \
-        is_adaptor<remove_pointer<RHS(x)>::type>::value, contains_pairs<remove_pointer<RHS(x)>::type>::value, \
+        is_adaptor<remove_pointer<RHS(x)>::type>::value, is_pair<element_type<remove_pointer<RHS(x)>::type>::type>::value, \
         LHS(x)::Reflected, LHS(x)::IsString }; \
 };
 #define GET_FIELD(x) { Class::RHS(x)_::field.index, Class::RHS(x)_::field.name, Class::RHS(x)_::field.typeStr, Class::RHS(x)_::field.arraySize, \
