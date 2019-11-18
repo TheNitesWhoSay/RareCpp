@@ -412,12 +412,10 @@ namespace Reflect
     template <>
     class Field<void, false, false, 0> {
     public:
-        size_t index;
         const char* name;
         const char* typeStr;
         size_t arraySize;
         bool isIterable;
-        bool containsPairs;
         bool isReflected;
         bool isString;
     };
@@ -425,12 +423,10 @@ namespace Reflect
     template <typename T, bool FieldIsReflected, bool FieldIsString, size_t FieldIndex>
     class Field {
     public:
-        size_t index;
         const char* name;
         const char* typeStr;
         size_t arraySize;
         bool isIterable;
-        bool containsPairs;
         bool isReflected;
         bool isString;
 
@@ -569,13 +565,13 @@ namespace Reflect
     static constexpr auto NameStr = ConstexprStr::substr<ConstexprStr::length_after_last(#x, ' ')>(#x+ConstexprStr::find_last_of(#x, ' ')+1); \
     static constexpr auto TypeStr = type_to_str<RHS(x)>::get(); \
     static constexpr Field<Class::RHS(x), LHS(x)::Reflected, LHS(x)::IsString, IndexOf::RHS(x)> field = \
-        { IndexOf::RHS(x), &NameStr.value[0], &TypeStr.value[0], std::extent<remove_pointer<RHS(x)>::type>::value, \
+        { &NameStr.value[0], &TypeStr.value[0], std::extent<remove_pointer<RHS(x)>::type>::value, \
         is_stl_iterable<remove_pointer<RHS(x)>::type>::value || std::is_array<remove_pointer<RHS(x)>::type>::value || \
-        is_adaptor<remove_pointer<RHS(x)>::type>::value, is_pair<element_type<remove_pointer<RHS(x)>::type>::type>::value, \
+        is_adaptor<remove_pointer<RHS(x)>::type>::value, \
         LHS(x)::Reflected, LHS(x)::IsString }; \
 };
-#define GET_FIELD(x) { Class::RHS(x)_::field.index, Class::RHS(x)_::field.name, Class::RHS(x)_::field.typeStr, Class::RHS(x)_::field.arraySize, \
-    Class::RHS(x)_::field.isIterable, Class::RHS(x)_::field.containsPairs, Class::RHS(x)_::field.isReflected, Class::RHS(x)_::field.IsString },
+#define GET_FIELD(x) { Class::RHS(x)_::field.name, Class::RHS(x)_::field.typeStr, Class::RHS(x)_::field.arraySize, \
+    Class::RHS(x)_::field.isIterable, Class::RHS(x)_::field.isReflected, Class::RHS(x)_::field.IsString },
 #define USE_FIELD(x) function(RHS(x)_::field, object.RHS(x));
 #define USE_FIELD_AT(x) case IndexOf::RHS(x): function(RHS(x)_::field, object.RHS(x)); break;
 
