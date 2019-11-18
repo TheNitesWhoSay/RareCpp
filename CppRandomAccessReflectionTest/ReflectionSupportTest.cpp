@@ -237,16 +237,14 @@ TEST(ReflectionSupportTest, FieldSimple)
     size_t fieldArraySize = 0;
     bool fieldIsIterable = false;
     bool fieldIsReflected = false;
-    bool fieldIsString = false;
 
-    Field<> field = { fieldName, fieldTypeStr, fieldArraySize, fieldIsIterable, fieldIsReflected, fieldIsString };
+    Field<> field = { fieldName, fieldTypeStr, fieldArraySize, fieldIsIterable, fieldIsReflected };
     
     EXPECT_STREQ(fieldName, field.name);
     EXPECT_STREQ(fieldTypeStr, field.typeStr);
     EXPECT_EQ(fieldArraySize, field.arraySize);
     EXPECT_EQ(fieldIsIterable, field.isIterable);
     EXPECT_EQ(fieldIsReflected, field.isReflected);
-    EXPECT_EQ(fieldIsString, field.isString);
 }
 
 TEST(ReflectionSupportTest, FieldTemplated)
@@ -257,9 +255,8 @@ TEST(ReflectionSupportTest, FieldTemplated)
     size_t fieldArraySize = 0;
     bool fieldIsIterable = false;
     bool fieldIsReflected = false;
-    bool fieldIsString = false;
 
-    Field<int, false, false, fieldIndex> field = { fieldName, fieldTypeStr, fieldArraySize, fieldIsIterable, fieldIsReflected, fieldIsString };
+    Field<int, fieldIndex> field = { fieldName, fieldTypeStr, fieldArraySize, fieldIsIterable, fieldIsReflected };
     using IntField = decltype(field);
 
     EXPECT_STREQ(fieldName, field.name);
@@ -267,11 +264,9 @@ TEST(ReflectionSupportTest, FieldTemplated)
     EXPECT_EQ(fieldArraySize, field.arraySize);
     EXPECT_EQ(fieldIsIterable, field.isIterable);
     EXPECT_EQ(fieldIsReflected, field.isReflected);
-    EXPECT_EQ(fieldIsReflected, field.isString);
     
-    bool isEqual = std::is_same<int, Field<int, false, false>::Type>::value;
+    bool isEqual = std::is_same<int, IntField::Type>::value;
     EXPECT_TRUE(isEqual);
     EXPECT_FALSE(IntField::IsReflected);
-    EXPECT_FALSE(IntField::IsString);
     EXPECT_EQ(fieldIndex, IntField::Index);
 }

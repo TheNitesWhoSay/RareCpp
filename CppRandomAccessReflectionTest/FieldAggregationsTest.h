@@ -42,10 +42,10 @@ namespace FieldAggregations
     };
 
     template <typename T>
-    using PField = Field<T, false, false, 0>;
+    using PField = Field<T, 0>;
 
     template <typename T>
-    using OField = Field<T, true, false, 0>;
+    using OField = Field<T, 0, Reflected>;
 
     /**
         Fields handled in distinct manners...

@@ -406,21 +406,55 @@ namespace Reflect
         return AdaptorSubClass::get(adaptor);
     }
     
-    template <typename T = void, bool FieldIsReflected = false, bool FieldIsString = false, size_t FieldIndex = 0>
+    template <typename T>
+    constexpr bool HasTypeRecursion() {
+        return false;
+    }
+        
+    template <typename T, typename CurrentType, typename... NextTypes>
+    constexpr bool HasTypeRecursion() {
+        if constexpr ( std::is_same<T, CurrentType>::value )
+            return true;
+        else
+            return HasTypeRecursion<T, NextTypes...>();
+    }
+
+    template <typename T, typename ... Ts>
+    struct HasType { static constexpr bool value = HasTypeRecursion<T, Ts...>(); };
+    
+    template <typename ... Ts>
+    struct Annotate {
+        using Annotations = Annotate<Ts...>;
+
+        template <typename T>
+        static constexpr bool Has = HasType<T, Ts...>::value;
+    };
+
+    template <typename ... Ts>
+    struct Annotate<Annotate<Ts ...>> {
+        using Annotations = Annotate<Ts...>;
+
+        template <typename T>
+        static constexpr bool Has = HasType<T, Ts...>::value;
+    };
+
+    // The "Reflected" annotation denotes whether a given field is a type that is also reflected
+    struct Reflected {};
+
+    template <typename T = void, size_t FieldIndex = 0, typename Annotations = Annotate<>>
     class Field;
     
     template <>
-    class Field<void, false, false, 0> {
+    class Field<void, 0, void> {
     public:
         const char* name;
         const char* typeStr;
         size_t arraySize;
         bool isIterable;
         bool isReflected;
-        bool isString;
     };
 
-    template <typename T, bool FieldIsReflected, bool FieldIsString, size_t FieldIndex>
+    template <typename T, size_t FieldIndex, typename Annotations>
     class Field {
     public:
         const char* name;
@@ -428,39 +462,22 @@ namespace Reflect
         size_t arraySize;
         bool isIterable;
         bool isReflected;
-        bool isString;
 
         using Type = T;
         
-        static constexpr bool IsReflected = FieldIsReflected;
-        static constexpr bool IsString = FieldIsString;
+        static constexpr bool IsReflected = Annotate<Annotations>::template Has<Reflected>;
         static constexpr size_t Index = FieldIndex;
+
+        template <typename Annotation>
+        static constexpr bool HasAnnotation = Annotate<Annotations>::template Has<Annotation>;
     };
 
-    /// B "basic-type": must be used for any type which already has an acceptable representation when streamed
-    struct B {
-        static constexpr bool Reflected = false;
-        static constexpr bool IsString = false;
-    };
-
-    /// S "string-type": must be used for any basic type which you wish to be interpreted as a string (e.g. quoted when streamed out)
-    struct S {
-        static constexpr bool Reflected = false;
-        static constexpr bool IsString = true;
-    };
-    
-    /// R "reflected-type": must be used for any object which in turn relies on reflection to be streamed
-    struct R {
-        static constexpr bool Reflected = true;
-        static constexpr bool IsString = false;
-    };
-
-    // I "inherit-from": used to denote a set of classes whose properties are being inherited by another reflected class
+    // Inherit "inherit-from": used to denote a set of classes whose properties are being inherited by another reflected class
     template <typename ... Ts>
-    class I;
+    struct Inherit;
 
     template <>
-    class I<> { public:
+    struct Inherit<> {
         
         static constexpr size_t TotalSupers = 0;
         
@@ -472,7 +489,7 @@ namespace Reflect
     };
 
     template <>
-    class I<I<>> { public:
+    struct Inherit<Inherit<>> {
         
         static constexpr size_t TotalSupers = 0;
 
@@ -484,7 +501,7 @@ namespace Reflect
     };
 
     template <typename T>
-    class I<T> { public:
+    struct Inherit<T> {
         
         static constexpr size_t TotalSupers = 1;
 
@@ -501,7 +518,7 @@ namespace Reflect
     };
 
     template <typename T>
-    class I<I<T>> { public:
+    struct Inherit<Inherit<T>> {
         
         static constexpr size_t TotalSupers = 1;
 
@@ -518,7 +535,7 @@ namespace Reflect
     };
 
     template <typename ... Ts>
-    class I<I<Ts ...>> { public:
+    struct Inherit<Inherit<Ts ...>> {
         
         static constexpr size_t TotalSupers = sizeof...(Ts);
 
@@ -564,14 +581,14 @@ namespace Reflect
 #define DESCRIBE_FIELD(x) struct RHS(x)_ { \
     static constexpr auto nameStr = ConstexprStr::substr<ConstexprStr::length_after_last(#x, ' ')>(#x+ConstexprStr::find_last_of(#x, ' ')+1); \
     static constexpr auto typeStr = type_to_str<RHS(x)>::get(); \
-    static constexpr Field<Class::RHS(x), LHS(x)::Reflected, LHS(x)::IsString, IndexOf::RHS(x)> field = \
+    static constexpr Field<Class::RHS(x), IndexOf::RHS(x), Annotate<LHS(x)>::Annotations> field = \
         { &nameStr.value[0], &typeStr.value[0], std::extent<remove_pointer<RHS(x)>::type>::value, \
         is_stl_iterable<remove_pointer<RHS(x)>::type>::value || std::is_array<remove_pointer<RHS(x)>::type>::value || \
         is_adaptor<remove_pointer<RHS(x)>::type>::value, \
-        LHS(x)::Reflected, LHS(x)::IsString }; \
+        Annotate<LHS(x)>::Annotations::template Has<Reflected>, }; \
 };
 #define GET_FIELD(x) { Class::RHS(x)_::field.name, Class::RHS(x)_::field.typeStr, Class::RHS(x)_::field.arraySize, \
-    Class::RHS(x)_::field.isIterable, Class::RHS(x)_::field.isReflected, Class::RHS(x)_::field.IsString },
+    Class::RHS(x)_::field.isIterable, Class::RHS(x)_::field.isReflected },
 #define USE_FIELD(x) function(RHS(x)_::field, object.RHS(x));
 #define USE_FIELD_AT(x) case IndexOf::RHS(x): function(RHS(x)_::field, object.RHS(x)); break;
 
@@ -592,7 +609,7 @@ class Class { public: \
     template <typename Function> static void FieldAt(RHS(objectType) & object, size_t fieldIndex, Function function) { \
         switch ( fieldIndex ) { FOR_EACH(USE_FIELD_AT, __VA_ARGS__) } } \
 }; \
-using Supers = I<LHS(objectType)>;
+using Supers = Inherit<LHS(objectType)>;
 
 }
 

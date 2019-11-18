@@ -26,7 +26,7 @@ public:
     float tickMarks[2];
     std::stack<int> testStack;
 
-    REFLECT(() FuelTank, (B) capacity, (B) currentLevel, (B) tickMarks, (B) testStack)
+    REFLECT(() FuelTank, () capacity, () currentLevel, () tickMarks, () testStack)
 };
 
 class Wheel {
@@ -43,7 +43,7 @@ public:
     int size;
     float pressure;
 
-    REFLECT(() Wheel, (B) rim, (B) size, (B) pressure)
+    REFLECT(() Wheel, () rim, () size, () pressure)
 };
 
 class CupHolder {
@@ -55,7 +55,7 @@ public:
     int height;
     bool occupied;
 
-    REFLECT(() CupHolder, (B) width, (B) height, (B) occupied)
+    REFLECT(() CupHolder, () width, () height, () occupied)
 };
 using CupHolderPtr = std::shared_ptr<CupHolder>;
 
@@ -89,7 +89,17 @@ public:
     
     using OccupantIdType = std::map<std::string, std::string>;
     using OccupantCupHolderUsageType = std::map<std::string, CupHolderPtr>;
-    REFLECT(() Car, (R) wheels, (S) occupants, (S) testNest, (S) testMapNest, (S) occupantId, (R) occupantCupHolderUsage, (R) cupHolders, (R) fuelTank, (B) milesPerGallon)
+    REFLECT(() Car,
+        (Reflected) wheels,
+        (Json::String) occupants,
+        (Json::String) testNest,
+        (Json::String) testMapNest,
+        (Json::String) occupantId,
+        (Reflected) occupantCupHolderUsage,
+        (Reflected) cupHolders,
+        (Reflected) fuelTank,
+        () milesPerGallon
+    )
 
 };
 
@@ -105,23 +115,23 @@ public:
     u8 f113; u8 f114; u8 f115; u8 f116; u8 f117; u8 f118; u8 f119; u8 f120; u8 f121; u8 f122; u8 f123; u8 f124;
 
     REFLECT(() MassiveObject,
-        (B) f001, (B) f002, (B) f003, (B) f004, (B) f005, (B) f006, (B) f007, (B) f008,
-        (B) f009, (B) f010, (B) f011, (B) f012, (B) f013, (B) f014, (B) f015, (B) f016,
-        (B) f017, (B) f018, (B) f019, (B) f020, (B) f021, (B) f022, (B) f023, (B) f024,
-        (B) f025, (B) f026, (B) f027, (B) f028, (B) f029, (B) f030, (B) f031, (B) f032,
-        (B) f033, (B) f034, (B) f035, (B) f036, (B) f037, (B) f038, (B) f039, (B) f040,
-        (B) f041, (B) f042, (B) f043, (B) f044, (B) f045, (B) f046, (B) f047, (B) f048,
-        (B) f049, (B) f050, (B) f051, (B) f052, (B) f053, (B) f054, (B) f055, (B) f056,
-        (B) f057, (B) f058, (B) f059, (B) f060, (B) f061, (B) f062, (B) f063, (B) f064,
-        (B) f065, (B) f066, (B) f067, (B) f068, (B) f069, (B) f070, (B) f071, (B) f072,
-        (B) f073, (B) f074, (B) f075, (B) f076, (B) f077, (B) f078, (B) f079, (B) f080,
-        (B) f081, (B) f082, (B) f083, (B) f084, (B) f085, (B) f086, (B) f087, (B) f088,
-        (B) f089, (B) f090, (B) f091, (B) f092, (B) f093, (B) f094, (B) f095, (B) f096,
-        (B) f097, (B) f098, (B) f099, (B) f100, (B) f101, (B) f102, (B) f103, (B) f104,
-        (B) f105, (B) f106, (B) f107, (B) f108, (B) f109, (B) f110, (B) f111, (B) f112,
-        (B) f113, (B) f114, (B) f115, (B) f116, (B) f117, (B) f118, (B) f119, (B) f120,
-        (B) f121, (B) f122, (B) f123
-        //,(B) f124 // This will cause an error "C1009 - compiler limit: macros nested too deeply"
+        () f001, () f002, () f003, () f004, () f005, () f006, () f007, () f008,
+        () f009, () f010, () f011, () f012, () f013, () f014, () f015, () f016,
+        () f017, () f018, () f019, () f020, () f021, () f022, () f023, () f024,
+        () f025, () f026, () f027, () f028, () f029, () f030, () f031, () f032,
+        () f033, () f034, () f035, () f036, () f037, () f038, () f039, () f040,
+        () f041, () f042, () f043, () f044, () f045, () f046, () f047, () f048,
+        () f049, () f050, () f051, () f052, () f053, () f054, () f055, () f056,
+        () f057, () f058, () f059, () f060, () f061, () f062, () f063, () f064,
+        () f065, () f066, () f067, () f068, () f069, () f070, () f071, () f072,
+        () f073, () f074, () f075, () f076, () f077, () f078, () f079, () f080,
+        () f081, () f082, () f083, () f084, () f085, () f086, () f087, () f088,
+        () f089, () f090, () f091, () f092, () f093, () f094, () f095, () f096,
+        () f097, () f098, () f099, () f100, () f101, () f102, () f103, () f104,
+        () f105, () f106, () f107, () f108, () f109, () f110, () f111, () f112,
+        () f113, () f114, () f115, () f116, () f117, () f118, () f119, () f120,
+        () f121, () f122, () f123
+        //,() f124 // This will cause an error "C1009 - compiler limit: macros nested too deeply"
     )
 };
 
@@ -130,7 +140,7 @@ class Super
 public:
     int val;
 
-    REFLECT(() Super, (B) val)
+    REFLECT(() Super, () val)
 };
 
 class OtherSuper
@@ -138,7 +148,7 @@ class OtherSuper
 public:
     int otherVal;
     
-    REFLECT(() OtherSuper, (B) otherVal)
+    REFLECT(() OtherSuper, () otherVal)
 };
 
 class SubTest : public Super, public OtherSuper
@@ -146,8 +156,8 @@ class SubTest : public Super, public OtherSuper
 public:
     int subVal;
     
-    using Inherit = I<Super, OtherSuper>;
-    REFLECT((Inherit) SubTest, (B) otherVal)
+    using Parents = Inherit<Super, OtherSuper>;
+    REFLECT((Parents) SubTest, () otherVal)
 };
 
 void outputExamples()
@@ -251,7 +261,7 @@ class SuperA {
 public:
     int superVal;
 
-    REFLECT(() SuperA, (B) superVal)
+    REFLECT(() SuperA, () superVal)
 };
 
 class SubA {
@@ -260,10 +270,10 @@ public:
 
     int subVal;
 
-    REFLECT(() SubA, (B) subVal)
+    REFLECT(() SubA, () subVal)
 };
 
-class A {
+class A : public SuperA {
 public:
     A() : first(0), second(0), ptr(nullptr), sub(), boolean(false), str("") { ray[0] = 0; ray[1] = 1; }
 
@@ -277,7 +287,7 @@ public:
     std::vector<std::vector<int>> vecVec;
     int ray[2];
 
-    REFLECT((SuperA) A, (R) sub, (B) first, (B) second, (B) ptr, (B) boolean, (S) str, (S) map, (B) vecVec, (B) ray)
+    REFLECT((SuperA) A, (Reflected) sub, () first, () second, () ptr, () boolean, (Json::String) str, (Json::String) map, () vecVec, () ray)
 };
 
 std::istream & operator >>(std::istream & is, A & a) {

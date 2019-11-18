@@ -30,47 +30,37 @@ TEST(ReflectTest, TypeToStr)
     EXPECT_TRUE(mapStr.find("map<int,int") != std::string::npos);
 }
 
-TEST(ReflectTest, BasicType)
-{
-    EXPECT_FALSE(Reflect::B::Reflected);
-}
-
-TEST(ReflectTest, ReflectedType)
-{
-    EXPECT_TRUE(Reflect::R::Reflected);
-}
-
 TEST(ReflectTest, InheritedType)
 {
-    using TwoArg = I<I<int, float>>;
-    using ThreeArg = I<I<int, float, char>>;
-    using FourArg = I<I<int, float, short, char>>;
+    using TwoArg = Inherit<Inherit<int, float>>;
+    using ThreeArg = Inherit<Inherit<int, float, char>>;
+    using FourArg = Inherit<Inherit<int, float, short, char>>;
 
-    EXPECT_EQ(0, I<>::TotalSupers);
-    EXPECT_EQ(0, I<I<>>::TotalSupers);
-    EXPECT_EQ(1, I<int>::TotalSupers);
-    EXPECT_EQ(1, I<I<int>>::TotalSupers);
+    EXPECT_EQ(0, Inherit<>::TotalSupers);
+    EXPECT_EQ(0, Inherit<Inherit<>>::TotalSupers);
+    EXPECT_EQ(1, Inherit<int>::TotalSupers);
+    EXPECT_EQ(1, Inherit<Inherit<int>>::TotalSupers);
     EXPECT_EQ(2, TwoArg::TotalSupers);
     EXPECT_EQ(3, ThreeArg::TotalSupers);
     EXPECT_EQ(4, FourArg::TotalSupers);
 
     int val = 0;
     bool visited = false;
-    I<>::ForEach(val, [&](auto index, auto superClass) { visited = true; });
+    Inherit<>::ForEach(val, [&](auto index, auto superClass) { visited = true; });
     EXPECT_FALSE(visited);
     visited = false;
-    I<>::At(val, 0, [&](auto superClass) { visited = true; });
+    Inherit<>::At(val, 0, [&](auto superClass) { visited = true; });
     EXPECT_FALSE(visited);
 
     visited = false;
-    I<I<>>::ForEach(val, [&](auto index, auto superClass) { visited = true; });
+    Inherit<Inherit<>>::ForEach(val, [&](auto index, auto superClass) { visited = true; });
     EXPECT_FALSE(visited);
     visited = false;
-    I<I<>>::At(val, 0, [&](auto superClass) { visited = true; });
+    Inherit<Inherit<>>::At(val, 0, [&](auto superClass) { visited = true; });
     EXPECT_FALSE(visited);
 
     size_t visitCount = 0;
-    I<int>::ForEach(val, [&](auto index, auto superClass) {
+    Inherit<int>::ForEach(val, [&](auto index, auto superClass) {
         EXPECT_EQ(0, index);
         bool isSame = std::is_same<int, decltype(superClass)>::value;
         EXPECT_TRUE(isSame);
@@ -78,18 +68,18 @@ TEST(ReflectTest, InheritedType)
     });
     EXPECT_EQ(1, visitCount);
     visited = false;
-    I<int>::At(val, 0, [&](auto superClass) {
+    Inherit<int>::At(val, 0, [&](auto superClass) {
         bool isSame = std::is_same<int, decltype(superClass)>::value;
         EXPECT_TRUE(isSame);
         visited = true;
     });
     EXPECT_TRUE(visited);
     visited = false;
-    I<int>::At(val, 1, [&](auto superClass) { visited = true; });
+    Inherit<int>::At(val, 1, [&](auto superClass) { visited = true; });
     EXPECT_FALSE(visited);
 
     visitCount = 0;
-    I<I<int>>::ForEach(val, [&](auto index, auto superClass) {
+    Inherit<Inherit<int>>::ForEach(val, [&](auto index, auto superClass) {
         EXPECT_EQ(0, index);
         bool isSame = std::is_same<int, decltype(superClass)>::value;
         EXPECT_TRUE(isSame);
@@ -97,14 +87,14 @@ TEST(ReflectTest, InheritedType)
     });
     EXPECT_EQ(1, visitCount);
     visited = false;
-    I<I<int>>::At(val, 0, [&](auto superClass) {
+    Inherit<Inherit<int>>::At(val, 0, [&](auto superClass) {
         bool isSame = std::is_same<int, decltype(superClass)>::value;
         EXPECT_TRUE(isSame);
         visited = true;
     });
     EXPECT_TRUE(visited);
     visited = false;
-    I<I<int>>::At(val, 1, [&](auto superClass) { visited = true; });
+    Inherit<Inherit<int>>::At(val, 1, [&](auto superClass) { visited = true; });
     EXPECT_FALSE(visited);
 
     visitCount = 0;
@@ -230,7 +220,7 @@ TEST(ReflectTest, RfMacroAliasType)
 
         class Class {
         public:
-            ALIAS_TYPE((B) myField);
+            ALIAS_TYPE(() myField);
         };
     };
 
@@ -248,7 +238,7 @@ TEST(ReflectTest, RfMacroGetFieldName)
         class Class {
         public:
             enum_t(IndexOf, size_t, {
-                FOR_EACH(GET_FIELD_NAME, (B) first, (B) second)
+                FOR_EACH(GET_FIELD_NAME, () first, () second)
             });
         };
     };
@@ -267,7 +257,7 @@ public:
         enum_t(IndexOf, size_t, { first, second });
         using first = int;
         using second = float;
-        FOR_EACH(DESCRIBE_FIELD, (B) first, (B) second)
+        FOR_EACH(DESCRIBE_FIELD, () first, () second)
     };
 };
 
@@ -285,7 +275,6 @@ TEST(ReflectTest, RfMacroDescribeField)
     EXPECT_EQ(0, DescribeFieldTest::Class::first_::field.arraySize);
     EXPECT_EQ(false, DescribeFieldTest::Class::first_::field.isIterable);
     EXPECT_EQ(false, DescribeFieldTest::Class::first_::field.isReflected);
-    EXPECT_EQ(false, DescribeFieldTest::Class::first_::field.isString);
 
 
     EXPECT_STREQ("second", DescribeFieldTest::Class::second_::nameStr.value);
@@ -300,7 +289,6 @@ TEST(ReflectTest, RfMacroDescribeField)
     EXPECT_EQ(0, DescribeFieldTest::Class::second_::field.arraySize);
     EXPECT_EQ(false, DescribeFieldTest::Class::second_::field.isIterable);
     EXPECT_EQ(false, DescribeFieldTest::Class::second_::field.isReflected);
-    EXPECT_EQ(false, DescribeFieldTest::Class::second_::field.isString);
 }
 
 class GetFieldTest {
@@ -310,11 +298,11 @@ public:
 
     class Class {
     public:
-        struct first_ { static constexpr Field<int, false, false> field = { "first", "int", 0, false, false, false }; };
-        struct second_ { static constexpr Field<float, false, false> field = { "second", "float", 0, false, false, false }; };
+        struct first_ { static constexpr Field<int> field = { "first", "int", 0, false, false }; };
+        struct second_ { static constexpr Field<float> field = { "second", "float", 0, false, false }; };
         static constexpr Field<> Fields[2] = {
-            GET_FIELD((B) first)
-            GET_FIELD((B) second)
+            GET_FIELD(() first)
+            GET_FIELD(() second)
         };
     };
 };
@@ -326,14 +314,12 @@ TEST(ReflectTest, RfMacroGetField)
     EXPECT_EQ(0, GetFieldTest::Class::Fields[0].arraySize);
     EXPECT_EQ(false, GetFieldTest::Class::Fields[0].isIterable);
     EXPECT_EQ(false, GetFieldTest::Class::Fields[0].isReflected);
-    EXPECT_EQ(false, GetFieldTest::Class::Fields[0].isString);
 
     EXPECT_STREQ("second", GetFieldTest::Class::Fields[1].name);
     EXPECT_STREQ("float", GetFieldTest::Class::Fields[1].typeStr);
     EXPECT_EQ(0, GetFieldTest::Class::Fields[1].arraySize);
     EXPECT_EQ(false, GetFieldTest::Class::Fields[1].isIterable);
     EXPECT_EQ(false, GetFieldTest::Class::Fields[1].isReflected);
-    EXPECT_EQ(false, GetFieldTest::Class::Fields[1].isString);
 }
 
 class UseFieldTest {
@@ -343,12 +329,12 @@ class UseFieldTest {
 
         class Class {
         public:
-            struct first_ { static constexpr Field<int, false, false, 0> field = { "first", "int", 0, false, false, false }; };
-            struct second_ { static constexpr Field<float, false, false, 1> field = { "second", "float", 0, false, false, false }; };
+            struct first_ { static constexpr Field<int, 0> field = { "first", "int", 0, false, false }; };
+            struct second_ { static constexpr Field<float, 1> field = { "second", "float", 0, false, false }; };
             template <typename Function>
             static void ForEachField(UseFieldTest & object, Function function) {
-                USE_FIELD((B) first)
-                USE_FIELD((B) second)
+                USE_FIELD(() first)
+                USE_FIELD(() second)
             }
         };
 };
@@ -369,7 +355,6 @@ TEST(ReflectTest, RfMacroUseField)
             EXPECT_EQ(0, field.arraySize);
             EXPECT_EQ(false, field.isIterable);
             EXPECT_EQ(false, field.isReflected);
-            EXPECT_EQ(false, field.isString);
             EXPECT_EQ(useFieldTest.first, value);
             break;
         case 1:
@@ -378,7 +363,6 @@ TEST(ReflectTest, RfMacroUseField)
             EXPECT_EQ(0, field.arraySize);
             EXPECT_EQ(false, field.isIterable);
             EXPECT_EQ(false, field.isReflected);
-            EXPECT_EQ(false, field.isString);
             EXPECT_EQ(useFieldTest.second, value);
             break;
         default: EXPECT_TRUE(false); break;
@@ -396,13 +380,13 @@ class UseFieldAtTest {
         class Class {
         public:
             enum_t(IndexOf, size_t, { first, second });
-            struct first_ { static constexpr Field<int, false, false> field = { "first", "int", 0, false, false, false }; };
-            struct second_ { static constexpr Field<float, false, false> field = { "second", "float", 0, false, false, false }; };
+            struct first_ { static constexpr Field<int> field = { "first", "int", 0, false, false }; };
+            struct second_ { static constexpr Field<float> field = { "second", "float", 0, false, false }; };
             template <typename Function>
             static void FieldAt(UseFieldAtTest & object, size_t fieldIndex, Function function) {
                 switch ( fieldIndex ) {
-                    USE_FIELD_AT((B) first)
-                    USE_FIELD_AT((B) second)
+                    USE_FIELD_AT(() first)
+                    USE_FIELD_AT(() second)
                 }
             }
         };
@@ -420,7 +404,6 @@ TEST(ReflectTest, RfMacroUseFieldAt)
         EXPECT_EQ(0, field.arraySize);
         EXPECT_EQ(false, field.isIterable);
         EXPECT_EQ(false, field.isReflected);
-        EXPECT_EQ(false, field.isString);
         EXPECT_EQ(useFieldTest.first, value);
         visited = true;
     });
@@ -433,7 +416,6 @@ TEST(ReflectTest, RfMacroUseFieldAt)
         EXPECT_EQ(0, field.arraySize);
         EXPECT_EQ(false, field.isIterable);
         EXPECT_EQ(false, field.isReflected);
-        EXPECT_EQ(false, field.isString);
         EXPECT_EQ(useFieldTest.second, value);
         visited = true;
     });
@@ -447,24 +429,24 @@ public:
 
     class Class {
     public:
-        static constexpr size_t totalFields = COUNT_ARGUMENTS((B) first, (B) second);
+        static constexpr size_t totalFields = COUNT_ARGUMENTS(() first, () second);
         enum_t(IndexOf, size_t, {
-            FOR_EACH(GET_FIELD_NAME, (B) first, (B) second)
+            FOR_EACH(GET_FIELD_NAME, () first, () second)
         });
-        FOR_EACH(ALIAS_TYPE, (B) first, (B) second)
-        FOR_EACH(DESCRIBE_FIELD, (B) first, (B) second)
+        FOR_EACH(ALIAS_TYPE, () first, () second)
+        FOR_EACH(DESCRIBE_FIELD, () first, () second)
         static constexpr Field<> Fields[totalFields] = {
-            FOR_EACH(GET_FIELD, (B) first, (B) second)
+            FOR_EACH(GET_FIELD, () first, () second)
         };
         template <typename Function> static void ForEachField(CumulativeMacroTest & object, Function function) {
-            FOR_EACH(USE_FIELD, (B) first, (B) second)
+            FOR_EACH(USE_FIELD, () first, () second)
         }
         template <typename Function> static void ForEachField(const CumulativeMacroTest & object, Function function) {
-            FOR_EACH(USE_FIELD, (B) first, (B) second)
+            FOR_EACH(USE_FIELD, () first, () second)
         }
         template <typename Function> static void FieldAt(CumulativeMacroTest & object, size_t fieldIndex, Function function) {
             switch ( fieldIndex ) {
-                FOR_EACH(USE_FIELD_AT, (B) first, (B) second)
+                FOR_EACH(USE_FIELD_AT, () first, () second)
             }
         }
     };
@@ -481,14 +463,14 @@ class ReflectSuperObj {
 public:
     int superVal;
 
-    REFLECT(() ReflectSuperObj, (B) superVal)
+    REFLECT(() ReflectSuperObj, () superVal)
 };
 
 class ReflectSubObj {
 public:
     int val;
 
-    REFLECT(() ReflectSubObj, (B) val)
+    REFLECT(() ReflectSubObj, () val)
 };
 
 class ReflectObj : public ReflectSuperObj {
@@ -500,7 +482,7 @@ public:
     std::vector<ReflectSubObj> objCollection;
     std::stack<int> stack;
 
-    REFLECT((ReflectSuperObj) ReflectObj, (B) primitive, (R) object, (B) primitiveArray, (B) map, (R) objCollection, (B) stack)
+    REFLECT((ReflectSuperObj) ReflectObj, () primitive, (Reflected) object, () primitiveArray, () map, (Reflected) objCollection, () stack)
 };
 
 TEST(ReflectTest, RfMacroReflect)
@@ -588,13 +570,6 @@ TEST(ReflectTest, RfMacroReflect)
     EXPECT_EQ(true, ReflectObj::Class::objCollection_::field.isReflected);
     EXPECT_EQ(false, ReflectObj::Class::stack_::field.isReflected);
     
-    EXPECT_EQ(false, ReflectObj::Class::primitive_::field.isString);
-    EXPECT_EQ(false, ReflectObj::Class::object_::field.isString);
-    EXPECT_EQ(false, ReflectObj::Class::primitiveArray_::field.isString);
-    EXPECT_EQ(false, ReflectObj::Class::map_::field.isString);
-    EXPECT_EQ(false, ReflectObj::Class::objCollection_::field.isString);
-    EXPECT_EQ(false, ReflectObj::Class::stack_::field.isString);
-    
     EXPECT_STREQ(ReflectObj::Class::primitive_::field.name, ReflectObj::Class::Fields[0].name);
     EXPECT_STREQ(ReflectObj::Class::object_::field.name, ReflectObj::Class::Fields[1].name);
     EXPECT_STREQ(ReflectObj::Class::primitiveArray_::field.name, ReflectObj::Class::Fields[2].name);
@@ -629,13 +604,6 @@ TEST(ReflectTest, RfMacroReflect)
     EXPECT_EQ(ReflectObj::Class::map_::field.isReflected, ReflectObj::Class::Fields[3].isReflected);
     EXPECT_EQ(ReflectObj::Class::objCollection_::field.isReflected, ReflectObj::Class::Fields[4].isReflected);
     EXPECT_EQ(ReflectObj::Class::stack_::field.isReflected, ReflectObj::Class::Fields[5].isReflected);
-    
-    EXPECT_EQ(ReflectObj::Class::primitive_::field.isString, ReflectObj::Class::Fields[0].isString);
-    EXPECT_EQ(ReflectObj::Class::object_::field.isString, ReflectObj::Class::Fields[1].isString);
-    EXPECT_EQ(ReflectObj::Class::primitiveArray_::field.isString, ReflectObj::Class::Fields[2].isString);
-    EXPECT_EQ(ReflectObj::Class::map_::field.isString, ReflectObj::Class::Fields[3].isString);
-    EXPECT_EQ(ReflectObj::Class::objCollection_::field.isString, ReflectObj::Class::Fields[4].isString);
-    EXPECT_EQ(ReflectObj::Class::stack_::field.isString, ReflectObj::Class::Fields[5].isString);
     
     ReflectSubObj reflectSubObj = { 20 };
     ReflectSubObj reflectSubObjZero = { 90 };

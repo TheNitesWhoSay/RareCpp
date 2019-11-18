@@ -79,7 +79,7 @@ namespace Json {
                     return "JSON Array";
                 else if constexpr ( Field::IsObject )
                     return "JSON Object";
-                else if ( Field::IsString )
+                else if constexpr ( Field::template HasAnnotation<Json::String> )
                     return "JSON String";
                 else
                     return "TODO: Implement more expectations";
@@ -735,7 +735,7 @@ namespace Json {
                     putIterable<TotalParentIterables, Field, Element>(os, *element);
                 else if constexpr ( Field::IsReflected )
                     Output<typename remove_pointer<Element>::type, IndentLevel+TotalParentIterables+1>::put(os, *element);
-                else if constexpr ( Field::IsString )
+                else if constexpr ( Field::template HasAnnotation<Json::String> )
                     putString(os, *element);
                 else
                     os << *element;
@@ -744,7 +744,7 @@ namespace Json {
                 putIterable<TotalParentIterables, Field, Element>(os, element);
             else if constexpr ( Field::IsReflected )
                 Output<Element, IndentLevel+TotalParentIterables+1>::put(os, element);
-            else if constexpr ( Field::IsString )
+            else if constexpr ( Field::template HasAnnotation<Json::String> )
                 putString(os, element);
             else
                 os << element;
@@ -1284,7 +1284,7 @@ namespace Json {
                     getIterable<Field, Element>(is, c, *element);
                 else if constexpr ( Field::IsReflected )
                     Input<typename remove_pointer<Element>::type>::get(is, c, *element);
-                else if constexpr ( Field::IsString )
+                else if constexpr ( Field::template HasAnnotation<Json::String> )
                     getString(is, *element);
                 else if constexpr ( is_bool<typename remove_pointer<Element>::type>::value )
                     readBool<InArray>(is, c, *element);
@@ -1295,7 +1295,7 @@ namespace Json {
                 getIterable<Field, Element>(is, c, element);
             else if constexpr ( Field::IsReflected )
                 Input<Element>::get(is, c, element);
-            else if constexpr ( Field::IsString )
+            else if constexpr ( Field::template HasAnnotation<Json::String> )
                 getString(is, c, element);
             else if constexpr ( is_bool<Element>::value )
                 readBool<InArray>(is, c, element);
