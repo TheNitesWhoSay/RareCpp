@@ -925,20 +925,6 @@ namespace Json {
                     get(is, c, secondaryDescription);
             }
 
-            static constexpr inline void get(std::istream & is, char & c, int expectedChar, const char* expectedDescription)
-            {
-                is >> c;
-                if ( !is.good() )
-                {
-                    if ( is.eof() )
-                        throw UnexpectedInputEnd(expectedDescription);
-                    else
-                        throw StreamReadFail();
-                }
-                else if ( c != expectedChar )
-                    throw Exception((std::string("Expected: ") + expectedDescription).c_str());
-            }
-
             template <bool usePrimary>
             static constexpr inline void get(std::istream & is, char & c, int expectedChar, const char* expectedDescription,
                 int secondaryChar, const char* secondaryDescription)
