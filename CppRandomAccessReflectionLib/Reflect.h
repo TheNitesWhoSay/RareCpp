@@ -278,6 +278,62 @@ namespace RfS
     
     template <typename T> struct is_bool { static constexpr bool value = std::is_same<bool, std::remove_const<T>::type>::value; };
     
+    template <typename T> struct is_static_array { static constexpr bool value = false; };
+    template <typename T> struct is_static_array<const T> { static constexpr bool value = is_static_array<T>::value; };
+    template <typename T, size_t N> struct is_static_array<T[N]> { static constexpr bool value = true; };
+    template <typename T, size_t N> struct is_static_array<std::array<T, N>> { static constexpr bool value = true; };
+
+    template <typename T> struct static_array_size { static constexpr size_t value = 0; };
+    template <typename T> struct static_array_size<const T> { static constexpr size_t value = static_array_size<T>::value; };
+    template <typename T, size_t N> struct static_array_size<T[N]> { static constexpr size_t value = N; };
+    template <typename T, size_t N> struct static_array_size<std::array<T, N>> { static constexpr size_t value = N; };
+
+    template <typename T> struct has_push_back { static constexpr bool value = false; };
+    template <typename T> struct has_push_back<const T> { static constexpr bool value = has_push_back<T>::value; };
+    template <typename T, typename A> struct has_push_back<std::vector<T, A>> { static constexpr bool value = true; };
+    template <typename T, typename A> struct has_push_back<std::deque<T, A>> { static constexpr bool value = true; };
+    template <typename T, typename A> struct has_push_back<std::list<T, A>> { static constexpr bool value = true; };
+
+    template <typename T> struct is_forward_list { static constexpr bool value = false; };
+    template <typename T, typename A> struct is_forward_list<std::forward_list<T, A>> { static constexpr bool value = true; };
+    template <typename T, typename A> struct is_forward_list<const std::forward_list<T, A>> { static constexpr bool value = true; };
+
+    template <typename T> struct has_push { static constexpr bool value = false; };
+    template <typename T> struct has_push<const T> { static constexpr bool value = has_push<T>::value; };
+    template <typename T, typename C> struct has_push<std::stack<T, C>> { static constexpr bool value = true; };
+    template <typename T, typename C> struct has_push<std::queue<T, C>> { static constexpr bool value = true; };
+    template <typename T, typename C, typename P> struct has_push<std::priority_queue<T, C, P>> { static constexpr bool value = true; };
+
+    template <typename T> struct has_insert { static constexpr bool value = false; };
+    template <typename T> struct has_insert<const T> { static constexpr bool value = has_insert<T>::value; };
+    template <typename K, typename C, typename A> struct has_insert<std::set<K, C, A>> { static constexpr bool value = true; };
+    template <typename K, typename C, typename A> struct has_insert<std::multiset<K, C, A>> { static constexpr bool value = true; };
+    template <typename K, typename H, typename E, typename A> struct has_insert<std::unordered_set<K, H, E, A>> { static constexpr bool value = true; };
+    template <typename K, typename H, typename E, typename A> struct has_insert<std::unordered_multiset<K, H, E, A>> { static constexpr bool value = true; };
+    template <typename K, typename T, typename C, typename A> struct has_insert<std::map<K, T, C, A>> { static constexpr bool value = true; };
+    template <typename K, typename T, typename C, typename A> struct has_insert<std::multimap<K, T, C, A>> { static constexpr bool value = true; };
+    template <typename K, typename T, typename H, typename E, typename A> struct has_insert<std::unordered_map<K, T, H, E, A>>
+    { static constexpr bool value = true; };
+    template <typename K, typename T, typename H, typename E, typename A> struct has_insert<std::unordered_multimap<K, T, H, E, A>>
+    { static constexpr bool value = true; };
+
+    template <typename T> struct has_clear { static constexpr bool value = false; };
+    template <typename T> struct has_clear<const T> { static constexpr bool value = has_clear<T>::value; };
+    template <typename T, typename A> struct has_clear<std::vector<T, A>> { static constexpr bool value = true; };
+    template <typename T, typename A> struct has_clear<std::deque<T, A>> { static constexpr bool value = true; };
+    template <typename T, typename A> struct has_clear<std::forward_list<T, A>> { static constexpr bool value = true; };
+    template <typename T, typename A> struct has_clear<std::list<T, A>> { static constexpr bool value = true; };
+    template <typename K, typename C, typename A> struct has_clear<std::set<K, C, A>> { static constexpr bool value = true; };
+    template <typename K, typename C, typename A> struct has_clear<std::multiset<K, C, A>> { static constexpr bool value = true; };
+    template <typename K, typename T, typename C, typename A> struct has_clear<std::map<K, T, C, A>> { static constexpr bool value = true; };
+    template <typename K, typename T, typename C, typename A> struct has_clear<std::multimap<K, T, C, A>> { static constexpr bool value = true; };
+    template <typename K, typename H, typename E, typename A> struct has_clear<std::unordered_set<K, H, E, A>> { static constexpr bool value = true; };
+    template <typename K, typename H, typename E, typename A> struct has_clear<std::unordered_multiset<K, H, E, A>> { static constexpr bool value = true; };
+    template <typename K, typename T, typename H, typename E, typename A> struct has_clear<std::unordered_map<K, T, H, E, A>>
+    { static constexpr bool value = true; };
+    template <typename K, typename T, typename H, typename E, typename A> struct has_clear<std::unordered_multimap<K, T, H, E, A>>
+    { static constexpr bool value = true; };
+
     template <typename T> struct is_pointable { static constexpr bool value = std::is_pointer<T>::value; };
     template <typename T> struct is_pointable<const T> { static constexpr bool value = is_pointable<T>::value; };
     template <typename T> struct is_pointable<std::unique_ptr<T>> { static constexpr bool value = true; };
@@ -442,6 +498,28 @@ namespace RfS
             typename if_not_void<nest_1, void
         >::type>::type>::type>::type>::type>::type>::type>::type>::type;
     };
+    
+    template <typename T> struct append_type { using type = void; };
+    template <typename T> struct append_type<const T> { using type = typename element_type<T>::type; };
+    template <typename T, size_t N> struct append_type<T[N]> { using type = typename T; };
+    template <typename T, size_t N> struct append_type<std::array<T, N>> { using type = typename T; };
+    template <typename T, typename A> struct append_type<std::vector<T, A>> { using type = typename T; };
+    template <typename T, typename A> struct append_type<std::deque<T, A>> { using type = typename T; };
+    template <typename T, typename A> struct append_type<std::forward_list<T, A>> { using type = typename T; };
+    template <typename T, typename A> struct append_type<std::list<T, A>> { using type = typename T; };
+    template <typename T, typename C> struct append_type<std::stack<T, C>> { using type = typename T; };
+    template <typename T, typename C> struct append_type<std::queue<T, C>> { using type = typename T; };
+    template <typename T, typename C, typename P> struct append_type<std::priority_queue<T, C, P>> { using type = typename T; };
+    template <typename K, typename C, typename A> struct append_type<std::set<K, C, A>> { using type = typename K; };
+    template <typename K, typename C, typename A> struct append_type<std::multiset<K, C, A>> { using type = typename K; };
+    template <typename K, typename T, typename C, typename A> struct append_type<std::map<K, T, C, A>> { using type = typename std::pair<K, T>; };
+    template <typename K, typename T, typename C, typename A> struct append_type<std::multimap<K, T, C, A>> { using type = typename std::pair<K, T>; };
+    template <typename K, typename H, typename E, typename A> struct append_type<std::unordered_set<K, H, E, A>> { using type = typename K; };
+    template <typename K, typename H, typename E, typename A> struct append_type<std::unordered_multiset<K, H, E, A>> { using type = typename K; };
+    template <typename K, typename T, typename H, typename E, typename A> struct append_type<std::unordered_map<K, T, H, E, A>>
+    { using type = typename std::pair<K, T>; };
+    template <typename K, typename T, typename H, typename E, typename A> struct append_type<std::unordered_multimap<K, T, H, E, A>>
+    { using type = typename std::pair<K, T>; };
 
     template <typename T> struct is_iterable { static constexpr bool value = !std::is_same<void, element_type<T>::type>::value; };
     
@@ -533,18 +611,7 @@ namespace RfS
         bool isString;
 
         static constexpr size_t Index = fieldIndex;
-        static constexpr size_t ArraySizes[maxNestedIterables] = {
-            std::extent<std::remove_pointer<T>::type>::value,
-            std::extent<std::remove_pointer<nested_element_type<T>::nest_1>::type>::value,
-            std::extent<std::remove_pointer<nested_element_type<T>::nest_2>::type>::value,
-            std::extent<std::remove_pointer<nested_element_type<T>::nest_3>::type>::value,
-            std::extent<std::remove_pointer<nested_element_type<T>::nest_4>::type>::value,
-            std::extent<std::remove_pointer<nested_element_type<T>::nest_5>::type>::value,
-            std::extent<std::remove_pointer<nested_element_type<T>::nest_6>::type>::value,
-            std::extent<std::remove_pointer<nested_element_type<T>::nest_7>::type>::value,
-            std::extent<std::remove_pointer<nested_element_type<T>::nest_8>::type>::value,
-            std::extent<std::remove_pointer<nested_element_type<T>::nest_9>::type>::value,
-        };
+        static constexpr size_t ArraySize = std::extent<std::remove_pointer<T>::type>::value;
         static constexpr bool IsReflected = fieldIsReflected;
         static constexpr bool IsBool = is_bool<T>::value;
         static constexpr bool IsString = fieldIsString;
@@ -909,6 +976,13 @@ namespace RfS
 namespace Reflect
 {
     using RfS::if_void;
+    using RfS::is_static_array;
+    using RfS::static_array_size;
+    using RfS::has_push_back;
+    using RfS::is_forward_list;
+    using RfS::has_push;
+    using RfS::has_insert;
+    using RfS::has_clear;
     using RfS::is_bool;
     using RfS::is_pointable;
     using RfS::remove_pointer;
@@ -917,6 +991,7 @@ namespace Reflect
     using RfS::contains_pointables;
     using RfS::element_type;
     using RfS::nested_element_type;
+    using RfS::append_type;
     using RfS::is_iterable;
     using RfS::key_type;
     using RfS::contains_pairs;

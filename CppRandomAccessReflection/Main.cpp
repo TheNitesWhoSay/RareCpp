@@ -265,7 +265,7 @@ public:
 
 class A {
 public:
-    A() : first(0), second(0), ptr(nullptr), sub(), boolean(false), str("") {}
+    A() : first(0), second(0), ptr(nullptr), sub(), boolean(false), str("") { ray[0] = 0; ray[1] = 1; }
 
     int first;
     int second;
@@ -274,9 +274,10 @@ public:
     bool boolean;
     std::string str;
     std::map<std::string, std::string> map;
+    std::vector<std::vector<int>> vecVec;
     int ray[2];
 
-    REFLECT((SuperA) A, (R) sub, (B) first, (B) second, (B) ptr, (B) boolean, (S) str, (S) map, (B) ray)
+    REFLECT((SuperA) A, (R) sub, (B) first, (B) second, (B) ptr, (B) boolean, (S) str, (S) map, (B) vecVec, (B) ray)
 };
 
 std::istream & operator >>(std::istream & is, A & a) {
