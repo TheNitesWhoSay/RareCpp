@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <utility>
 #include <type_traits>
+using namespace Reflect;
 
 struct Obj
 {
