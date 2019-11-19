@@ -1,5 +1,5 @@
 # CppRandomAccessReflection
-Creating a simpler, more intuitive means of C++ reflection
+Creating a simpler, more intuitive means of C++ reflection.
 
 
 
