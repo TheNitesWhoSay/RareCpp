@@ -83,8 +83,6 @@ public:
     FuelTank fuelTank;
     float milesPerGallon;
     
-    using OccupantIdType = std::map<std::string, std::string>;
-    using OccupantCupHolderUsageType = std::map<std::string, CupHolderPtr>;
     REFLECT(() Car,
         (Reflected) wheels,
         (Json::String) occupants,
@@ -96,7 +94,6 @@ public:
         (Reflected) fuelTank,
         () milesPerGallon
     )
-
 };
 
 class MassiveObject {
@@ -156,7 +153,7 @@ public:
     REFLECT((Parents) SubTest, () otherVal)
 };
 
-void outputExamples()
+Car outputExamples()
 {
     for ( size_t i=1; i<=MassiveObject::Class::TotalFields; i++ )
     {
@@ -254,7 +251,7 @@ void outputExamples()
             std::cout << "(fuelTankPrimitiveArray) " << field.name << ": " << value << std::endl;
     });
 
-    std::cout << Json::out(car) << std::endl;
+    return car;
 }
 
 class SuperA {
@@ -298,7 +295,8 @@ std::istream & operator >>(std::istream & is, A & a) {
 
 int main()
 {
-    outputExamples();
+    Car car = outputExamples();
+    std::cout << Json::out(car) << std::endl;
 
     A a;
     a.ptr = nullptr;
