@@ -158,7 +158,7 @@
     <ClCompile Include="ConstexprStrTest.cpp" />
     <ClCompile Include="FieldAggregationsTest.cpp" />
     <ClCompile Include="ReflectTest.cpp" />
-    <ClCompile Include="ReflectionSupportTest.cpp" />
+    <ClCompile Include="ExtendedTypeSupportTest.cpp" />
     <ClCompile Include="TestMain.cpp" />
     <ClCompile Include="JsonTest.cpp" />
     <ClCompile Include="GenericMacroTest.cpp" />

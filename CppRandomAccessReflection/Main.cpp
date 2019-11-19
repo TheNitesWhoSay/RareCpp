@@ -4,11 +4,11 @@
 #include <typeinfo>
 #include <algorithm>
 #include <memory>
+using namespace Reflect;
+using u8 = uint8_t;
 
 ENABLE_JSON_INPUT;
 
-using namespace Reflect;
-using u8 = uint8_t;
 
 class FuelTank {
 public:
@@ -178,7 +178,7 @@ void outputExamples()
     
     SubTest::Supers::ForEach(sub, [&](size_t index, auto & superObj) {
         using Super = typename std::remove_reference<decltype(superObj)>::type;
-        std::cout << index << ": " << TypeToStr<Super>() << " {" << std::endl;
+        std::cout << index << ": " << ExtendedTypeSupport::TypeToStr<Super>() << " {" << std::endl;
         Super::Class::ForEachField(superObj, [&](auto & field, auto & value) {
             std::cout << "  " << field.name << ": " << value << std::endl;
         });
@@ -227,12 +227,13 @@ void outputExamples()
     });
 
     Car::Class::ForEachField(car, [&](auto & field, auto & value) {
+        using Field = std::remove_reference<decltype(field)>::type;
         using Type = std::remove_reference<decltype(value)>::type;
-        if constexpr ( !is_iterable<Type>::value && !field.IsReflected )
+        if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !Field::template HasAnnotation<Reflect::Reflected> )
             std::cout << "(carPrimitive) " << field.name << ": " << value << std::endl;
-        else if constexpr ( !is_iterable<Type>::value && !field.IsReflected )
+        else if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !Field::template HasAnnotation<Reflect::Reflected> )
             std::cout << "(carObject) " << field.name << ": " << "[Skipped, this would be a good place for recursion!]" << std::endl;
-        else if constexpr ( !is_iterable<Type>::value && !field.IsReflected )
+        else if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !Field::template HasAnnotation<Reflect::Reflected> )
             std::cout << "(carObjectArray) " << field.name << ": " << "[Skipped, this would be a good place for recursion!]" << std::endl;
     });
 
@@ -247,10 +248,11 @@ void outputExamples()
     });
 
     FuelTank::Class::ForEachField(fuelTank, [&](auto & field, auto & value) {
+        using Field = std::remove_reference<decltype(field)>::type;
         using Type = std::remove_reference<decltype(value)>::type;
-        if constexpr ( !is_iterable<Type>::value && !field.IsReflected )
+        if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !Field::template HasAnnotation<Reflect::Reflected> )
             std::cout << "(fuelTankPrimitive) " << field.name << ": " << value << std::endl;
-        else if constexpr ( is_static_array<decltype(value)>::value && !field.IsReflected )
+        else if constexpr ( ExtendedTypeSupport::is_static_array<decltype(value)>::value && !Field::template HasAnnotation<Reflect::Reflected> )
             std::cout << "(fuelTankPrimitiveArray) " << field.name << ": " << value << std::endl;
     });
 

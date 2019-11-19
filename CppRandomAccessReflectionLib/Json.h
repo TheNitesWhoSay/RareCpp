@@ -6,7 +6,6 @@
 #include <typeindex>
 #include <functional>
 #include "Reflect.h"
-using namespace Reflect;
 
 namespace Json {
     
@@ -589,7 +588,7 @@ namespace Json {
         template <typename T>
         std::string superTypeToJsonFieldName()
         {
-            return std::string("__") + simplifyTypeStr(TypeToStr<T>());
+            return std::string("__") + simplifyTypeStr(ExtendedTypeSupport::TypeToStr<T>());
         }
 
         template <typename T>
@@ -727,22 +726,22 @@ namespace Json {
         template <size_t TotalParentIterables, typename Field, typename Element>
         static constexpr void putValue(std::ostream & os, const Element & element)
         {
-            if constexpr ( is_pointable<Element>::value )
+            if constexpr ( ExtendedTypeSupport::is_pointable<Element>::value )
             {
                 if ( element == nullptr )
                     os << "null";
-                else if constexpr ( is_iterable<Element>::value )
+                else if constexpr ( ExtendedTypeSupport::is_iterable<Element>::value )
                     putIterable<TotalParentIterables, Field, Element>(os, *element);
-                else if constexpr ( Field::IsReflected )
-                    Output<typename remove_pointer<Element>::type, IndentLevel+TotalParentIterables+1>::put(os, *element);
+                else if constexpr ( Field::template HasAnnotation<Reflect::Reflected> )
+                    Output<typename ExtendedTypeSupport::remove_pointer<Element>::type, IndentLevel+TotalParentIterables+1>::put(os, *element);
                 else if constexpr ( Field::template HasAnnotation<Json::String> )
                     putString(os, *element);
                 else
                     os << *element;
             }
-            else if constexpr ( is_iterable<Element>::value )
+            else if constexpr ( ExtendedTypeSupport::is_iterable<Element>::value )
                 putIterable<TotalParentIterables, Field, Element>(os, element);
-            else if constexpr ( Field::IsReflected )
+            else if constexpr ( Field::template HasAnnotation<Reflect::Reflected> )
                 Output<Element, IndentLevel+TotalParentIterables+1>::put(os, element);
             else if constexpr ( Field::template HasAnnotation<Json::String> )
                 putString(os, element);
@@ -761,14 +760,14 @@ namespace Json {
         template <size_t TotalParentIterables, typename Field, typename Iterable>
         static constexpr void putIterable(std::ostream & os, const Iterable & iterable)
         {
-            using Element = typename element_type<Iterable>::type;
-            constexpr bool ContainsIterables = is_iterable<typename pair_rhs<Element>::type>::value;
-            constexpr bool ContainsPrimitives = !Field::IsReflected && !ContainsIterables;
-            constexpr bool ContainsPairs = is_pair<Element>::value;
+            using Element = typename ExtendedTypeSupport::element_type<Iterable>::type;
+            constexpr bool ContainsIterables = ExtendedTypeSupport::is_iterable<typename ExtendedTypeSupport::pair_rhs<Element>::type>::value;
+            constexpr bool ContainsPrimitives = !Field::template HasAnnotation<Reflect::Reflected> && !ContainsIterables;
+            constexpr bool ContainsPairs = ExtendedTypeSupport::is_pair<Element>::value;
             
             size_t i=0;
             os << NestedPrefix<!ContainsPairs, ContainsPrimitives, IndentLevel+TotalParentIterables+2, indent>();
-            if constexpr ( is_stl_iterable<Iterable>::value )
+            if constexpr ( ExtendedTypeSupport::is_stl_iterable<Iterable>::value )
             {
                 for ( auto & element : iterable )
                 {
@@ -776,9 +775,9 @@ namespace Json {
                     putValue<TotalParentIterables+1, Field>(os, element);
                 }
             }
-            else if constexpr ( is_adaptor<Iterable>::value )
+            else if constexpr ( ExtendedTypeSupport::is_adaptor<Iterable>::value )
             {
-                const auto & sequenceContainer = get_underlying_container(iterable);
+                const auto & sequenceContainer = ExtendedTypeSupport::get_underlying_container(iterable);
                 for ( auto it = sequenceContainer.begin(); it != sequenceContainer.end(); ++it )
                 {
                     os << Separator<ContainsPairs, ContainsIterables, IndentLevel+TotalParentIterables+2, indent>(0 == i++);
@@ -981,9 +980,9 @@ namespace Json {
         template <typename Iterable>
         static constexpr void clear(Iterable & iterable)
         {
-            if constexpr ( has_clear<Iterable>::value )
+            if constexpr ( ExtendedTypeSupport::has_clear<Iterable>::value )
                 iterable.clear();
-            else if constexpr ( is_adaptor<Iterable>::value )
+            else if constexpr ( ExtendedTypeSupport::is_adaptor<Iterable>::value )
             {
                 while ( !iterable.empty() )
                     iterable.pop();
@@ -993,13 +992,13 @@ namespace Json {
         template <typename Iterable, typename Element>
         static constexpr void append(Iterable & iterable, Element & element)
         {
-            if constexpr ( has_push_back<Iterable>::value )
+            if constexpr ( ExtendedTypeSupport::has_push_back<Iterable>::value )
                 iterable.push_back(element);
-            else if constexpr ( is_forward_list<Iterable>::value )
+            else if constexpr ( ExtendedTypeSupport::is_forward_list<Iterable>::value )
                 iterable.insert_after(--iterable.end(), element);
-            else if constexpr ( has_push<Iterable>::value )
+            else if constexpr ( ExtendedTypeSupport::has_push<Iterable>::value )
                 iterable.push(element);
-            else if constexpr ( has_insert<Iterable>::value )
+            else if constexpr ( ExtendedTypeSupport::has_insert<Iterable>::value )
                 iterable.insert(element);
         }
 
@@ -1274,30 +1273,30 @@ namespace Json {
         template <bool InArray, typename Field, typename Element>
         static constexpr void getValue(std::istream & is, char & c, Element & element)
         {
-            if constexpr ( is_pointable<Element>::value )
+            if constexpr ( ExtendedTypeSupport::is_pointable<Element>::value )
             {
                 if ( element == nullptr ) // If element pointer is nullptr the only valid value is "null"
                     readNull<InArray>(is, c);
                 else if ( tryReadNull<InArray>(is, c) ) // If element pointer is not nullptr, "null" is a possible value
                     element = nullptr;
-                else if constexpr ( is_iterable<Element>::value )
+                else if constexpr ( ExtendedTypeSupport::is_iterable<Element>::value )
                     getIterable<Field, Element>(is, c, *element);
-                else if constexpr ( Field::IsReflected )
+                else if constexpr ( Field::template HasAnnotation<Reflect::Reflected> )
                     Input<typename remove_pointer<Element>::type>::get(is, c, *element);
                 else if constexpr ( Field::template HasAnnotation<Json::String> )
                     getString(is, *element);
-                else if constexpr ( is_bool<typename remove_pointer<Element>::type>::value )
+                else if constexpr ( ExtendedTypeSupport::is_bool<typename ExtendedTypeSupport::remove_pointer<Element>::type>::value )
                     readBool<InArray>(is, c, *element);
                 else
                     is >> *element;
             }
-            else if constexpr ( is_iterable<Element>::value )
+            else if constexpr ( ExtendedTypeSupport::is_iterable<Element>::value )
                 getIterable<Field, Element>(is, c, element);
-            else if constexpr ( Field::IsReflected )
+            else if constexpr ( Field::template HasAnnotation<Reflect::Reflected> )
                 Input<Element>::get(is, c, element);
             else if constexpr ( Field::template HasAnnotation<Json::String> )
                 getString(is, c, element);
-            else if constexpr ( is_bool<Element>::value )
+            else if constexpr ( ExtendedTypeSupport::is_bool<Element>::value )
                 readBool<InArray>(is, c, element);
             else
                 is >> element;
@@ -1333,8 +1332,8 @@ namespace Json {
         template <typename Field, typename Iterable>
         static constexpr void getIterable(std::istream & is, char & c, Iterable & iterable)
         {
-            using Element = typename element_type<Iterable>::type;
-            constexpr bool ContainsPairs = is_pair<Element>::value;
+            using Element = typename ExtendedTypeSupport::element_type<Iterable>::type;
+            constexpr bool ContainsPairs = ExtendedTypeSupport::is_pair<Element>::value;
             
             Checked::get<ContainsPairs>(is, c, '{', '[', "object opening \"{\"", "array opening \"[\"");
             if ( !Checked::tryGet<ContainsPairs>(is, '}', ']', "object closing \"}\" or field name opening \"", "array closing \"]\" or array element") )
@@ -1343,18 +1342,18 @@ namespace Json {
                 size_t i=0;
                 do
                 {
-                    if constexpr ( is_static_array<Iterable>::value )
+                    if constexpr ( ExtendedTypeSupport::is_static_array<Iterable>::value )
                     {
-                        if ( i >= static_array_size<Iterable>::value )
+                        if ( i >= ExtendedTypeSupport::static_array_size<Iterable>::value )
                             throw Exception("Array size exceeded!");
                         else
                             getValue<!ContainsPairs, Field>(is, c, iterable[i++]);
                     }
                     else // Appendable STL container
                     {
-                        typename element_type<Iterable>::type value;
+                        typename ExtendedTypeSupport::element_type<Iterable>::type value;
                         getValue<!ContainsPairs, Field>(is, c, value);
-                        append<Iterable, typename element_type<Iterable>::type>(iterable, value);
+                        append<Iterable, typename ExtendedTypeSupport::element_type<Iterable>::type>(iterable, value);
                     }
                 }
                 while ( Checked::get<ContainsPairs>(is, ',', '}', ']', "\",\" or object closing \"}\"", "\",\" or array closing \"]\"") );

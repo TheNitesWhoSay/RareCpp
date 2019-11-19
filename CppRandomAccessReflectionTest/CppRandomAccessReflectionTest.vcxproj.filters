@@ -29,14 +29,14 @@
     <ClCompile Include="GenericMacroTest.cpp">
       <Filter>Source Files\ReflectTest</Filter>
     </ClCompile>
-    <ClCompile Include="ReflectionSupportTest.cpp">
-      <Filter>Source Files\ReflectTest</Filter>
-    </ClCompile>
     <ClCompile Include="ReflectTest.cpp">
       <Filter>Source Files\ReflectTest</Filter>
     </ClCompile>
     <ClCompile Include="FieldAggregationsTest.cpp">
       <Filter>Source Files\FieldAggregationsTest</Filter>
+    </ClCompile>
+    <ClCompile Include="ExtendedTypeSupportTest.cpp">
+      <Filter>Source Files\ReflectTest</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
