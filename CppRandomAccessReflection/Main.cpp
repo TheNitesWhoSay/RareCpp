@@ -9,7 +9,6 @@ using u8 = uint8_t;
 
 ENABLE_JSON_INPUT;
 
-
 class FuelTank {
 public:
     FuelTank() : capacity(0.0f), currentLevel(0.0f) { tickMarks[0] = 0.0f; tickMarks[1] = 0.0f; }
@@ -229,11 +228,11 @@ void outputExamples()
     Car::Class::ForEachField(car, [&](auto & field, auto & value) {
         using Field = std::remove_reference<decltype(field)>::type;
         using Type = std::remove_reference<decltype(value)>::type;
-        if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !Field::template HasAnnotation<Reflect::Reflected> )
+        if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !Field::template HasAnnotation<Reflected> )
             std::cout << "(carPrimitive) " << field.name << ": " << value << std::endl;
-        else if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !Field::template HasAnnotation<Reflect::Reflected> )
+        else if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !Field::template HasAnnotation<Reflected> )
             std::cout << "(carObject) " << field.name << ": " << "[Skipped, this would be a good place for recursion!]" << std::endl;
-        else if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !Field::template HasAnnotation<Reflect::Reflected> )
+        else if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !Field::template HasAnnotation<Reflected> )
             std::cout << "(carObjectArray) " << field.name << ": " << "[Skipped, this would be a good place for recursion!]" << std::endl;
     });
 
@@ -250,9 +249,9 @@ void outputExamples()
     FuelTank::Class::ForEachField(fuelTank, [&](auto & field, auto & value) {
         using Field = std::remove_reference<decltype(field)>::type;
         using Type = std::remove_reference<decltype(value)>::type;
-        if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !Field::template HasAnnotation<Reflect::Reflected> )
+        if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !Field::template HasAnnotation<Reflected> )
             std::cout << "(fuelTankPrimitive) " << field.name << ": " << value << std::endl;
-        else if constexpr ( ExtendedTypeSupport::is_static_array<decltype(value)>::value && !Field::template HasAnnotation<Reflect::Reflected> )
+        else if constexpr ( ExtendedTypeSupport::is_static_array<decltype(value)>::value && !Field::template HasAnnotation<Reflected> )
             std::cout << "(fuelTankPrimitiveArray) " << field.name << ": " << value << std::endl;
     });
 
