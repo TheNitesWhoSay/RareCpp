@@ -23,6 +23,119 @@ The REFLECT macro takes the class parameter, then between 1 and 123 fields.
 - The fields are all of the form "(Annotations) FieldName", Annotations are optional
 
 
+## Usage
+
+Following the setup of the REFLECT macro, you can easily loop over the fields of a reflected class...
+```
+for ( size_t i=0; i<Wheel::Class::TotalFields; i++ )
+{
+    Wheel::Class::FieldAt(frontLeft, i, [&](auto & field, auto & value) {
+        std::cout << field.name << ": " << value << std::endl;
+    });
+}
+```
+
+Though whenever you're trying to access every field in an object, the ForEachField method is preferrable:
+```
+Wheel::Class::ForEachField(backRight, [&](auto & field, auto & value) {
+    std::cout << field.name << ": " << value << std::endl;
+});
+```
+
+More complex structures involving pointers, iterable values, any maybe even fields that are in turn reflected require more complex code to handle, but all of these can effectively be traversed using this reflection library.
+
+If you are iterating more complex structures you're likely to run into problems where the compiler generates code for one field that is inapplicable to another field.
+
+```
+class FuelTank {
+public:
+    float capacity;
+    float currentLevel;
+    float tickMarks[2];
+
+    REFLECT(() FuelTank, () capacity, () currentLevel, () tickMarks)
+};
+
+FuelTank::Class::ForEachField(fuelTank, [&](auto & field, auto & value) {
+    if ( field.isIterable ) {
+        std::cout << field.name << ": " << value[0] << std::endl;
+    }
+});
+```
+
+The above will cause a compiler error as not every field in FuelTank is an array, meaning the array access "value[0]" will not be valid code on those fields. Using constexpr ifs as well as code from the ExtendedTypeSupport namespace (if not from the standard library type support methods https://en.cppreference.com/w/cpp/types ) included in Reflect.h you can circumvent such problems.
+```
+FuelTank::Class::ForEachField(fuelTank, [&](auto & field, auto & value) {
+    using Type = std::remove_reference<decltype(value)>::type;
+    if constexpr ( ExtendedTypeSupport::is_static_array<Type>::value )
+        std::cout << field.name << ": " << value[0] << std::endl;
+    else
+        std::cout << field.name << ": " << value << std::endl;
+});
+```
+
+ExtendedTypeSupport defines many useful interfaces for these purposes...
+- pair_rhs<T>::type // Gets the type of the right-hand value in an std::pair
+- element_type<T>::type // Gets the type of the element contained in some iterable (be it a static_array, or STL container)
+- remove_pointer<T>::type // Gets the type pointed to by a regular or smart pointer type
+- is_pointable<T>::value // Checks whether a type is a regular or smart pointer
+- static_array_size<T>::value // Gets the size of a static array, which may be a basic C++ array or the STL std::array type
+- is_static_array<T>::value // Checks whether a type is a static array
+- is_iterable<T>::value // Checks whether a type can be iterated, meaning it's a static array or other STL container
+- is_stl_iterable<T>::value // Checks whether a type can be iterated with begin()/end()
+- is_adaptor<T>::value // Checks whether a type is an STL adaptor (std::stack, std::queue, std::priority_queue)
+- is_forward_list<T>::value // Checks whether a type is a forward list
+- is_pair<T>::value // Checks whether a type is a pair
+- is_bool<T>::value // Checks whether a type is a bool
+- has_push_back<T>::value // Checks whether a type is an STL container with a push_back method
+- has_push<T>::value // Checks whether a type is an STL container with a push method
+- has_insert<T>::value // Checks whether a type is an STL container with an insert method
+- has_clear<T>::value // Checks whether a type is an STL container with a clear method
+
+Extended type support also provides the HasType method to check whether a type is included in a list of types, a TypeToStr method to retrieve a string representation of a type, and the get_underlying_container method to retrieve a const version of the underlying container for an STL adaptor.
+
+See [Json.h](https://github.com/jjf28/CppRandomAccessReflection/blob/master/CppRandomAccessReflection/Json.h) for where all of this gets put together to traverse fairly complex objects.
+
+
+## Field
+Information provided to REFLECT is used to generate meta-data about your classes fields in the form of "Field" objects stored in a sub-class of your object titled "Class", Field objects come in two flavors but both share the following members:
+
+1. name
+2. typeStr
+3. arraySize (0 for fields that are not static arrays)
+4. isIterable (either a static array or STL container)
+5. isReflected
+
+The enhanced flavor of Field provides two additional static members:
+1. Type (the actual type of the field)
+2. Index (the index of the field, first field is zero, second is one, and so on)
+
+The enhanced flavor also provides the HasAnnotation method which can be used to check what fields were annotated with. 
+
+
+## Class
+As stated, Class is a sub-class of the class you're trying to reflect; Class has the following static data members:
+
+1. TotalFields
+2. Fields[TotalFields] // Simple flavor, doesn't include the Type, Index, or HasAnnotation members
+
+Class also provides two static methods to retrieve information about fields
+```
+ForEachField(object, [&](auto & field, auto & value) {
+	// Your code here
+});
+FieldAt(object, size_t fieldIndex, [&](auto & field, auto & value) {
+	// Your code here
+});
+```
+
+"value" is a reference to the actual field in the object, which you can read or change. "field" is the enhanced flavor of Field, meaning it includes the Type, Index, and HasAnnotation members, it's often useful to grab the type of the field and value parameters so you can more cleanly access the static members
+```
+using Field = std::remove_reference<decltype(field)>::type;
+using Type = std::remove_reference<decltype(value)>::type;
+```
+
+
 ## Super Classes
 
 If you only have one SuperClass, you can simply put the name of the SuperClass in for the SuperClasses parameter like so...
@@ -76,116 +189,6 @@ You can then check whether a field has a given annotation using code such as:
 bool isReflected = Field::template HasAnnotation<Reflected>;
 ```
 
-## Field
-Information provided to REFLECT is used to generate meta-data about your classes fields in the form of "Field" objects stored in a sub-class of your object titled "Class", Field objects come in two flavors but both share the following members:
-
-1. name
-2. typeStr
-3. arraySize (0 for fields that are not static arrays)
-4. isIterable (either a static array or STL container)
-5. isReflected
-
-The enhanced flavor of Field provides two additional static members:
-1. Type (the actual type of the field)
-2. Index (the index of the field, first field is zero, second is one, and so on)
-
-The enhanced flavor also provides the HasAnnotation method which can be used to check what fields were annotated with. 
-
-## Class
-As stated, Class is a sub-class of the class you're trying to reflect; Class has the following static data members:
-
-1. TotalFields
-2. Fields[TotalFields] // Simple flavor, doesn't include the Type, Index, or HasAnnotation members
-
-Class also provides two static methods to retrieve information about fields
-```
-ForEachField(object, [&](auto & field, auto & value) {
-	// Your code here
-});
-FieldAt(object, size_t fieldIndex, [&](auto & field, auto & value) {
-	// Your code here
-});
-```
-
-"value" is a reference to the actual field in the object, which you can read or change. "field" is the enhanced flavor of Field, meaning it includes the Type, Index, and HasAnnotation members, it's often useful to grab the type of the field and value parameters so you can more cleanly access the static members
-```
-using Field = std::remove_reference<decltype(field)>::type;
-using Type = std::remove_reference<decltype(value)>::type;
-```
-
-
-## Usage
-
-Following the setup of the REFLECT macro, you can easily loop over the fields of a reflected class...
-```
-for ( size_t i=0; i<Wheel::Class::TotalFields; i++ )
-{
-    Wheel::Class::FieldAt(frontLeft, i, [&](auto & field, auto & value) {
-        std::cout << field.name << ": " << value << std::endl;
-    });
-}
-```
-
-Though whenever you're trying to access every field in an object, the ForEachField method is preferrable:
-```
-Wheel::Class::ForEachField(backRight, [&](auto & field, auto & value) {
-    std::cout << field.name << ": " << value << std::endl;
-});
-```
-
-More complex structures involving pointers, iterable values, any maybe even fields that are in turn reflected require more complex code to handle, but all of these can effectively be traversed using this reflection library.
-
-If you are iterating more complex structures you're likely to run into problems where the compiler generates code for one field that is inapplicable to another field.
-
-```
-class FuelTank {
-public:
-    float capacity;
-    float currentLevel;
-    float tickMarks[2];
-
-    REFLECT(() FuelTank, () capacity, () currentLevel, () tickMarks)
-};
-
-FuelTank::Class::ForEachField(fuelTank, [&](auto & field, auto & value) {
-    if ( field.isIterable ) {
-        std::cout << field.name << ": " << value[0] << std::endl;
-    }
-});
-```
-
-The above will cause a compiler error as not every field in FuelTank is an array, meaning the array access (value[0]) will not be valid code on those fields. Using constexpr ifs as well as code from the ExtendedTypeSupport namespace (if not from the standard library type support methods https://en.cppreference.com/w/cpp/types ) included in Reflect.h you can circumvent such problems.
-```
-FuelTank::Class::ForEachField(fuelTank, [&](auto & field, auto & value) {
-    using Type = std::remove_reference<decltype(value)>::type;
-    if constexpr ( ExtendedTypeSupport::is_static_array<Type>::value )
-        std::cout << field.name << ": " << value[0] << std::endl;
-    else
-        std::cout << field.name << ": " << value << std::endl;
-});
-```
-
-ExtendedTypeSupport defines many useful interfaces for these purposes...
-- pair_rhs<T>::type // Gets the type of the right-hand value in an std::pair
-- element_type<T>::type // Gets the type of the element contained in some iterable (be it a static_array, or STL container)
-- remove_pointer<T>::type // Gets the type pointed to by a regular or smart pointer type
-- is_pointable<T>::value // Checks whether a type is a regular or smart pointer
-- static_array_size<T>::value // Gets the size of a static array, which may be a basic C++ array or the STL std::array type
-- is_static_array<T>::value // Checks whether a type is a static array
-- is_iterable<T>::value // Checks whether a type can be iterated, meaning it's a static array or other STL container
-- is_stl_iterable<T>::value // Checks whether a type can be iterated with begin()/end()
-- is_adaptor<T>::value // Checks whether a type is an STL adaptor (std::stack, std::queue, std::priority_queue)
-- is_forward_list<T>::value // Checks whether a type is a forward list
-- is_pair<T>::value // Checks whether a type is a pair
-- is_bool<T>::value // Checks whether a type is a bool
-- has_push_back<T>::value // Checks whether a type is an STL container with a push_back method
-- has_push<T>::value // Checks whether a type is an STL container with a push method
-- has_insert<T>::value // Checks whether a type is an STL container with an insert method
-- has_clear<T>::value // Checks whether a type is an STL container with a clear method
-
-Extended type support also provides the HasType method to check whether a type is included in a list of types, a TypeToStr method to retrieve a string representation of a type, and the get_underlying_container method to retrieve a const version of the underlying container for an STL adaptor.
-
-See [Json.h](https://github.com/jjf28/CppRandomAccessReflection/blob/master/CppRandomAccessReflection/Json.h) for where all of this gets put together to traverse fairly complex objects.
 
 
 ## How It Works
