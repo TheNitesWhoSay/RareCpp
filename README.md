@@ -44,7 +44,7 @@ Wheel::Class::ForEachField(backRight, [&](auto & field, auto & value) {
 
 More complex structures involving pointers, iterable values, any maybe even fields that are in turn reflected require more complex code to handle, but all of these can effectively be traversed using this reflection library.
 
-If you are iterating more complex structures you're likely to run into problems where the compiler generates code for one field that is inapplicable to another field.
+If you are iterating more complex structures you're likely to run into problems where the compiler generates code for one field that is inapplicable for another field.
 
 ```
 class FuelTank {
