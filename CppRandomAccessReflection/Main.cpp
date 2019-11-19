@@ -16,16 +16,13 @@ public:
     {
         tickMarks[0] = tickMarkOne;
         tickMarks[1] = tickMarkTwo;
-        testStack.push(0);
-        testStack.push(1);
     }
 
     float capacity;
     float currentLevel;
     float tickMarks[2];
-    std::stack<int> testStack;
 
-    REFLECT(() FuelTank, () capacity, () currentLevel, () tickMarks, () testStack)
+    REFLECT(() FuelTank, () capacity, () currentLevel, () tickMarks)
 };
 
 class Wheel {
@@ -241,9 +238,11 @@ void outputExamples()
     });
 
     FuelTank::Class::ForEachField(fuelTank, [&](auto & field, auto & value) {
-        if ( field.isIterable ) {
-            //std::cout << field.name << ": " << value[0] << std::endl; // This will cause a compiler error as not every field in the FuelTank class is an array!
-        }
+        using Type = std::remove_reference<decltype(value)>::type;
+        if constexpr ( ExtendedTypeSupport::is_static_array<Type>::value )
+            std::cout << field.name << ": " << value[0] << std::endl;
+        else
+            std::cout << field.name << ": " << value << std::endl;
     });
 
     FuelTank::Class::ForEachField(fuelTank, [&](auto & field, auto & value) {
