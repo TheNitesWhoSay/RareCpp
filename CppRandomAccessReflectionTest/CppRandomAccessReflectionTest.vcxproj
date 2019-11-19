@@ -156,16 +156,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ConstexprStrTest.cpp" />
-    <ClCompile Include="FieldAggregationsTest.cpp" />
     <ClCompile Include="FieldTest.cpp" />
     <ClCompile Include="ReflectTest.cpp" />
     <ClCompile Include="ExtendedTypeSupportTest.cpp" />
     <ClCompile Include="TestMain.cpp" />
     <ClCompile Include="JsonTest.cpp" />
     <ClCompile Include="GenericMacroTest.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="FieldAggregationsTest.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

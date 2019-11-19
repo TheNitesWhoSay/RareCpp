@@ -17,21 +17,6 @@ using namespace Reflect;
 using namespace Reflect::Fields;
 using namespace ExtendedTypeSupport;
 
-TEST(ReflectTest, TypeToStr)
-{
-    EXPECT_STREQ("int", TypeToStr<int>().c_str());
-
-    // Expecting some junk like how it's a struct or class, but it should still contain the pair text
-    std::string typeStr = TypeToStr<std::pair<int,int>>();
-    typeStr.erase(std::remove(typeStr.begin(), typeStr.end(), ' '), typeStr.end());
-    EXPECT_TRUE(typeStr.find("pair<int,int") != std::string::npos);
-
-    // Expecting some junk like how it's a struct or class and what allocator it's using, but should contain the map text
-    std::string mapStr = TypeToStr<std::map<int,int>>();
-    mapStr.erase(std::remove(mapStr.begin(), mapStr.end(), ' '), mapStr.end());
-    EXPECT_TRUE(mapStr.find("map<int,int") != std::string::npos);
-}
-
 TEST(ReflectTest, InheritedType)
 {
     using TwoArg = Inherit<Inherit<int, float>>;
@@ -212,6 +197,39 @@ TEST(ReflectTest, InheritedType)
     visited = false;
     FourArg::At(val, 4, [&](auto superClass) { visited = true; });
     EXPECT_FALSE(visited);
+}
+
+TEST(ReflectTest, Annotation)
+{
+    EXPECT_FALSE(Annotate<>::Has<bool>);
+    EXPECT_FALSE(Annotate<bool>::Has<int>);
+    EXPECT_TRUE(Annotate<bool>::Has<bool>);
+    bool has = Annotate<bool, int>::Has<bool>;
+    EXPECT_TRUE(has);
+    has = Annotate<bool, int>::Has<int>;
+    EXPECT_TRUE(has);
+    has = Annotate<bool, int>::Has<float>;
+    EXPECT_FALSE(has);
+    
+    EXPECT_FALSE(Annotate<Annotate<>>::Has<bool>);
+    EXPECT_FALSE(Annotate<Annotate<bool>>::Has<int>);
+    EXPECT_TRUE(Annotate<Annotate<bool>>::Has<bool>);
+    has = Annotate<Annotate<bool, int>>::Has<bool>;
+    EXPECT_TRUE(has);
+    has = Annotate<Annotate<bool, int>>::Has<int>;
+    EXPECT_TRUE(has);
+    has = Annotate<Annotate<bool, int>>::Has<float>;
+    EXPECT_FALSE(has);
+}
+
+TEST(ReflectTest, ReflectedAnnotation)
+{
+    bool hasReflectionAnnotation = Field<void, 0>::HasAnnotation<Reflected>;
+    EXPECT_FALSE(hasReflectionAnnotation);
+    hasReflectionAnnotation = Field<void, 0, Annotate<>>::HasAnnotation<Reflected>;
+    EXPECT_FALSE(hasReflectionAnnotation);
+    hasReflectionAnnotation = Field<void, 0, Reflected>::HasAnnotation<Reflected>;
+    EXPECT_TRUE(hasReflectionAnnotation);
 }
 
 TEST(ReflectTest, RfMacroAliasType)
@@ -431,13 +449,13 @@ public:
 
     class Class {
     public:
-        static constexpr size_t totalFields = COUNT_ARGUMENTS(() first, () second);
+        static constexpr size_t TotalFields = COUNT_ARGUMENTS(() first, () second);
         enum_t(IndexOf, size_t, {
             FOR_EACH(GET_FIELD_NAME, () first, () second)
         });
         FOR_EACH(ALIAS_TYPE, () first, () second)
         FOR_EACH(DESCRIBE_FIELD, () first, () second)
-        static constexpr Field<> Fields[totalFields] = {
+        static constexpr Field<> Fields[TotalFields] = {
             FOR_EACH(GET_FIELD, () first, () second)
         };
         template <typename Function> static void ForEachField(CumulativeMacroTest & object, Function function) {

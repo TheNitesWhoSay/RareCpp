@@ -263,6 +263,7 @@ namespace ExtendedTypeSupport
     template <typename T> struct element_type { using type = void; };
     template <typename T> struct element_type<const T> { using type = typename element_type<T>::type; };
     template <typename T, size_t N> struct element_type<T[N]> { using type = typename T; };
+    template <typename T, size_t N> struct element_type<const T[N]> { using type = typename T; };
     template <typename T, size_t N> struct element_type<std::array<T, N>> { using type = typename T; };
     template <typename T, typename A> struct element_type<std::vector<T, A>> { using type = typename T; };
     template <typename T, typename A> struct element_type<std::deque<T, A>> { using type = typename T; };
@@ -283,7 +284,7 @@ namespace ExtendedTypeSupport
     { using type = typename std::pair<K, T>; };
     
     template <typename T> struct remove_pointer { using type = typename std::remove_pointer<T>::type; };
-    template <typename T> struct remove_pointer<const T> { using type = typename remove_pointer<T>::type; };
+    template <typename T> struct remove_pointer<const T> { using type = typename const remove_pointer<T>::type; };
     template <typename T> struct remove_pointer<std::unique_ptr<T>> { using type = typename T; };
     template <typename T> struct remove_pointer<std::shared_ptr<T>> { using type = typename T; };
     
@@ -293,14 +294,16 @@ namespace ExtendedTypeSupport
     template <typename T> struct is_pointable<std::shared_ptr<T>> { static constexpr bool value = true; };
 
     template <typename T> struct static_array_size { static constexpr size_t value = 0; };
-    template <typename T> struct static_array_size<const T> { static constexpr size_t value = static_array_size<T>::value; };
     template <typename T, size_t N> struct static_array_size<T[N]> { static constexpr size_t value = N; };
+    template <typename T, size_t N> struct static_array_size<const T[N]> { static constexpr size_t value = N; };
     template <typename T, size_t N> struct static_array_size<std::array<T, N>> { static constexpr size_t value = N; };
+    template <typename T, size_t N> struct static_array_size<const std::array<T, N>> { static constexpr size_t value = N; };
 
     template <typename T> struct is_static_array { static constexpr bool value = false; };
-    template <typename T> struct is_static_array<const T> { static constexpr bool value = is_static_array<T>::value; };
     template <typename T, size_t N> struct is_static_array<T[N]> { static constexpr bool value = true; };
+    template <typename T, size_t N> struct is_static_array<const T[N]> { static constexpr bool value = true; };
     template <typename T, size_t N> struct is_static_array<std::array<T, N>> { static constexpr bool value = true; };
+    template <typename T, size_t N> struct is_static_array<const std::array<T, N>> { static constexpr bool value = true; };
 
     template <typename T> struct is_iterable { static constexpr bool value = !std::is_same<void, element_type<T>::type>::value; };
 
