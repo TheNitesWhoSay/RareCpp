@@ -96,6 +96,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -110,6 +111,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -125,6 +127,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -142,6 +145,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -152,24 +156,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ConstexprStrTest.cpp" />
-    <ClCompile Include="LambdaGuardTest.cpp" />
-    <ClCompile Include="LambdaGuardTest_IOA_IOPA.cpp" />
-    <ClCompile Include="LambdaGuardTest_IO_IOP.cpp" />
-    <ClCompile Include="LambdaGuardTest_IPA_IPPA.cpp" />
-    <ClCompile Include="LambdaGuardTest_IP_IPP.cpp" />
-    <ClCompile Include="LambdaGuardTest_POA_POPA.cpp" />
-    <ClCompile Include="LambdaGuardTest_PO_POP.cpp" />
-    <ClCompile Include="LambdaGuardTest_PPP_PPPA.cpp" />
-    <ClCompile Include="LambdaGuardTest_PP_PPP.cpp" />
-    <ClCompile Include="AcceleratorsTest.cpp" />
+    <ClCompile Include="FieldTest.cpp" />
     <ClCompile Include="ReflectTest.cpp" />
-    <ClCompile Include="ReflectionSupportTest.cpp" />
+    <ClCompile Include="ExtendedTypeSupportTest.cpp" />
     <ClCompile Include="TestMain.cpp" />
     <ClCompile Include="JsonTest.cpp" />
     <ClCompile Include="GenericMacroTest.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="LambdaGuardTest.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

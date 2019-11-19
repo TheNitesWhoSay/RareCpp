@@ -4,11 +4,10 @@
 #include <typeinfo>
 #include <algorithm>
 #include <memory>
-
 using namespace Reflect;
 using u8 = uint8_t;
 
-std::string myStr("myStr");
+ENABLE_JSON_INPUT;
 
 class FuelTank {
 public:
@@ -17,16 +16,13 @@ public:
     {
         tickMarks[0] = tickMarkOne;
         tickMarks[1] = tickMarkTwo;
-        testStack.push(0);
-        testStack.push(1);
     }
 
     float capacity;
     float currentLevel;
     float tickMarks[2];
-    std::stack<int> testStack;
 
-    REFLECT(() FuelTank, (B) capacity, (B) currentLevel, (B) tickMarks, (B) testStack)
+    REFLECT(() FuelTank, () capacity, () currentLevel, () tickMarks)
 };
 
 class Wheel {
@@ -43,7 +39,7 @@ public:
     int size;
     float pressure;
 
-    REFLECT(() Wheel, (B) rim, (B) size, (B) pressure)
+    REFLECT(() Wheel, () rim, () size, () pressure)
 };
 
 class CupHolder {
@@ -55,7 +51,7 @@ public:
     int height;
     bool occupied;
 
-    REFLECT(() CupHolder, (B) width, (B) height, (B) occupied)
+    REFLECT(() CupHolder, () width, () height, () occupied)
 };
 using CupHolderPtr = std::shared_ptr<CupHolder>;
 
@@ -63,9 +59,11 @@ class Car {
 public:
     Car() : milesPerGallon(0.0f) {}
     Car(Wheel frontLeft, Wheel frontRight, Wheel backLeft, Wheel backRight, const std::string &driver, const std::string &passenger,
+        const std::vector<std::vector<std::vector<std::string>>> & testNest, const std::map<std::string, std::vector<std::vector<std::string>>> & testMapNest,
         const std::map<std::string, std::string> & occupantId, std::map<std::string, CupHolderPtr> occupantCupHolderUsage,
         const std::vector<CupHolderPtr> & cupHolders, const FuelTank &fuelTank, float milesPerGallon)
-        : occupantId(occupantId), occupantCupHolderUsage(occupantCupHolderUsage), cupHolders(cupHolders), fuelTank(fuelTank), milesPerGallon(milesPerGallon)
+        : testNest(testNest), testMapNest(testMapNest), occupantId(occupantId), occupantCupHolderUsage(occupantCupHolderUsage), cupHolders(cupHolders),
+        fuelTank(fuelTank), milesPerGallon(milesPerGallon)
     {
         wheels[0] = frontLeft;
         wheels[1] = frontRight;
@@ -77,6 +75,8 @@ public:
 
     Wheel wheels[4];
     std::vector<std::string> occupants;
+    std::vector<std::vector<std::vector<std::string>>> testNest;
+    std::map<std::string, std::vector<std::vector<std::string>>> testMapNest;
     std::map<std::string, std::string> occupantId;
     std::map<std::string, CupHolderPtr> occupantCupHolderUsage;
     std::vector<CupHolderPtr> cupHolders;
@@ -85,7 +85,17 @@ public:
     
     using OccupantIdType = std::map<std::string, std::string>;
     using OccupantCupHolderUsageType = std::map<std::string, CupHolderPtr>;
-    REFLECT(() Car, (R) wheels, (B) occupants, (B) occupantId, (R) occupantCupHolderUsage, (R) cupHolders, (R) fuelTank, (B) milesPerGallon)
+    REFLECT(() Car,
+        (Reflected) wheels,
+        (Json::String) occupants,
+        (Json::String) testNest,
+        (Json::String) testMapNest,
+        (Json::String) occupantId,
+        (Reflected) occupantCupHolderUsage,
+        (Reflected) cupHolders,
+        (Reflected) fuelTank,
+        () milesPerGallon
+    )
 
 };
 
@@ -101,23 +111,23 @@ public:
     u8 f113; u8 f114; u8 f115; u8 f116; u8 f117; u8 f118; u8 f119; u8 f120; u8 f121; u8 f122; u8 f123; u8 f124;
 
     REFLECT(() MassiveObject,
-        (B) f001, (B) f002, (B) f003, (B) f004, (B) f005, (B) f006, (B) f007, (B) f008,
-        (B) f009, (B) f010, (B) f011, (B) f012, (B) f013, (B) f014, (B) f015, (B) f016,
-        (B) f017, (B) f018, (B) f019, (B) f020, (B) f021, (B) f022, (B) f023, (B) f024,
-        (B) f025, (B) f026, (B) f027, (B) f028, (B) f029, (B) f030, (B) f031, (B) f032,
-        (B) f033, (B) f034, (B) f035, (B) f036, (B) f037, (B) f038, (B) f039, (B) f040,
-        (B) f041, (B) f042, (B) f043, (B) f044, (B) f045, (B) f046, (B) f047, (B) f048,
-        (B) f049, (B) f050, (B) f051, (B) f052, (B) f053, (B) f054, (B) f055, (B) f056,
-        (B) f057, (B) f058, (B) f059, (B) f060, (B) f061, (B) f062, (B) f063, (B) f064,
-        (B) f065, (B) f066, (B) f067, (B) f068, (B) f069, (B) f070, (B) f071, (B) f072,
-        (B) f073, (B) f074, (B) f075, (B) f076, (B) f077, (B) f078, (B) f079, (B) f080,
-        (B) f081, (B) f082, (B) f083, (B) f084, (B) f085, (B) f086, (B) f087, (B) f088,
-        (B) f089, (B) f090, (B) f091, (B) f092, (B) f093, (B) f094, (B) f095, (B) f096,
-        (B) f097, (B) f098, (B) f099, (B) f100, (B) f101, (B) f102, (B) f103, (B) f104,
-        (B) f105, (B) f106, (B) f107, (B) f108, (B) f109, (B) f110, (B) f111, (B) f112,
-        (B) f113, (B) f114, (B) f115, (B) f116, (B) f117, (B) f118, (B) f119, (B) f120,
-        (B) f121, (B) f122, (B) f123
-        //,(B) f124 // This will cause an error "C1009 - compiler limit: macros nested too deeply"
+        () f001, () f002, () f003, () f004, () f005, () f006, () f007, () f008,
+        () f009, () f010, () f011, () f012, () f013, () f014, () f015, () f016,
+        () f017, () f018, () f019, () f020, () f021, () f022, () f023, () f024,
+        () f025, () f026, () f027, () f028, () f029, () f030, () f031, () f032,
+        () f033, () f034, () f035, () f036, () f037, () f038, () f039, () f040,
+        () f041, () f042, () f043, () f044, () f045, () f046, () f047, () f048,
+        () f049, () f050, () f051, () f052, () f053, () f054, () f055, () f056,
+        () f057, () f058, () f059, () f060, () f061, () f062, () f063, () f064,
+        () f065, () f066, () f067, () f068, () f069, () f070, () f071, () f072,
+        () f073, () f074, () f075, () f076, () f077, () f078, () f079, () f080,
+        () f081, () f082, () f083, () f084, () f085, () f086, () f087, () f088,
+        () f089, () f090, () f091, () f092, () f093, () f094, () f095, () f096,
+        () f097, () f098, () f099, () f100, () f101, () f102, () f103, () f104,
+        () f105, () f106, () f107, () f108, () f109, () f110, () f111, () f112,
+        () f113, () f114, () f115, () f116, () f117, () f118, () f119, () f120,
+        () f121, () f122, () f123
+        //,() f124 // This will cause an error "C1009 - compiler limit: macros nested too deeply"
     )
 };
 
@@ -126,7 +136,7 @@ class Super
 public:
     int val;
 
-    REFLECT(() Super, (B) val)
+    REFLECT(() Super, () val)
 };
 
 class OtherSuper
@@ -134,7 +144,7 @@ class OtherSuper
 public:
     int otherVal;
     
-    REFLECT(() OtherSuper, (B) otherVal)
+    REFLECT(() OtherSuper, () otherVal)
 };
 
 class SubTest : public Super, public OtherSuper
@@ -142,16 +152,16 @@ class SubTest : public Super, public OtherSuper
 public:
     int subVal;
     
-    using Inherit = I<Super, OtherSuper>;
-    REFLECT((Inherit) SubTest, (B) otherVal)
+    using Parents = Inherit<Super, OtherSuper>;
+    REFLECT((Parents) SubTest, () otherVal)
 };
 
-int main()
+void outputExamples()
 {
-    for ( size_t i=1; i<=MassiveObject::Class::totalFields; i++ )
+    for ( size_t i=1; i<=MassiveObject::Class::TotalFields; i++ )
     {
-        std::cout << MassiveObject::Class::fields[i-1].name;
-        if ( i % 16 == 0 || i == MassiveObject::Class::totalFields )
+        std::cout << MassiveObject::Class::Fields[i-1].name;
+        if ( i % 16 == 0 || i == MassiveObject::Class::TotalFields )
             std::cout << std::endl;
         else
             std::cout << ", ";
@@ -164,7 +174,7 @@ int main()
     
     SubTest::Supers::ForEach(sub, [&](size_t index, auto & superObj) {
         using Super = typename std::remove_reference<decltype(superObj)>::type;
-        std::cout << index << ": " << TypeToStr<Super>() << " {" << std::endl;
+        std::cout << index << ": " << ExtendedTypeSupport::TypeToStr<Super>() << " {" << std::endl;
         Super::Class::ForEachField(superObj, [&](auto & field, auto & value) {
             std::cout << "  " << field.name << ": " << value << std::endl;
         });
@@ -177,6 +187,14 @@ int main()
     Wheel frontLeft(Wheel::Rim::Regular, 14, 32.2f), frontRight(Wheel::Rim::Regular, 14, 31.9f), backLeft(Wheel::Rim::Spinner, 15, 33.0f), backRight(Wheel::Rim::Spinner, 15, 30.9f);
     std::string driver = "Fred";
     std::string passenger = "Bob";
+    std::vector<std::vector<std::vector<std::string>>> testNest = {
+        {{ "a", "b", "c" }, { "d", "e" }},
+        {{ "f", "g", "h", "i" }, {"j"}}
+    };
+    std::map<std::string, std::vector<std::vector<std::string>>> testMapNest = {
+        { "one", {{ "a", "b", "c" }, { "d", "e" }} },
+        { "two", {{ "f", "g" }, { "h" }}}
+    };
     occupantId.insert(std::pair<std::string, std::string>(driver, "B252-123-839-244"));
     occupantId.insert(std::pair<std::string, std::string>(passenger, "B252-612-321-245"));
     cupHolders.push_back(CupHolderPtr(new CupHolder(3, 3, true)));
@@ -184,51 +202,126 @@ int main()
     occupantCupHolderUsage.insert(std::pair<std::string, CupHolderPtr>(driver, cupHolders[0]));
     occupantCupHolderUsage.insert(std::pair<std::string, CupHolderPtr>(passenger, cupHolders[1]));
     FuelTank fuelTank(15.0f, 14.6f, 1.0f, 7.5f);
-    Car car(frontLeft, frontRight, backLeft, backRight, driver, passenger, occupantId, occupantCupHolderUsage, cupHolders, fuelTank, 22.5f);
+    Car car(frontLeft, frontRight, backLeft, backRight, driver, passenger, testNest, testMapNest, occupantId, occupantCupHolderUsage, cupHolders, fuelTank, 22.5f);
     
-    for ( size_t i=0; i<Wheel::Class::totalFields; i++ )
-        std::cout << Wheel::Class::fields[i].name << std::endl;
+    for ( size_t i=0; i<Wheel::Class::TotalFields; i++ )
+        std::cout << Wheel::Class::Fields[i].name << std::endl;
 
-    for ( size_t i=0; i<Wheel::Class::totalFields; i++ )
+    for ( size_t i=0; i<Wheel::Class::TotalFields; i++ )
     {
-        Wheel::Class::FieldAt(frontLeft, i, [&](auto field, auto value) {
+        Wheel::Class::FieldAt(frontLeft, i, [&](auto & field, auto & value) {
             std::cout << field.name << ": " << value << std::endl;
         });
     }
 
-    Wheel::Class::ForEachField(backRight, [&](auto field, auto value) {
+    Wheel::Class::ForEachField(backRight, [&](auto & field, auto & value) {
         std::cout << field.name << ": " << value << std::endl;
     });
 
-    Car::Class::ForEachField(car, [&](auto field, auto value) {
+    Car::Class::ForEachField(car, [&](auto & field, auto & value) {
         //std::cout << field.name << ": " << value << std::endl; // This will cause a compiler error as there's no ostream operator overload for the FuelTank type!
     });
 
-    Car::Class::ForEachField(car, [&](auto field, auto value) {
-        field.IfPrimitive([&](auto) { std::cout << "(carPrimitive) " << field.name << ": " << value << std::endl; });
-        field.IfObject([&](auto) { std::cout << "(carObject) " << field.name << ": " << "[Skipped, this would be a good place for recursion!]" << std::endl; });
-        field.IfObjectArray([&](auto) { std::cout << "(carObjectArray) " << field.name << ": " << "[Skipped, this would be a good place for recursion!]" << std::endl; });
+    Car::Class::ForEachField(car, [&](auto & field, auto & value) {
+        using Field = std::remove_reference<decltype(field)>::type;
+        using Type = std::remove_reference<decltype(value)>::type;
+        if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !Field::template HasAnnotation<Reflected> )
+            std::cout << "(carPrimitive) " << field.name << ": " << value << std::endl;
+        else if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !Field::template HasAnnotation<Reflected> )
+            std::cout << "(carObject) " << field.name << ": " << "[Skipped, this would be a good place for recursion!]" << std::endl;
+        else if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !Field::template HasAnnotation<Reflected> )
+            std::cout << "(carObjectArray) " << field.name << ": " << "[Skipped, this would be a good place for recursion!]" << std::endl;
     });
 
-    FuelTank::Class::ForEachField(fuelTank, [&](auto field, auto value) {
+    FuelTank::Class::ForEachField(fuelTank, [&](auto & field, auto & value) {
         //std::cout << field.name << ": " << value << std::endl; // This will print out a pointer, not the array values!
     });
 
-    FuelTank::Class::ForEachField(fuelTank, [&](auto field, auto value) {
-        if ( field.isIterable ) {
-            //std::cout << field.name << ": " << value[0] << std::endl; // This will cause a compiler error as not every field in the FuelTank class is an array!
-        }
+    FuelTank::Class::ForEachField(fuelTank, [&](auto & field, auto & value) {
+        using Type = std::remove_reference<decltype(value)>::type;
+        if constexpr ( ExtendedTypeSupport::is_static_array<Type>::value )
+            std::cout << field.name << ": " << value[0] << std::endl;
+        else
+            std::cout << field.name << ": " << value << std::endl;
     });
 
-    FuelTank::Class::ForEachField(fuelTank, [&](auto field, auto value) {
-        field.IfPrimitive([&](auto) { std::cout << "(fuelTankPrimitive) " << field.name << ": " << value << std::endl; });
-        field.IfPrimitiveArray([&](auto) { std::cout << "(fuelTankPrimitiveArray) " << field.name << ": " << value << std::endl; });
+    FuelTank::Class::ForEachField(fuelTank, [&](auto & field, auto & value) {
+        using Field = std::remove_reference<decltype(field)>::type;
+        using Type = std::remove_reference<decltype(value)>::type;
+        if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !Field::template HasAnnotation<Reflected> )
+            std::cout << "(fuelTankPrimitive) " << field.name << ": " << value << std::endl;
+        else if constexpr ( ExtendedTypeSupport::is_static_array<decltype(value)>::value && !Field::template HasAnnotation<Reflected> )
+            std::cout << "(fuelTankPrimitiveArray) " << field.name << ": " << value << std::endl;
     });
 
     std::cout << Json::out(car) << std::endl;
-    
+}
+
+class SuperA {
+public:
+    int superVal;
+
+    REFLECT(() SuperA, () superVal)
+};
+
+class SubA {
+public:
+    SubA() : subVal(0) {}
+
+    int subVal;
+
+    REFLECT(() SubA, () subVal)
+};
+
+class A : public SuperA {
+public:
+    A() : first(0), second(0), ptr(nullptr), sub(), boolean(false), str("") { ray[0] = 0; ray[1] = 1; }
+
+    int first;
+    int second;
+    int* ptr;
+    SubA sub;
+    bool boolean;
+    std::string str;
+    std::map<std::string, std::string> map;
+    std::vector<std::vector<int>> vecVec;
+    int ray[2];
+
+    REFLECT((SuperA) A, (Reflected) sub, () first, () second, () ptr, () boolean, (Json::String) str, (Json::String) map, () vecVec, () ray)
+};
+
+std::istream & operator >>(std::istream & is, A & a) {
+    is >> a.first;
+    is >> a.second;
+    return is;
+}
+
+int main()
+{
+    outputExamples();
+
+    A a;
+    a.ptr = nullptr;
+    do {
+        bool successfulRead = false;
+        try {
+            std::cin >> std::ws;
+            std::cin >> Json::in(a);
+            successfulRead = true;
+        } catch ( Json::Exception & e ) {
+            std::cout << std::endl << "Exception: " << e.what() << std::endl;
+        }
+        //Json::putClassFieldCache(std::cout);
+        //std::cout << "..." << std::endl;
+        std::cout << "Read in: " << Json::out(a) << std::endl;
+        std::cout << "..." << std::endl;
+        std::cin.clear();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    } while ( true );
+
     std::cout << std::endl << "Press enter to exit." << std::endl;
     std::cin.clear();
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     std::cin.get();
 
     return 0;

@@ -1442,6 +1442,7 @@ class EqHelper {
  public:
   // This templatized version is for the general case.
   template <typename T1, typename T2>
+  #pragma warning(suppress: 26812) // Suppress warnings from used library
   static AssertionResult Compare(const char* lhs_expression,
                                  const char* rhs_expression,
                                  const T1& lhs,
