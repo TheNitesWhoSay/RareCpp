@@ -94,7 +94,7 @@ ExtendedTypeSupport defines many useful interfaces for these purposes...
 
 Extended type support also provides the HasType method to check whether a type is included in a list of types, a TypeToStr method to retrieve a string representation of a type, and the get_underlying_container method to retrieve a const version of the underlying container for an STL adaptor.
 
-See [Json.h](https://github.com/jjf28/CppRandomAccessReflection/blob/master/CppRandomAccessReflection/Json.h) for where all of this gets put together to traverse fairly complex objects.
+See [Json.h](https://github.com/jjf28/CppRandomAccessReflection/blob/master/CppRandomAccessReflectionLib/Json.h) for where all of this gets put together to traverse fairly complex objects.
 
 
 ## Field
@@ -233,4 +233,4 @@ The REFLECT macro takes in the name of the class you're adding reflection to, fo
 6. The ForEachField method is generated, calling the given function with the enhanced flavor of the Field and a reference to the field
 7. The FieldAt method is generated, calling the given function with the enhanced flavor of the Field and a reference to the field at the given fieldIndex
 
-See [Reflect.h](https://github.com/jjf28/CppRandomAccessReflection/blob/master/CppRandomAccessReflection/Reflect.h) for the full implementation of macro loops and the REFLECT macro.
+See [Reflect.h](https://github.com/jjf28/CppRandomAccessReflection/blob/master/CppRandomAccessReflectionLib/Reflect.h) for the full implementation of macro loops and the REFLECT macro.
