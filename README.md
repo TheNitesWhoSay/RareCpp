@@ -147,7 +147,7 @@ public:
 };
 ```
 
-If you have multiple SuperClasses then you need to first group them as template arguments for "Inherit" (the using statement is required because it's difficult if not impossible to accomodate a comma within a single argument of a macro), you can do this with a using directive...
+If you have multiple SuperClasses then you need to first group them as template arguments for the "Inherit" type, perhaps with a using statement. The using statement is required because it's difficult if not impossible to accomodate a comma within a single argument of a macro.
 
 ```
 class SubTest : public Super, public OtherSuper
