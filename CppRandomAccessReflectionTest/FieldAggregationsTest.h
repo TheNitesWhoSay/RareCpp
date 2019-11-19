@@ -17,6 +17,7 @@
 #include <utility>
 #include <type_traits>
 #include <functional>
+using namespace Reflect::Fields;
 using namespace Reflect;
 
 namespace FieldAggregations

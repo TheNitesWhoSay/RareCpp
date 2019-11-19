@@ -38,6 +38,9 @@
     <ClCompile Include="ExtendedTypeSupportTest.cpp">
       <Filter>Source Files\ReflectTest</Filter>
     </ClCompile>
+    <ClCompile Include="FieldTest.cpp">
+      <Filter>Source Files\ReflectTest</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="FieldAggregationsTest.h">

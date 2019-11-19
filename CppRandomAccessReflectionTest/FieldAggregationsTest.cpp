@@ -1,4 +1,5 @@
 #include "FieldAggregationsTest.h"
+using namespace ExtendedTypeSupport;
 
 namespace FieldAggregations
 {

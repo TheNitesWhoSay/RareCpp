@@ -552,7 +552,7 @@ namespace Reflect
     }
     using namespace Annotation;
 
-    namespace Field
+    namespace Fields
     {
         template <typename T = void, size_t FieldIndex = 0, typename Annotations = Annotate<>>
         class Field;
@@ -593,7 +593,7 @@ namespace Reflect
 #define DESCRIBE_FIELD(x) struct RHS(x)_ { \
     static constexpr auto nameStr = ConstexprStr::substr<ConstexprStr::length_after_last(#x, ' ')>(#x+ConstexprStr::find_last_of(#x, ' ')+1); \
     static constexpr auto typeStr = ExtendedTypeSupport::type_to_str<RHS(x)>::get(); \
-    static constexpr Field::Field<Class::RHS(x), IndexOf::RHS(x), Annotate<LHS(x)>::Annotations> field = \
+    static constexpr Fields::Field<Class::RHS(x), IndexOf::RHS(x), Annotate<LHS(x)>::Annotations> field = \
         { &nameStr.value[0], &typeStr.value[0], ExtendedTypeSupport::static_array_size<RHS(x)>::value, \
         ExtendedTypeSupport::is_stl_iterable<ExtendedTypeSupport::remove_pointer<RHS(x)>::type>::value || \
             ExtendedTypeSupport::is_adaptor<ExtendedTypeSupport::remove_pointer<RHS(x)>::type>::value || \
@@ -616,7 +616,7 @@ class Class { public: \
     enum_t(IndexOf, size_t, { FOR_EACH(GET_FIELD_NAME, __VA_ARGS__) }); \
     FOR_EACH(ALIAS_TYPE, __VA_ARGS__) \
     FOR_EACH(DESCRIBE_FIELD, __VA_ARGS__) \
-    static constexpr Field::Field<> Fields[TotalFields] = { FOR_EACH(GET_FIELD, __VA_ARGS__) }; \
+    static constexpr Fields::Field<> Fields[TotalFields] = { FOR_EACH(GET_FIELD, __VA_ARGS__) }; \
     template <typename Function> static void ForEachField(RHS(objectType) & object, Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
     template <typename Function> static void ForEachField(const RHS(objectType) & object, Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
     template <typename Function> static void FieldAt(RHS(objectType) & object, size_t fieldIndex, Function function) { \

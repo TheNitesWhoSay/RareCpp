@@ -14,6 +14,8 @@
 #include <utility>
 #include <type_traits>
 using namespace Reflect;
+using namespace Reflect::Fields;
+using namespace ExtendedTypeSupport;
 
 TEST(ReflectTest, TypeToStr)
 {
@@ -630,14 +632,14 @@ TEST(ReflectTest, RfMacroReflect)
         bool visited = false;
         switch ( index ) {
             case 0:
-                if constexpr ( !Field::IsReflected && !is_iterable<Value>::value ) {
+                if constexpr ( !Field::template HasAnnotation<Reflect::Reflected> && !is_iterable<Value>::value ) {
                     EXPECT_EQ(reflectObj.primitive, value);
                     visited = true;
                 }
                 EXPECT_TRUE(visited);
                 break;
             case 1:
-                if constexpr ( Field::IsReflected && !is_iterable<Value>::value ) {
+                if constexpr ( Field::template HasAnnotation<Reflect::Reflected> && !is_iterable<Value>::value ) {
                     using ObjClass = typename Value::Class;
                     ObjClass::FieldAt(value, 0, [&](auto & field, auto & value) {
                         EXPECT_EQ(reflectObj.object.val, value);
@@ -649,7 +651,7 @@ TEST(ReflectTest, RfMacroReflect)
                 EXPECT_TRUE(visited);
                 break;
             case 2:
-                if constexpr ( !Field::IsReflected && is_static_array<Value>::value ) {
+                if constexpr ( !Field::template HasAnnotation<Reflect::Reflected> && is_static_array<Value>::value ) {
                     EXPECT_EQ(reflectObj.primitiveArray[0], value[0]);
                     EXPECT_EQ(reflectObj.primitiveArray[1], value[1]);
                     visited = true;
@@ -657,7 +659,7 @@ TEST(ReflectTest, RfMacroReflect)
                 EXPECT_TRUE(visited);
                 break;
             case 3:
-                if constexpr ( !Field::IsReflected && is_iterable<Value>::value && is_pair<element_type<Value>::type>::value ) {
+                if constexpr ( !Field::template HasAnnotation<Reflect::Reflected> && is_iterable<Value>::value && is_pair<element_type<Value>::type>::value ) {
                     EXPECT_EQ(reflectObj.map.begin()->first, value.begin()->first);
                     EXPECT_EQ((++reflectObj.map.begin())->first, (++value.begin())->first);
                     visited = true;
@@ -665,7 +667,7 @@ TEST(ReflectTest, RfMacroReflect)
                 EXPECT_TRUE(visited);
                 break;
             case 4:
-                if constexpr ( Field::IsReflected && is_iterable<Value>::value ) {
+                if constexpr ( Field::template HasAnnotation<Reflect::Reflected> && is_iterable<Value>::value ) {
                     EXPECT_EQ(reflectObj.objCollection[0].val, value[0].val);
                     EXPECT_EQ(reflectObj.objCollection[1].val, value[1].val);
                     visited = true;
@@ -673,7 +675,7 @@ TEST(ReflectTest, RfMacroReflect)
                 EXPECT_TRUE(visited);
                 break;
             case 5:
-                if constexpr ( !Field::IsReflected && is_adaptor<Value>::value )
+                if constexpr ( !Field::template HasAnnotation<Reflect::Reflected> && is_adaptor<Value>::value )
                     visited = true;
 
                 EXPECT_TRUE(visited);
