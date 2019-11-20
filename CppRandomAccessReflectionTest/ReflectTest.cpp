@@ -224,11 +224,11 @@ TEST(ReflectTest, Annotation)
 
 TEST(ReflectTest, ReflectedAnnotation)
 {
-    bool hasReflectionAnnotation = Field<void, 0>::HasAnnotation<Reflected>;
+    bool hasReflectionAnnotation = Field<void, void*, 0>::HasAnnotation<Reflected>;
     EXPECT_FALSE(hasReflectionAnnotation);
-    hasReflectionAnnotation = Field<void, 0, Annotate<>>::HasAnnotation<Reflected>;
+    hasReflectionAnnotation = Field<void, void*, 0, Annotate<>>::HasAnnotation<Reflected>;
     EXPECT_FALSE(hasReflectionAnnotation);
-    hasReflectionAnnotation = Field<void, 0, Reflected>::HasAnnotation<Reflected>;
+    hasReflectionAnnotation = Field<void, void*, 0, Reflected>::HasAnnotation<Reflected>;
     EXPECT_TRUE(hasReflectionAnnotation);
 }
 
@@ -274,6 +274,7 @@ public:
 
     class Class {
     public:
+        using ClassType = DescribeFieldTest;
         enum_t(IndexOf, size_t, { first, second });
         using first = int;
         using second = float;
@@ -349,12 +350,12 @@ class UseFieldTest {
 
         class Class {
         public:
-            struct first_ { static constexpr Field<int, 0> field = { "first", "int", 0, false, false }; };
-            struct second_ { static constexpr Field<float, 1> field = { "second", "float", 0, false, false }; };
+            struct first_ { static constexpr Field<int, decltype(&UseFieldTest::first), 0> field = { "first", "int", 0, false, false }; };
+            struct second_ { static constexpr Field<float, decltype(&UseFieldTest::second), 1> field = { "second", "float", 0, false, false }; };
             template <typename Function>
             static void ForEachField(UseFieldTest & object, Function function) {
-                USE_FIELD(() first)
-                USE_FIELD(() second)
+                USE_FIELD_VALUE(() first)
+                USE_FIELD_VALUE(() second)
             }
         };
 };
@@ -449,6 +450,7 @@ public:
 
     class Class {
     public:
+        using ClassType = DescribeFieldTest;
         static constexpr size_t TotalFields = COUNT_ARGUMENTS(() first, () second);
         enum_t(IndexOf, size_t, {
             FOR_EACH(GET_FIELD_NAME, () first, () second)
