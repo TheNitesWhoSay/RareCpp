@@ -430,6 +430,12 @@ namespace Reflect
 {
     namespace Inheritance
     {
+        template <size_t index>
+        struct SuperIndex
+        {
+            static constexpr size_t Index = index;
+        };
+
         /// Inherit "inherit-from": used to denote a set of classes whose properties are being inherited by another reflected class
         template <typename ... Ts>
         struct Inherit;
@@ -465,7 +471,7 @@ namespace Reflect
 
             template <typename Function, typename SubClass>
             static void ForEach(SubClass & object, Function function) {
-                function(0, (T &)object);
+                function(SuperIndex<0>(), (T &)object);
             }
 
             template <typename Function, typename SubClass>
@@ -482,7 +488,7 @@ namespace Reflect
 
             template <typename Function, typename SubClass>
             static void ForEach(SubClass & object, Function function) {
-                function(0, (T &)object);
+                function(SuperIndex<0>(), (T &)object);
             }
 
             template <typename Function, typename SubClass>
@@ -497,16 +503,15 @@ namespace Reflect
         
             static constexpr size_t TotalSupers = sizeof...(Ts);
 
-            template <size_t SuperIndex, typename Function, typename SubClass>
+            template <size_t Index, typename Function, typename SubClass>
             static void ForEachRecursion(SubClass &, Function function) {
                 // Base case for recursion
             }
 
-            template <size_t SuperIndex, typename Function, typename SubClass, typename CurrentSuperClassType, typename... NextSuperClassTypes>
+            template <size_t Index, typename Function, typename SubClass, typename CurrentSuperClassType, typename... NextSuperClassTypes>
             static void ForEachRecursion(SubClass & object, Function function) {
-                size_t superIndex = SuperIndex;
-                function(superIndex, (CurrentSuperClassType &)object);
-                ForEachRecursion<SuperIndex+1, Function, SubClass, NextSuperClassTypes...>(object, function);
+                function(SuperIndex<Index>(), (CurrentSuperClassType &)object);
+                ForEachRecursion<Index+1, Function, SubClass, NextSuperClassTypes...>(object, function);
             }
 
             template <typename Function, typename SubClass>
@@ -514,17 +519,17 @@ namespace Reflect
                 ForEachRecursion<0, Function, SubClass, Ts ...>(object, function);
             }
         
-            template <size_t SuperIndex, typename Function, typename SubClass>
+            template <size_t Index, typename Function, typename SubClass>
             static void AtRecursion(SubClass & object, size_t superIndex, Function function) {
                 // Base case for recursion
             }
         
-            template <size_t SuperIndex, typename Function, typename SubClass, typename CurrentSuperClassType, typename... NextSuperClassTypes>
+            template <size_t Index, typename Function, typename SubClass, typename CurrentSuperClassType, typename... NextSuperClassTypes>
             static void AtRecursion(SubClass & object, size_t superIndex, Function function) {
-                if ( SuperIndex == superIndex )
+                if ( Index == superIndex )
                     function((CurrentSuperClassType &)object);
 
-                AtRecursion<SuperIndex+1, Function, SubClass, NextSuperClassTypes...>(object, superIndex, function);
+                AtRecursion<Index+1, Function, SubClass, NextSuperClassTypes...>(object, superIndex, function);
             }
 
             template <typename Function, typename SubClass>

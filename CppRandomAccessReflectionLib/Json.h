@@ -873,6 +873,16 @@ namespace Json {
                 putValue<0, Field>(os, value);
             });
 
+            T::Supers::ForEach(obj, [&](auto index, auto & superObj)
+            {
+                using Super = typename std::remove_reference<decltype(superObj)>::type;
+
+                os << FieldPrefix<PrettyPrint, decltype(index)::Index == 0, IndentLevel+1, indent>();
+                putString(os, superTypeToJsonFieldName<Super>());
+                os << FieldNameValueSeparator<PrettyPrint>();
+                Output<Super, PrettyPrint, IndentLevel+1, indent>::put(os, obj);
+            });
+
             os << ObjectSuffix<PrettyPrint, IndentLevel, indent>();
             return os;
         }
@@ -1427,6 +1437,7 @@ namespace Json {
         static std::istream & get(std::istream & is, char & c, T & t)
         {
             using Class = typename T::Class;
+            using Supers = typename T::Supers;
 
             Checked::get(is, c, '{', "object opening \"{\"");
             if ( !Checked::tryGet(is, '}', "object closing \"}\" or field name opening \"") )
@@ -1444,12 +1455,24 @@ namespace Json {
                     JsonField* jsonField = getJsonField(t, fieldName);
                     if ( jsonField != nullptr ) // Known field
                     {
-                        Class::FieldAt(t, jsonField->index, [&](auto & field, auto & value) {
+                        if ( jsonField->type == JsonField::Type::Regular )
+                        {
+                            Class::FieldAt(t, jsonField->index, [&](auto & field, auto & value) {
 
-                            using Field = typename std::remove_reference<decltype(field)>::type;
+                                using Field = typename std::remove_reference<decltype(field)>::type;
 
-                            getValue<false, Field>(is, c, value);
-                        });
+                                getValue<false, Field>(is, c, value);
+                            });
+                        }
+                        else
+                        {
+                            Supers::At(t, jsonField->index, [&](auto & superObj) {
+                                
+                                using Super = typename std::remove_reference<decltype(superObj)>::type;
+
+                                Input<Super>::get(is, c, superObj);
+                            });
+                        }
                     }
                     else // Unknown field
                         ignoreValue<false>(is, c);

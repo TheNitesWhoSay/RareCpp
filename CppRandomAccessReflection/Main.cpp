@@ -169,9 +169,9 @@ Car outputExamples()
     sub.otherVal = 2;
     sub.subVal = 3;
     
-    SubTest::Supers::ForEach(sub, [&](size_t index, auto & superObj) {
+    SubTest::Supers::ForEach(sub, [&](auto index, auto & superObj) {
         using Super = typename std::remove_reference<decltype(superObj)>::type;
-        std::cout << index << ": " << ExtendedTypeSupport::TypeToStr<Super>() << " {" << std::endl;
+        std::cout << decltype(index)::Index << ": " << ExtendedTypeSupport::TypeToStr<Super>() << " {" << std::endl;
         Super::Class::ForEachField(superObj, [&](auto & field, auto & value) {
             std::cout << "  " << field.name << ": " << value << std::endl;
         });
@@ -256,9 +256,20 @@ Car outputExamples()
 
 class SuperA {
 public:
+    SuperA() : superVal(0) {}
+
     int superVal;
 
     REFLECT(() SuperA, () superVal)
+};
+
+class OtherSuperA {
+public:
+    OtherSuperA() : otherSuperVal() {}
+
+    std::string otherSuperVal;
+
+    REFLECT(() OtherSuperA, (Json::String) otherSuperVal)
 };
 
 class SubA {
@@ -270,7 +281,7 @@ public:
     REFLECT(() SubA, () subVal)
 };
 
-class A : public SuperA {
+class A : public SuperA, public OtherSuperA {
 public:
     A() : first(0), second(0), ptr(nullptr), sub(), boolean(false), str("") { ray[0] = 0; ray[1] = 0; }
 
@@ -284,7 +295,8 @@ public:
     std::vector<std::vector<int>> vecVec;
     int ray[2];
 
-    REFLECT((SuperA) A, (Reflected) sub, () first, () second, () ptr, () boolean, (Json::String) str, (Json::String) map, () vecVec, () ray)
+    using Parents = Inherit<SuperA, OtherSuperA>;
+    REFLECT((Parents) A, (Reflected) sub, () first, () second, () ptr, () boolean, (Json::String) str, (Json::String) map, () vecVec, () ray)
 };
 
 std::istream & operator >>(std::istream & is, A & a) {
