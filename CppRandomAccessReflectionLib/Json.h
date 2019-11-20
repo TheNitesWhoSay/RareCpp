@@ -861,7 +861,8 @@ namespace Json {
         
         static constexpr std::ostream & put(std::ostream & os, const T & obj)
         {
-            os << ObjectPrefix<PrettyPrint, IndentLevel, indent>();
+            constexpr bool NotEmpty = T::Class::TotalFields > 0 || T::Supers::TotalSupers > 0;
+            os << ObjectPrefix<NotEmpty && PrettyPrint, IndentLevel, indent>();
 
             T::Class::ForEachField(obj, [&](auto & field, auto & value)
             {
@@ -883,7 +884,7 @@ namespace Json {
                 Output<Super, PrettyPrint, IndentLevel+1, indent>::put(os, obj);
             });
 
-            os << ObjectSuffix<PrettyPrint, IndentLevel, indent>();
+            os << ObjectSuffix<NotEmpty && PrettyPrint, IndentLevel, indent>();
             return os;
         }
     };
@@ -1469,7 +1470,6 @@ namespace Json {
                             Supers::At(t, jsonField->index, [&](auto & superObj) {
                                 
                                 using Super = typename std::remove_reference<decltype(superObj)>::type;
-
                                 Input<Super>::get(is, c, superObj);
                             });
                         }

@@ -265,11 +265,7 @@ public:
 
 class OtherSuperA {
 public:
-    OtherSuperA() : otherSuperVal() {}
-
-    std::string otherSuperVal;
-
-    REFLECT(() OtherSuperA, (Json::String) otherSuperVal)
+    REFLECT_EMPTY(() OtherSuperA)
 };
 
 class SubA {

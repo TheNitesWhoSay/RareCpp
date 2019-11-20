@@ -641,6 +641,19 @@ class Class { public: \
 }; \
 using Supers = Inherit<LHS(objectType)>;
 
+/// Used to reflect a class with no fields
+#define REFLECT_EMPTY(objectType) \
+class Class { public: \
+    using ClassType = RHS(objectType); \
+    static constexpr size_t TotalFields = 0; \
+    static constexpr Fields::Field<> Fields[1] = { { "", "", 0, false, false } }; \
+    template <typename Function> static void ForEachField(Function function) {} \
+    template <typename Function> static void ForEachField(RHS(objectType) & object, Function function) {} \
+    template <typename Function> static void ForEachField(const RHS(objectType) & object, Function function) { } \
+    template <typename Function> static void FieldAt(RHS(objectType) & object, size_t fieldIndex, Function function) {} \
+}; \
+using Supers = Inherit<LHS(objectType)>;
+
 }
 
 #endif
