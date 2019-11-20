@@ -293,11 +293,28 @@ std::istream & operator >>(std::istream & is, A & a) {
     return is;
 }
 
+struct TestClass
+{
+    const static int staticMember = 1337;
+    int nonStaticMember = 1;
+
+    REFLECT(() TestClass, () staticMember, () nonStaticMember)
+};
+
 int main()
 {
     Car car = outputExamples();
     std::cout << Json::out(car) << std::endl;
 
+    TestClass tc;
+    tc.nonStaticMember = 5;
+    
+    TestClass::Class::ForEachField([&](auto & field) {
+        using Field = std::remove_reference<decltype(field)>::type;
+        if constexpr ( Field::IsStatic )
+            std::cout << field.name << " (Static): " << *field.p << std::endl;
+    });
+    
     A a;
     a.ptr = nullptr;
     do {
