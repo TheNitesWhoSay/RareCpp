@@ -272,7 +272,7 @@ public:
 
 class A : public SuperA {
 public:
-    A() : first(0), second(0), ptr(nullptr), sub(), boolean(false), str("") { ray[0] = 0; ray[1] = 1; }
+    A() : first(0), second(0), ptr(nullptr), sub(), boolean(false), str("") { ray[0] = 0; ray[1] = 0; }
 
     int first;
     int second;
@@ -304,7 +304,7 @@ struct TestClass
 int main()
 {
     Car car = outputExamples();
-    std::cout << Json::out(car) << std::endl;
+    std::cout << std::endl << Json::out(car) << std::endl << std::endl;
 
     TestClass tc;
     tc.nonStaticMember = 5;
@@ -320,7 +320,6 @@ int main()
     do {
         bool successfulRead = false;
         try {
-            std::cin >> std::ws;
             std::cin >> Json::in(a);
             successfulRead = true;
         } catch ( Json::Exception & e ) {
@@ -328,7 +327,7 @@ int main()
         }
         //Json::putClassFieldCache(std::cout);
         //std::cout << "..." << std::endl;
-        std::cout << "Read in: " << Json::out(a) << std::endl;
+        std::cout << "Read in: " << Json::pretty(a) << std::endl;
         std::cout << "..." << std::endl;
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
