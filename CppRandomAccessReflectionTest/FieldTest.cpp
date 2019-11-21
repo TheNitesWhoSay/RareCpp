@@ -19,6 +19,11 @@ TEST(ReflectionSupportTest, FieldSimple)
     EXPECT_EQ(fieldIsReflected, field.isReflected);
 }
 
+struct TestStruct
+{
+    int testVal;
+};
+
 TEST(ReflectionSupportTest, FieldTemplated)
 {
     constexpr size_t fieldIndex = 2;
@@ -28,7 +33,7 @@ TEST(ReflectionSupportTest, FieldTemplated)
     bool fieldIsIterable = false;
     bool fieldIsReflected = false;
 
-    Field<int, fieldIndex> field = { fieldName, fieldTypeStr, fieldArraySize, fieldIsIterable, fieldIsReflected };
+    Field<int, decltype(&TestStruct::testVal), fieldIndex> field = { fieldName, fieldTypeStr, fieldArraySize, fieldIsIterable, fieldIsReflected };
     using IntField = decltype(field);
 
     EXPECT_STREQ(fieldName, field.name);

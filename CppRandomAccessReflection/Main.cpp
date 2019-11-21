@@ -83,8 +83,6 @@ public:
     FuelTank fuelTank;
     float milesPerGallon;
     
-    using OccupantIdType = std::map<std::string, std::string>;
-    using OccupantCupHolderUsageType = std::map<std::string, CupHolderPtr>;
     REFLECT(() Car,
         (Reflected) wheels,
         (Json::String) occupants,
@@ -96,7 +94,6 @@ public:
         (Reflected) fuelTank,
         () milesPerGallon
     )
-
 };
 
 class MassiveObject {
@@ -156,7 +153,7 @@ public:
     REFLECT((Parents) SubTest, () otherVal)
 };
 
-void outputExamples()
+Car outputExamples()
 {
     for ( size_t i=1; i<=MassiveObject::Class::TotalFields; i++ )
     {
@@ -172,9 +169,9 @@ void outputExamples()
     sub.otherVal = 2;
     sub.subVal = 3;
     
-    SubTest::Supers::ForEach(sub, [&](size_t index, auto & superObj) {
+    SubTest::Supers::ForEach(sub, [&](auto index, auto & superObj) {
         using Super = typename std::remove_reference<decltype(superObj)>::type;
-        std::cout << index << ": " << ExtendedTypeSupport::TypeToStr<Super>() << " {" << std::endl;
+        std::cout << decltype(index)::Index << ": " << ExtendedTypeSupport::TypeToStr<Super>() << " {" << std::endl;
         Super::Class::ForEachField(superObj, [&](auto & field, auto & value) {
             std::cout << "  " << field.name << ": " << value << std::endl;
         });
@@ -254,14 +251,21 @@ void outputExamples()
             std::cout << "(fuelTankPrimitiveArray) " << field.name << ": " << value << std::endl;
     });
 
-    std::cout << Json::out(car) << std::endl;
+    return car;
 }
 
 class SuperA {
 public:
+    SuperA() : superVal(0) {}
+
     int superVal;
 
     REFLECT(() SuperA, () superVal)
+};
+
+class OtherSuperA {
+public:
+    REFLECT_EMPTY(() OtherSuperA)
 };
 
 class SubA {
@@ -273,10 +277,17 @@ public:
     REFLECT(() SubA, () subVal)
 };
 
-class A : public SuperA {
+class A : public SuperA, public OtherSuperA {
 public:
-    A() : first(0), second(0), ptr(nullptr), sub(), boolean(false), str("") { ray[0] = 0; ray[1] = 1; }
+    enum_t(TestEnum, u8, {
+        first,
+        second
+    });
+    static const std::unordered_map<std::string, TestEnum> TestEnumCache;
 
+    A() : testEnum(TestEnum::first), first(0), second(0), ptr(nullptr), sub(), boolean(false), str("") { ray[0] = 0; ray[1] = 0; }
+
+    TestEnum testEnum;
     int first;
     int second;
     int* ptr;
@@ -287,25 +298,70 @@ public:
     std::vector<std::vector<int>> vecVec;
     int ray[2];
 
-    REFLECT((SuperA) A, (Reflected) sub, () first, () second, () ptr, () boolean, (Json::String) str, (Json::String) map, () vecVec, () ray)
+    using Parents = Inherit<SuperA, OtherSuperA>;
+    REFLECT((Parents) A, (Json::Enum) testEnum, (Reflected) sub, () first, () second,
+        () ptr, () boolean, (Json::String) str, (Json::String) map, () vecVec, () ray)
 };
 
-std::istream & operator >>(std::istream & is, A & a) {
-    is >> a.first;
-    is >> a.second;
+const std::unordered_map<std::string, A::TestEnum> A::TestEnumCache = {
+    { "first", A::TestEnum::first },
+    { "second", A::TestEnum::second }
+};
+
+std::ostream & operator<<(std::ostream & os, const A::TestEnum & testEnum)
+{
+    switch ( testEnum )
+    {
+        case A::TestEnum::first: os << "firstStream"; break;
+        case A::TestEnum::second: os << "secondStream"; break;
+    }
+    return os;
+}
+
+std::istream & operator>>(std::istream & is, A::TestEnum & testEnum)
+{
+    std::string input;
+    is >> input;
+    if ( is.good() )
+    {
+        auto found = A::TestEnumCache.find(input);
+        if ( found != A::TestEnumCache.end() )
+            testEnum = found->second;
+    }
     return is;
+}
+
+bool Json::EnumString<A, A::TestEnum, A::Class::IndexOf::testEnum>::From(const std::string input, const A & object, A::TestEnum & value)
+{
+    auto found = A::TestEnumCache.find(input);
+    if ( found != A::TestEnumCache.end() )
+    {
+        value = found->second;
+        return true;
+    }
+    else
+        return false;
+}
+
+std::string Json::EnumString<A, A::TestEnum, A::Class::IndexOf::testEnum>::To(const A & object, const A::TestEnum & value)
+{
+    switch ( value )
+    {
+        case A::TestEnum::first: return "first";
+        case A::TestEnum::second: return "second";
+    }
+    return "";
 }
 
 int main()
 {
-    outputExamples();
+    Car car = outputExamples();
+    std::cout << std::endl << Json::out(car) << std::endl << std::endl;
 
     A a;
-    a.ptr = nullptr;
     do {
         bool successfulRead = false;
         try {
-            std::cin >> std::ws;
             std::cin >> Json::in(a);
             successfulRead = true;
         } catch ( Json::Exception & e ) {
@@ -313,7 +369,7 @@ int main()
         }
         //Json::putClassFieldCache(std::cout);
         //std::cout << "..." << std::endl;
-        std::cout << "Read in: " << Json::out(a) << std::endl;
+        std::cout << "Read in: " << Json::pretty(a) << std::endl;
         std::cout << "..." << std::endl;
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
