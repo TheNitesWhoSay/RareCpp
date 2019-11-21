@@ -25,7 +25,7 @@ There are a few annotations you can use to alter the JSON representation...
 There are three main ways you can handle enumerations...
 1. Have an enumeration with the Json::EnumInt annotation used, this will force use of the integer value regardless of ostream/istream overloads
 2. Have an enumeration with ostream/istream operator overloads and the Json::String annotation used, this will create a one-to-one relationship with a string value for output, and a one-to-one or one-to-many relationship with a string value for input
-3. Have an enumeration with the Json::Enum annotation used, and overload the EnumString To/From methods for your field, this allows you to customize the string representation based on the state of the object and which specific field the enum belongs to - this is especially useful when you have multiple enum strings that share the same value (perhaps because the meaning of the enum value changes based on some type field, or because one string makes more grammatical sense than another in different contexts_.
+3. Have an enumeration with the Json::Enum annotation used, and overload the EnumString To/From methods for your field, this allows you to customize the string representation based on the state of the object and which specific field the enum belongs to - this is especially useful when you have multiple enum strings that share the same value (perhaps because the meaning of the enum value changes based on some type field, or because one string makes more grammatical sense than another in different contexts.
 
 (1.)
 ```
