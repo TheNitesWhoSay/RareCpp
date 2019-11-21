@@ -1,3 +1,3 @@
-JSON Automation Library
+# JSON Automation Library
 
-Creating a JSON library that serializes and deserializes complex objects with minimal effort.
+A library for serializing and deserializing simple to very complex objects with minimal effort.
