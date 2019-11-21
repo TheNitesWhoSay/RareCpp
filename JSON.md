@@ -121,7 +121,8 @@ const std::unordered_map<std::string, A::TestEnum> A::AltTestEnumCache = {
     { "two", A::TestEnum::second }
 };
 
-bool Json::EnumString<A, A::TestEnum, A::Class::IndexOf::testEnum>::From(const std::string input, const A & object, A::TestEnum & value)
+bool Json::EnumString<A, A::TestEnum, A::Class::IndexOf::testEnum>::From(
+    const std::string input, const A & object, A::TestEnum & value)
 {
     if ( object.alternate )
     {
@@ -144,7 +145,8 @@ bool Json::EnumString<A, A::TestEnum, A::Class::IndexOf::testEnum>::From(const s
     return false;
 }
 
-std::string Json::EnumString<A, A::TestEnum, A::Class::IndexOf::testEnum>::To(const A & object, const A::TestEnum & value)
+std::string Json::EnumString<A, A::TestEnum, A::Class::IndexOf::testEnum>::To(
+    const A & object, const A::TestEnum & value)
 {
     if ( object.alternate )
     {
