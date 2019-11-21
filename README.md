@@ -24,7 +24,7 @@ The REFLECT macro takes the class parameter, then between 1 and 123 fields.
 
 
 
-With reflection you can use and write very powerful code to automatically handle complex tasks, for instance, conversion to JSON
+With reflection you can use and write very powerful code to automatically handle complex tasks, for instance, conversion to and from JSON
 ```C++
 FuelTank fuelTank;
 std::cin >> Json::in(fuelTank);
