@@ -23,6 +23,21 @@ The REFLECT macro takes the class parameter, then between 1 and 123 fields.
 - The fields are all of the form "(Annotations) FieldName", Annotations are optional
 
 
+
+With reflection you can use and write very powerful code to automatically handle complex tasks, for instance, conversion to JSON
+```C++
+FuelTank fuelTank(15.0f, 14.6f, 1.0f, 7.5f);
+std::cout << Json::pretty(fuelTank) << std::endl;
+```
+```JSON
+{
+  "capacity": 15,
+  "currentLevel": 14.6,
+  "tickMarks": [ 1, 7.5 ]
+}
+```
+
+
 ## Usage
 
 Following the setup of the REFLECT macro, you can easily loop over the fields of a reflected class...
