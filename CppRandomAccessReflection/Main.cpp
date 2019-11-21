@@ -279,8 +279,15 @@ public:
 
 class A : public SuperA, public OtherSuperA {
 public:
-    A() : first(0), second(0), ptr(nullptr), sub(), boolean(false), str("") { ray[0] = 0; ray[1] = 0; }
+    enum_t(TestEnum, u8, {
+        first,
+        second
+    });
+    static const std::unordered_map<std::string, TestEnum> TestEnumCache;
 
+    A() : testEnum(TestEnum::first), first(0), second(0), ptr(nullptr), sub(), boolean(false), str("") { ray[0] = 0; ray[1] = 0; }
+
+    TestEnum testEnum;
     int first;
     int second;
     int* ptr;
@@ -292,39 +299,66 @@ public:
     int ray[2];
 
     using Parents = Inherit<SuperA, OtherSuperA>;
-    REFLECT((Parents) A, (Reflected) sub, () first, () second, () ptr, () boolean, (Json::String) str, (Json::String) map, () vecVec, () ray)
+    REFLECT((Parents) A, (Json::Enum) testEnum, (Reflected) sub, () first, () second,
+        () ptr, () boolean, (Json::String) str, (Json::String) map, () vecVec, () ray)
 };
 
-std::istream & operator >>(std::istream & is, A & a) {
-    is >> a.first;
-    is >> a.second;
-    return is;
+const std::unordered_map<std::string, A::TestEnum> A::TestEnumCache = {
+    { "first", A::TestEnum::first },
+    { "second", A::TestEnum::second }
+};
+
+bool Json::EnumString<A, A::TestEnum, A::Class::IndexOf::testEnum>::From(const std::string input, const A & object, A::TestEnum & value)
+{
+    auto found = A::TestEnumCache.find(input);
+    if ( found != A::TestEnumCache.end() )
+    {
+        value = found->second;
+        return true;
+    }
+    else
+        return false;
 }
 
-struct TestClass
+std::string Json::EnumString<A, A::TestEnum, A::Class::IndexOf::testEnum>::To(const A & object, const A::TestEnum & value)
 {
-    const static int staticMember = 1337;
-    int nonStaticMember = 1;
+    switch ( value )
+    {
+        case A::TestEnum::first: return "firstAnnotation";
+        case A::TestEnum::second: return "secondAnnotation";
+    }
+    return "";
+}
 
-    REFLECT(() TestClass, () staticMember, () nonStaticMember)
-};
+std::ostream & operator<<(std::ostream & os, const A::TestEnum & testEnum)
+{
+    switch ( testEnum )
+    {
+        case A::TestEnum::first: os << "firstStream"; break;
+        case A::TestEnum::second: os << "secondStream"; break;
+    }
+    return os;
+}
+
+std::istream & operator>>(std::istream & is, A::TestEnum & testEnum)
+{
+    std::string input;
+    is >> input;
+    if ( is.good() )
+    {
+        auto found = A::TestEnumCache.find(input);
+        if ( found != A::TestEnumCache.end() )
+            testEnum = found->second;
+    }
+    return is;
+}
 
 int main()
 {
     Car car = outputExamples();
     std::cout << std::endl << Json::out(car) << std::endl << std::endl;
 
-    TestClass tc;
-    tc.nonStaticMember = 5;
-    
-    TestClass::Class::ForEachField([&](auto & field) {
-        using Field = std::remove_reference<decltype(field)>::type;
-        if constexpr ( Field::IsStatic )
-            std::cout << field.name << " (Static): " << *field.p << std::endl;
-    });
-    
     A a;
-    a.ptr = nullptr;
     do {
         bool successfulRead = false;
         try {

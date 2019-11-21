@@ -256,6 +256,12 @@ namespace ConstexprStr
 
 namespace ExtendedTypeSupport
 {
+    template <typename T> struct promote_char { using type = typename T; };
+    template <> struct promote_char<signed char> { using type = int; };
+    template <> struct promote_char<const signed char> { using type = const int; };
+    template <> struct promote_char<unsigned char> { using type = int; };
+    template <> struct promote_char<const unsigned char> { using type = const int; };
+
     template <typename T> struct pair_rhs { using type = T; };
     template <typename L, typename R> struct pair_rhs<std::pair<L, R>> { using type = typename R; };
     template <typename L, typename R> struct pair_rhs<const std::pair<L, R>> { using type = typename R; };
