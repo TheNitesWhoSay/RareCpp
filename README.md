@@ -1,12 +1,12 @@
 # CppRandomAccessReflection
 Creating a simpler, more intuitive means of C++ reflection.
 
-
-
-
-Within the class you're looking to reflect you place the REFLECT macro.
+To include reflection in your project you simply need to copy the [Reflect.h](https://github.com/jjf28/CppRandomAccessReflection/blob/master/CppRandomAccessReflectionLib/Reflect.h) file into your project, then within the class(es) you're looking to reflect you place the REFLECT macro.
 
 ```
+#include "Reflect.h"
+using namespace Reflect;
+
 class FuelTank {
 public:
     float capacity;
