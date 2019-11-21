@@ -31,10 +31,10 @@ std::cin >> Json::in(fuelTank);
 std::cout << Json::pretty(fuelTank) << std::endl;
 ```
 ```JSON
-{"capacity":15.0,"currentLevel":14.6,"tickMarks":[1.0,7.5]}
+{"capacity":15.0,"tickMarks":[1.0,7.5]}
 {
   "capacity": 15,
-  "currentLevel": 14.6,
+  "currentLevel": 0,
   "tickMarks": [ 1, 7.5 ]
 }
 ```
