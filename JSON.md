@@ -3,7 +3,7 @@
 A library for reading and writing complex objects with minimal effort.
 
 Any object to which the REFLECT macro has already applied can be written and read from streams as such:
-```
+```C++
 std::cin >> Json::in(myObj);
 std::cout << Json::out(myObj) << std::endl;
 std::cout << Json::pretty(myObj) << std::endl;
@@ -28,7 +28,7 @@ There are three main ways you can handle enumerations...
 3. Have an enumeration with the Json::Enum annotation used, and overload the EnumString To/From methods for your field, this allows you to customize the string representation based on the state of the object and which specific field the enum belongs to - this is especially useful when you have multiple enum strings that share the same value (perhaps because the meaning of the enum value changes based on some type field, or because one string makes more grammatical sense than another in different contexts.
 
 (1.)
-```
+```C++
 class A {
 public:
     enum class TestEnum : u8 {
@@ -45,7 +45,7 @@ public:
 ```
 
 (2.)
-```
+```C++
 class A {
 public:
     enum class TestEnum : u8 {
@@ -92,7 +92,7 @@ std::istream & operator>>(std::istream & is, A::TestEnum & testEnum)
 ```
 
 (3.)
-```
+```C++
 class A {
 public:
     enum class TestEnum : u8 {
