@@ -48,7 +48,7 @@ TEST(ReflectTest, InheritedType)
 
     size_t visitCount = 0;
     Inherit<int>::ForEach(val, [&](auto index, auto superClass) {
-        EXPECT_EQ(0, index);
+        EXPECT_EQ(0, decltype(index)::Index);
         bool isSame = std::is_same<int, decltype(superClass)>::value;
         EXPECT_TRUE(isSame);
         visitCount ++;
@@ -67,7 +67,7 @@ TEST(ReflectTest, InheritedType)
 
     visitCount = 0;
     Inherit<Inherit<int>>::ForEach(val, [&](auto index, auto superClass) {
-        EXPECT_EQ(0, index);
+        EXPECT_EQ(0, decltype(index)::Index);
         bool isSame = std::is_same<int, decltype(superClass)>::value;
         EXPECT_TRUE(isSame);
         visitCount ++;
@@ -86,9 +86,9 @@ TEST(ReflectTest, InheritedType)
 
     visitCount = 0;
     TwoArg::ForEach(val, [&](auto index, auto superClass) {
-        EXPECT_EQ(visitCount, index);
+        EXPECT_EQ(visitCount, decltype(index)::Index);
         bool isSame = false;
-        switch ( index ) {
+        switch ( decltype(index)::Index ) {
             case 0: isSame = std::is_same<int, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
             case 1: isSame = std::is_same<float, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
             default: EXPECT_TRUE(false); break;
@@ -116,9 +116,9 @@ TEST(ReflectTest, InheritedType)
 
     visitCount = 0;
     ThreeArg::ForEach(val, [&](auto index, auto superClass) {
-        EXPECT_EQ(visitCount, index);
+        EXPECT_EQ(visitCount, decltype(index)::Index);
         bool isSame = false;
-        switch ( index ) {
+        switch ( decltype(index)::Index ) {
             case 0: isSame = std::is_same<int, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
             case 1: isSame = std::is_same<float, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
             case 2: isSame = std::is_same<char, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
@@ -154,9 +154,9 @@ TEST(ReflectTest, InheritedType)
 
     visitCount = 0;
     FourArg::ForEach(val, [&](auto index, auto superClass) {
-        EXPECT_EQ(visitCount, index);
+        EXPECT_EQ(visitCount, decltype(index)::Index);
         bool isSame = false;
-        switch ( index ) {
+        switch ( decltype(index)::Index ) {
             case 0: isSame = std::is_same<int, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
             case 1: isSame = std::is_same<float, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
             case 2: isSame = std::is_same<short, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;

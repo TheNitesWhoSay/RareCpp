@@ -308,28 +308,6 @@ const std::unordered_map<std::string, A::TestEnum> A::TestEnumCache = {
     { "second", A::TestEnum::second }
 };
 
-bool Json::EnumString<A, A::TestEnum, A::Class::IndexOf::testEnum>::From(const std::string input, const A & object, A::TestEnum & value)
-{
-    auto found = A::TestEnumCache.find(input);
-    if ( found != A::TestEnumCache.end() )
-    {
-        value = found->second;
-        return true;
-    }
-    else
-        return false;
-}
-
-std::string Json::EnumString<A, A::TestEnum, A::Class::IndexOf::testEnum>::To(const A & object, const A::TestEnum & value)
-{
-    switch ( value )
-    {
-        case A::TestEnum::first: return "firstAnnotation";
-        case A::TestEnum::second: return "secondAnnotation";
-    }
-    return "";
-}
-
 std::ostream & operator<<(std::ostream & os, const A::TestEnum & testEnum)
 {
     switch ( testEnum )
@@ -351,6 +329,28 @@ std::istream & operator>>(std::istream & is, A::TestEnum & testEnum)
             testEnum = found->second;
     }
     return is;
+}
+
+bool Json::EnumString<A, A::TestEnum, A::Class::IndexOf::testEnum>::From(const std::string input, const A & object, A::TestEnum & value)
+{
+    auto found = A::TestEnumCache.find(input);
+    if ( found != A::TestEnumCache.end() )
+    {
+        value = found->second;
+        return true;
+    }
+    else
+        return false;
+}
+
+std::string Json::EnumString<A, A::TestEnum, A::Class::IndexOf::testEnum>::To(const A & object, const A::TestEnum & value)
+{
+    switch ( value )
+    {
+        case A::TestEnum::first: return "first";
+        case A::TestEnum::second: return "second";
+    }
+    return "";
 }
 
 int main()
