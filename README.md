@@ -94,7 +94,7 @@ ExtendedTypeSupport defines many useful interfaces for these purposes...
 
 Extended type support also provides the HasType method to check whether a type is included in a list of types, a TypeToStr method to retrieve a string representation of a type, and the get_underlying_container method to retrieve a const version of the underlying container for an STL adaptor.
 
-See [Json.h](https://github.com/jjf28/CppRandomAccessReflection/blob/master/CppRandomAccessReflectionLib/Json.h) for where all of this gets put together to traverse fairly complex objects.
+See [Json.h](https://github.com/jjf28/CppRandomAccessReflection/blob/master/CppRandomAccessReflectionLib/Json.h) for where all of this gets put together to traverse fairly complex objects - in the case of JSON serialization and deserialization is split into three main methods: get[Object]/put[Object], getIterable/putIterable, and getValue/putValue.
 
 
 ## Field
