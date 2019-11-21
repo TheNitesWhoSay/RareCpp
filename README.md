@@ -75,22 +75,22 @@ FuelTank::Class::ForEachField(fuelTank, [&](auto & field, auto & value) {
 ```
 
 ExtendedTypeSupport defines many useful interfaces for these purposes...
-- pair_rhs<T>::type // Gets the type of the right-hand value in an std::pair
-- element_type<T>::type // Gets the type of the element contained in some iterable (be it a static_array, or STL container)
-- remove_pointer<T>::type // Gets the type pointed to by a regular or smart pointer type
-- is_pointable<T>::value // Checks whether a type is a regular or smart pointer
-- static_array_size<T>::value // Gets the size of a static array, which may be a basic C++ array or the STL std::array type
-- is_static_array<T>::value // Checks whether a type is a static array
-- is_iterable<T>::value // Checks whether a type can be iterated, meaning it's a static array or other STL container
-- is_stl_iterable<T>::value // Checks whether a type can be iterated with begin()/end()
-- is_adaptor<T>::value // Checks whether a type is an STL adaptor (std::stack, std::queue, std::priority_queue)
-- is_forward_list<T>::value // Checks whether a type is a forward list
-- is_pair<T>::value // Checks whether a type is a pair
-- is_bool<T>::value // Checks whether a type is a bool
-- has_push_back<T>::value // Checks whether a type is an STL container with a push_back method
-- has_push<T>::value // Checks whether a type is an STL container with a push method
-- has_insert<T>::value // Checks whether a type is an STL container with an insert method
-- has_clear<T>::value // Checks whether a type is an STL container with a clear method
+- pair_rhs\<T\>::type // Gets the type of the right-hand value in an std::pair
+- element_type\<T\>::type // Gets the type of the element contained in some iterable (be it a static_array, or STL container)
+- remove_pointer\<T\>::type // Gets the type pointed to by a regular or smart pointer type
+- is_pointable\<T\>::value // Checks whether a type is a regular or smart pointer
+- static_array_size\<T\>::value // Gets the size of a static array, which may be a basic C++ array or the STL std::array type
+- is_static_array\<T\>::value // Checks whether a type is a static array
+- is_iterable\<T\>::value // Checks whether a type can be iterated, meaning it's a static array or other STL container
+- is_stl_iterable\<T\>::value // Checks whether a type can be iterated with begin()/end()
+- is_adaptor\<T\>::value // Checks whether a type is an STL adaptor (std::stack, std::queue, std::priority_queue)
+- is_forward_list\<T\>::value // Checks whether a type is a forward list
+- is_pair\<T\>::value // Checks whether a type is a pair
+- is_bool\<T\>::value // Checks whether a type is a bool
+- has_push_back\<T\>::value // Checks whether a type is an STL container with a push_back method
+- has_push\<T\>::value // Checks whether a type is an STL container with a push method
+- has_insert\<T\>::value // Checks whether a type is an STL container with an insert method
+- has_clear\<T\>::value // Checks whether a type is an STL container with a clear method
 
 Extended type support also provides the HasType method to check whether a type is included in a list of types, a TypeToStr method to retrieve a string representation of a type, and the get_underlying_container method to retrieve a const version of the underlying container for an STL adaptor.
 
