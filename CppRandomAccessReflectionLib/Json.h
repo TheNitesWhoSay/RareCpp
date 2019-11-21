@@ -12,29 +12,6 @@ namespace Json {
 
     using namespace ExtendedTypeSupport;
     
-    /// When something from Json calls an object's instream overload...
-    /// The istream is always a pre-loaded stringstream that you can fully consume using this method
-    /// Take care that you only use this shortcut if your istream isn't already overloaded for continuous streams
-    std::string to_string(std::istream & is)
-    {
-        char c = '\0';
-        std::string str;
-        if ( is.good() )
-        {
-            do
-            {
-                is.get(c);
-                if ( is.good() )
-                    str.push_back(c);
-                else
-                    return str;
-            }
-            while ( true );
-        }
-        else
-            return str;
-    }
-
     struct Enum {};
 
     struct EnumInt {};
