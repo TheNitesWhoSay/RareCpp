@@ -26,10 +26,12 @@ The REFLECT macro takes the class parameter, then between 1 and 123 fields.
 
 With reflection you can use and write very powerful code to automatically handle complex tasks, for instance, conversion to JSON
 ```C++
-FuelTank fuelTank(15.0f, 14.6f, 1.0f, 7.5f);
+FuelTank fuelTank;
+std::cin >> Json::in(fuelTank);
 std::cout << Json::pretty(fuelTank) << std::endl;
 ```
 ```JSON
+{"capacity":15.0,"currentLevel":14.6,"tickMarks":[1.0,7.5]}
 {
   "capacity": 15,
   "currentLevel": 14.6,
