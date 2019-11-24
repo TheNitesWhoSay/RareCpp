@@ -115,7 +115,7 @@ See [Json.h](https://github.com/jjf28/CppRandomAccessReflection/blob/master/CppR
 
 
 ## Field
-Information provided to REFLECT is used to generate meta-data about your classes fields in the form of "Field" objects stored in a sub-class of your object titled "Class", Field objects come in two flavors but both share the following members:
+Information provided to REFLECT is used to generate meta-data about your classes fields in the form of "Field" objects stored in a nested-class of your object titled "Class", Field objects come in two flavors but both share the following members:
 
 1. name
 2. typeStr
@@ -131,7 +131,7 @@ The enhanced flavor also provides the HasAnnotation method which can be used to 
 
 
 ## Class
-As stated, Class is a sub-class of the class you're trying to reflect; Class has the following static data members:
+As stated, Class is a nested-class of the class you're trying to reflect; Class has the following static data members:
 
 1. TotalFields
 2. Fields[TotalFields] // Simple flavor, doesn't include the Type, Index, or HasAnnotation members
@@ -245,7 +245,7 @@ The REFLECT macro takes in the name of the class you're adding reflection to, fo
 1. TotalFields gets set to the count of arguments, not including the class name
 2. an enum "IndexOf" is generated using each field name, because enums start at 0 and count up, IndexOf::fieldName provides the index of a given field in a manner statically available at compile time (this especially helps us build switches later)
 3. An alias for each type is defined (via "using") named the same as the fieldname
-4. a subclass is defined for each field named fieldName_, in this subclass a typeStr and nameStr are constructed, and a "Field" object is defined, using the typeStr, and name, these Field objects are the enhanced flavor
+4. a nested-class is defined for each field named fieldName_, in this nested-class a typeStr and nameStr are constructed, and a "Field" object is defined, using the typeStr, and name, these Field objects are the enhanced flavor
 5. a "Field" array is generated, similar to the field object defined in the third step, but the simple flavor
 6. The ForEachField method is generated, calling the given function with the enhanced flavor of the Field and a reference to the field
 7. The FieldAt method is generated, calling the given function with the enhanced flavor of the Field and a reference to the field at the given fieldIndex
