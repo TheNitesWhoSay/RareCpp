@@ -11,6 +11,7 @@
 namespace Json {
 
     using namespace ExtendedTypeSupport;
+    using namespace Reflect;
     
     struct Enum {};
 
@@ -561,20 +562,25 @@ namespace Json {
             return os;
         }
         
-        template <bool PrettyPrint, bool IsFirst, size_t IndentLevel, const char* indent = twoSpaces>
-        struct FieldPrefix { };
+        template <bool PrettyPrint, size_t IndentLevel, const char* indent = twoSpaces>
+        struct FieldPrefix {
+            bool isFirst;
 
-        template <bool PrettyPrint, bool IsFirst, size_t IndentLevel, const char* indent = twoSpaces>
-        std::ostream & operator<<(std::ostream & os, const FieldPrefix<PrettyPrint, IsFirst, IndentLevel, indent>)
+            FieldPrefix() : isFirst(false) {}
+            FieldPrefix(bool isFirst) : isFirst(isFirst) {}
+        };
+
+        template <bool PrettyPrint, size_t IndentLevel, const char* indent = twoSpaces>
+        std::ostream & operator<<(std::ostream & os, const FieldPrefix<PrettyPrint, IndentLevel, indent> fieldPrefix)
         {
             if constexpr ( PrettyPrint )
             {
-                if constexpr ( IsFirst )
+                if ( fieldPrefix.isFirst )
                     os << std::endl << Indent<PrettyPrint, IndentLevel, indent>();
                 else 
                     os << "," << std::endl << Indent<PrettyPrint, IndentLevel, indent>();
             }
-            else if constexpr ( !IsFirst )
+            else if ( !fieldPrefix.isFirst )
                 os << ",";
 
             return os;
@@ -757,7 +763,14 @@ namespace Json {
     };
     using namespace Cache;
 
-    template <typename T, bool PrettyPrint, size_t IndentLevel = 0, const char* indent = twoSpaces>
+    enum class Statics
+    {
+        Excluded = 0,
+        Included = 1,
+        Only = 2
+    };
+
+    template <typename T, bool PrettyPrint, Statics statics = Statics::Excluded, size_t IndentLevel = 0, const char* indent = twoSpaces>
     class Output
     {
     public:
@@ -810,29 +823,21 @@ namespace Json {
             {
                 if ( element == nullptr )
                     os << "null";
-                else if constexpr ( is_iterable<Element>::value )
-                    putIterable<TotalParentIterables, Field, Element>(os, t, *element);
-                else if constexpr ( Field::template HasAnnotation<Reflect::Reflected> )
-                    Output<typename remove_pointer<Element>::type, PrettyPrint, IndentLevel+TotalParentIterables+1>::put(os, *element);
-                else if constexpr ( Field::template HasAnnotation<Json::String> )
-                    putString(os, *element);
-                else if constexpr ( Field::template HasAnnotation<Json::Enum> )
-                    putString(os, EnumString<T, remove_pointer<Element>::type, Field::Index>::To(t, element));
-                else if constexpr ( Field::template HasAnnotation<Json::EnumInt> )
-                    os << (typename promote_char<typename std::underlying_type<typename remove_pointer<Element>::type>::type>::type)*element;
                 else
-                    os << (typename promote_char<typename remove_pointer<Element>::type>::type)*element;
+                    putValue<TotalParentIterables, Field>(os, t, *element);
             }
             else if constexpr ( is_iterable<Element>::value )
                 putIterable<TotalParentIterables, Field, Element>(os, t, element);
             else if constexpr ( Field::template HasAnnotation<Reflect::Reflected> )
-                Output<Element, PrettyPrint, IndentLevel+TotalParentIterables+1>::put(os, element);
+                Output<Element, PrettyPrint, statics, IndentLevel+TotalParentIterables+1>::put(os, element);
             else if constexpr ( Field::template HasAnnotation<Json::String> )
                 putString(os, element);
             else if constexpr ( Field::template HasAnnotation<Json::Enum> )
                 putString(os, EnumString<T, remove_pointer<Element>::type, Field::Index>::To(t, element));
             else if constexpr ( Field::template HasAnnotation<Json::EnumInt> )
                 os << (typename promote_char<typename std::underlying_type<Element>::type>::type)element;
+            else if constexpr ( is_bool<Element>::value )
+                os << (element ? "true" : "false");
             else
                 os << (typename promote_char<Element>::type)element;
         }
@@ -885,32 +890,44 @@ namespace Json {
         
         static constexpr std::ostream & put(std::ostream & os, const T & obj)
         {
-            constexpr bool NotEmpty = T::Class::TotalFields > 0 || T::Supers::TotalSupers > 0;
+            constexpr bool NotEmpty =
+                statics == Statics::Only && T::Class::TotalStaticFields > 0 ||
+                statics == Statics::Included && T::Class::TotalFields > 0 ||
+                statics == Statics::Excluded && T::Class::TotalFields > 0 && T::Class::TotalStaticFields < T::Class::TotalFields ||
+                T::Supers::TotalSupers > 0;
+
             os << ObjectPrefix<NotEmpty && PrettyPrint, IndentLevel, indent>();
 
+            bool isFirst = true;
             T::Class::ForEachField(obj, [&](auto & field, auto & value)
             {
                 using Field = typename std::remove_reference<decltype(field)>::type;
 
-                os << FieldPrefix<PrettyPrint, Field::Index == 0, IndentLevel+1, indent>();
-                putString(os, field.name);
-                os << FieldNameValueSeparator<PrettyPrint>();
-                putValue<0, Field>(os, obj, value);
+                if constexpr ( (statics == Statics::Included || statics == Statics::Only) && Field::IsStatic ||
+                                statics == Statics::Excluded && !Field::IsStatic )
+                {
+                    os << FieldPrefix<PrettyPrint, IndentLevel+1, indent>(isFirst);
+                    putString(os, field.name);
+                    os << FieldNameValueSeparator<PrettyPrint>();
+                    putValue<0, Field>(os, obj, value);
+                    isFirst = false;
+                }
             });
 
             T::Supers::ForEach(obj, [&](auto index, auto & superObj)
             {
                 using Super = typename std::remove_reference<decltype(superObj)>::type;
 
-                os << FieldPrefix<PrettyPrint, decltype(index)::Index == 0, IndentLevel+1, indent>();
+                os << FieldPrefix<PrettyPrint, IndentLevel+1, indent>(decltype(index)::Index == 0);
                 putString(os, superTypeToJsonFieldName<Super>());
                 os << FieldNameValueSeparator<PrettyPrint>();
-                Output<Super, PrettyPrint, IndentLevel+1, indent>::put(os, obj);
+                Output<Super, PrettyPrint, statics, IndentLevel+1, indent>::put(os, obj);
             });
 
             os << ObjectSuffix<NotEmpty && PrettyPrint, IndentLevel, indent>();
             return os;
         }
+
     };
     
     template <typename T>
@@ -1079,26 +1096,32 @@ namespace Json {
         template <typename Iterable>
         static constexpr void clear(Iterable & iterable)
         {
-            if constexpr ( has_clear<Iterable>::value )
-                iterable.clear();
-            else if constexpr ( is_adaptor<Iterable>::value )
+            if constexpr ( !std::is_const<Iterable>::value )
             {
-                while ( !iterable.empty() )
-                    iterable.pop();
+                if constexpr ( has_clear<Iterable>::value )
+                    iterable.clear();
+                else if constexpr ( is_adaptor<Iterable>::value )
+                {
+                    while ( !iterable.empty() )
+                        iterable.pop();
+                }
             }
         }
 
         template <typename Iterable, typename Element>
         static constexpr void append(Iterable & iterable, Element & element)
         {
-            if constexpr ( has_push_back<Iterable>::value )
-                iterable.push_back(element);
-            else if constexpr ( is_forward_list<Iterable>::value )
-                iterable.insert_after(--iterable.end(), element);
-            else if constexpr ( has_push<Iterable>::value )
-                iterable.push(element);
-            else if constexpr ( has_insert<Iterable>::value )
-                iterable.insert(element);
+            if constexpr ( !std::is_const<Iterable>::value )
+            {
+                if constexpr ( has_push_back<Iterable>::value )
+                    iterable.push_back(element);
+                else if constexpr ( is_forward_list<Iterable>::value )
+                    iterable.insert_after(--iterable.end(), element);
+                else if constexpr ( has_push<Iterable>::value )
+                    iterable.push(element);
+                else if constexpr ( has_insert<Iterable>::value )
+                    iterable.insert(element);
+            }
         }
 
         template <bool InArray>
@@ -1141,12 +1164,14 @@ namespace Json {
             if ( c == 't' )
             {
                 readTrue<InArray>(is, c);
-                value = true;
+                if constexpr ( !std::is_const<Value>::value )
+                    value = true;
             }
             else if ( c == 'f' )
             {
                 readFalse<InArray>(is, c);
-                value = false;
+                if constexpr ( !std::is_const<Value>::value )
+                    value = false;
             }
             else
                 throw Exception("Expected: \"true\" or \"false\"");
@@ -1347,7 +1372,8 @@ namespace Json {
         {
             std::stringstream ss;
             getString(is, c, ss);
-            ss >> t;
+            if constexpr ( !std::is_const<T>::value )
+                ss >> t;
         }
         
         static constexpr std::string getString(std::istream & is, char & c)
@@ -1360,9 +1386,18 @@ namespace Json {
         template <typename Field, typename Element>
         static constexpr void getEnumInt(std::istream & is, T & t, Element & element)
         {
-            typename promote_char<typename std::underlying_type<typename remove_pointer<Element>::type>::type>::type temp;
+            using EnumType = typename promote_char<typename std::underlying_type<typename remove_pointer<Element>::type>::type>::type;
+            typename std::remove_const<EnumType>::type temp;
             is >> temp;
-            element = (typename remove_pointer<Element>::type)temp;
+            if constexpr ( !std::is_const<EnumType>::value )
+                element = (typename remove_pointer<Element>::type)temp;
+        }
+
+        template <typename Element>
+        static constexpr void ignoreConstPrimitive(std::istream & is)
+        {
+            typename std::remove_const<Element>::type placeholder;
+            is >> placeholder;
         }
 
         template <bool InArray>
@@ -1391,22 +1426,18 @@ namespace Json {
             {
                 if ( element == nullptr ) // If element pointer is nullptr the only valid value is "null"
                     readNull<InArray>(is, c);
+                else if constexpr ( is_pointable<std::remove_pointer<Element>::type>::value && // If value pointed to is also a pointer
+                    !std::is_const<std::remove_pointer<Element>::type>::value ) // And value pointed to is not const
+                {
+                    getValue<InArray, Field>(is, c, t, *element);  // Only take the chance of assigning nullptr to that more deeply nested pointer
+                }
                 else if ( tryReadNull<InArray>(is, c) ) // If element pointer is not nullptr, "null" is a possible value
-                    element = nullptr;
-                else if constexpr ( is_iterable<Element>::value )
-                    getIterable<Field, Element>(is, c, *element);
-                else if constexpr ( Field::template HasAnnotation<Reflect::Reflected> )
-                    Input<typename remove_pointer<Element>::type>::get(is, c, t, *element);
-                else if constexpr ( Field::template HasAnnotation<Json::String> )
-                    getString(is, *element);
-                else if constexpr ( Field::template HasAnnotation<Json::Enum> )
-                    EnumString<T, remove_pointer<Element>::type, Field::Index>::From(getString(is, c), t, *element);
-                else if constexpr ( Field::template HasAnnotation<Json::EnumInt> )
-                    getEnumInt<Field, typename remove_pointer<Element>::type>(is, t, *element);
-                else if constexpr ( is_bool<typename remove_pointer<Element>::type>::value )
-                    readBool<InArray>(is, c, *element);
+                {
+                    if constexpr ( !std::is_const<Element>::value )
+                        element = nullptr;
+                }
                 else
-                    is >> *element;
+                    getValue<InArray, Field>(is, c, t, *element);
             }
             else if constexpr ( is_iterable<Element>::value )
                 getIterable<Field, Element>(is, c, t, element);
@@ -1420,6 +1451,8 @@ namespace Json {
                 getEnumInt<Field, Element>(is, t, element);
             else if constexpr ( is_bool<Element>::value )
                 readBool<InArray>(is, c, element);
+            else if constexpr ( std::is_const<Element>::value )
+                ignoreConstPrimitive<Element>(is);
             else
                 is >> element;
         }
@@ -1530,20 +1563,20 @@ namespace Json {
         }
     };
     
-    template <typename T, size_t IndentLevel = 0, const char* indent = twoSpaces>
-    constexpr Output<T, false, IndentLevel, indent> out(const T & t)
+    template <Statics statics = Statics::Excluded, typename T = size_t, size_t IndentLevel = 0, const char* indent = twoSpaces>
+    constexpr Output<T, false, statics, IndentLevel, indent> out(const T & t)
     {
-        return Output<T, false, IndentLevel, indent>(t);
+        return Output<T, false, statics, IndentLevel, indent>(t);
     }
     
-    template <typename T, size_t IndentLevel = 0, const char* indent = twoSpaces>
-    constexpr Output<T, true, IndentLevel, indent> pretty(const T & t)
+    template <Statics statics = Statics::Excluded, typename T = size_t, size_t IndentLevel = 0, const char* indent = twoSpaces>
+    constexpr Output<T, true, statics, IndentLevel, indent> pretty(const T & t)
     {
-        return Output<T, true, IndentLevel, indent>(t);
+        return Output<T, true, statics, IndentLevel, indent>(t);
     }
     
-    template <typename T, bool PrettyPrint, size_t IndentLevel = 0, const char* indent = twoSpaces>
-    std::ostream & operator<<(std::ostream & os, const Json::Output<T, PrettyPrint, IndentLevel> object)
+    template <Statics statics = Statics::Excluded, typename T = size_t, bool PrettyPrint = false, size_t IndentLevel = 0, const char* indent = twoSpaces>
+    std::ostream & operator<<(std::ostream & os, const Json::Output<T, PrettyPrint, statics, IndentLevel> object)
     {
         return object.put(os, object.obj);
     }

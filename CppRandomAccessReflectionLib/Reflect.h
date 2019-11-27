@@ -625,6 +625,7 @@ namespace Reflect
 #define USE_FIELD(x) function(RHS(x)_::field);
 #define USE_FIELD_VALUE(x) function(RHS(x)_::field, object.RHS(x));
 #define USE_FIELD_AT(x) case IndexOf::RHS(x): function(RHS(x)_::field, object.RHS(x)); break;
+#define ADD_IF_STATIC(x) + ( RHS(x)_::Field::IsStatic ? 1 : 0 )
 
 
 #pragma warning(disable: 4003) // Not enough arguments warning generated despite macros working perfectly
@@ -634,10 +635,11 @@ namespace Reflect
 #define REFLECT(objectType, ...) \
 class Class { public: \
     using ClassType = RHS(objectType); \
-    static constexpr size_t TotalFields = COUNT_ARGUMENTS(__VA_ARGS__); \
     enum_t(IndexOf, size_t, { FOR_EACH(GET_FIELD_NAME, __VA_ARGS__) }); \
     FOR_EACH(ALIAS_TYPE, __VA_ARGS__) \
     FOR_EACH(DESCRIBE_FIELD, __VA_ARGS__) \
+    static constexpr size_t TotalFields = COUNT_ARGUMENTS(__VA_ARGS__); \
+    static constexpr size_t TotalStaticFields = 0 FOR_EACH(ADD_IF_STATIC, __VA_ARGS__); \
     static constexpr Fields::Field<> Fields[TotalFields] = { FOR_EACH(GET_FIELD, __VA_ARGS__) }; \
     template <typename Function> static void ForEachField(Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
     template <typename Function> static void ForEachField(RHS(objectType) & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
@@ -652,6 +654,7 @@ using Supers = Inherit<LHS(objectType)>;
 class Class { public: \
     using ClassType = RHS(objectType); \
     static constexpr size_t TotalFields = 0; \
+    static constexpr size_t TotalStaticFields = 0; \
     static constexpr Fields::Field<> Fields[1] = { { "", "", 0, false, false } }; \
     template <typename Function> static void ForEachField(Function function) {} \
     template <typename Function> static void ForEachField(RHS(objectType) & object, Function function) {} \

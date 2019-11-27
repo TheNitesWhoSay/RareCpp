@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <memory>
 using namespace Reflect;
+using Json::Statics;
 using u8 = uint8_t;
 
 ENABLE_JSON_INPUT;
@@ -268,13 +269,13 @@ public:
     REFLECT_EMPTY(() OtherSuperA)
 };
 
-class SubA {
+class Composed {
 public:
-    SubA() : subVal(0) {}
+    Composed() : composedVal(0) {}
 
-    int subVal;
+    int composedVal;
 
-    REFLECT(() SubA, () subVal)
+    REFLECT(() Composed, () composedVal)
 };
 
 class A : public SuperA, public OtherSuperA {
@@ -285,23 +286,33 @@ public:
     });
     static const std::unordered_map<std::string, TestEnum> TestEnumCache;
 
-    A() : testEnum(TestEnum::first), first(0), second(0), ptr(nullptr), sub(), boolean(false), str("") { ray[0] = 0; ray[1] = 0; }
+    A() : testEnum(TestEnum::first), first(0), ptr(nullptr), composed(), boolean(false), str("") { ray[0] = 0; ray[1] = 0; }
 
     TestEnum testEnum;
     int first;
-    int second;
+    static int second;
     int* ptr;
-    SubA sub;
+    Composed composed;
     bool boolean;
     std::string str;
     std::map<std::string, std::string> map;
     std::vector<std::vector<int>> vecVec;
     int ray[2];
 
+    class NestedClass
+    {
+    public:
+        int nestedVal;
+
+        REFLECT(() NestedClass, () nestedVal)
+    };
+
     using Parents = Inherit<SuperA, OtherSuperA>;
-    REFLECT((Parents) A, (Json::Enum) testEnum, (Reflected) sub, () first, () second,
+    REFLECT((Parents) A, (Json::Enum) testEnum, (Reflected) composed, () first, () second,
         () ptr, () boolean, (Json::String) str, (Json::String) map, () vecVec, () ray)
 };
+
+int A::second = 0;
 
 const std::unordered_map<std::string, A::TestEnum> A::TestEnumCache = {
     { "first", A::TestEnum::first },
@@ -353,10 +364,36 @@ std::string Json::EnumString<A, A::TestEnum, A::Class::IndexOf::testEnum>::To(co
     return "";
 }
 
+struct StructWithStatics
+{
+    static int StaticValue;
+};
+int StructWithStatics::StaticValue = 2;
+
+
+int value = 1;
+const std::string str = "asdf";
+const bool boolean = true;
+const int* ptr = nullptr;
+
+struct StaticCluster
+{
+    constexpr static decltype(StructWithStatics::StaticValue)* staticVal = &StructWithStatics::StaticValue;
+    constexpr static decltype(value)* globalValue = &value;
+    constexpr static decltype(str)* globalStr = &str;
+    constexpr static decltype(boolean)* globalBool = &boolean;
+    constexpr static decltype(ptr)* globalPtr = &ptr;
+
+    REFLECT(() StaticCluster, () staticVal, () globalValue, (Json::String) globalStr, () globalBool, () globalPtr)
+};
+
 int main()
 {
     Car car = outputExamples();
     std::cout << std::endl << Json::out(car) << std::endl << std::endl;
+
+    StaticCluster s;
+    std::cout << Json::pretty<Statics::Only>(s) << std::endl << std::endl;
 
     A a;
     do {
