@@ -587,33 +587,36 @@ namespace Json
             }
         };
 
-        static void putString(std::ostream & os, const std::string & str)
+        namespace Put
         {
-            os << "\"";
-            for ( size_t i=0; i<str.size(); i++ )
+            static void String(std::ostream & os, const std::string & str)
             {
-                switch ( str[i] )
+                os << "\"";
+                for ( size_t i=0; i<str.size(); i++ )
                 {
-                case '\"': os << "\\\""; break;
-                case '\\': os << "\\\\"; break;
-                case '/': os << "\\/"; break;
-                case '\b': os << "\\b"; break;
-                case '\f': os << "\\f"; break;
-                case '\n': os << "\\n"; break;
-                case '\r': os << "\\r"; break;
-                case '\t': os << "\\t"; break;
-                default: os << str[i]; break;
+                    switch ( str[i] )
+                    {
+                    case '\"': os << "\\\""; break;
+                    case '\\': os << "\\\\"; break;
+                    case '/': os << "\\/"; break;
+                    case '\b': os << "\\b"; break;
+                    case '\f': os << "\\f"; break;
+                    case '\n': os << "\\n"; break;
+                    case '\r': os << "\\r"; break;
+                    case '\t': os << "\\t"; break;
+                    default: os << str[i]; break;
+                    }
                 }
+                os << "\"";
             }
-            os << "\"";
-        }
 
-        template <typename T>
-        static constexpr void putString(std::ostream & os, const T & t)
-        {
-            std::stringstream ss;
-            ss << t;
-            putString(os, ss.str());
+            template <typename T>
+            static constexpr void String(std::ostream & os, const T & t)
+            {
+                std::stringstream ss;
+                ss << t;
+                Put::String(os, ss.str());
+            }
         }
 
         template <Statics statics = Statics::Excluded, typename Annotations = Annotate<>, bool PrettyPrint = false,
@@ -646,7 +649,7 @@ namespace Json
                 else if constexpr ( Field::template HasAnnotation<Reflect::Reflected> )
                     ReflectedObject<statics, Annotations, PrettyPrint, IndentLevel+TotalParentIterables+1, indent, Element>::put(os, element);
                 else if constexpr ( Field::template HasAnnotation<Json::String> )
-                    putString(os, element);
+                    Put::String(os, element);
                 else if constexpr ( Field::template HasAnnotation<Json::EnumInt> )
                     os << (typename promote_char<typename std::underlying_type<Element>::type>::type)element;
                 else if constexpr ( is_bool<Element>::value )
@@ -658,7 +661,7 @@ namespace Json
             template <size_t TotalParentIterables, typename Field, typename Element, typename Key>
             static constexpr void putValue(std::ostream & os, const T & t, const std::pair<Key, Element> & pair)
             {
-                putString(os, pair.first);
+                Put::String(os, pair.first);
                 os << FieldNameValueSeparator<PrettyPrint>();
                 putValue<TotalParentIterables, Field>(os, t, pair.second);
             }
@@ -720,7 +723,7 @@ namespace Json
                                     statics == Statics::Excluded && !Field::IsStatic )
                     {
                         os << FieldPrefix<PrettyPrint, IndentLevel+1, indent>(isFirst);
-                        putString(os, field.name);
+                        Put::String(os, field.name);
                         os << FieldNameValueSeparator<PrettyPrint>();
                         putValue<0, Field>(os, obj, value);
                         isFirst = false;
@@ -732,7 +735,7 @@ namespace Json
                     using Super = typename std::remove_reference<decltype(superObj)>::type;
 
                     os << FieldPrefix<PrettyPrint, IndentLevel+1, indent>(decltype(index)::Index == 0);
-                    putString(os, superTypeToJsonFieldName<Super>());
+                    Put::String(os, superTypeToJsonFieldName<Super>());
                     os << FieldNameValueSeparator<PrettyPrint>();
                     ReflectedObject<statics, Annotations, PrettyPrint, IndentLevel+1, indent, Super>::put(os, obj);
                 });
@@ -1118,85 +1121,15 @@ namespace Json
             }
         };
 
-        template <bool InArray>
-        static constexpr void readTrue(std::istream & is, char & c)
+        namespace Consume
         {
-            Checked::consumeWhitespace(is, "completion of field value");
-            int expectation[] = { 't', 'r', 'u', 'e' };
-            for ( size_t i=0; i<4; i++ )
-                Checked::get(is, c, expectation[i], "completion of field value");
-
-            Checked::consumeWhitespace(is, "\",\" or \"}\"");
-            Checked::peek(is, c, "\",\" or \"}\"");
-            if ( InArray && c != ',' && c != ']' )
-                throw Exception("Expected: \",\" or \"]\"");
-            else if ( !InArray && c != ',' && c != '}' )
-                throw Exception("Expected: \",\" or \"}\"");
-        }
-
-        template <bool InArray>
-        static constexpr void readFalse(std::istream & is, char & c)
-        {
-            Checked::consumeWhitespace(is, "completion of field value");
-            int expectation[] = { 'f', 'a', 'l', 's', 'e' };
-            for ( size_t i=0; i<5; i++ )
-                Checked::get(is, c, expectation[i], "completion of field value");
-
-            Checked::consumeWhitespace(is, "\",\" or \"}\"");
-            Checked::peek(is, c, "\",\" or \"}\"");
-            if ( InArray && c != ',' && c != ']' )
-                throw Exception("Expected: \",\" or \"]\"");
-            else if ( !InArray && c != ',' && c != '}' )
-                throw Exception("Expected: \",\" or \"}\"");
-        }
-
-        template <bool InArray, typename Value>
-        static constexpr void readBool(std::istream & is, char & c, Value & value)
-        {
-            Checked::consumeWhitespace(is, "true or false");
-            Checked::peek(is, c, "true or false");
-            if ( c == 't' )
+            template <bool InArray>
+            static constexpr void Null(std::istream & is, char & c)
             {
-                readTrue<InArray>(is, c);
-                if constexpr ( !std::is_const<Value>::value )
-                    value = true;
-            }
-            else if ( c == 'f' )
-            {
-                readFalse<InArray>(is, c);
-                if constexpr ( !std::is_const<Value>::value )
-                    value = false;
-            }
-            else
-                throw Exception("Expected: \"true\" or \"false\"");
-        }
-
-        template <bool InArray>
-        static constexpr void readNull(std::istream & is, char & c)
-        {
-            Checked::consumeWhitespace(is, "completion of field value");
-            int expectation[] = { 'n', 'u', 'l', 'l' };
-            for ( size_t i=0; i<4; i++ )
-                Checked::get(is, c, expectation[i], "completion of field value");
-
-            Checked::consumeWhitespace(is, "\",\" or \"}\"");
-            Checked::peek(is, c, "\",\" or \"}\"");
-            if ( InArray && c != ',' && c != ']' )
-                throw Exception("Expected: \",\" or \"]\"");
-            else if ( !InArray && c != ',' && c != '}' )
-                throw Exception("Expected: \",\" or \"}\"");
-        }
-
-        template <bool InArray>
-        static constexpr bool tryReadNull(std::istream & is, char & c)
-        {
-            Checked::consumeWhitespace(is, "null or field value");
-            Checked::peek(is, c, "null or field value");
-            if ( c == 'n' )
-            {
+                Checked::consumeWhitespace(is, "completion of field value");
                 int expectation[] = { 'n', 'u', 'l', 'l' };
                 for ( size_t i=0; i<4; i++ )
-                    Checked::get(is, c, expectation[i], "completion of \"null\"");
+                    Checked::get(is, c, expectation[i], "completion of field value");
 
                 Checked::consumeWhitespace(is, "\",\" or \"}\"");
                 Checked::peek(is, c, "\",\" or \"}\"");
@@ -1204,203 +1137,279 @@ namespace Json
                     throw Exception("Expected: \",\" or \"]\"");
                 else if ( !InArray && c != ',' && c != '}' )
                     throw Exception("Expected: \",\" or \"}\"");
+            }
+
+            template <bool InArray>
+            static constexpr bool TryNull(std::istream & is, char & c)
+            {
+                Checked::consumeWhitespace(is, "null or field value");
+                Checked::peek(is, c, "null or field value");
+                if ( c == 'n' )
+                {
+                    int expectation[] = { 'n', 'u', 'l', 'l' };
+                    for ( size_t i=0; i<4; i++ )
+                        Checked::get(is, c, expectation[i], "completion of \"null\"");
+
+                    Checked::consumeWhitespace(is, "\",\" or \"}\"");
+                    Checked::peek(is, c, "\",\" or \"}\"");
+                    if ( InArray && c != ',' && c != ']' )
+                        throw Exception("Expected: \",\" or \"]\"");
+                    else if ( !InArray && c != ',' && c != '}' )
+                        throw Exception("Expected: \",\" or \"}\"");
                 
-                return true;
+                    return true;
+                }
+                return false;
             }
-            return false;
-        }
 
-        template <bool InArray>
-        static constexpr void ignoreNumber(std::istream & is, char & c)
-        {
-            bool decimal = false;
-            bool finished = false;
-            Checked::get(is, c, "\"-\" or [0-9]");
-            switch ( c )
+            template <bool InArray>
+            static constexpr void True(std::istream & is, char & c)
             {
-                case '-': case '0': case '1': case '2': case '3': case '4':
-                case '5': case '6': case '7': case '8': case '9': break;
-                default: throw InvalidNumericCharacter(c, "\"-\" or [0-9]");
+                Checked::consumeWhitespace(is, "completion of field value");
+                int expectation[] = { 't', 'r', 'u', 'e' };
+                for ( size_t i=0; i<4; i++ )
+                    Checked::get(is, c, expectation[i], "completion of field value");
+
+                Checked::consumeWhitespace(is, "\",\" or \"}\"");
+                Checked::peek(is, c, "\",\" or \"}\"");
+                if ( InArray && c != ',' && c != ']' )
+                    throw Exception("Expected: \",\" or \"]\"");
+                else if ( !InArray && c != ',' && c != '}' )
+                    throw Exception("Expected: \",\" or \"}\"");
             }
-            constexpr char terminator = InArray ? ']' : '}';
-            do
-            {
-                Checked::get<InArray>(is, c, "\",\" or \"]\"", "\",\" or \"}\"");
 
+            template <bool InArray>
+            static constexpr void False(std::istream & is, char & c)
+            {
+                Checked::consumeWhitespace(is, "completion of field value");
+                int expectation[] = { 'f', 'a', 'l', 's', 'e' };
+                for ( size_t i=0; i<5; i++ )
+                    Checked::get(is, c, expectation[i], "completion of field value");
+
+                Checked::consumeWhitespace(is, "\",\" or \"}\"");
+                Checked::peek(is, c, "\",\" or \"}\"");
+                if ( InArray && c != ',' && c != ']' )
+                    throw Exception("Expected: \",\" or \"]\"");
+                else if ( !InArray && c != ',' && c != '}' )
+                    throw Exception("Expected: \",\" or \"}\"");
+            }
+
+            template <bool InArray>
+            static constexpr void Number(std::istream & is, char & c)
+            {
+                bool decimal = false;
+                bool finished = false;
+                Checked::get(is, c, "\"-\" or [0-9]");
                 switch ( c )
                 {
-                    case '.':
-                        if ( decimal )
-                            throw InvalidSecondDecimal();
-                        else
-                            decimal = true;
-                        break;
-                    case '0': case '1': case '2': case '3': case '4':
-                    case '5': case '6': case '7': case '8': case '9':
-                        break;
-                    case ',': Checked::unget(is, ','); break;
-                    case terminator: Checked::unget(is, terminator); break;
-                    case ' ': case '\t': case '\n': case '\r':
-                        Checked::consumeWhitespace<InArray>(is, decimal ? "[0-9], \",\", or \"]\"" : "\".\", [0-9], \",\", or \"]\"",
-                            decimal ? "[0-9], \",\", or \"}\"" : "\".\", [0-9], \",\", or \"}\"");
-                        Checked::get<InArray>(is, c, decimal ? "[0-9], \",\", or \"]\"" : "\".\", [0-9], \",\", or \"]\"",
-                            decimal ? "[0-9], \",\", or \"}\"" : "\".\", [0-9], \",\", or \"}\"");
+                    case '-': case '0': case '1': case '2': case '3': case '4':
+                    case '5': case '6': case '7': case '8': case '9': break;
+                    default: throw InvalidNumericCharacter(c, "\"-\" or [0-9]");
+                }
+                constexpr char terminator = InArray ? ']' : '}';
+                do
+                {
+                    Checked::get<InArray>(is, c, "\",\" or \"]\"", "\",\" or \"}\"");
 
-                        if ( InArray && c != ',' && c != ']' )
-                            throw InvalidNumericCharacter(c, (decimal ? "[0-9], \",\", or \"]\"" : "\".\", [0-9], \",\", or \"]\""));
-                        else if ( c != ',' && c != '}' )
+                    switch ( c )
+                    {
+                        case '.':
+                            if ( decimal )
+                                throw InvalidSecondDecimal();
+                            else
+                                decimal = true;
+                            break;
+                        case '0': case '1': case '2': case '3': case '4':
+                        case '5': case '6': case '7': case '8': case '9':
+                            break;
+                        case ',': Checked::unget(is, ','); break;
+                        case terminator: Checked::unget(is, terminator); break;
+                        case ' ': case '\t': case '\n': case '\r':
+                            Checked::consumeWhitespace<InArray>(is, decimal ? "[0-9], \",\", or \"]\"" : "\".\", [0-9], \",\", or \"]\"",
+                                decimal ? "[0-9], \",\", or \"}\"" : "\".\", [0-9], \",\", or \"}\"");
+                            Checked::get<InArray>(is, c, decimal ? "[0-9], \",\", or \"]\"" : "\".\", [0-9], \",\", or \"]\"",
+                                decimal ? "[0-9], \",\", or \"}\"" : "\".\", [0-9], \",\", or \"}\"");
+
+                            if ( InArray && c != ',' && c != ']' )
+                                throw InvalidNumericCharacter(c, (decimal ? "[0-9], \",\", or \"]\"" : "\".\", [0-9], \",\", or \"]\""));
+                            else if ( c != ',' && c != '}' )
+                                throw InvalidNumericCharacter(c, (decimal ? "[0-9], \",\", or \"}\"" : "\".\", [0-9], \",\", or \"}\""));
+                            else
+                                Checked::unget(is, '\"');
+                            break;
+                        default:
                             throw InvalidNumericCharacter(c, (decimal ? "[0-9], \",\", or \"}\"" : "\".\", [0-9], \",\", or \"}\""));
-                        else
-                            Checked::unget(is, '\"');
-                        break;
-                    default:
-                        throw InvalidNumericCharacter(c, (decimal ? "[0-9], \",\", or \"}\"" : "\".\", [0-9], \",\", or \"}\""));
-                        break;
+                            break;
+                    }
                 }
+                while ( c != ',' && c != terminator );
             }
-            while ( c != ',' && c != terminator );
-        }
 
-        static void ignoreString(std::istream & is, char & c)
-        {
-            Checked::get(is, c, '\"', "string value open quote");
-            do
+            static void String(std::istream & is, char & c)
             {
-                Checked::get(is, c, "string value close quote");
-                switch ( c )
+                Checked::get(is, c, '\"', "string value open quote");
+                do
                 {
-                    case '\\': // Escape sequence
-                        Checked::get(is, c, "completion of string escape sequence");
-                        switch ( c )
-                        {
-                            case '\"': case '\\': case '/': case 'b': case 'f': case 'n': case 'r': case 't': break;
-                            case 'u':
+                    Checked::get(is, c, "string value close quote");
+                    switch ( c )
+                    {
+                        case '\\': // Escape sequence
+                            Checked::get(is, c, "completion of string escape sequence");
+                            switch ( c )
                             {
-                                char hexEscapeSequence[6] = { 'u', '\0', '\0', '\0', '\0', '\0' };
-                                for ( size_t i=1; i<5; i++ )
+                                case '\"': case '\\': case '/': case 'b': case 'f': case 'n': case 'r': case 't': break;
+                                case 'u':
                                 {
-                                    Checked::escapeSequenceGet(is, c, hexEscapeSequence);
-                                    hexEscapeSequence[i] = c;
-                                    if ( !((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) )
-                                        throw InvalidEscapeSequence((std::string(hexEscapeSequence)).c_str(), unicodeEscapeSequence);
+                                    char hexEscapeSequence[6] = { 'u', '\0', '\0', '\0', '\0', '\0' };
+                                    for ( size_t i=1; i<5; i++ )
+                                    {
+                                        Checked::escapeSequenceGet(is, c, hexEscapeSequence);
+                                        hexEscapeSequence[i] = c;
+                                        if ( !((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) )
+                                            throw InvalidEscapeSequence((std::string(hexEscapeSequence)).c_str(), unicodeEscapeSequence);
+                                    }
                                 }
+                                break;
                             }
                             break;
-                        }
-                        break;
-                    case '\n': throw UnexpectedLineEnding("\\n");
-                    case '\r': throw UnexpectedLineEnding("\\r");
-                    case '\"': break; // Closing quote
-                    default: break;
-                }
-            } while ( c != '\"' );
-        }
+                        case '\n': throw UnexpectedLineEnding("\\n");
+                        case '\r': throw UnexpectedLineEnding("\\r");
+                        case '\"': break; // Closing quote
+                        default: break;
+                    }
+                } while ( c != '\"' );
+            }
 
-        static void getString(std::istream & is, char & c, std::stringstream & ss)
-        {
-            Checked::get(is, c, '\"', "string value open quote");
-            do
+            template <typename Element>
+            static constexpr void ConstPrimitive(std::istream & is)
             {
-                Checked::get(is, c, "string value close quote");
-                switch ( c )
-                {
-                    case '\\': // Escape sequence
-                        Checked::get(is, c, "completion of string escape sequence");
-                        switch ( c )
-                        {
-                            case '\"': ss.put('\"'); break;
-                            case '\\': ss.put('\\'); break;
-                            case '/': ss.put('/'); break;
-                            case 'b': ss.put('\b'); break;
-                            case 'f': ss.put('\f'); break;
-                            case 'n': ss.put('\n'); break;
-                            case 'r': ss.put('\r'); break;
-                            case 't': ss.put('\t'); break;
-                            case 'u':
-                            {
-                                char hexEscapeSequence[6] = { 'u', '\0', '\0', '\0', '\0', '\0' };
-                                for ( size_t i=1; i<5; i++ )
-                                {
-                                    Checked::escapeSequenceGet(is, c, hexEscapeSequence);
-                                    hexEscapeSequence[i] = c;
-                                    if ( !((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) )
-                                        throw InvalidEscapeSequence((std::string(hexEscapeSequence)).c_str(), unicodeEscapeSequence);
-                                }
-                                for ( size_t i=1; i<5; i++ )
-                                {
-                                    char & cRef = hexEscapeSequence[i];
-                                    if ( cRef >= '0' && cRef <= '9' )
-                                        hexEscapeSequence[i] -= '0';
-                                    else if ( cRef >= 'A' && cRef <= 'F' )
-                                        hexEscapeSequence[i] = cRef - 'A' + 10;
-                                    else if ( cRef >= 'a' && cRef <= 'f' )
-                                        hexEscapeSequence[i] = cRef - 'a' + 10;
-                                }
-                                uint8_t highCharacter = 0x10 * hexEscapeSequence[1] + hexEscapeSequence[2];
-                                uint8_t lowCharacter = 0x10 * hexEscapeSequence[3] + hexEscapeSequence[4];
-                                if ( highCharacter > 0 )
-                                    ss.put(highCharacter);
+                typename std::remove_const<Element>::type placeholder;
+                is >> placeholder;
+            }
+        };
 
-                                ss.put(lowCharacter);
+        namespace Read
+        {
+            template <bool InArray, typename Value>
+            static constexpr void Bool(std::istream & is, char & c, Value & value)
+            {
+                Checked::consumeWhitespace(is, "true or false");
+                Checked::peek(is, c, "true or false");
+                if ( c == 't' )
+                {
+                    Consume::True<InArray>(is, c);
+                    if constexpr ( !std::is_const<Value>::value )
+                        value = true;
+                }
+                else if ( c == 'f' )
+                {
+                    Consume::False<InArray>(is, c);
+                    if constexpr ( !std::is_const<Value>::value )
+                        value = false;
+                }
+                else
+                    throw Exception("Expected: \"true\" or \"false\"");
+            }
+
+            static void String(std::istream & is, char & c, std::stringstream & ss)
+            {
+                Checked::get(is, c, '\"', "string value open quote");
+                do
+                {
+                    Checked::get(is, c, "string value close quote");
+                    switch ( c )
+                    {
+                        case '\\': // Escape sequence
+                            Checked::get(is, c, "completion of string escape sequence");
+                            switch ( c )
+                            {
+                                case '\"': ss.put('\"'); break;
+                                case '\\': ss.put('\\'); break;
+                                case '/': ss.put('/'); break;
+                                case 'b': ss.put('\b'); break;
+                                case 'f': ss.put('\f'); break;
+                                case 'n': ss.put('\n'); break;
+                                case 'r': ss.put('\r'); break;
+                                case 't': ss.put('\t'); break;
+                                case 'u':
+                                {
+                                    char hexEscapeSequence[6] = { 'u', '\0', '\0', '\0', '\0', '\0' };
+                                    for ( size_t i=1; i<5; i++ )
+                                    {
+                                        Checked::escapeSequenceGet(is, c, hexEscapeSequence);
+                                        hexEscapeSequence[i] = c;
+                                        if ( !((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) )
+                                            throw InvalidEscapeSequence((std::string(hexEscapeSequence)).c_str(), unicodeEscapeSequence);
+                                    }
+                                    for ( size_t i=1; i<5; i++ )
+                                    {
+                                        char & cRef = hexEscapeSequence[i];
+                                        if ( cRef >= '0' && cRef <= '9' )
+                                            hexEscapeSequence[i] -= '0';
+                                        else if ( cRef >= 'A' && cRef <= 'F' )
+                                            hexEscapeSequence[i] = cRef - 'A' + 10;
+                                        else if ( cRef >= 'a' && cRef <= 'f' )
+                                            hexEscapeSequence[i] = cRef - 'a' + 10;
+                                    }
+                                    uint8_t highCharacter = 0x10 * hexEscapeSequence[1] + hexEscapeSequence[2];
+                                    uint8_t lowCharacter = 0x10 * hexEscapeSequence[3] + hexEscapeSequence[4];
+                                    if ( highCharacter > 0 )
+                                        ss.put(highCharacter);
+
+                                    ss.put(lowCharacter);
+                                }
+                                break;
                             }
                             break;
-                        }
-                        break;
-                    case '\n': throw UnexpectedLineEnding("\\n");
-                    case '\r': throw UnexpectedLineEnding("\\r");
-                    case '\"': break; // Closing quote
-                    default: ss.put(c); break;
-                }
-            } while ( c != '\"' );
-        }
+                        case '\n': throw UnexpectedLineEnding("\\n");
+                        case '\r': throw UnexpectedLineEnding("\\r");
+                        case '\"': break; // Closing quote
+                        default: ss.put(c); break;
+                    }
+                } while ( c != '\"' );
+            }
 
-        static void getString(std::istream & is, char & c, std::string & str)
-        {
-            std::stringstream ss;
-            getString(is, c, ss);
-            str = ss.str();
-        }
+            static void String(std::istream & is, char & c, std::string & str)
+            {
+                std::stringstream ss;
+                Read::String(is, c, ss);
+                str = ss.str();
+            }
 
-        template <typename T>
-        static constexpr void getString(std::istream & is, char & c, T & t)
-        {
-            std::stringstream ss;
-            getString(is, c, ss);
-            if constexpr ( !std::is_const<T>::value )
-                ss >> t;
-        }
+            template <typename T>
+            static constexpr void String(std::istream & is, char & c, T & t)
+            {
+                std::stringstream ss;
+                Read::String(is, c, ss);
+                if constexpr ( !std::is_const<T>::value )
+                    ss >> t;
+            }
         
-        static std::string getString(std::istream & is, char & c)
-        {
-            std::string str;
-            getString(is, c, str);
-            return str;
-        }
+            static std::string String(std::istream & is, char & c)
+            {
+                std::string str;
+                Read::String(is, c, str);
+                return str;
+            }
         
-        static std::string getString(std::istream & is)
-        {
-            char c = '\0';
-            std::string str;
-            getString(is, c, str);
-            return str;
-        }
+            static std::string String(std::istream & is)
+            {
+                char c = '\0';
+                std::string str;
+                Read::String(is, c, str);
+                return str;
+            }
 
-        template <typename Field, typename Element>
-        static constexpr void getEnumInt(std::istream & is, Element & element)
-        {
-            using EnumType = typename promote_char<typename std::underlying_type<typename remove_pointer<Element>::type>::type>::type;
-            typename std::remove_const<EnumType>::type temp;
-            is >> temp;
-            if constexpr ( !std::is_const<EnumType>::value )
-                element = (typename remove_pointer<Element>::type)temp;
-        }
-
-        template <typename Element>
-        static constexpr void ignoreConstPrimitive(std::istream & is)
-        {
-            typename std::remove_const<Element>::type placeholder;
-            is >> placeholder;
-        }
+            template <typename Field, typename Element>
+            static constexpr void EnumInt(std::istream & is, Element & element)
+            {
+                using EnumType = typename promote_char<typename std::underlying_type<typename remove_pointer<Element>::type>::type>::type;
+                typename std::remove_const<EnumType>::type temp;
+                is >> temp;
+                if constexpr ( !std::is_const<EnumType>::value )
+                    element = (typename remove_pointer<Element>::type)temp;
+            }
+        };
 
         template <typename T>
         class ReflectedObject
@@ -1411,20 +1420,20 @@ namespace Json
             T & obj;
 
             template <bool InArray>
-            static constexpr void ignoreValue(std::istream & is, char & c)
+            static constexpr void consumeValue(std::istream & is, char & c)
             {
                 Checked::consumeWhitespace(is, "completion of field value");
                 Checked::peek(is, c, "completion of field value");
                 switch ( c )
                 {
-                    case '\"': ignoreString(is, c); break; // String or error
+                    case '\"': Consume::String(is, c); break; // String or error
                     case '-': case '0': case '1': case '2': case '3': case '4': case '5':
-                    case '6': case '7': case '8': case '9': ignoreNumber<InArray>(is, c); break; // Number or error
-                    case '{': ignoreIterable<false>(is, c); break; // JSON object or error
-                    case '[': ignoreIterable<true>(is, c); break; // JSON array or error
-                    case 't': readTrue<InArray>(is, c); break; // "true" or error
-                    case 'f': readFalse<InArray>(is, c); break; // "false" or error
-                    case 'n': readNull<InArray>(is, c); break; // "null" or error
+                    case '6': case '7': case '8': case '9': Consume::Number<InArray>(is, c); break; // Number or error
+                    case '{': consumeIterable<false>(is, c); break; // JSON object or error
+                    case '[': consumeIterable<true>(is, c); break; // JSON array or error
+                    case 't': Consume::True<InArray>(is, c); break; // "true" or error
+                    case 'f': Consume::False<InArray>(is, c); break; // "false" or error
+                    case 'n': Consume::Null<InArray>(is, c); break; // "null" or error
                     default: throw InvalidUnknownFieldValue(); break;
                 }
             }
@@ -1441,13 +1450,13 @@ namespace Json
                 if constexpr ( is_pointable<Element>::value )
                 {
                     if ( element == nullptr ) // If element pointer is nullptr the only valid value is "null"
-                        readNull<InArray>(is, c);
+                        Consume::Null<InArray>(is, c);
                     else if constexpr ( is_pointable<std::remove_pointer<Element>::type>::value && // If value pointed to is also a pointer
                         !std::is_const<std::remove_pointer<Element>::type>::value ) // And value pointed to is not const
                     {
                         getValue<InArray, Field>(is, c, t, *element);  // Only take the chance of assigning nullptr to that more deeply nested pointer
                     }
-                    else if ( tryReadNull<InArray>(is, c) ) // If element pointer is not nullptr, "null" is a possible value
+                    else if ( Consume::TryNull<InArray>(is, c) ) // If element pointer is not nullptr, "null" is a possible value
                     {
                         if constexpr ( !std::is_const<Element>::value )
                             element = nullptr;
@@ -1460,13 +1469,13 @@ namespace Json
                 else if constexpr ( Field::template HasAnnotation<Reflect::Reflected> )
                     ReflectedObject<Element>::get(is, c, element);
                 else if constexpr ( Field::template HasAnnotation<Json::String> )
-                    getString(is, c, element);
+                    Read::String(is, c, element);
                 else if constexpr ( Field::template HasAnnotation<Json::EnumInt> )
-                    getEnumInt<Field, Element>(is, element);
+                    Read::EnumInt<Field, Element>(is, element);
                 else if constexpr ( is_bool<Element>::value )
-                    readBool<InArray>(is, c, element);
+                    Read::Bool<InArray>(is, c, element);
                 else if constexpr ( std::is_const<Element>::value )
-                    ignoreConstPrimitive<Element>(is);
+                    Consume::ConstPrimitive<Element>(is);
                 else
                     is >> element;
             }
@@ -1474,13 +1483,13 @@ namespace Json
             template <bool InArray, typename Field, typename Key, typename Element>
             static constexpr void getValue(std::istream & is, char & c, T & t, std::pair<Key, Element> & pair)
             {
-                getString(is, c, pair.first);
+                Read::String(is, c, pair.first);
                 Checked::get(is, c, ':', "field name-value separator \":\"");
                 getValue<InArray, Field, Element>(is, c, t, pair.second);
             }
         
             template <bool IsArray>
-            static constexpr void ignoreIterable(std::istream & is, char & c)
+            static constexpr void consumeIterable(std::istream & is, char & c)
             {
                 Checked::get<IsArray>(is, c, '[', '{', "array opening \"[\"", "object opening \"{\"");
                 if ( !Checked::tryGet<IsArray>(is, ']', '}', "array closing \"]\" or array element", "object closing \"}\" or field name opening \"") )
@@ -1489,10 +1498,10 @@ namespace Json
                     {
                         if ( !IsArray )
                         {
-                            ignoreString(is, c);
+                            Consume::String(is, c);
                             Checked::get(is, c, ':', "field name-value separator \":\"");
                         }
-                        ignoreValue<IsArray>(is, c);
+                        consumeValue<IsArray>(is, c);
                     }
                     while ( Checked::get<IsArray>(is, ',', ']', '}', "\",\" or array closing \"]\"", "\",\" or object closing \"}\"") );
                 }
@@ -1541,7 +1550,7 @@ namespace Json
                     {
                         std::string fieldName;
                         try {
-                            getString(is, c, fieldName);
+                            Read::String(is, c, fieldName);
                         } catch ( UnexpectedLineEnding & e) {
                             throw Exception((std::string("Expected field name close quote, found line ending (\"") + e.what() + "\")").c_str());
                         }
@@ -1569,7 +1578,7 @@ namespace Json
                             }
                         }
                         else // Unknown field
-                            ignoreValue<false>(is, c);
+                            consumeValue<false>(is, c);
                     }
                     while ( Checked::get(is, ',', '}', "\",\" or object closing \"}\"") );
                 }

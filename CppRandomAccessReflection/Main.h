@@ -70,7 +70,7 @@ struct Json::Input::Customize<A, A::TestEnum, FieldIndex>
 {
     static bool As(std::istream & is, const A & object, A::TestEnum & value)
     {
-        std::string input = Json::getString(is);
+        std::string input = Json::Read::String(is);
         auto found = A::TestEnumCache.find(input);
         if ( found != A::TestEnumCache.end() )
         {
@@ -89,8 +89,8 @@ struct Json::Output::Customize<A, A::TestEnum, FieldIndex>
     {
         switch ( value )
         {
-        case A::TestEnum::first: os << "firstCustom"; return true;
-            case A::TestEnum::second: os << "secondCustom"; return true;
+            case A::TestEnum::first: Json::Put::String(os, "firstCustom"); return true;
+            case A::TestEnum::second: Json::Put::String(os, "secondCustom"); return true;
         }
         return false;
     }
