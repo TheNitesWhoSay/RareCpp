@@ -13,17 +13,27 @@ namespace Json {
     using namespace ExtendedTypeSupport;
     using namespace Reflect;
     
-    struct Enum {};
+    /// Field annotation telling you to use overridden customization methods
+    struct Custom {};
 
+    /// Field annotation telling JSON to explicitly use the numeric value of an enum
     struct EnumInt {};
 
-    template <typename Object, typename EnumType, size_t FieldIndex>
-    class EnumString
+    struct Unspecialized {};
+    
+    template <typename Object, typename Value, size_t FieldIndex, typename FieldAnnotations = Annotate<>, typename OpAnnotations = Annotate<>>
+    struct CustomizeInput : public Unspecialized
     {
-    public:
-        static bool From(const std::string input, const Object & object, EnumType & value);
+        /// Should return true and update value accordingly if you consume any input, else you should return false and leave input and value unchanged
+        /// If you run into any errors consuming input or rolling back input you should throw an exception
+        static bool As(std::istream & input, const Object & object, Value & value) { return false; }
+    };
 
-        static std::string To(const Object & object, const EnumType & value);
+    template <typename Object, typename Value, size_t FieldIndex, typename FieldAnnotations = Annotate<>, typename OpAnnotations = Annotate<>>
+    struct CustomizeOutput : public Unspecialized
+    {
+        /// Should return true if you put any output, else you should leave output unchanged
+        static bool As(std::ostream & output, const Object & object, const Value & value) { return false; }
     };
 
     namespace Exceptions
@@ -770,7 +780,8 @@ namespace Json {
         Only = 2
     };
 
-    template <typename T, bool PrettyPrint, Statics statics = Statics::Excluded, size_t IndentLevel = 0, const char* indent = twoSpaces>
+    template <typename T = uint_least8_t, bool PrettyPrint = false, Statics statics = Statics::Excluded, typename Annotations = Annotate<>,
+        size_t IndentLevel = 0, const char* indent = twoSpaces>
     class Output
     {
     public:
@@ -819,6 +830,12 @@ namespace Json {
         template <size_t TotalParentIterables, typename Field, typename Element>
         static constexpr void putValue(std::ostream & os, const T & t, const Element & element)
         {
+            if constexpr ( !std::is_base_of<Unspecialized, CustomizeOutput<T, Element, Field::Index>>::value ) // Input for this is specialized
+            {
+                if ( CustomizeOutput<T, Element, Field::Index>::As(os, t, element) )
+                    return; // If true was returned then custom output was used, if false, then default output was requested
+            }
+
             if constexpr ( is_pointable<Element>::value )
             {
                 if ( element == nullptr )
@@ -829,11 +846,9 @@ namespace Json {
             else if constexpr ( is_iterable<Element>::value )
                 putIterable<TotalParentIterables, Field, Element>(os, t, element);
             else if constexpr ( Field::template HasAnnotation<Reflect::Reflected> )
-                Output<Element, PrettyPrint, statics, IndentLevel+TotalParentIterables+1>::put(os, element);
+                Output<Element, PrettyPrint, statics, Annotations, IndentLevel+TotalParentIterables+1>::put(os, element);
             else if constexpr ( Field::template HasAnnotation<Json::String> )
                 putString(os, element);
-            else if constexpr ( Field::template HasAnnotation<Json::Enum> )
-                putString(os, EnumString<T, remove_pointer<Element>::type, Field::Index>::To(t, element));
             else if constexpr ( Field::template HasAnnotation<Json::EnumInt> )
                 os << (typename promote_char<typename std::underlying_type<Element>::type>::type)element;
             else if constexpr ( is_bool<Element>::value )
@@ -921,7 +936,7 @@ namespace Json {
                 os << FieldPrefix<PrettyPrint, IndentLevel+1, indent>(decltype(index)::Index == 0);
                 putString(os, superTypeToJsonFieldName<Super>());
                 os << FieldNameValueSeparator<PrettyPrint>();
-                Output<Super, PrettyPrint, statics, IndentLevel+1, indent>::put(os, obj);
+                Output<Super, PrettyPrint, statics, Annotations, IndentLevel+1, indent>::put(os, obj);
             });
 
             os << ObjectSuffix<NotEmpty && PrettyPrint, IndentLevel, indent>();
@@ -1383,6 +1398,14 @@ namespace Json {
             return str;
         }
         
+        static constexpr std::string getString(std::istream & is)
+        {
+            char c = '\0';
+            std::string str;
+            getString(is, c, str);
+            return str;
+        }
+
         template <typename Field, typename Element>
         static constexpr void getEnumInt(std::istream & is, T & t, Element & element)
         {
@@ -1422,6 +1445,12 @@ namespace Json {
         template <bool InArray, typename Field, typename Element>
         static constexpr void getValue(std::istream & is, char & c, T & t, Element & element)
         {
+            if constexpr ( !std::is_base_of<Unspecialized, CustomizeInput<T, Element, Field::Index>>::value ) // Input for this is specialized
+            {
+                if ( CustomizeInput<T, Element, Field::Index>::As(is, t, element) )
+                    return; // If true was returned then custom input was used, if false, then default output was requested
+            }
+
             if constexpr ( is_pointable<Element>::value )
             {
                 if ( element == nullptr ) // If element pointer is nullptr the only valid value is "null"
@@ -1445,8 +1474,6 @@ namespace Json {
                 Input<Element>::get(is, c, element);
             else if constexpr ( Field::template HasAnnotation<Json::String> )
                 getString(is, c, element);
-            else if constexpr ( Field::template HasAnnotation<Json::Enum> )
-                EnumString<T, Element, Field::Index>::From(getString(is, c), t, element);
             else if constexpr ( Field::template HasAnnotation<Json::EnumInt> )
                 getEnumInt<Field, Element>(is, t, element);
             else if constexpr ( is_bool<Element>::value )
@@ -1563,20 +1590,23 @@ namespace Json {
         }
     };
     
-    template <Statics statics = Statics::Excluded, typename T = size_t, size_t IndentLevel = 0, const char* indent = twoSpaces>
-    constexpr Output<T, false, statics, IndentLevel, indent> out(const T & t)
+    template <Statics statics = Statics::Excluded, typename Annotations = Annotate<>,
+        size_t IndentLevel = 0, const char* indent = twoSpaces, typename T = uint_least8_t>
+    constexpr Output<T, false, statics, Annotations, IndentLevel, indent> out(const T & t)
     {
-        return Output<T, false, statics, IndentLevel, indent>(t);
+        return Output<T, false, statics, Annotations, IndentLevel, indent>(t);
     }
     
-    template <Statics statics = Statics::Excluded, typename T = size_t, size_t IndentLevel = 0, const char* indent = twoSpaces>
-    constexpr Output<T, true, statics, IndentLevel, indent> pretty(const T & t)
+    template <Statics statics = Statics::Excluded, typename Annotations = Annotate<>,
+        size_t IndentLevel = 0, const char* indent = twoSpaces, typename T = uint_least8_t>
+    constexpr Output<T, true, statics, Annotations, IndentLevel, indent> pretty(const T & t)
     {
-        return Output<T, true, statics, IndentLevel, indent>(t);
+        return Output<T, true, statics, Annotations, IndentLevel, indent>(t);
     }
     
-    template <Statics statics = Statics::Excluded, typename T = size_t, bool PrettyPrint = false, size_t IndentLevel = 0, const char* indent = twoSpaces>
-    std::ostream & operator<<(std::ostream & os, const Json::Output<T, PrettyPrint, statics, IndentLevel> object)
+    template <Statics statics = Statics::Excluded, typename Annotations = Annotate<>, bool PrettyPrint = false,
+        size_t IndentLevel = 0, const char* indent = twoSpaces, typename T = uint_least8_t>
+    std::ostream & operator<<(std::ostream & os, const Json::Output<T, PrettyPrint, statics, Annotations, IndentLevel> object)
     {
         return object.put(os, object.obj);
     }

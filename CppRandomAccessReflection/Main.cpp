@@ -1,14 +1,43 @@
-#include <iostream>
+#include "Main.h"
 #include "../CppRandomAccessReflectionLib/Json.h"
+#include <iostream>
 #include <tuple>
 #include <typeinfo>
 #include <algorithm>
 #include <memory>
-using namespace Reflect;
 using Json::Statics;
-using u8 = uint8_t;
 
 ENABLE_JSON_INPUT;
+
+int A::second = 0;
+
+const std::unordered_map<std::string, A::TestEnum> A::TestEnumCache = {
+    { "first", A::TestEnum::first },
+    { "second", A::TestEnum::second }
+};
+
+std::ostream & operator<<(std::ostream & os, const A::TestEnum & testEnum)
+{
+    switch ( testEnum )
+    {
+        case A::TestEnum::first: os << "firstStream"; break;
+        case A::TestEnum::second: os << "secondStream"; break;
+    }
+    return os;
+}
+
+std::istream & operator>>(std::istream & is, A::TestEnum & testEnum)
+{
+    std::string input;
+    is >> input;
+    if ( is.good() )
+    {
+        auto found = A::TestEnumCache.find(input);
+        if ( found != A::TestEnumCache.end() )
+            testEnum = found->second;
+    }
+    return is;
+}
 
 class FuelTank {
 public:
@@ -253,115 +282,6 @@ Car outputExamples()
     });
 
     return car;
-}
-
-class SuperA {
-public:
-    SuperA() : superVal(0) {}
-
-    int superVal;
-
-    REFLECT(() SuperA, () superVal)
-};
-
-class OtherSuperA {
-public:
-    REFLECT_EMPTY(() OtherSuperA)
-};
-
-class Composed {
-public:
-    Composed() : composedVal(0) {}
-
-    int composedVal;
-
-    REFLECT(() Composed, () composedVal)
-};
-
-class A : public SuperA, public OtherSuperA {
-public:
-    enum_t(TestEnum, u8, {
-        first,
-        second
-    });
-    static const std::unordered_map<std::string, TestEnum> TestEnumCache;
-
-    A() : testEnum(TestEnum::first), first(0), ptr(nullptr), composed(), boolean(false), str("") { ray[0] = 0; ray[1] = 0; }
-
-    TestEnum testEnum;
-    int first;
-    static int second;
-    int* ptr;
-    Composed composed;
-    bool boolean;
-    std::string str;
-    std::map<std::string, std::string> map;
-    std::vector<std::vector<int>> vecVec;
-    int ray[2];
-
-    class NestedClass
-    {
-    public:
-        int nestedVal;
-
-        REFLECT(() NestedClass, () nestedVal)
-    };
-
-    using Parents = Inherit<SuperA, OtherSuperA>;
-    REFLECT((Parents) A, (Json::Enum) testEnum, (Reflected) composed, () first, () second,
-        () ptr, () boolean, (Json::String) str, (Json::String) map, () vecVec, () ray)
-};
-
-int A::second = 0;
-
-const std::unordered_map<std::string, A::TestEnum> A::TestEnumCache = {
-    { "first", A::TestEnum::first },
-    { "second", A::TestEnum::second }
-};
-
-std::ostream & operator<<(std::ostream & os, const A::TestEnum & testEnum)
-{
-    switch ( testEnum )
-    {
-        case A::TestEnum::first: os << "firstStream"; break;
-        case A::TestEnum::second: os << "secondStream"; break;
-    }
-    return os;
-}
-
-std::istream & operator>>(std::istream & is, A::TestEnum & testEnum)
-{
-    std::string input;
-    is >> input;
-    if ( is.good() )
-    {
-        auto found = A::TestEnumCache.find(input);
-        if ( found != A::TestEnumCache.end() )
-            testEnum = found->second;
-    }
-    return is;
-}
-
-bool Json::EnumString<A, A::TestEnum, A::Class::IndexOf::testEnum>::From(const std::string input, const A & object, A::TestEnum & value)
-{
-    auto found = A::TestEnumCache.find(input);
-    if ( found != A::TestEnumCache.end() )
-    {
-        value = found->second;
-        return true;
-    }
-    else
-        return false;
-}
-
-std::string Json::EnumString<A, A::TestEnum, A::Class::IndexOf::testEnum>::To(const A & object, const A::TestEnum & value)
-{
-    switch ( value )
-    {
-        case A::TestEnum::first: return "first";
-        case A::TestEnum::second: return "second";
-    }
-    return "";
 }
 
 struct StructWithStatics
