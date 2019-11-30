@@ -392,6 +392,46 @@ namespace ExtendedTypeSupport
     template <typename K, typename T, typename H, typename E, typename A> struct has_clear<std::unordered_multimap<K, T, H, E, A>>
     { static constexpr bool value = true; };
 
+    template <typename Iterable>
+    static constexpr bool IsEmpty(const Iterable & iterable)
+    {
+        if constexpr ( std::is_array<Iterable>::value )
+            return std::extent<Iterable>::value == 0;
+        else
+            return iterable.empty();
+    }
+
+    template <typename Iterable>
+    static constexpr void Clear(Iterable & iterable)
+    {
+        if constexpr ( !std::is_const<Iterable>::value )
+        {
+            if constexpr ( has_clear<Iterable>::value )
+                iterable.clear();
+            else if constexpr ( is_adaptor<Iterable>::value )
+            {
+                while ( !iterable.empty() )
+                    iterable.pop();
+            }
+        }
+    }
+
+    template <typename Iterable, typename Element>
+    static constexpr void Append(Iterable & iterable, Element & element)
+    {
+        if constexpr ( !std::is_const<Iterable>::value )
+        {
+            if constexpr ( has_push_back<Iterable>::value )
+                iterable.push_back(element);
+            else if constexpr ( is_forward_list<Iterable>::value )
+                iterable.insert_after(--iterable.end(), element);
+            else if constexpr ( has_push<Iterable>::value )
+                iterable.push(element);
+            else if constexpr ( has_insert<Iterable>::value )
+                iterable.insert(element);
+        }
+    }
+
     template <typename T>
     constexpr bool HasTypeRecursion() {
         return false;

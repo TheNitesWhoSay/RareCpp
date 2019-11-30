@@ -66,11 +66,11 @@ public:
 /**/
 
 template <size_t FieldIndex>
-struct Json::CustomizeInput<A, A::TestEnum, FieldIndex>
+struct Json::Input::Customize<A, A::TestEnum, FieldIndex>
 {
     static bool As(std::istream & is, const A & object, A::TestEnum & value)
     {
-        std::string input = Json::Input::ReflectedObject<A>::getString(is);
+        std::string input = Json::getString(is);
         auto found = A::TestEnumCache.find(input);
         if ( found != A::TestEnumCache.end() )
         {
@@ -83,7 +83,7 @@ struct Json::CustomizeInput<A, A::TestEnum, FieldIndex>
 };
 
 template <size_t FieldIndex>
-struct Json::CustomizeOutput<A, A::TestEnum, FieldIndex>
+struct Json::Output::Customize<A, A::TestEnum, FieldIndex>
 {
     static bool As(std::ostream & os, const A & object, const A::TestEnum & value)
     {
