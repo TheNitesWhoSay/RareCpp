@@ -8,8 +8,8 @@
 #include <functional>
 #include "Reflect.h"
 
-namespace Json {
-
+namespace Json
+{
     using namespace ExtendedTypeSupport;
     using namespace Reflect;
     
@@ -17,640 +17,17 @@ namespace Json {
     {
         /// Field annotation telling JSON to explicitly use the numeric value of an enum
         struct EnumInt {};
-    }
 
-    inline namespace Specialization
-    {
         struct Unspecialized {};
-    
-        template <typename Object, typename Value, size_t FieldIndex, typename FieldAnnotations = Annotate<>, typename OpAnnotations = Annotate<>>
-        struct CustomizeInput : public Unspecialized
-        {
-            /// Should return true and update value accordingly if you consume any input, else you should return false and leave input and value unchanged
-            /// If you run into any errors consuming input or rolling back input you should throw an exception
-            static bool As(std::istream & input, const Object & object, Value & value) { return false; }
-        };
-
-        template <typename Object, typename Value, size_t FieldIndex, typename FieldAnnotations = Annotate<>, typename OpAnnotations = Annotate<>>
-        struct CustomizeOutput : public Unspecialized
-        {
-            /// Should return true if you put any output, else you should leave output unchanged
-            static bool As(std::ostream & output, const Object & object, const Value & value) { return false; }
-        };
     }
-    
-    inline namespace Exceptions
+
+    inline namespace Shared
     {
         class Exception : public std::exception
         {
         public:
             Exception(const char* what) : std::exception(what) {}
         };
-    
-        class InvalidNumericCharacter : public Exception
-        {
-        public:
-            InvalidNumericCharacter(char invalidCharacter, const char* expected)
-                : Exception((std::string("Invalid numeric character: \"") + invalidCharacter + "\" expected: " + expected).c_str()) {}
-        };
-
-        class InvalidSecondDecimal : public Exception
-        {
-        public:
-            InvalidSecondDecimal()
-                : Exception(std::string("Invalid second decimal, expected: [0-9], \",\", or \"}\"").c_str()) {}
-        };
-
-        class InvalidEscapeSequence : public Exception
-        {
-        public:
-            InvalidEscapeSequence(const char* escapeSequence, const char* expected)
-                : Exception((std::string("Invalid escape sequence: \"") + escapeSequence + "\", expected: " + expected).c_str()) {}
-        };
-
-        class UnexpectedLineEnding : public Exception
-        {
-        public:
-            UnexpectedLineEnding(const char* lineEnding) : Exception(lineEnding) {}
-        };
-
-        class UnexpectedInputEnd : public Exception
-        {
-        public:
-            UnexpectedInputEnd(const std::string & expected) : Exception((std::string("Expected ") + expected + " but found end of input").c_str()) {}
-        };
-
-        class StreamReadFail : public Exception
-        {
-        public:
-            StreamReadFail() : Exception("Attempt to read from stream failed (std::ios::fail() == true)") {}
-        };
-
-        class StreamUngetFail : public Exception
-        {
-        public:
-            StreamUngetFail(char c) : Exception((std::string("Attempt to unread last character (") + c + ") resulted in failure").c_str()) {}
-        };
-
-        template <typename Field>
-        class UnexpectedFieldValue : public Exception
-        {
-        public:
-            template <typename Field>
-            static std::string getExpectation(Field field)
-            {
-                std::string expectation;
-                if constexpr ( Field::IsPointer )
-                    return "\"null\""; // TODO: More handling for pointers
-                else if constexpr ( Field::IsBool )
-                    return "true or false";
-                else if constexpr ( Field::IsArray )
-                    return "JSON Array";
-                else if constexpr ( Field::IsObject )
-                    return "JSON Object";
-                else if constexpr ( Field::template HasAnnotation<Json::String> )
-                    return "JSON String";
-                else
-                    return "TODO: Implement more expectations";
-            }
-
-            UnexpectedFieldValue(Field field)
-                : Exception((
-                    std::string("Unexpected value for field: \"") + field.name + "\". Expected: "
-                    + getExpectation<Field>(field)
-                ).c_str()) {}
-
-            UnexpectedFieldValue(Field field, const char* fieldValue)
-                : Exception((
-                    std::string("Unexpected value: \"") + fieldValue + "\" for field: \"" + field.name + "\". Expected: "
-                    + getExpectation<Field>(field)
-                ).c_str()) {}
-        };
-
-        class InvalidUnknownFieldValue : public Exception
-        {
-        public:
-            InvalidUnknownFieldValue() : Exception("Expected field value (string, number, object, array, true, false, or null)") {}
-        };
-    };
-    
-    inline namespace Generic
-    {
-        class JsonField
-        {
-        public:
-            enum_t(Type, size_t, {
-                Regular = 0,
-                SuperClass = 1
-            });
-        
-            JsonField() : index(0), type(Type::Regular), name("") {}
-            JsonField(size_t index, Type fieldType, const std::string & name) : index(index), type(fieldType), name(name) {}
-        
-            size_t index;
-            Type type;
-            std::string name;
-        };
-
-        class Value;
-        using ObjectPtr = std::shared_ptr<std::map<std::string, std::shared_ptr<Value>>>;
-        using FieldsPtr = std::shared_ptr<std::map<std::string, std::shared_ptr<Value>>>;
-
-        class Value {
-        public:
-            enum_t(Type, uint8_t, {
-                None,
-                Boolean,
-                Number,
-                String,
-                Object,
-                BoolArray,
-                NumberArray,
-                StringArray,
-                ObjectArray,
-                MixedArray
-            });
-
-            virtual ~Value() {};
-
-            virtual Type type() = 0;
-        
-            virtual bool & boolean() = 0;
-            virtual std::string & number() = 0;
-            virtual std::string & string() = 0;
-            virtual std::map<std::string, std::shared_ptr<Value>> & object() = 0;
-
-            virtual size_t arraySize() = 0;
-            virtual std::vector<bool> & boolArray() = 0;
-            virtual std::vector<std::string> & numberArray() = 0;
-            virtual std::vector<std::string> & stringArray() = 0;
-	        virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() = 0;
-	        virtual std::vector<std::shared_ptr<Value>> & mixedArray() = 0;
-
-            template <typename T>
-            bool getNumber(T & num)
-            {
-                return (std::stringstream(number()) >> num).good();
-            }
-
-            template <typename T>
-            void setNumber(const T & number)
-            {
-                number() = std::to_string(number);
-            }
-        };
-	
-        class Bool : public Value {
-        public:
-            Bool() : value(false) {}
-            Bool(bool value) : value(value) {}
-            Bool(const Bool & other) : value(other.value) {}
-            virtual ~Bool() {}
-        
-            virtual Type type() { return Value::Type::Boolean; }
-        
-            virtual bool & boolean() { return value; }
-            virtual std::string & number() { throw Exception("Cannot call number() on a Json::Bool type!"); }
-            virtual std::string & string() { throw Exception("Cannot call string() on a Json::Bool type!"); }
-            virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw Exception("Cannot call object() on a Json::Bool type!"); }
-
-            virtual size_t arraySize() { throw Exception("Cannot call arraySize() on a Json::Bool type!"); }
-
-            virtual std::vector<bool> & boolArray() { throw Exception("Cannot call boolArray() on a Json::Bool type!"); }
-            virtual std::vector<std::string> & numberArray() { throw Exception("Cannot call numberArray() on a Json::Bool type!"); }
-            virtual std::vector<std::string> & stringArray() { throw Exception("Cannot call stringArray() on a Json::Bool type!"); }
-	        virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
-                throw Exception("Cannot call objectArray() on a Json::Bool type!");
-            }
-            virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw Exception("Cannot call mixedArray() on a Json::Bool type!"); }
-
-        private:
-	        bool value;
-        };
-        class Number : public Value {
-        public:
-            Number() : value() {}
-            Number(const std::string & value) : value(value) {}
-            Number(const Number & other) : value(other.value) {}
-            virtual ~Number() {}
-        
-            virtual Type type() { return Value::Type::Number; }
-        
-            virtual bool & boolean() { throw Exception("Cannot call boolean() on a Json::Number type!"); }
-            virtual std::string & number() { return value; }
-            virtual std::string & string() { throw Exception("Cannot call string() on a Json::Number type!"); }
-            virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw Exception("Cannot call object() on a Json::Number type!"); }
-
-            virtual size_t arraySize() { throw Exception("Cannot call arraySize() on a Json::Number type!"); }
-
-            virtual std::vector<bool> & boolArray() { throw Exception("Cannot call boolArray() on a Json::Number type!"); }
-            virtual std::vector<std::string> & numberArray() { throw Exception("Cannot call numberArray() on a Json::Number type!"); }
-            virtual std::vector<std::string> & stringArray() { throw Exception("Cannot call stringArray() on a Json::Number type!"); }
-	        virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
-                throw Exception("Cannot call objectArray() on a Json::Number type!");
-            }
-            virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw Exception("Cannot call mixedArray() on a Json::Number type!"); }
-        
-        private:
-	        std::string value;
-        };
-        class String : public Value {
-        public:
-            String() : value() {}
-            String(const std::string & value) : value(value) {}
-            String(const String & other) : value(other.value) {}
-            virtual ~String() {}
-        
-            virtual Type type() { return Value::Type::String; }
-        
-            virtual bool & boolean() { throw Exception("Cannot call boolean() on a Json::String type!"); }
-            virtual std::string & number() { throw Exception("Cannot call number() on a Json::String type!"); }
-            virtual std::string & string() { return value; }
-            virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw Exception("Cannot call object() on a Json::String type!"); }
-
-            virtual size_t arraySize() { throw Exception("Cannot call arraySize() on a Json::String type!"); }
-
-            virtual std::vector<bool> & boolArray() { throw Exception("Cannot call boolArray() on a Json::String type!"); }
-            virtual std::vector<std::string> & numberArray() { throw Exception("Cannot call numberArray() on a Json::String type!"); }
-            virtual std::vector<std::string> & stringArray() { throw Exception("Cannot call stringArray() on a Json::String type!"); }
-	        virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
-                throw Exception("Cannot call objectArray() on a Json::String type!");
-            }
-            virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw Exception("Cannot call mixedArray() on a Json::String type!"); }
-        
-        private:
-	        std::string value;
-        };
-        class Object : public Value {
-        public:
-            Object() : value() {}
-            Object(const Object & other) : value(other.value) {}
-            virtual ~Object() {}
-        
-            virtual Type type() { return Value::Type::Object; }
-        
-            virtual bool & boolean() { throw Exception("Cannot call boolean() on a Json::Object type!"); }
-            virtual std::string & number() { throw Exception("Cannot call number() on a Json::Object type!"); }
-            virtual std::string & string() { throw Exception("Cannot call string() on a Json::Object type!"); }
-            virtual std::map<std::string, std::shared_ptr<Value>> & object() { return value; }
-
-            virtual size_t arraySize() { throw Exception("Cannot call arraySize() on a Json::Object type!"); }
-
-            virtual std::vector<bool> & boolArray() { throw Exception("Cannot call boolArray() on a Json::Object type!"); }
-            virtual std::vector<std::string> & numberArray() { throw Exception("Cannot call numberArray() on a Json::Object type!"); }
-            virtual std::vector<std::string> & stringArray() { throw Exception("Cannot call stringArray() on a Json::Object type!"); }
-	        virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
-                throw Exception("Cannot call objectArray() on a Json::Object type!");
-            }
-            virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw Exception("Cannot call mixedArray() on a Json::Object type!"); }
-        
-        private:
-	        std::map<std::string, std::shared_ptr<Value>> value;
-        };
-	
-        class BoolArray : public Value {
-        public:
-            BoolArray() : values() {}
-            BoolArray(const BoolArray & other) : values(other.values) {}
-            virtual ~BoolArray() {}
-        
-            virtual Type type() { return Value::Type::BoolArray; }
-        
-            virtual bool & boolean() { throw Exception("Cannot call boolean() on a Json::BoolArray type!"); }
-            virtual std::string & number() { throw Exception("Cannot call number() on a Json::BoolArray type!"); }
-            virtual std::string & string() { throw Exception("Cannot call string() on a Json::BoolArray type!"); }
-            virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw Exception("Cannot call object() on a Json::BoolArray type!"); }
-
-            virtual size_t arraySize() { throw Exception("Cannot call arraySize() on a Json::BoolArray type!"); }
-
-            virtual std::vector<bool> & boolArray() { return values; }
-            virtual std::vector<std::string> & numberArray() { throw Exception("Cannot call numberArray() on a Json::BoolArray type!"); }
-            virtual std::vector<std::string> & stringArray() { throw Exception("Cannot call stringArray() on a Json::BoolArray type!"); }
-	        virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
-                throw Exception("Cannot call objectArray() on a Json::BoolArray type!");
-            }
-            virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw Exception("Cannot call mixedArray() on a Json::BoolArray type!"); }
-        
-        private:
-	        std::vector<bool> values;
-        };
-        class NumberArray : public Value {
-        public:
-            NumberArray() : values() {}
-            NumberArray(const NumberArray & other) : values(other.values) {}
-            virtual ~NumberArray() {}
-        
-            virtual Type type() { return Value::Type::NumberArray; }
-        
-            virtual bool & boolean() { throw Exception("Cannot call boolean() on a Json::NumberArray type!"); }
-            virtual std::string & number() { throw Exception("Cannot call number() on a Json::NumberArray type!"); }
-            virtual std::string & string() { throw Exception("Cannot call string() on a Json::NumberArray type!"); }
-            virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw Exception("Cannot call object() on a Json::NumberArray type!"); }
-
-            virtual size_t arraySize() { throw Exception("Cannot call arraySize() on a Json::NumberArray type!"); }
-
-            virtual std::vector<bool> & boolArray() { throw Exception("Cannot call boolArray() on a Json::NumberArray type!"); }
-            virtual std::vector<std::string> & numberArray() { return values; }
-            virtual std::vector<std::string> & stringArray() { throw Exception("Cannot call stringArray() on a Json::NumberArray type!"); }
-	        virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
-                throw Exception("Cannot call objectArray() on a Json::NumberArray type!");
-            }
-            virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw Exception("Cannot call mixedArray() on a Json::NumberArray type!"); }
-        
-        private:
-	        std::vector<std::string> values;
-        };
-        class StringArray : public Value {
-        public:
-            StringArray() : values() {}
-            StringArray(const StringArray & other) : values(other.values) {}
-            virtual ~StringArray() {}
-        
-            virtual Type type() { return Value::Type::StringArray; }
-        
-            virtual bool & boolean() { throw Exception("Cannot call boolean() on a Json::StringArray type!"); }
-            virtual std::string & number() { throw Exception("Cannot call number() on a Json::StringArray type!"); }
-            virtual std::string & string() { throw Exception("Cannot call string() on a Json::StringArray type!"); }
-            virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw Exception("Cannot call object() on a Json::StringArray type!"); }
-
-            virtual size_t arraySize() { throw Exception("Cannot call arraySize() on a Json::StringArray type!"); }
-
-            virtual std::vector<bool> & boolArray() { throw Exception("Cannot call boolArray() on a Json::StringArray type!"); }
-            virtual std::vector<std::string> & numberArray() { throw Exception("Cannot call numberArray() on a Json::StringArray type!"); }
-            virtual std::vector<std::string> & stringArray() { return values; }
-	        virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
-                throw Exception("Cannot call objectArray() on a Json::StringArray type!");
-            }
-            virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw Exception("Cannot call mixedArray() on a Json::StringArray type!"); }
-        
-        private:
-	        std::vector<std::string> values;
-        };
-        class ObjectArray : public Value {
-        public:
-            ObjectArray() : values() {}
-            ObjectArray(const ObjectArray & other) : values(other.values) {}
-            virtual ~ObjectArray() {}
-        
-            virtual Type type() { return Value::Type::ObjectArray; }
-        
-            virtual bool & boolean() { throw Exception("Cannot call boolean() on a Json::ObjectArray type!"); }
-            virtual std::string & number() { throw Exception("Cannot call number() on a Json::ObjectArray type!"); }
-            virtual std::string & string() { throw Exception("Cannot call string() on a Json::ObjectArray type!"); }
-            virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw Exception("Cannot call object() on a Json::ObjectArray type!"); }
-
-            virtual size_t arraySize() { throw Exception("Cannot call arraySize() on a Json::ObjectArray type!"); }
-
-            virtual std::vector<bool> & boolArray() { throw Exception("Cannot call boolArray() on a Json::ObjectArray type!"); }
-            virtual std::vector<std::string> & numberArray() { throw Exception("Cannot call numberArray() on a Json::ObjectArray type!"); }
-            virtual std::vector<std::string> & stringArray() { throw Exception("Cannot call stringArray() on a Json::ObjectArray type!"); }
-            virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() { return values; }
-            virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw Exception("Cannot call mixedArray() on a Json::ObjectArray type!"); }
-        
-        private:
-	        std::vector<std::map<std::string, std::shared_ptr<Value>>> values;
-        };
-        class MixedArray : public Value {
-        public:
-            MixedArray() : values() {}
-            MixedArray(const MixedArray & other) : values(other.values) {}
-            virtual ~MixedArray() {}
-        
-            virtual Type type() { return Value::Type::MixedArray; }
-        
-            virtual bool & boolean() { throw Exception("Cannot call boolean() on a Json::MixedArray type!"); }
-            virtual std::string & number() { throw Exception("Cannot call number() on a Json::MixedArray type!"); }
-            virtual std::string & string() { throw Exception("Cannot call string() on a Json::MixedArray type!"); }
-            virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw Exception("Cannot call object() on a Json::MixedArray type!"); }
-
-            virtual size_t arraySize() { throw Exception("Cannot call arraySize() on a Json::MixedArray type!"); }
-
-            virtual std::vector<bool> & boolArray() { throw Exception("Cannot call boolArray() on a Json::MixedArray type!"); }
-            virtual std::vector<std::string> & numberArray() { throw Exception("Cannot call numberArray() on a Json::MixedArray type!"); }
-            virtual std::vector<std::string> & stringArray() { throw Exception("Cannot call stringArray() on a Json::MixedArray type!"); }
-	        virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
-                throw Exception("Cannot call objectArray() on a Json::MixedArray type!");
-            }
-            virtual std::vector<std::shared_ptr<Value>> & mixedArray() { return values; }
-
-        private:
-            std::vector<std::shared_ptr<Value>> values;
-        };
-    };
-    
-    inline namespace Affixes
-    {
-        constexpr const char twoSpaces[] = "  ";
-
-        template <bool PrettyPrint, size_t IndentLevel, const char* indent = twoSpaces>
-        struct Indent { };
-
-        template <bool PrettyPrint, size_t IndentLevel, const char* indent = twoSpaces>
-        std::ostream & operator<<(std::ostream & os, const Indent<PrettyPrint, IndentLevel, indent>)
-        {
-            if constexpr ( IndentLevel > 0 && PrettyPrint )
-            {
-                for ( size_t i=0; i<IndentLevel; i++ )
-                    os << indent;
-            }
-
-            return os;
-        }
-
-        template <bool PrettyPrint, bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
-        struct ArrayPrefix { };
-
-        template <bool PrettyPrint, bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
-        std::ostream & operator<<(std::ostream & os, const ArrayPrefix<PrettyPrint, ContainsPrimitives, IndentLevel, indent>)
-        {
-            if constexpr ( !PrettyPrint )
-                os << "[";
-            else if constexpr ( ContainsPrimitives )
-                os << "[ ";
-            else
-                os << "[" << std::endl << Indent<PrettyPrint, IndentLevel, indent>();
-
-            return os;
-        }
-
-        template <bool PrettyPrint, bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
-        struct ArraySuffix { };
-
-        template <bool PrettyPrint, bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
-        std::ostream & operator<<(std::ostream & os, const ArraySuffix<PrettyPrint, ContainsPrimitives, IndentLevel, indent>)
-        {
-            if constexpr ( !PrettyPrint )
-                os << "]";
-            else if constexpr ( ContainsPrimitives )
-                os << " ]";
-            else
-                os << std::endl << Indent<PrettyPrint, IndentLevel, indent>() << "]";
-
-            return os;
-        }
-
-        template <bool PrettyPrint, size_t IndentLevel, const char* indent = twoSpaces>
-        struct ObjectPrefix { };
-
-        template <bool PrettyPrint, size_t IndentLevel, const char* indent = twoSpaces>
-        std::ostream & operator<<(std::ostream & os, const ObjectPrefix<PrettyPrint, IndentLevel, indent>)
-        {
-            os << "{";
-            return os;
-        }
-        
-        template <bool PrettyPrint, size_t IndentLevel, const char* indent = twoSpaces>
-        struct ObjectSuffix { };
-
-        template <bool PrettyPrint, size_t IndentLevel, const char* indent = twoSpaces>
-        std::ostream & operator<<(std::ostream & os, const ObjectSuffix<PrettyPrint, IndentLevel, indent>)
-        {
-            if constexpr ( PrettyPrint )
-                os << std::endl << Indent<PrettyPrint, IndentLevel, indent>() << "}";
-            else
-                os << "}";
-
-            return os;
-        }
-        
-        template <bool PrettyPrint, bool IsArray, bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
-        struct NestedPrefix
-        {
-            bool isEmpty;
-
-            NestedPrefix() : isEmpty(false) {}
-            NestedPrefix(bool isEmpty) : isEmpty(isEmpty) {}
-        };
-
-        template <bool PrettyPrint, bool IsArray, bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
-        std::ostream & operator<<(std::ostream & os, const NestedPrefix<PrettyPrint, IsArray, ContainsPrimitives, IndentLevel, indent> nestedPrefix)
-        {
-            if constexpr ( IsArray )
-            {
-                if ( nestedPrefix.isEmpty )
-                    os << ArrayPrefix<false, ContainsPrimitives, IndentLevel, indent>();
-                else
-                    os << ArrayPrefix<PrettyPrint, ContainsPrimitives, IndentLevel, indent>();
-            }
-            else
-            {
-                if ( nestedPrefix.isEmpty )
-                    os << ObjectPrefix<false, IndentLevel, indent>();
-                else
-                    os << ObjectPrefix<PrettyPrint, IndentLevel, indent>();
-            }
-
-            return os;
-        }
-
-        template <bool PrettyPrint, bool IsArray, bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
-        struct NestedSuffix
-        {
-            bool isEmpty;
-
-            NestedSuffix() : isEmpty(false) {}
-            NestedSuffix(bool isEmpty) : isEmpty(isEmpty) {}
-        };
-
-        template <bool PrettyPrint, bool IsArray, bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
-        std::ostream & operator<<(std::ostream & os, const NestedSuffix<PrettyPrint, IsArray, ContainsPrimitives, IndentLevel, indent> nestedSuffix)
-        {
-            if constexpr ( IsArray )
-            {
-                if ( nestedSuffix.isEmpty )
-                    os << ArraySuffix<false, ContainsPrimitives, IndentLevel, indent>();
-                else
-                    os << ArraySuffix<PrettyPrint, ContainsPrimitives, IndentLevel, indent>();
-            }
-            else
-            {
-                if ( nestedSuffix.isEmpty )
-                    os << ObjectSuffix<false, IndentLevel, indent>();
-                else
-                    os << ObjectSuffix<PrettyPrint, IndentLevel, indent>();
-            }
-
-            return os;
-        }
-        
-        template <bool PrettyPrint, size_t IndentLevel, const char* indent = twoSpaces>
-        struct FieldPrefix {
-            bool isFirst;
-
-            FieldPrefix() : isFirst(false) {}
-            FieldPrefix(bool isFirst) : isFirst(isFirst) {}
-        };
-
-        template <bool PrettyPrint, size_t IndentLevel, const char* indent = twoSpaces>
-        std::ostream & operator<<(std::ostream & os, const FieldPrefix<PrettyPrint, IndentLevel, indent> fieldPrefix)
-        {
-            if constexpr ( PrettyPrint )
-            {
-                if ( fieldPrefix.isFirst )
-                    os << std::endl << Indent<PrettyPrint, IndentLevel, indent>();
-                else 
-                    os << "," << std::endl << Indent<PrettyPrint, IndentLevel, indent>();
-            }
-            else if ( !fieldPrefix.isFirst )
-                os << ",";
-
-            return os;
-        }
-
-        template <bool PrettyPrint>
-        struct FieldNameValueSeparator { };
-
-        template <bool PrettyPrint>
-        std::ostream & operator<<(std::ostream & os, const FieldNameValueSeparator<PrettyPrint>)
-        {
-            if constexpr ( PrettyPrint )
-                os << ": ";
-            else
-                os << ":";
-
-            return os;
-        }
-                
-        template <bool PrettyPrint, bool IsJsonField, bool NestedSeparator, size_t IndentLevel, const char* indent = twoSpaces>
-        struct Separator
-        {
-            bool isFirst;
-
-            Separator() : isFirst(false) {}
-            Separator(bool isFirst) : isFirst(isFirst) {}
-        };
-
-        template <bool PrettyPrint, bool IsJsonField, bool NestedSeparator, size_t IndentLevel, const char* indent = twoSpaces>
-        std::ostream & operator<<(std::ostream & os, const Separator<PrettyPrint, IsJsonField, NestedSeparator, IndentLevel, indent> separator)
-        {
-            if constexpr ( IsJsonField )
-            {
-                if ( separator.isFirst && PrettyPrint )
-                    os << std::endl << Indent<PrettyPrint, IndentLevel, indent>();
-                else if constexpr ( PrettyPrint )
-                    os << "," << std::endl << Indent<PrettyPrint, IndentLevel, indent>();
-                else if ( !separator.isFirst )
-                    os << ",";
-            }
-            else if ( !separator.isFirst )
-            {
-                if constexpr ( NestedSeparator && PrettyPrint )
-                    os << "," << std::endl << Indent<PrettyPrint, IndentLevel, indent>();
-                else if constexpr ( PrettyPrint )
-                    os << ", ";
-                else
-                    os << ",";
-            }
-
-            return os;
-        }
-    };
-    
-    inline namespace Cache
-    {
-        extern std::hash<std::string> strHash;
-
-        extern std::map<std::type_index, std::multimap<size_t, JsonField>> classToNameHashToJsonField;
 
         std::string simplifyTypeStr(const std::string & superTypeStr)
         {
@@ -677,103 +54,530 @@ namespace Json {
         {
             return std::string("__") + simplifyTypeStr(TypeToStr<T>());
         }
-
-        template <typename T>
-        static std::multimap<size_t, JsonField> & getClassFieldCache(const T & t)
+        
+        inline namespace Generic
         {
-            using Class = typename T::Class;
-            using Supers = typename T::Supers;
-            auto found = classToNameHashToJsonField.find(std::type_index(typeid(T)));
-            if ( found == classToNameHashToJsonField.end() )
+            class JsonField
             {
-                auto inserted = classToNameHashToJsonField.insert(std::pair<std::type_index, std::multimap<size_t, JsonField>>(
-                    std::type_index(typeid(T)), std::multimap<size_t, JsonField>()));
+            public:
+                enum_t(Type, size_t, {
+                    Regular = 0,
+                    SuperClass = 1
+                });
+        
+                JsonField() : index(0), type(Type::Regular), name("") {}
+                JsonField(size_t index, Type fieldType, const std::string & name) : index(index), type(fieldType), name(name) {}
+        
+                size_t index;
+                Type type;
+                std::string name;
+            };
 
-                if ( !inserted.second )
-                    throw Exception("Failed to create cache for class!");
+            class Value;
+            using ObjectPtr = std::shared_ptr<std::map<std::string, std::shared_ptr<Value>>>;
+            using FieldsPtr = std::shared_ptr<std::map<std::string, std::shared_ptr<Value>>>;
 
-                if constexpr ( Class::TotalFields > 0 )
+            class Value {
+            public:
+                enum_t(Type, uint8_t, {
+                    None,
+                    Boolean,
+                    Number,
+                    String,
+                    Object,
+                    BoolArray,
+                    NumberArray,
+                    StringArray,
+                    ObjectArray,
+                    MixedArray
+                });
+
+                virtual ~Value() {};
+
+                virtual Type type() = 0;
+        
+                virtual bool & boolean() = 0;
+                virtual std::string & number() = 0;
+                virtual std::string & string() = 0;
+                virtual std::map<std::string, std::shared_ptr<Value>> & object() = 0;
+
+                virtual size_t arraySize() = 0;
+                virtual std::vector<bool> & boolArray() = 0;
+                virtual std::vector<std::string> & numberArray() = 0;
+                virtual std::vector<std::string> & stringArray() = 0;
+	            virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() = 0;
+	            virtual std::vector<std::shared_ptr<Value>> & mixedArray() = 0;
+
+                template <typename T>
+                bool getNumber(T & num)
                 {
-                    for ( size_t fieldIndex = 0; fieldIndex < Class::TotalFields; fieldIndex++ )
-                    {
-                        inserted.first->second.insert(std::pair<size_t, JsonField>(
-                            strHash(Class::Fields[fieldIndex].name), JsonField(fieldIndex, JsonField::Type::Regular, Class::Fields[fieldIndex].name)));
-                    }
+                    return (std::stringstream(number()) >> num).good();
                 }
 
-                if constexpr ( Supers::TotalSupers > 0 )
+                template <typename T>
+                void setNumber(const T & number)
                 {
-                    for ( size_t superIndex = 0; superIndex < Supers::TotalSupers; superIndex++ )
-                    {
-                        Supers::At(t, superIndex, [&](auto & superObj) {
-                            using Super = typename std::remove_reference<decltype(superObj)>::type;
-                            std::string superTypeFieldName = superTypeToJsonFieldName<Super>();
-                            inserted.first->second.insert(std::pair<size_t, JsonField>(
-                                strHash(superTypeFieldName), JsonField(superIndex, JsonField::Type::SuperClass, superTypeFieldName)));
-                        });
-                    }
+                    number() = std::to_string(number);
                 }
-                            
-                return inserted.first->second;
-            }
-            return found->second;
-        }
+            };
+	
+            class Bool : public Value {
+            public:
+                Bool() : value(false) {}
+                Bool(bool value) : value(value) {}
+                Bool(const Bool & other) : value(other.value) {}
+                virtual ~Bool() {}
+        
+                virtual Type type() { return Value::Type::Boolean; }
+        
+                virtual bool & boolean() { return value; }
+                virtual std::string & number() { throw Exception("Cannot call number() on a Json::Bool type!"); }
+                virtual std::string & string() { throw Exception("Cannot call string() on a Json::Bool type!"); }
+                virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw Exception("Cannot call object() on a Json::Bool type!"); }
 
-        template <typename T>
-        static JsonField* getJsonField(T & t, std::string & fieldName)
-        {
-            std::multimap<size_t, JsonField> & fieldNameToJsonField = getClassFieldCache(t);
-            size_t fieldNameHash = strHash(fieldName);
-            auto fieldHashMatches = fieldNameToJsonField.equal_range(fieldNameHash);
-            for ( auto it = fieldHashMatches.first; it != fieldHashMatches.second; ++it )
-            {
-                if ( it->second.name.compare(fieldName) == 0 )
-                    return &it->second;
-            }
-            return nullptr;
-        }
+                virtual size_t arraySize() { throw Exception("Cannot call arraySize() on a Json::Bool type!"); }
 
-        static void putClassFieldCache(std::ostream & os)
-        {
-            os << "{" << std::endl;
-            bool hasPrevPair = false;
-            for ( auto & pair : classToNameHashToJsonField )
-            {
-                if ( hasPrevPair )
-                    os << "  }," << std::endl;
-
-                os << "  \"" << simplifyTypeStr(pair.first.name()) << "\": {" << std::endl;
-                bool hasPrevFieldNameToJsonField = false;
-                for ( auto & fieldNameToJsonField : pair.second )
-                {
-                    if ( hasPrevFieldNameToJsonField )
-                        os << "    }," << std::endl;
-
-                    os << "    \"" << fieldNameToJsonField.first << "\": {" << std::endl
-                        << "      \"index\": " << fieldNameToJsonField.second.index << "," << std::endl
-                        << "      \"type\": "
-                        << (fieldNameToJsonField.second.type == JsonField::Type::Regular ? "\"Regular\"" : "\"SuperClass\"")
-                        << "," << std::endl
-                        << "      \"name\": \"" << fieldNameToJsonField.second.name << "\"" << std::endl;
-
-                    hasPrevFieldNameToJsonField = true;
+                virtual std::vector<bool> & boolArray() { throw Exception("Cannot call boolArray() on a Json::Bool type!"); }
+                virtual std::vector<std::string> & numberArray() { throw Exception("Cannot call numberArray() on a Json::Bool type!"); }
+                virtual std::vector<std::string> & stringArray() { throw Exception("Cannot call stringArray() on a Json::Bool type!"); }
+	            virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
+                    throw Exception("Cannot call objectArray() on a Json::Bool type!");
                 }
-                if ( hasPrevFieldNameToJsonField )
-                    os << "    }" << std::endl;
-                hasPrevPair = true;
-            }
-            if ( hasPrevPair )
-                os << "  }" << std::endl;
-            os << "}" << std::endl;
-        }
+                virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw Exception("Cannot call mixedArray() on a Json::Bool type!"); }
 
-        #define ENABLE_JSON_INPUT \
-        std::hash<std::string> Json::strHash; \
-        std::map<std::type_index, std::multimap<size_t, Json::Generic::JsonField>> Json::classToNameHashToJsonField
+            private:
+	            bool value;
+            };
+            class Number : public Value {
+            public:
+                Number() : value() {}
+                Number(const std::string & value) : value(value) {}
+                Number(const Number & other) : value(other.value) {}
+                virtual ~Number() {}
+        
+                virtual Type type() { return Value::Type::Number; }
+        
+                virtual bool & boolean() { throw Exception("Cannot call boolean() on a Json::Number type!"); }
+                virtual std::string & number() { return value; }
+                virtual std::string & string() { throw Exception("Cannot call string() on a Json::Number type!"); }
+                virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw Exception("Cannot call object() on a Json::Number type!"); }
+
+                virtual size_t arraySize() { throw Exception("Cannot call arraySize() on a Json::Number type!"); }
+
+                virtual std::vector<bool> & boolArray() { throw Exception("Cannot call boolArray() on a Json::Number type!"); }
+                virtual std::vector<std::string> & numberArray() { throw Exception("Cannot call numberArray() on a Json::Number type!"); }
+                virtual std::vector<std::string> & stringArray() { throw Exception("Cannot call stringArray() on a Json::Number type!"); }
+	            virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
+                    throw Exception("Cannot call objectArray() on a Json::Number type!");
+                }
+                virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw Exception("Cannot call mixedArray() on a Json::Number type!"); }
+        
+            private:
+	            std::string value;
+            };
+            class String : public Value {
+            public:
+                String() : value() {}
+                String(const std::string & value) : value(value) {}
+                String(const String & other) : value(other.value) {}
+                virtual ~String() {}
+        
+                virtual Type type() { return Value::Type::String; }
+        
+                virtual bool & boolean() { throw Exception("Cannot call boolean() on a Json::String type!"); }
+                virtual std::string & number() { throw Exception("Cannot call number() on a Json::String type!"); }
+                virtual std::string & string() { return value; }
+                virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw Exception("Cannot call object() on a Json::String type!"); }
+
+                virtual size_t arraySize() { throw Exception("Cannot call arraySize() on a Json::String type!"); }
+
+                virtual std::vector<bool> & boolArray() { throw Exception("Cannot call boolArray() on a Json::String type!"); }
+                virtual std::vector<std::string> & numberArray() { throw Exception("Cannot call numberArray() on a Json::String type!"); }
+                virtual std::vector<std::string> & stringArray() { throw Exception("Cannot call stringArray() on a Json::String type!"); }
+	            virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
+                    throw Exception("Cannot call objectArray() on a Json::String type!");
+                }
+                virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw Exception("Cannot call mixedArray() on a Json::String type!"); }
+        
+            private:
+	            std::string value;
+            };
+            class Object : public Value {
+            public:
+                Object() : value() {}
+                Object(const Object & other) : value(other.value) {}
+                virtual ~Object() {}
+        
+                virtual Type type() { return Value::Type::Object; }
+        
+                virtual bool & boolean() { throw Exception("Cannot call boolean() on a Json::Object type!"); }
+                virtual std::string & number() { throw Exception("Cannot call number() on a Json::Object type!"); }
+                virtual std::string & string() { throw Exception("Cannot call string() on a Json::Object type!"); }
+                virtual std::map<std::string, std::shared_ptr<Value>> & object() { return value; }
+
+                virtual size_t arraySize() { throw Exception("Cannot call arraySize() on a Json::Object type!"); }
+
+                virtual std::vector<bool> & boolArray() { throw Exception("Cannot call boolArray() on a Json::Object type!"); }
+                virtual std::vector<std::string> & numberArray() { throw Exception("Cannot call numberArray() on a Json::Object type!"); }
+                virtual std::vector<std::string> & stringArray() { throw Exception("Cannot call stringArray() on a Json::Object type!"); }
+	            virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
+                    throw Exception("Cannot call objectArray() on a Json::Object type!");
+                }
+                virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw Exception("Cannot call mixedArray() on a Json::Object type!"); }
+        
+            private:
+	            std::map<std::string, std::shared_ptr<Value>> value;
+            };
+	
+            class BoolArray : public Value {
+            public:
+                BoolArray() : values() {}
+                BoolArray(const BoolArray & other) : values(other.values) {}
+                virtual ~BoolArray() {}
+        
+                virtual Type type() { return Value::Type::BoolArray; }
+        
+                virtual bool & boolean() { throw Exception("Cannot call boolean() on a Json::BoolArray type!"); }
+                virtual std::string & number() { throw Exception("Cannot call number() on a Json::BoolArray type!"); }
+                virtual std::string & string() { throw Exception("Cannot call string() on a Json::BoolArray type!"); }
+                virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw Exception("Cannot call object() on a Json::BoolArray type!"); }
+
+                virtual size_t arraySize() { throw Exception("Cannot call arraySize() on a Json::BoolArray type!"); }
+
+                virtual std::vector<bool> & boolArray() { return values; }
+                virtual std::vector<std::string> & numberArray() { throw Exception("Cannot call numberArray() on a Json::BoolArray type!"); }
+                virtual std::vector<std::string> & stringArray() { throw Exception("Cannot call stringArray() on a Json::BoolArray type!"); }
+	            virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
+                    throw Exception("Cannot call objectArray() on a Json::BoolArray type!");
+                }
+                virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw Exception("Cannot call mixedArray() on a Json::BoolArray type!"); }
+        
+            private:
+	            std::vector<bool> values;
+            };
+            class NumberArray : public Value {
+            public:
+                NumberArray() : values() {}
+                NumberArray(const NumberArray & other) : values(other.values) {}
+                virtual ~NumberArray() {}
+        
+                virtual Type type() { return Value::Type::NumberArray; }
+        
+                virtual bool & boolean() { throw Exception("Cannot call boolean() on a Json::NumberArray type!"); }
+                virtual std::string & number() { throw Exception("Cannot call number() on a Json::NumberArray type!"); }
+                virtual std::string & string() { throw Exception("Cannot call string() on a Json::NumberArray type!"); }
+                virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw Exception("Cannot call object() on a Json::NumberArray type!"); }
+
+                virtual size_t arraySize() { throw Exception("Cannot call arraySize() on a Json::NumberArray type!"); }
+
+                virtual std::vector<bool> & boolArray() { throw Exception("Cannot call boolArray() on a Json::NumberArray type!"); }
+                virtual std::vector<std::string> & numberArray() { return values; }
+                virtual std::vector<std::string> & stringArray() { throw Exception("Cannot call stringArray() on a Json::NumberArray type!"); }
+	            virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
+                    throw Exception("Cannot call objectArray() on a Json::NumberArray type!");
+                }
+                virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw Exception("Cannot call mixedArray() on a Json::NumberArray type!"); }
+        
+            private:
+	            std::vector<std::string> values;
+            };
+            class StringArray : public Value {
+            public:
+                StringArray() : values() {}
+                StringArray(const StringArray & other) : values(other.values) {}
+                virtual ~StringArray() {}
+        
+                virtual Type type() { return Value::Type::StringArray; }
+        
+                virtual bool & boolean() { throw Exception("Cannot call boolean() on a Json::StringArray type!"); }
+                virtual std::string & number() { throw Exception("Cannot call number() on a Json::StringArray type!"); }
+                virtual std::string & string() { throw Exception("Cannot call string() on a Json::StringArray type!"); }
+                virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw Exception("Cannot call object() on a Json::StringArray type!"); }
+
+                virtual size_t arraySize() { throw Exception("Cannot call arraySize() on a Json::StringArray type!"); }
+
+                virtual std::vector<bool> & boolArray() { throw Exception("Cannot call boolArray() on a Json::StringArray type!"); }
+                virtual std::vector<std::string> & numberArray() { throw Exception("Cannot call numberArray() on a Json::StringArray type!"); }
+                virtual std::vector<std::string> & stringArray() { return values; }
+	            virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
+                    throw Exception("Cannot call objectArray() on a Json::StringArray type!");
+                }
+                virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw Exception("Cannot call mixedArray() on a Json::StringArray type!"); }
+        
+            private:
+	            std::vector<std::string> values;
+            };
+            class ObjectArray : public Value {
+            public:
+                ObjectArray() : values() {}
+                ObjectArray(const ObjectArray & other) : values(other.values) {}
+                virtual ~ObjectArray() {}
+        
+                virtual Type type() { return Value::Type::ObjectArray; }
+        
+                virtual bool & boolean() { throw Exception("Cannot call boolean() on a Json::ObjectArray type!"); }
+                virtual std::string & number() { throw Exception("Cannot call number() on a Json::ObjectArray type!"); }
+                virtual std::string & string() { throw Exception("Cannot call string() on a Json::ObjectArray type!"); }
+                virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw Exception("Cannot call object() on a Json::ObjectArray type!"); }
+
+                virtual size_t arraySize() { throw Exception("Cannot call arraySize() on a Json::ObjectArray type!"); }
+
+                virtual std::vector<bool> & boolArray() { throw Exception("Cannot call boolArray() on a Json::ObjectArray type!"); }
+                virtual std::vector<std::string> & numberArray() { throw Exception("Cannot call numberArray() on a Json::ObjectArray type!"); }
+                virtual std::vector<std::string> & stringArray() { throw Exception("Cannot call stringArray() on a Json::ObjectArray type!"); }
+                virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() { return values; }
+                virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw Exception("Cannot call mixedArray() on a Json::ObjectArray type!"); }
+        
+            private:
+	            std::vector<std::map<std::string, std::shared_ptr<Value>>> values;
+            };
+            class MixedArray : public Value {
+            public:
+                MixedArray() : values() {}
+                MixedArray(const MixedArray & other) : values(other.values) {}
+                virtual ~MixedArray() {}
+        
+                virtual Type type() { return Value::Type::MixedArray; }
+        
+                virtual bool & boolean() { throw Exception("Cannot call boolean() on a Json::MixedArray type!"); }
+                virtual std::string & number() { throw Exception("Cannot call number() on a Json::MixedArray type!"); }
+                virtual std::string & string() { throw Exception("Cannot call string() on a Json::MixedArray type!"); }
+                virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw Exception("Cannot call object() on a Json::MixedArray type!"); }
+
+                virtual size_t arraySize() { throw Exception("Cannot call arraySize() on a Json::MixedArray type!"); }
+
+                virtual std::vector<bool> & boolArray() { throw Exception("Cannot call boolArray() on a Json::MixedArray type!"); }
+                virtual std::vector<std::string> & numberArray() { throw Exception("Cannot call numberArray() on a Json::MixedArray type!"); }
+                virtual std::vector<std::string> & stringArray() { throw Exception("Cannot call stringArray() on a Json::MixedArray type!"); }
+	            virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
+                    throw Exception("Cannot call objectArray() on a Json::MixedArray type!");
+                }
+                virtual std::vector<std::shared_ptr<Value>> & mixedArray() { return values; }
+
+            private:
+                std::vector<std::shared_ptr<Value>> values;
+            };
+        };
+        
     };
     
     inline namespace Output
     {
+        template <typename Object, typename Value, size_t FieldIndex, typename FieldAnnotations = Annotate<>, typename OpAnnotations = Annotate<>>
+        struct CustomizeOutput : public Unspecialized
+        {
+            /// Should return true if you put any output, else you should leave output unchanged
+            static bool As(std::ostream & output, const Object & object, const Value & value) { return false; }
+        };
+
+        inline namespace Affixes
+        {
+            constexpr const char twoSpaces[] = "  ";
+
+            template <bool PrettyPrint, size_t IndentLevel, const char* indent = twoSpaces>
+            struct Indent { };
+
+            template <bool PrettyPrint, size_t IndentLevel, const char* indent = twoSpaces>
+            std::ostream & operator<<(std::ostream & os, const Indent<PrettyPrint, IndentLevel, indent>)
+            {
+                if constexpr ( IndentLevel > 0 && PrettyPrint )
+                {
+                    for ( size_t i=0; i<IndentLevel; i++ )
+                        os << indent;
+                }
+
+                return os;
+            }
+
+            template <bool PrettyPrint, bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
+            struct ArrayPrefix { };
+
+            template <bool PrettyPrint, bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
+            std::ostream & operator<<(std::ostream & os, const ArrayPrefix<PrettyPrint, ContainsPrimitives, IndentLevel, indent>)
+            {
+                if constexpr ( !PrettyPrint )
+                    os << "[";
+                else if constexpr ( ContainsPrimitives )
+                    os << "[ ";
+                else
+                    os << "[" << std::endl << Indent<PrettyPrint, IndentLevel, indent>();
+
+                return os;
+            }
+
+            template <bool PrettyPrint, bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
+            struct ArraySuffix { };
+
+            template <bool PrettyPrint, bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
+            std::ostream & operator<<(std::ostream & os, const ArraySuffix<PrettyPrint, ContainsPrimitives, IndentLevel, indent>)
+            {
+                if constexpr ( !PrettyPrint )
+                    os << "]";
+                else if constexpr ( ContainsPrimitives )
+                    os << " ]";
+                else
+                    os << std::endl << Indent<PrettyPrint, IndentLevel, indent>() << "]";
+
+                return os;
+            }
+
+            template <bool PrettyPrint, size_t IndentLevel, const char* indent = twoSpaces>
+            struct ObjectPrefix { };
+
+            template <bool PrettyPrint, size_t IndentLevel, const char* indent = twoSpaces>
+            std::ostream & operator<<(std::ostream & os, const ObjectPrefix<PrettyPrint, IndentLevel, indent>)
+            {
+                os << "{";
+                return os;
+            }
+        
+            template <bool PrettyPrint, size_t IndentLevel, const char* indent = twoSpaces>
+            struct ObjectSuffix { };
+
+            template <bool PrettyPrint, size_t IndentLevel, const char* indent = twoSpaces>
+            std::ostream & operator<<(std::ostream & os, const ObjectSuffix<PrettyPrint, IndentLevel, indent>)
+            {
+                if constexpr ( PrettyPrint )
+                    os << std::endl << Indent<PrettyPrint, IndentLevel, indent>() << "}";
+                else
+                    os << "}";
+
+                return os;
+            }
+        
+            template <bool PrettyPrint, bool IsArray, bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
+            struct NestedPrefix
+            {
+                bool isEmpty;
+
+                NestedPrefix() : isEmpty(false) {}
+                NestedPrefix(bool isEmpty) : isEmpty(isEmpty) {}
+            };
+
+            template <bool PrettyPrint, bool IsArray, bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
+            std::ostream & operator<<(std::ostream & os, const NestedPrefix<PrettyPrint, IsArray, ContainsPrimitives, IndentLevel, indent> nestedPrefix)
+            {
+                if constexpr ( IsArray )
+                {
+                    if ( nestedPrefix.isEmpty )
+                        os << ArrayPrefix<false, ContainsPrimitives, IndentLevel, indent>();
+                    else
+                        os << ArrayPrefix<PrettyPrint, ContainsPrimitives, IndentLevel, indent>();
+                }
+                else
+                {
+                    if ( nestedPrefix.isEmpty )
+                        os << ObjectPrefix<false, IndentLevel, indent>();
+                    else
+                        os << ObjectPrefix<PrettyPrint, IndentLevel, indent>();
+                }
+
+                return os;
+            }
+
+            template <bool PrettyPrint, bool IsArray, bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
+            struct NestedSuffix
+            {
+                bool isEmpty;
+
+                NestedSuffix() : isEmpty(false) {}
+                NestedSuffix(bool isEmpty) : isEmpty(isEmpty) {}
+            };
+
+            template <bool PrettyPrint, bool IsArray, bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
+            std::ostream & operator<<(std::ostream & os, const NestedSuffix<PrettyPrint, IsArray, ContainsPrimitives, IndentLevel, indent> nestedSuffix)
+            {
+                if constexpr ( IsArray )
+                {
+                    if ( nestedSuffix.isEmpty )
+                        os << ArraySuffix<false, ContainsPrimitives, IndentLevel, indent>();
+                    else
+                        os << ArraySuffix<PrettyPrint, ContainsPrimitives, IndentLevel, indent>();
+                }
+                else
+                {
+                    if ( nestedSuffix.isEmpty )
+                        os << ObjectSuffix<false, IndentLevel, indent>();
+                    else
+                        os << ObjectSuffix<PrettyPrint, IndentLevel, indent>();
+                }
+
+                return os;
+            }
+        
+            template <bool PrettyPrint, size_t IndentLevel, const char* indent = twoSpaces>
+            struct FieldPrefix {
+                bool isFirst;
+
+                FieldPrefix() : isFirst(false) {}
+                FieldPrefix(bool isFirst) : isFirst(isFirst) {}
+            };
+
+            template <bool PrettyPrint, size_t IndentLevel, const char* indent = twoSpaces>
+            std::ostream & operator<<(std::ostream & os, const FieldPrefix<PrettyPrint, IndentLevel, indent> fieldPrefix)
+            {
+                if constexpr ( PrettyPrint )
+                {
+                    if ( fieldPrefix.isFirst )
+                        os << std::endl << Indent<PrettyPrint, IndentLevel, indent>();
+                    else 
+                        os << "," << std::endl << Indent<PrettyPrint, IndentLevel, indent>();
+                }
+                else if ( !fieldPrefix.isFirst )
+                    os << ",";
+
+                return os;
+            }
+
+            template <bool PrettyPrint>
+            struct FieldNameValueSeparator { };
+
+            template <bool PrettyPrint>
+            std::ostream & operator<<(std::ostream & os, const FieldNameValueSeparator<PrettyPrint>)
+            {
+                if constexpr ( PrettyPrint )
+                    os << ": ";
+                else
+                    os << ":";
+
+                return os;
+            }
+                
+            template <bool PrettyPrint, bool IsJsonField, bool NestedSeparator, size_t IndentLevel, const char* indent = twoSpaces>
+            struct Separator
+            {
+                bool isFirst;
+
+                Separator() : isFirst(false) {}
+                Separator(bool isFirst) : isFirst(isFirst) {}
+            };
+
+            template <bool PrettyPrint, bool IsJsonField, bool NestedSeparator, size_t IndentLevel, const char* indent = twoSpaces>
+            std::ostream & operator<<(std::ostream & os, const Separator<PrettyPrint, IsJsonField, NestedSeparator, IndentLevel, indent> separator)
+            {
+                if constexpr ( IsJsonField )
+                {
+                    if ( separator.isFirst && PrettyPrint )
+                        os << std::endl << Indent<PrettyPrint, IndentLevel, indent>();
+                    else if constexpr ( PrettyPrint )
+                        os << "," << std::endl << Indent<PrettyPrint, IndentLevel, indent>();
+                    else if ( !separator.isFirst )
+                        os << ",";
+                }
+                else if ( !separator.isFirst )
+                {
+                    if constexpr ( NestedSeparator && PrettyPrint )
+                        os << "," << std::endl << Indent<PrettyPrint, IndentLevel, indent>();
+                    else if constexpr ( PrettyPrint )
+                        os << ", ";
+                    else
+                        os << ",";
+                }
+
+                return os;
+            }
+        };
+
         enum class Statics
         {
             Excluded = 0,
@@ -943,12 +747,229 @@ namespace Json {
                 os << ObjectSuffix<NotEmpty && PrettyPrint, IndentLevel, indent>();
                 return os;
             }
-
         };
-    };
+        
+        template <Statics statics = Statics::Excluded, typename Annotations = Annotate<>, bool PrettyPrint = false,
+            size_t IndentLevel = 0, const char* indent = twoSpaces, typename T = uint_least8_t>
+        std::ostream & operator<<(std::ostream & os, Output::ReflectedObject<statics, Annotations, PrettyPrint, IndentLevel, indent, T> object)
+        {
+            return object.put(os, object.obj);
+        }
 
+        template <Statics statics = Statics::Excluded, typename Annotations = Annotate<>,
+            size_t IndentLevel = 0, const char* indent = twoSpaces, typename T = uint_least8_t>
+        constexpr Output::ReflectedObject<statics, Annotations, false, IndentLevel, indent, T> out(const T & t)
+        {
+            return Output::ReflectedObject<statics, Annotations, false, IndentLevel, indent, T>(t);
+        }
+    
+        template <Statics statics = Statics::Excluded, typename Annotations = Annotate<>,
+            size_t IndentLevel = 0, const char* indent = twoSpaces, typename T = uint_least8_t>
+        constexpr Output::ReflectedObject<statics, Annotations, true, IndentLevel, indent, T> pretty(const T & t)
+        {
+            return Output::ReflectedObject<statics, Annotations, true, IndentLevel, indent, T>(t);
+        }
+    };
+    
     inline namespace Input
     {
+        template <typename Object, typename Value, size_t FieldIndex, typename FieldAnnotations = Annotate<>, typename OpAnnotations = Annotate<>>
+        struct CustomizeInput : public Unspecialized
+        {
+            /// Should return true and update value accordingly if you consume any input, else you should return false and leave input and value unchanged
+            /// If you run into any errors consuming input or rolling back input you should throw an exception
+            static bool As(std::istream & input, const Object & object, Value & value) { return false; }
+        };
+
+        inline namespace Exceptions
+        {
+            class InvalidNumericCharacter : public Exception
+            {
+            public:
+                InvalidNumericCharacter(char invalidCharacter, const char* expected)
+                    : Exception((std::string("Invalid numeric character: \"") + invalidCharacter + "\" expected: " + expected).c_str()) {}
+            };
+
+            class InvalidSecondDecimal : public Exception
+            {
+            public:
+                InvalidSecondDecimal()
+                    : Exception(std::string("Invalid second decimal, expected: [0-9], \",\", or \"}\"").c_str()) {}
+            };
+
+            class InvalidEscapeSequence : public Exception
+            {
+            public:
+                InvalidEscapeSequence(const char* escapeSequence, const char* expected)
+                    : Exception((std::string("Invalid escape sequence: \"") + escapeSequence + "\", expected: " + expected).c_str()) {}
+            };
+
+            class UnexpectedLineEnding : public Exception
+            {
+            public:
+                UnexpectedLineEnding(const char* lineEnding) : Exception(lineEnding) {}
+            };
+
+            class UnexpectedInputEnd : public Exception
+            {
+            public:
+                UnexpectedInputEnd(const std::string & expected) : Exception((std::string("Expected ") + expected + " but found end of input").c_str()) {}
+            };
+
+            class StreamReadFail : public Exception
+            {
+            public:
+                StreamReadFail() : Exception("Attempt to read from stream failed (std::ios::fail() == true)") {}
+            };
+
+            class StreamUngetFail : public Exception
+            {
+            public:
+                StreamUngetFail(char c) : Exception((std::string("Attempt to unread last character (") + c + ") resulted in failure").c_str()) {}
+            };
+
+            template <typename Field>
+            class UnexpectedFieldValue : public Exception
+            {
+            public:
+                template <typename Field>
+                static std::string getExpectation(Field field)
+                {
+                    std::string expectation;
+                    if constexpr ( Field::IsPointer )
+                        return "\"null\""; // TODO: More handling for pointers
+                    else if constexpr ( Field::IsBool )
+                        return "true or false";
+                    else if constexpr ( Field::IsArray )
+                        return "JSON Array";
+                    else if constexpr ( Field::IsObject )
+                        return "JSON Object";
+                    else if constexpr ( Field::template HasAnnotation<Json::String> )
+                        return "JSON String";
+                    else
+                        return "TODO: Implement more expectations";
+                }
+
+                UnexpectedFieldValue(Field field)
+                    : Exception((
+                        std::string("Unexpected value for field: \"") + field.name + "\". Expected: "
+                        + getExpectation<Field>(field)
+                    ).c_str()) {}
+
+                UnexpectedFieldValue(Field field, const char* fieldValue)
+                    : Exception((
+                        std::string("Unexpected value: \"") + fieldValue + "\" for field: \"" + field.name + "\". Expected: "
+                        + getExpectation<Field>(field)
+                    ).c_str()) {}
+            };
+
+            class InvalidUnknownFieldValue : public Exception
+            {
+            public:
+                InvalidUnknownFieldValue() : Exception("Expected field value (string, number, object, array, true, false, or null)") {}
+            };
+        };
+
+        inline namespace Cache
+        {
+            extern std::hash<std::string> strHash;
+
+            extern std::map<std::type_index, std::multimap<size_t, JsonField>> classToNameHashToJsonField;
+
+            template <typename T>
+            static std::multimap<size_t, JsonField> & getClassFieldCache(const T & t)
+            {
+                using Class = typename T::Class;
+                using Supers = typename T::Supers;
+                auto found = classToNameHashToJsonField.find(std::type_index(typeid(T)));
+                if ( found == classToNameHashToJsonField.end() )
+                {
+                    auto inserted = classToNameHashToJsonField.insert(std::pair<std::type_index, std::multimap<size_t, JsonField>>(
+                        std::type_index(typeid(T)), std::multimap<size_t, JsonField>()));
+
+                    if ( !inserted.second )
+                        throw Exception("Failed to create cache for class!");
+
+                    if constexpr ( Class::TotalFields > 0 )
+                    {
+                        for ( size_t fieldIndex = 0; fieldIndex < Class::TotalFields; fieldIndex++ )
+                        {
+                            inserted.first->second.insert(std::pair<size_t, JsonField>(
+                                strHash(Class::Fields[fieldIndex].name), JsonField(fieldIndex, JsonField::Type::Regular, Class::Fields[fieldIndex].name)));
+                        }
+                    }
+
+                    if constexpr ( Supers::TotalSupers > 0 )
+                    {
+                        for ( size_t superIndex = 0; superIndex < Supers::TotalSupers; superIndex++ )
+                        {
+                            Supers::At(t, superIndex, [&](auto & superObj) {
+                                using Super = typename std::remove_reference<decltype(superObj)>::type;
+                                std::string superTypeFieldName = superTypeToJsonFieldName<Super>();
+                                inserted.first->second.insert(std::pair<size_t, JsonField>(
+                                    strHash(superTypeFieldName), JsonField(superIndex, JsonField::Type::SuperClass, superTypeFieldName)));
+                            });
+                        }
+                    }
+                            
+                    return inserted.first->second;
+                }
+                return found->second;
+            }
+
+            template <typename T>
+            static JsonField* getJsonField(T & t, std::string & fieldName)
+            {
+                std::multimap<size_t, JsonField> & fieldNameToJsonField = getClassFieldCache(t);
+                size_t fieldNameHash = strHash(fieldName);
+                auto fieldHashMatches = fieldNameToJsonField.equal_range(fieldNameHash);
+                for ( auto it = fieldHashMatches.first; it != fieldHashMatches.second; ++it )
+                {
+                    if ( it->second.name.compare(fieldName) == 0 )
+                        return &it->second;
+                }
+                return nullptr;
+            }
+
+            static void putClassFieldCache(std::ostream & os)
+            {
+                os << "{" << std::endl;
+                bool hasPrevPair = false;
+                for ( auto & pair : classToNameHashToJsonField )
+                {
+                    if ( hasPrevPair )
+                        os << "  }," << std::endl;
+
+                    os << "  \"" << simplifyTypeStr(pair.first.name()) << "\": {" << std::endl;
+                    bool hasPrevFieldNameToJsonField = false;
+                    for ( auto & fieldNameToJsonField : pair.second )
+                    {
+                        if ( hasPrevFieldNameToJsonField )
+                            os << "    }," << std::endl;
+
+                        os << "    \"" << fieldNameToJsonField.first << "\": {" << std::endl
+                            << "      \"index\": " << fieldNameToJsonField.second.index << "," << std::endl
+                            << "      \"type\": "
+                            << (fieldNameToJsonField.second.type == JsonField::Type::Regular ? "\"Regular\"" : "\"SuperClass\"")
+                            << "," << std::endl
+                            << "      \"name\": \"" << fieldNameToJsonField.second.name << "\"" << std::endl;
+
+                        hasPrevFieldNameToJsonField = true;
+                    }
+                    if ( hasPrevFieldNameToJsonField )
+                        os << "    }" << std::endl;
+                    hasPrevPair = true;
+                }
+                if ( hasPrevPair )
+                    os << "  }" << std::endl;
+                os << "}" << std::endl;
+            }
+
+            #define ENABLE_JSON_INPUT \
+            std::hash<std::string> Json::strHash; \
+            std::map<std::type_index, std::multimap<size_t, Json::Generic::JsonField>> Json::classToNameHashToJsonField
+        };
+
         template <typename T>
         class ReflectedObject
         {
@@ -1593,42 +1614,21 @@ namespace Json {
                 return is;
             }
         };
-    }
-    
-    template <Statics statics = Statics::Excluded, typename Annotations = Annotate<>,
-        size_t IndentLevel = 0, const char* indent = twoSpaces, typename T = uint_least8_t>
-    constexpr Output::ReflectedObject<statics, Annotations, false, IndentLevel, indent, T> out(const T & t)
-    {
-        return Output::ReflectedObject<statics, Annotations, false, IndentLevel, indent, T>(t);
-    }
-    
-    template <Statics statics = Statics::Excluded, typename Annotations = Annotate<>,
-        size_t IndentLevel = 0, const char* indent = twoSpaces, typename T = uint_least8_t>
-    constexpr Output::ReflectedObject<statics, Annotations, true, IndentLevel, indent, T> pretty(const T & t)
-    {
-        return Output::ReflectedObject<statics, Annotations, true, IndentLevel, indent, T>(t);
-    }
-    
-    template <Statics statics = Statics::Excluded, typename Annotations = Annotate<>, bool PrettyPrint = false,
-        size_t IndentLevel = 0, const char* indent = twoSpaces, typename T = uint_least8_t>
-    std::ostream & operator<<(std::ostream & os, Output::ReflectedObject<statics, Annotations, PrettyPrint, IndentLevel, indent, T> object)
-    {
-        return object.put(os, object.obj);
-    }
+        
+        template <typename T>
+        std::istream & operator>>(std::istream & is, Json::Input::ReflectedObject<T> object)
+        {
+            char c = '\0';
+            return object.get(is, c, object.obj);
+        }
 
-    template <typename T>
-    constexpr Input::ReflectedObject<T> in(T & t)
-    {
-        return Input::ReflectedObject<T>(t);
+        template <typename T>
+        constexpr Input::ReflectedObject<T> in(T & t)
+        {
+            return Input::ReflectedObject<T>(t);
+        }
     }
     
-    template <typename T>
-    std::istream & operator>>(std::istream & is, Json::Input::ReflectedObject<T> object)
-    {
-        char c = '\0';
-        return object.get(is, c, object.obj);
-    }
-
 };
 
 #endif
