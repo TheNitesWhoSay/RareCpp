@@ -57,7 +57,7 @@ public:
     };
 
     using Parents = Inherit<SuperA, OtherSuperA>;
-    REFLECT((Parents) A, (Json::Custom) testEnum, (Reflected) composed, () first, () second,
+    REFLECT((Parents) A, () testEnum, (Reflected) composed, () first, () second,
         () ptr, () boolean, (Json::String) str, (Json::String) map, () vecVec, () ray)
 };
 
@@ -70,7 +70,7 @@ struct Json::CustomizeInput<A, A::TestEnum, FieldIndex>
 {
     static bool As(std::istream & is, const A & object, A::TestEnum & value)
     {
-        std::string input = Json::Input<A>::getString(is);
+        std::string input = Json::Input::ReflectedObject<A>::getString(is);
         auto found = A::TestEnumCache.find(input);
         if ( found != A::TestEnumCache.end() )
         {
@@ -89,7 +89,7 @@ struct Json::CustomizeOutput<A, A::TestEnum, FieldIndex>
     {
         switch ( value )
         {
-            case A::TestEnum::first: os << "firstCustom"; return true;
+        case A::TestEnum::first: os << "firstCustom"; return true;
             case A::TestEnum::second: os << "secondCustom"; return true;
         }
         return false;

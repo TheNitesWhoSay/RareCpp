@@ -434,7 +434,7 @@ namespace ExtendedTypeSupport
 /// Contains support for working with reflected fields, the definition for the REFLECT macro and non-generic supporting macros
 namespace Reflect
 {
-    namespace Inheritance
+    inline namespace Inheritance
     {
         template <size_t index>
         struct SuperIndex
@@ -544,9 +544,8 @@ namespace Reflect
             }
         };
     }
-    using namespace Inheritance;
-
-    namespace Annotation
+    
+    inline namespace Annotation
     {
         template <typename ... Ts>
         struct Annotate {
@@ -564,7 +563,6 @@ namespace Reflect
             static constexpr bool Has = ExtendedTypeSupport::HasType<T, Ts...>::value;
         };
     }
-    using namespace Annotation;
 
     namespace Fields
     {
