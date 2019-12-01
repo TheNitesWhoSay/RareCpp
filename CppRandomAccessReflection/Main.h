@@ -82,8 +82,8 @@ struct Json::Input::Customize<A, A::TestEnum, FieldIndex>
     }
 };
 
-template <size_t FieldIndex>
-struct Json::Output::Customize<A, A::TestEnum, FieldIndex>
+template <>
+struct Json::Output::Customize<A, A::TestEnum>
 {
     static bool As(std::ostream & os, const A & object, const A::TestEnum & value)
     {
