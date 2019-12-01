@@ -823,34 +823,56 @@ namespace Json
                 Put::NestedSuffix<PrettyPrint, !ContainsPairs, ContainsPrimitives, IndentLevel+TotalParentIterables+1, indent>(os, IsEmpty(iterable));
             }
 
+            template <typename Annotations, typename FieldClass, Statics statics,
+                bool PrettyPrint, size_t IndentLevel, const char* indent, typename Object>
+            static constexpr void Field(std::ostream & os, const Object & obj, const char* fieldName, const typename FieldClass::Type & value)
+            {
+                if constexpr ( matches_statics<FieldClass::IsStatic, statics>::value )
+                {
+                    os << FieldPrefix<FieldClass::Index == FirstIndex<statics, Object>(), PrettyPrint, IndentLevel+1, indent>;
+                    Put::String(os, fieldName);
+                    os << FieldNameValueSeparator<PrettyPrint>;
+                    Put::Value<Annotations, FieldClass, statics, PrettyPrint, 0, IndentLevel, indent, Object>(os, obj, value);
+                }
+            }
+            
+            template <typename Annotations, Statics statics, bool PrettyPrint, size_t IndentLevel, const char* indent, typename Object>
+            static constexpr void Fields(std::ostream & os, const Object & obj)
+            {
+                Object::Class::ForEachField(obj, [&](auto & field, auto & value)
+                {
+                    using Field = typename std::remove_reference<decltype(field)>::type;
+                    Put::Field<Annotations, Field, statics, PrettyPrint, IndentLevel, indent, Object>(os, obj, field.name, value);
+                });
+            }
+
+            template <typename Annotations, size_t SuperIndex, typename SuperType, Statics statics,
+                bool PrettyPrint, size_t IndentLevel, const char* indent, typename Object>
+            static constexpr void Super(std::ostream & os, const Object & obj, const std::string & superFieldName)
+            {
+                os << FieldPrefix<SuperIndex == 0, PrettyPrint, IndentLevel+1, indent>;
+                Put::String(os, superFieldName);
+                os << FieldNameValueSeparator<PrettyPrint>;
+                Put::Object<Annotations, statics, PrettyPrint, IndentLevel+1, indent, SuperType>(os, obj);
+            }
+            
+            template <typename Annotations, Statics statics, bool PrettyPrint, size_t IndentLevel, const char* indent, typename Object>
+            static constexpr void Supers(std::ostream & os, const Object & obj)
+            {
+                Object::Supers::ForEach(obj, [&](auto index, auto & superObj)
+                {
+                    using Super = typename std::remove_reference<decltype(superObj)>::type;
+                    Put::Super<Annotations, decltype(index)::Index, Super, statics, PrettyPrint, IndentLevel, indent, Object>(os, obj,
+                        superTypeToJsonFieldName<Super>());
+                });
+            }
+
             template <typename Annotations, Statics statics, bool PrettyPrint, size_t IndentLevel, const char* indent, typename T>
             static constexpr void Object(std::ostream & os, const T & obj)
             {
                 os << ObjectPrefix<PrettyPrint, IndentLevel, indent, statics, T>;
-
-                T::Class::ForEachField(obj, [&](auto & field, auto & value)
-                {
-                    using Field = typename std::remove_reference<decltype(field)>::type;
-
-                    if constexpr ( matches_statics<Field::IsStatic, statics>::value )
-                    {
-                        os << FieldPrefix<Field::Index == FirstIndex<statics, T>(), PrettyPrint, IndentLevel+1, indent>;
-                        Put::String(os, field.name);
-                        os << FieldNameValueSeparator<PrettyPrint>;
-                        Put::Value<Annotations, Field, statics, PrettyPrint, 0, IndentLevel, indent, T>(os, obj, value);
-                    }
-                });
-
-                T::Supers::ForEach(obj, [&](auto index, auto & superObj)
-                {
-                    using Super = typename std::remove_reference<decltype(superObj)>::type;
-
-                    os << FieldPrefix<decltype(index)::Index == 0, PrettyPrint, IndentLevel+1, indent>;
-                    Put::String(os, superTypeToJsonFieldName<Super>());
-                    os << FieldNameValueSeparator<PrettyPrint>;
-                    Put::Object<Annotations, statics, PrettyPrint, IndentLevel+1, indent, Super>(os, obj);
-                });
-
+                Put::Fields<Annotations, statics, PrettyPrint, IndentLevel, indent, T>(os, obj);
+                Put::Supers<Annotations, statics, PrettyPrint, IndentLevel, indent, T>(os, obj);
                 os << ObjectSuffix<PrettyPrint, IndentLevel, indent, statics, T>;
             }
         }
