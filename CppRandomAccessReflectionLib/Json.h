@@ -19,6 +19,14 @@ namespace Json
         struct EnumInt {};
 
         struct Unspecialized {};
+
+        template <typename T>
+        struct is_specialized
+        {
+            static constexpr bool value = !std::is_base_of<Unspecialized, T>::value;
+        };
+
+        struct IsRoot {};
     }
 
     inline namespace Shared
@@ -31,6 +39,10 @@ namespace Json
         };
 
         constexpr size_t NoFieldIndex = std::numeric_limits<size_t>::max();
+        using NoField = Fields::Field<>;
+
+        template <typename T>
+        using ReflectedField = Fields::Field<T, void*, 0, IsRoot>;
 
         class Exception : public std::exception
         {
@@ -374,15 +386,46 @@ namespace Json
     
     inline namespace Output
     {
-        template <typename Object = Unspecialized, typename Value = Unspecialized,
-            size_t FieldIndex = NoFieldIndex, typename OpAnnotations = Annotate<>,
-            typename Field = Fields::Field<>, Statics statics = Statics::Excluded,
-            bool PrettyPrint = false, size_t TotalParentIterables = 0, size_t IndentLevel = 0, const char* indent = twoSpaces>
-        struct Customize : public Unspecialized
+        inline namespace Customizers
         {
-            /// Should return true if you put any output, else you should leave output unchanged
-            static bool As(std::ostream & output, const Object & object, const Value & value) { return false; }
-        };
+            template <typename Object, typename Value,
+                size_t FieldIndex = NoFieldIndex, typename OpAnnotations = Annotate<>, typename Field = NoField, Statics statics = Statics::Excluded,
+                bool PrettyPrint = false, size_t TotalParentIterables = 0, size_t IndentLevel = 0, const char* indent = twoSpaces>
+            struct Customize : public Unspecialized
+            {
+                /// Should return true if you put any output, else you should leave output unchanged
+                static bool As(std::ostream & output, const Object & object, const Value & value) { return false; }
+            };
+
+            template <typename Value, typename OpAnnotations = Annotate<>, typename Field = NoField, Statics statics = Statics::Excluded,
+                bool PrettyPrint = false, size_t TotalParentIterables = 0, size_t IndentLevel = 0, const char* indent = twoSpaces>
+            struct CustomizeType : public Unspecialized
+            {
+                /// Should return true if you put any output, else you should leave output unchanged
+                static bool As(std::ostream & output, const Value & value) { return false; }
+            };
+
+            template <typename Object, typename Element,
+                size_t FieldIndex = NoFieldIndex, typename OpAnnotations = Annotate<>, typename Field = NoField, Statics statics = Statics::Excluded,
+                bool PrettyPrint = false, size_t TotalParentIterables = 0, size_t IndentLevel = 0, const char* indent = twoSpaces>
+            static constexpr bool HaveSpecialization =
+                is_specialized<Customize<Object, Element, Field::Index, OpAnnotations, Field, statics,
+                    PrettyPrint, TotalParentIterables, IndentLevel, indent>>::value || // Fully specialized
+                is_specialized<Customize<Object, Element, Field::Index, OpAnnotations, Field>>::value || // Customize<5args> specialized
+                is_specialized<Customize<Object, Element, Field::Index, OpAnnotations>>::value || // Customize<4args> specialized
+                is_specialized<Customize<Object, Element, Field::Index>>::value || // Customize<3args> specialized
+                is_specialized<Customize<Object, Element>>::value || // Customize<2args> specialized
+                is_specialized<Customize<Object, Element, Field::Index, Annotate<>, Field>>::value || // Customize<5args>, OpAnnotations defaulted
+                is_specialized<Customize<Object, Element, NoFieldIndex, OpAnnotations, Field>>::value || // Customize<5args>, FieldIndex defaulted
+                is_specialized<Customize<Object, Element, NoFieldIndex, Annotate<>, Field>>::value || // Customize<5args>, both defaulted
+                is_specialized<Customize<Object, Element, NoFieldIndex, OpAnnotations>>::value || // Customize<4args>, FieldIndex defaulted
+                is_specialized<CustomizeType<Element, OpAnnotations, Field, statics,
+                    PrettyPrint, TotalParentIterables, IndentLevel, indent>>::value || // Fully specialized
+                is_specialized<CustomizeType<Element, OpAnnotations, Field>>::value || // CustomizeType<3args> specialized
+                is_specialized<CustomizeType<Element, OpAnnotations>>::value || // CustomizeType<2args> specialized
+                is_specialized<CustomizeType<Element>>::value || // CustomizeType<1arg> specialized
+                is_specialized<CustomizeType<Element, Annotate<>, Field>>::value; // CustomizeType<3arg>, OpAnnotations defaulted
+        }
 
         inline namespace Affixes
         {
@@ -602,16 +645,42 @@ namespace Json
                 bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, typename Element>
             static constexpr inline bool Customization(std::ostream & os, const Object & obj, const Element & element)
             {
-                if constexpr ( !std::is_base_of<Unspecialized, Customize<Object, Element, Field::Index, Annotations,
-                    Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent>>::value ) // Fully specialized
+                if constexpr ( is_specialized<Customize<Object, Element, Field::Index, Annotations, Field, statics,
+                    PrettyPrint, TotalParentIterables, IndentLevel, indent>>::value )
                 {
                     return Customize<Object, Element, Field::Index, Annotations, Field, statics,
-                        PrettyPrint, TotalParentIterables, IndentLevel, indent>(os, obj, element);
+                        PrettyPrint, TotalParentIterables, IndentLevel, indent>(os, obj, element); // Customize fully specialized
                 }
-                if constexpr ( !std::is_base_of<Unspecialized, Customize<Object, Element, Field::Index>>::value ) // Object+Type+FieldIndex specialized
-                    return Customize<Object, Element, Field::Index>::As(os, obj, element);
-                else if constexpr ( !std::is_base_of<Unspecialized, Customize<Object, Element>>::value ) // Object+Type specialized
-                    return Customize<Object, Element>::As(os, obj, element);
+                else if constexpr ( is_specialized<Customize<Object, Element, Field::Index, Annotations, Field>>::value )
+                    return Customize<Object, Element, Field::Index, Annotations, Field>(os, obj, element); // Five Customize arguments specialized
+                else if constexpr ( is_specialized<Customize<Object, Element, Field::Index, Annotations>>::value )
+                    return Customize<Object, Element, Field::Index, Annotations>(os, obj, element); // Four Customize arguments specialized
+                else if constexpr ( is_specialized<Customize<Object, Element, Field::Index>>::value )
+                    return Customize<Object, Element, Field::Index>::As(os, obj, element); // Three Customize arguments specialized
+                else if constexpr ( is_specialized<Customize<Object, Element>>::value )
+                    return Customize<Object, Element>::As(os, obj, element); // Two Customize arguments specialized
+                else if constexpr ( is_specialized<Customize<Object, Element, Field::Index, Annotate<>, Field>>::value )
+                    return Customize<Object, Element, Field::Index, Annotate<>, Field>(os, obj, element); // Customize<5args>, Annotations defaulted
+                else if constexpr ( is_specialized<Customize<Object, Element, NoFieldIndex, Annotations, Field>>::value )
+                    return Customize<Object, Element, NoFieldIndex, Annotations, Field>(os, obj, element); // Customize<5args>, FieldIndex defaulted
+                else if constexpr ( is_specialized<Customize<Object, Element, NoFieldIndex, Annotate<>, Field>>::value )
+                    return Customize<Object, Element, NoFieldIndex, Annotate<>, Field>(os, obj, element); // Customize<5args>, two args defaulted
+                else if constexpr ( is_specialized<Customize<Object, Element, NoFieldIndex, Annotations>>::value )
+                    return Customize<Object, Element, NoFieldIndex, Annotations>(os, obj, element); // Customize<4args>, FieldIndex defaulted
+                else if constexpr ( is_specialized<CustomizeType<Element, Annotations, Field, statics,
+                    PrettyPrint, TotalParentIterables, IndentLevel, indent>>::value )
+                {
+                    return CustomizeType<Element, Annotations, Field, statics,
+                        PrettyPrint, TotalParentIterables, IndentLevel, indent>(os, element); // CustomizeType fully specialized
+                }
+                else if constexpr ( is_specialized<CustomizeType<Element, Annotations, Field>>::value )
+                    return CustomizeType<Element, Annotations, Field>(os, element); // Three CustomizeType arguments specialized
+                else if constexpr ( is_specialized<CustomizeType<Element, Annotations>>::value )
+                    return CustomizeType<Element, Annotations>(os, element); // Two CustomizeType arguments specialized
+                else if constexpr ( is_specialized<CustomizeType<Element>>::value )
+                    return CustomizeType<Element>(os, element); // One CustomizeType argument specialized
+                else if constexpr ( is_specialized<CustomizeType<Element, Annotate<>, Field>>::value )
+                    return CustomizeType<Element, Annotate<>, Field>>(os, element); // CustomizeType<3args>, Annotations defaulted
                 else
                     return false;
             }
@@ -644,34 +713,42 @@ namespace Json
                 ss << t;
                 Put::String(os, ss.str());
             }
-
+            
             template <typename Annotations, typename Field, Statics statics,
                 bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, typename Element>
             static constexpr void Value(std::ostream & os, const Object & obj, const Element & element)
             {
-                if ( !Put::Customization<Annotations, Field, statics,
-                    PrettyPrint, TotalParentIterables, IndentLevel, indent, Object, Element>(os, obj, element) )
+                if constexpr ( Customizers::HaveSpecialization<Object, Element, Field::Index, Annotations, Field, statics,
+                    PrettyPrint, TotalParentIterables, IndentLevel, indent> )
                 {
-                    if constexpr ( is_pointable<Element>::value )
+                    if ( Put::Customization<Annotations, Field, statics,
+                        PrettyPrint, TotalParentIterables, IndentLevel, indent, Object, Element>(os, obj, element) )
                     {
-                        if ( element == nullptr )
-                            os << "null";
-                        else
-                            Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object>(os, obj, *element);
+                        return;
                     }
-                    else if constexpr ( is_iterable<Element>::value )
-                        Put::Iterable<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object>(os, obj, element);
-                    else if constexpr ( Field::template HasAnnotation<Reflect::Reflected> )
-                        ReflectedObject<Annotations, statics, PrettyPrint, IndentLevel+TotalParentIterables+1, indent, Element>::put(os, element);
-                    else if constexpr ( Field::template HasAnnotation<Json::String> )
-                        Put::String(os, element);
-                    else if constexpr ( Field::template HasAnnotation<Json::EnumInt> )
-                        os << (typename promote_char<typename std::underlying_type<Element>::type>::type)element;
-                    else if constexpr ( is_bool<Element>::value )
-                        os << (element ? "true" : "false");
-                    else
-                        os << (typename promote_char<Element>::type)element;
                 }
+
+                if constexpr ( is_pointable<Element>::value )
+                {
+                    if ( element == nullptr )
+                        os << "null";
+                    else
+                        Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object>(os, obj, *element);
+                }
+                else if constexpr ( is_iterable<Element>::value )
+                    Put::Iterable<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object>(os, obj, element);
+                else if constexpr ( Field::template HasAnnotation<IsRoot> )
+                    Put::Object<Annotations, statics, PrettyPrint, IndentLevel+TotalParentIterables, indent, Element>(os, element);
+                else if constexpr ( Field::template HasAnnotation<Reflect::Reflected> )
+                    Put::Object<Annotations, statics, PrettyPrint, IndentLevel+TotalParentIterables+1, indent, Element>(os, element);
+                else if constexpr ( Field::template HasAnnotation<Json::String> )
+                    Put::String(os, element);
+                else if constexpr ( Field::template HasAnnotation<Json::EnumInt> )
+                    os << (typename promote_char<typename std::underlying_type<Element>::type>::type)element;
+                else if constexpr ( is_bool<Element>::value )
+                    os << (element ? "true" : "false");
+                else
+                    os << (typename promote_char<Element>::type)element;
             }
             
             template <typename Annotations, typename Field, Statics statics,
@@ -756,7 +833,7 @@ namespace Json
                     os << FieldPrefix<PrettyPrint, IndentLevel+1, indent>(decltype(index)::Index == 0);
                     Put::String(os, superTypeToJsonFieldName<Super>());
                     os << FieldNameValueSeparator<PrettyPrint>();
-                    ReflectedObject<Annotations, statics, PrettyPrint, IndentLevel+1, indent, Super>::put(os, obj);
+                    Put::Object<Annotations, statics, PrettyPrint, IndentLevel+1, indent, Super>(os, obj);
                 });
 
                 os << ObjectSuffix<NotEmpty && PrettyPrint, IndentLevel, indent>();
@@ -773,7 +850,7 @@ namespace Json
             
             static constexpr std::ostream & put(std::ostream & os, const T & obj)
             {
-                Put::Object<Annotations, statics, PrettyPrint, IndentLevel, indent, T>(os, obj);
+                Put::Value<Annotations, ReflectedField<T>, statics, PrettyPrint, 0, IndentLevel, indent, T, T>(os, obj, obj);
                 return os;
             }
         };
