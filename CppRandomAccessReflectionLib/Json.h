@@ -606,7 +606,7 @@ namespace Json
             inline namespace Affix
             {
                 template <bool PrettyPrint, bool IsArray, bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
-                void NestedPrefix(std::ostream & os, Context & context, bool isEmpty)
+                void NestedPrefix(std::ostream & os, bool isEmpty)
                 {
                     if constexpr ( IsArray )
                     {
@@ -625,7 +625,7 @@ namespace Json
                 }
 
                 template <bool PrettyPrint, bool IsArray, bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
-                void NestedSuffix(std::ostream & os, Context & context, bool isEmpty)
+                void NestedSuffix(std::ostream & os, bool isEmpty)
                 {
                     if constexpr ( IsArray )
                     {
@@ -644,7 +644,7 @@ namespace Json
                 }
 
                 template <bool PrettyPrint, bool IsJsonField, bool NestedSeparator, size_t IndentLevel, const char* indent = twoSpaces>
-                void Separator(std::ostream & os, Context & context, bool isFirst)
+                void Separator(std::ostream & os, bool isFirst)
                 {
                     if constexpr ( IsJsonField )
                     {
@@ -711,7 +711,7 @@ namespace Json
                     return false;
             }
 
-            static void String(std::ostream & os, Context & context, const std::string & str)
+            static void String(std::ostream & os, const std::string & str)
             {
                 os << "\"";
                 for ( size_t i=0; i<str.size(); i++ )
@@ -733,11 +733,11 @@ namespace Json
             }
 
             template <typename T>
-            static constexpr void String(std::ostream & os, Context & context, const T & t)
+            static constexpr void String(std::ostream & os, const T & t)
             {
                 std::stringstream ss;
                 ss << t;
-                Put::String(os, context, ss.str());
+                Put::String(os, ss.str());
             }
             
             template <typename Annotations, typename Field, Statics statics,
@@ -768,7 +768,7 @@ namespace Json
                 else if constexpr ( Field::template HasAnnotation<Reflect::Reflected> )
                     Put::Object<Annotations, statics, PrettyPrint, IndentLevel+TotalParentIterables+1, indent, T>(os, context, value);
                 else if constexpr ( Field::template HasAnnotation<Json::String> )
-                    Put::String(os, context, value);
+                    Put::String(os, value);
                 else if constexpr ( Field::template HasAnnotation<Json::EnumInt> )
                     os << (typename promote_char<typename std::underlying_type<T>::type>::type)value;
                 else if constexpr ( is_bool<T>::value )
@@ -781,7 +781,7 @@ namespace Json
                 bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, typename T, typename Key>
             static constexpr void Value(std::ostream & os, Context & context, const Object & obj, const std::pair<Key, T> & pair)
             {
-                Put::String(os, context, pair.first);
+                Put::String(os, pair.first);
                 os << FieldNameValueSeparator<PrettyPrint>;
                 Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object>(os, context, obj, pair.second);
             }
@@ -796,12 +796,12 @@ namespace Json
                 constexpr bool ContainsPairs = is_pair<Element>::value;
             
                 size_t i=0;
-                Put::NestedPrefix<PrettyPrint, !ContainsPairs, ContainsPrimitives, IndentLevel+TotalParentIterables+2, indent>(os, context, IsEmpty(iterable));
+                Put::NestedPrefix<PrettyPrint, !ContainsPairs, ContainsPrimitives, IndentLevel+TotalParentIterables+2, indent>(os, IsEmpty(iterable));
                 if constexpr ( is_stl_iterable<IterableValue>::value )
                 {
                     for ( auto & element : iterable )
                     {
-                        Put::Separator<PrettyPrint, ContainsPairs, ContainsIterables, IndentLevel+TotalParentIterables+2, indent>(os, context, 0 == i++);
+                        Put::Separator<PrettyPrint, ContainsPairs, ContainsIterables, IndentLevel+TotalParentIterables+2, indent>(os, 0 == i++);
                         Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object>(os, context, obj, element);
                     }
                 }
@@ -810,7 +810,7 @@ namespace Json
                     const auto & sequenceContainer = get_underlying_container(iterable);
                     for ( auto it = sequenceContainer.begin(); it != sequenceContainer.end(); ++it )
                     {
-                        Put::Separator<ContainsPairs, ContainsIterables, IndentLevel+TotalParentIterables+2, indent>(os, context, 0 == i++);
+                        Put::Separator<ContainsPairs, ContainsIterables, IndentLevel+TotalParentIterables+2, indent>(os, 0 == i++);
                         Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object>(os, context, obj, *it);
                     }
                 }
@@ -818,11 +818,11 @@ namespace Json
                 {
                     for ( ; i<std::extent<Field::Type>::value; i++ )
                     {
-                        Put::Separator<PrettyPrint, ContainsPairs, ContainsIterables, IndentLevel+TotalParentIterables+2, indent>(os, context, 0 == i);
+                        Put::Separator<PrettyPrint, ContainsPairs, ContainsIterables, IndentLevel+TotalParentIterables+2, indent>(os, 0 == i);
                         Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object>(os, context, obj, iterable[i]);
                     }
                 }
-                Put::NestedSuffix<PrettyPrint, !ContainsPairs, ContainsPrimitives, IndentLevel+TotalParentIterables+1, indent>(os, context, IsEmpty(iterable));
+                Put::NestedSuffix<PrettyPrint, !ContainsPairs, ContainsPrimitives, IndentLevel+TotalParentIterables+1, indent>(os, IsEmpty(iterable));
             }
 
             template <typename Annotations, typename FieldClass, Statics statics,
@@ -832,7 +832,7 @@ namespace Json
                 if constexpr ( matches_statics<FieldClass::IsStatic, statics>::value )
                 {
                     os << FieldPrefix<FieldClass::Index == FirstIndex<statics, Object>(), PrettyPrint, IndentLevel+1, indent>;
-                    Put::String(os, context, fieldName);
+                    Put::String(os, fieldName);
                     os << FieldNameValueSeparator<PrettyPrint>;
                     Put::Value<Annotations, FieldClass, statics, PrettyPrint, 0, IndentLevel, indent, Object>(os, context, obj, value);
                 }
@@ -853,7 +853,7 @@ namespace Json
             static constexpr void Super(std::ostream & os, Context & context, const Object & obj, const std::string & superFieldName)
             {
                 os << FieldPrefix<SuperIndex == 0, PrettyPrint, IndentLevel+1, indent>;
-                Put::String(os, context, superFieldName);
+                Put::String(os, superFieldName);
                 os << FieldNameValueSeparator<PrettyPrint>;
                 Put::Object<Annotations, statics, PrettyPrint, IndentLevel+1, indent, T>(os, context, obj);
             }
@@ -1921,7 +1921,7 @@ namespace Json
                 else if constexpr ( Field::template HasAnnotation<Json::String> )
                     Read::String(is, c, value);
                 else if constexpr ( Field::template HasAnnotation<Json::EnumInt> )
-                    Read::EnumInt<Field, T>(is, context, value);
+                    Read::EnumInt<Field, T>(is, value);
                 else if constexpr ( is_bool<T>::value )
                     Read::Bool<InArray>(is, c, value);
                 else if constexpr ( std::is_const<T>::value )
@@ -1995,7 +1995,7 @@ namespace Json
                     Consume::Value<false>(is, c);
             }
 
-            static inline std::string FieldName(std::istream & is, Context & context, char & c)
+            static inline std::string FieldName(std::istream & is, char & c)
             {
                 std::string fieldName;
                 try {
@@ -2014,7 +2014,7 @@ namespace Json
                 {
                     do
                     {
-                        std::string fieldName = Read::FieldName(is, context, c);
+                        std::string fieldName = Read::FieldName(is, c);
                         Read::Field(is, context, c, t, fieldName);
                     }
                     while ( Read::FieldSeparator(is) );

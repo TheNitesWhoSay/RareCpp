@@ -123,8 +123,8 @@ struct Json::Output::Customize<A, A::TestEnum>
         EnhancedContext & enhanced = dynamic_cast<EnhancedContext &>(context);
         switch ( value )
         {
-            case A::TestEnum::first: Json::Put::String(os, context, "firstCustom" + std::to_string(enhanced.enhanced)); return true;
-            case A::TestEnum::second: Json::Put::String(os, context, "secondCustom" + std::to_string(enhanced.enhanced)); return true;
+            case A::TestEnum::first: Json::Put::String(os, "firstCustom" + std::to_string(enhanced.enhanced)); return true;
+            case A::TestEnum::second: Json::Put::String(os, "secondCustom" + std::to_string(enhanced.enhanced)); return true;
         }
         return false;
     }
