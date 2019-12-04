@@ -328,7 +328,7 @@ int main()
         }
         //Json::putClassFieldCache(std::cout);
         //std::cout << "..." << std::endl;
-        std::cout << "Read in: " << Json::pretty(a) << std::endl;
+        std::cout << "Read in: " << Json::pretty(a, std::shared_ptr<Json::Context>(new EnhancedContext(5))) << std::endl;
         std::cout << "..." << std::endl;
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
