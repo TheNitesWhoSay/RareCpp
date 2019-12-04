@@ -16,26 +16,28 @@ const std::unordered_map<std::string, A::TestEnum> A::TestEnumCache = {
     { "second", A::TestEnum::second }
 };
 
+const std::unordered_map<std::string, A::TestEnum> A::TestEnumCacheCustom = {
+    { "firstCustom", A::TestEnum::first },
+    { "secondCustom", A::TestEnum::second }
+};
+
 std::ostream & operator<<(std::ostream & os, const A::TestEnum & testEnum)
 {
     switch ( testEnum )
     {
-        case A::TestEnum::first: os << "firstStream"; break;
-        case A::TestEnum::second: os << "secondStream"; break;
+        case A::TestEnum::first: os << "first"; break;
+        case A::TestEnum::second: os << "second"; break;
     }
     return os;
 }
 
 std::istream & operator>>(std::istream & is, A::TestEnum & testEnum)
 {
-    std::string input;
-    is >> input;
-    if ( is.good() )
-    {
-        auto found = A::TestEnumCache.find(input);
-        if ( found != A::TestEnumCache.end() )
-            testEnum = found->second;
-    }
+    std::string input = Json::Read::String(is);
+    auto found = A::TestEnumCache.find(input);
+    if ( found != A::TestEnumCache.end() )
+        testEnum = found->second;
+
     return is;
 }
 

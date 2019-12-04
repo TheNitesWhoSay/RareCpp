@@ -1,6 +1,7 @@
 #ifndef MAIN_H
 #define MAIN_H
 #include "../CppRandomAccessReflectionLib/Json.h"
+#include <iostream>
 using namespace Reflect;
 using u8 = uint8_t;
 
@@ -34,6 +35,7 @@ public:
         second
     });
     static const std::unordered_map<std::string, TestEnum> TestEnumCache;
+    static const std::unordered_map<std::string, TestEnum> TestEnumCacheCustom;
 
     A() : testEnum(TestEnum::first), first(0), ptr(nullptr), composed(), boolean(false), str("") { ray[0] = 0; ray[1] = 0; }
 
@@ -71,14 +73,36 @@ struct Json::Input::Customize<A, A::TestEnum, FieldIndex>
     static bool As(std::istream & is, const A & object, A::TestEnum & value)
     {
         std::string input = Json::Read::String(is);
-        auto found = A::TestEnumCache.find(input);
-        if ( found != A::TestEnumCache.end() )
+        auto found = A::TestEnumCacheCustom.find(input);
+        if ( found != A::TestEnumCacheCustom.end() )
         {
             value = found->second;
             return true;
         }
         else
+        {
             return false;
+        }
+    }
+};
+
+template <>
+struct Json::Input::CustomizeType<A>
+{
+    static bool As(std::istream & is, A & object)
+    {
+        /*char c = '\0';
+        Json::Checked::get(is, c, '{', "object opening \"{\"");
+        if ( !Json::Checked::tryGet(is, '}', "object closing \"}\" or field name opening \"") )
+        {
+            do
+            {
+                std::string fieldName = Read::FieldName(is, c);
+                Read::Field(is, c, object, fieldName);
+            }
+            while ( Checked::get(is, ',', '}', "\",\" or object closing \"}\"") );
+        }*/
+        return false;
     }
 };
 
