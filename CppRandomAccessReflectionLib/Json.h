@@ -987,6 +987,13 @@ namespace Json
                 UnexpectedLineEnding(const char* lineEnding) : Exception(lineEnding) {}
             };
 
+            class FieldNameUnexpectedLineEnding : public UnexpectedLineEnding
+            {
+            public:
+                FieldNameUnexpectedLineEnding(const UnexpectedLineEnding & e) : UnexpectedLineEnding(
+                    (std::string("Expected field name close quote, found line ending (\"") + e.what() + "\")").c_str()) {}
+            };
+
             class UnexpectedInputEnd : public Exception
             {
             public:
@@ -1044,6 +1051,12 @@ namespace Json
             {
             public:
                 InvalidUnknownFieldValue() : Exception("Expected field value (string, number, object, array, true, false, or null)") {}
+            };
+
+            class ArraySizeExceeded : public Exception
+            {
+            public:
+                ArraySizeExceeded() : Exception("Array size exceeded!") {}
             };
         };
 
@@ -1674,6 +1687,47 @@ namespace Json
 
         namespace Read
         {
+            inline namespace Affix
+            {
+                inline void ObjectPrefix(std::istream & is, char & c)
+                {
+                    Checked::get(is, c, '{', "object opening \"{\"");
+                }
+
+                inline bool TryObjectSuffix(std::istream & is)
+                {
+                    return Checked::tryGet(is, '}', "object closing \"}\" or field name opening \"");
+                }
+
+                inline bool FieldSeparator(std::istream & is)
+                {
+                    return Checked::get(is, ',', '}', "\",\" or object closing \"}\"");
+                }
+
+                inline void FieldNameValueSeparator(std::istream & is, char & c)
+                {
+                    Checked::get(is, c, ':', "field name-value separator \":\"");
+                }
+
+                template <bool IsObject>
+                inline void IterablePrefix(std::istream & is, char & c)
+                {
+                    Checked::get<IsObject>(is, c, '{', '[', "object opening \"{\"", "array opening \"[\"");
+                }
+
+                template <bool IsObject>
+                inline bool TryIterableSuffix(std::istream & is)
+                {
+                    return Checked::tryGet<IsObject>(is, '}', ']', "object closing \"}\" or field name opening \"", "array closing \"]\" or array element");
+                }
+
+                template <bool IsObject>
+                inline bool IterableElementSeparator(std::istream & is)
+                {
+                    return Checked::get<IsObject>(is, ',', '}', ']', "\",\" or object closing \"}\"", "\",\" or array closing \"]\"");
+                }
+            }
+
             template <typename Object, typename Value, size_t FieldIndex, typename OpAnnotations, typename Field>
             static constexpr inline bool Customization(std::istream & is, Context & context, Object & obj, Value & value)
             {
@@ -1880,7 +1934,7 @@ namespace Json
             static constexpr void Value(std::istream & is, Context & context, char & c, Object & object, std::pair<Key, T> & pair)
             {
                 Read::String(is, c, pair.first);
-                Checked::get(is, c, ':', "field name-value separator \":\"");
+                Read::FieldNameValueSeparator(is, c);
                 Read::Value<InArray, Field, T>(is, context, c, object, pair.second);
             }
             
@@ -1889,9 +1943,9 @@ namespace Json
             {
                 using Element = typename element_type<T>::type;
                 constexpr bool ContainsPairs = is_pair<Element>::value;
-            
-                Checked::get<ContainsPairs>(is, c, '{', '[', "object opening \"{\"", "array opening \"[\"");
-                if ( !Checked::tryGet<ContainsPairs>(is, '}', ']', "object closing \"}\" or field name opening \"", "array closing \"]\" or array element") )
+
+                Read::IterablePrefix<ContainsPairs>(is, c);
+                if ( !Read::TryIterableSuffix<ContainsPairs>(is) )
                 {
                     Clear(iterable);
                     size_t i=0;
@@ -1900,7 +1954,7 @@ namespace Json
                         if constexpr ( is_static_array<T>::value )
                         {
                             if ( i >= static_array_size<T>::value )
-                                throw Exception("Array size exceeded!");
+                                throw ArraySizeExceeded();
                             else
                                 Read::Value<!ContainsPairs, Field>(is, context, c, object, iterable[i++]);
                         }
@@ -1911,14 +1965,14 @@ namespace Json
                             Append<T, typename element_type<T>::type>(iterable, value);
                         }
                     }
-                    while ( Checked::get<ContainsPairs>(is, ',', '}', ']', "\",\" or object closing \"}\"", "\",\" or array closing \"]\"") );
+                    while ( Read::IterableElementSeparator<ContainsPairs>(is) );
                 }
             }
 
             template <typename Object>
             static constexpr void Field(std::istream & is, Context & context, char & c, Object & object, const std::string & fieldName)
             {
-                Checked::get(is, c, ':', "field name-value separator \":\"");
+                Read::FieldNameValueSeparator(is, c);
                 JsonField* jsonField = getJsonField(object, fieldName);
                 if ( jsonField != nullptr ) // Known field
                 {
@@ -1947,7 +2001,7 @@ namespace Json
                 try {
                     Read::String(is, c, fieldName);
                 } catch ( UnexpectedLineEnding & e) {
-                    throw Exception((std::string("Expected field name close quote, found line ending (\"") + e.what() + "\")").c_str());
+                    throw FieldNameUnexpectedLineEnding(e);
                 }
                 return fieldName;
             }
@@ -1955,15 +2009,15 @@ namespace Json
             template <typename T>
             static constexpr void Object(std::istream & is, Context & context, char & c, T & t)
             {
-                Checked::get(is, c, '{', "object opening \"{\"");
-                if ( !Checked::tryGet(is, '}', "object closing \"}\" or field name opening \"") )
+                Read::ObjectPrefix(is, c);
+                if ( !Read::TryObjectSuffix(is) )
                 {
                     do
                     {
                         std::string fieldName = Read::FieldName(is, context, c);
                         Read::Field(is, context, c, t, fieldName);
                     }
-                    while ( Checked::get(is, ',', '}', "\",\" or object closing \"}\"") );
+                    while ( Read::FieldSeparator(is) );
                 }
             }
         };
