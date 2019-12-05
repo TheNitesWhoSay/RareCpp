@@ -63,14 +63,21 @@ public:
         () ptr, () boolean, (Json::String) str, (Json::String) map, () vecVec, () ray)
 };
 
-// In a .cpp file you can only use explicit instantiation (as below in From, or just specifying explicit template arguments as below in To)
-// In a .h or .hpp file you could use proper template arguments (e.g. have the method apply to any index, or to the same type in any object at any index)
-/**/
+struct EnhancedContext : public Json::Context
+{
+    virtual ~EnhancedContext() {}
 
+    EnhancedContext(int enhanced) : enhanced(enhanced) {}
+
+    int enhanced;
+};
+
+// In a .cpp file you can usually only use explicit instantiation for templates (under normal circumstances)
+// In a .h or .hpp file you could use proper template arguments (e.g. have the method apply to any index, or to the same type in any object at any index)
 template <size_t FieldIndex>
 struct Json::Input::Customize<A, A::TestEnum, FieldIndex>
 {
-    static bool As(std::istream & is, const A & object, A::TestEnum & value)
+    static bool As(std::istream & is, Context & context, const A & object, A::TestEnum & value)
     {
         std::string input = Json::Read::String(is);
         auto found = A::TestEnumCacheCustom.find(input);
@@ -89,32 +96,33 @@ struct Json::Input::Customize<A, A::TestEnum, FieldIndex>
 template <>
 struct Json::Input::CustomizeType<A>
 {
-    static bool As(std::istream & is, A & object)
+    static bool As(std::istream & is, Context & context, A & object)
     {
-        /*char c = '\0';
-        Json::Checked::get(is, c, '{', "object opening \"{\"");
-        if ( !Json::Checked::tryGet(is, '}', "object closing \"}\" or field name opening \"") )
+        char c = '\0';
+        Json::Read::ObjectPrefix(is, c);
+        if ( !Json::Read::TryObjectSuffix(is) )
         {
             do
             {
-                std::string fieldName = Read::FieldName(is, c);
-                Read::Field(is, c, object, fieldName);
+                std::string fieldName = Json::Read::FieldName(is, c);
+                Json::Read::Field(is, context, c, object, fieldName);
             }
-            while ( Checked::get(is, ',', '}', "\",\" or object closing \"}\"") );
-        }*/
-        return false;
+            while ( Json::Read::FieldSeparator(is) );
+        }
+        return true;
     }
 };
 
 template <>
 struct Json::Output::Customize<A, A::TestEnum>
 {
-    static bool As(std::ostream & os, const A & object, const A::TestEnum & value)
+    static bool As(std::ostream & os, Context & context, const A & object, const A::TestEnum & value)
     {
+        EnhancedContext & enhanced = dynamic_cast<EnhancedContext &>(context);
         switch ( value )
         {
-            case A::TestEnum::first: Json::Put::String(os, "firstCustom"); return true;
-            case A::TestEnum::second: Json::Put::String(os, "secondCustom"); return true;
+            case A::TestEnum::first: Json::Put::String(os, "firstCustom" + std::to_string(enhanced.enhanced)); return true;
+            case A::TestEnum::second: Json::Put::String(os, "secondCustom" + std::to_string(enhanced.enhanced)); return true;
         }
         return false;
     }

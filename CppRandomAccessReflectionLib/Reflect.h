@@ -257,9 +257,11 @@ namespace ConstexprStr
 namespace ExtendedTypeSupport
 {
     template <typename T> struct promote_char { using type = typename T; };
+    template <> struct promote_char<char> { using type = int; };
     template <> struct promote_char<signed char> { using type = int; };
-    template <> struct promote_char<const signed char> { using type = const int; };
     template <> struct promote_char<unsigned char> { using type = int; };
+    template <> struct promote_char<const char> { using type = const int; };
+    template <> struct promote_char<const signed char> { using type = const int; };
     template <> struct promote_char<const unsigned char> { using type = const int; };
 
     template <typename T> struct pair_rhs { using type = T; };
@@ -391,6 +393,26 @@ namespace ExtendedTypeSupport
     { static constexpr bool value = true; };
     template <typename K, typename T, typename H, typename E, typename A> struct has_clear<std::unordered_multimap<K, T, H, E, A>>
     { static constexpr bool value = true; };
+    
+    template <typename Iterable, typename Element>
+    static constexpr void Append(Iterable & iterable, Element & element)
+    {
+        if constexpr ( !std::is_const<Iterable>::value )
+        {
+            if constexpr ( has_push_back<Iterable>::value )
+                iterable.push_back(element);
+            else if constexpr ( is_forward_list<Iterable>::value )
+            {
+                auto last = iterable.before_begin();
+                for ( auto curr = last; curr != iterable.end(); last = curr++);
+                iterable.insert_after(last, element);
+            }
+            else if constexpr ( has_push<Iterable>::value )
+                iterable.push(element);
+            else if constexpr ( has_insert<Iterable>::value )
+                iterable.insert(element);
+        }
+    }
 
     template <typename Iterable>
     static constexpr bool IsEmpty(const Iterable & iterable)
@@ -413,22 +435,6 @@ namespace ExtendedTypeSupport
                 while ( !iterable.empty() )
                     iterable.pop();
             }
-        }
-    }
-
-    template <typename Iterable, typename Element>
-    static constexpr void Append(Iterable & iterable, Element & element)
-    {
-        if constexpr ( !std::is_const<Iterable>::value )
-        {
-            if constexpr ( has_push_back<Iterable>::value )
-                iterable.push_back(element);
-            else if constexpr ( is_forward_list<Iterable>::value )
-                iterable.insert_after(--iterable.end(), element);
-            else if constexpr ( has_push<Iterable>::value )
-                iterable.push(element);
-            else if constexpr ( has_insert<Iterable>::value )
-                iterable.insert(element);
         }
     }
 
@@ -607,11 +613,10 @@ namespace Reflect
     namespace Fields
     {
         template <typename T = void, typename FieldPointer = void*, size_t FieldIndex = 0, typename Annotations = Annotate<>>
-        class Field;
+        struct Field;
     
         template <>
-        class Field<void, void*, 0, void> {
-        public:
+        struct Field<void, void*, 0, void> {
             const char* name;
             const char* typeStr;
             size_t arraySize;
@@ -620,8 +625,7 @@ namespace Reflect
         };
 
         template <typename T, typename FieldPointer, size_t FieldIndex, typename Annotations>
-        class Field {
-        public:
+        struct Field {
             const char* name;
             const char* typeStr;
             size_t arraySize;
@@ -671,7 +675,7 @@ namespace Reflect
 /// After the objectType there needs to be at least 1 and at most 123 fields, in the form "(B) fieldName" or "(R) fieldName"
 /// e.g. REFLECT(() myObj, () myInt, () myString)
 #define REFLECT(objectType, ...) \
-class Class { public: \
+struct Class { \
     using ClassType = RHS(objectType); \
     enum_t(IndexOf, size_t, { FOR_EACH(GET_FIELD_NAME, __VA_ARGS__) }); \
     FOR_EACH(ALIAS_TYPE, __VA_ARGS__) \
@@ -689,7 +693,7 @@ using Supers = Inherit<LHS(objectType)>;
 
 /// Used to reflect a class with no fields
 #define REFLECT_EMPTY(objectType) \
-class Class { public: \
+struct Class { \
     using ClassType = RHS(objectType); \
     static constexpr size_t TotalFields = 0; \
     static constexpr size_t TotalStaticFields = 0; \
