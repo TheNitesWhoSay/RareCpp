@@ -28,7 +28,7 @@ namespace Json
 
         struct IsRoot {};
     }
-
+    
     inline namespace Shared
     {
         enum class Statics
@@ -104,309 +104,340 @@ namespace Json
                 return std::string("__") + simplifyTypeStr(TypeToStr<T>());
             }
         }
+    };
 
-        inline namespace Generic
+    inline namespace Generic
+    {
+        class JsonField
         {
-            class JsonField
+        public:
+            enum_t(Type, size_t, {
+                Regular = 0,
+                SuperClass = 1
+            });
+        
+            JsonField() : index(0), type(Type::Regular), name("") {}
+            JsonField(size_t index, Type fieldType, const std::string & name) : index(index), type(fieldType), name(name) {}
+        
+            size_t index;
+            Type type;
+            std::string name;
+        };
+
+        class Value;
+        using ObjectPtr = std::shared_ptr<std::map<std::string, std::shared_ptr<Value>>>;
+        using FieldsPtr = std::shared_ptr<std::map<std::string, std::shared_ptr<Value>>>;
+
+        class Value {
+        public:
+            enum_t(Type, uint8_t, {
+                None,
+                Boolean,
+                Number,
+                String,
+                Object,
+                Array,
+                BoolArray,
+                NumberArray,
+                StringArray,
+                ObjectArray,
+                MixedArray
+            });
+
+            virtual ~Value() {};
+
+            virtual Type type() = 0;
+        
+            virtual bool & boolean() = 0;
+            virtual std::string & number() = 0;
+            virtual std::string & string() = 0;
+            virtual std::map<std::string, std::shared_ptr<Value>> & object() = 0;
+
+            virtual size_t arraySize() = 0;
+            virtual std::vector<bool> & boolArray() = 0;
+            virtual std::vector<std::string> & numberArray() = 0;
+            virtual std::vector<std::string> & stringArray() = 0;
+	        virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() = 0;
+	        virtual std::vector<std::shared_ptr<Value>> & mixedArray() = 0;
+
+            template <typename T>
+            bool getNumber(T & num)
             {
-            public:
-                enum_t(Type, size_t, {
-                    Regular = 0,
-                    SuperClass = 1
-                });
-        
-                JsonField() : index(0), type(Type::Regular), name("") {}
-                JsonField(size_t index, Type fieldType, const std::string & name) : index(index), type(fieldType), name(name) {}
-        
-                size_t index;
-                Type type;
-                std::string name;
-            };
+                return (std::stringstream(number()) >> num).good();
+            }
 
-            class Value;
-            using ObjectPtr = std::shared_ptr<std::map<std::string, std::shared_ptr<Value>>>;
-            using FieldsPtr = std::shared_ptr<std::map<std::string, std::shared_ptr<Value>>>;
-
-            class Value {
-            public:
-                enum_t(Type, uint8_t, {
-                    None,
-                    Boolean,
-                    Number,
-                    String,
-                    Object,
-                    BoolArray,
-                    NumberArray,
-                    StringArray,
-                    ObjectArray,
-                    MixedArray
-                });
-
-                virtual ~Value() {};
-
-                virtual Type type() = 0;
-        
-                virtual bool & boolean() = 0;
-                virtual std::string & number() = 0;
-                virtual std::string & string() = 0;
-                virtual std::map<std::string, std::shared_ptr<Value>> & object() = 0;
-
-                virtual size_t arraySize() = 0;
-                virtual std::vector<bool> & boolArray() = 0;
-                virtual std::vector<std::string> & numberArray() = 0;
-                virtual std::vector<std::string> & stringArray() = 0;
-	            virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() = 0;
-	            virtual std::vector<std::shared_ptr<Value>> & mixedArray() = 0;
-
-                template <typename T>
-                bool getNumber(T & num)
+            template <typename T>
+            void setNumber(const T & number)
+            {
+                number() = std::to_string(number);
+            }
+        };
+	    
+        class TypeMismatch : public Exception
+        {
+        public:
+            static std::string getTypeStr(Value::Type type)
+            {
+                switch ( type )
                 {
-                    return (std::stringstream(number()) >> num).good();
+                    case Value::Type::None: return "None";
+                    case Value::Type::Boolean: return "Boolean";
+                    case Value::Type::Number: return "Number";
+                    case Value::Type::String: return "String";
+                    case Value::Type::Object: return "Object";
+                    case Value::Type::Array: return "Array";
+                    case Value::Type::BoolArray: return "BoolArray";
+                    case Value::Type::NumberArray: return "NumberArray";
+                    case Value::Type::StringArray: return "StringArray";
+                    case Value::Type::ObjectArray: return "ObjectArray";
+                    case Value::Type::MixedArray: return "MixedArray";
                 }
+                return "Unknown";
+            }
 
-                template <typename T>
-                void setNumber(const T & number)
-                {
-                    number() = std::to_string(number);
-                }
-            };
+            TypeMismatch(Value::Type valueType, Value::Type functionType, const std::string & functionName)
+                : Exception((std::string("Cannot call ") + functionName + "() on a Json::" + getTypeStr(valueType) + " type!").c_str()),
+                valueType(valueType), functionType(functionType) {}
+
+            Value::Type valueType;
+            Value::Type functionType;
+        };
+
+        class Bool : public Value {
+        public:
+            Bool() : value(false) {}
+            Bool(bool value) : value(value) {}
+            Bool(const Bool & other) : value(other.value) {}
+            virtual ~Bool() {}
+        
+            virtual Type type() { return Value::Type::Boolean; }
+        
+            virtual bool & boolean() { return value; }
+            virtual std::string & number() { throw TypeMismatch(Value::Type::Boolean, Value::Type::Number, "number"); }
+            virtual std::string & string() { throw TypeMismatch(Value::Type::Boolean, Value::Type::String, "string"); }
+            virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw TypeMismatch(Value::Type::Boolean, Value::Type::Object, "object"); }
+
+            virtual size_t arraySize() { throw TypeMismatch(Value::Type::Boolean, Value::Type::Array, "arraySize"); }
+
+            virtual std::vector<bool> & boolArray() { throw TypeMismatch(Value::Type::Boolean, Value::Type::BoolArray, "boolArray"); }
+            virtual std::vector<std::string> & numberArray() { throw TypeMismatch(Value::Type::Boolean, Value::Type::NumberArray, "numberArray"); }
+            virtual std::vector<std::string> & stringArray() { throw TypeMismatch(Value::Type::Boolean, Value::Type::StringArray, "stringArray"); }
+	        virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
+                throw TypeMismatch(Value::Type::Boolean, Value::Type::ObjectArray, "objectArray");
+            }
+            virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw TypeMismatch(Value::Type::Boolean, Value::Type::MixedArray, "mixedArray"); }
+
+        private:
+	        bool value;
+        };
+        class Number : public Value {
+        public:
+            Number() : value() {}
+            Number(const std::string & value) : value(value) {}
+            Number(const Number & other) : value(other.value) {}
+            virtual ~Number() {}
+        
+            virtual Type type() { return Value::Type::Number; }
+            
+            virtual bool & boolean() { throw TypeMismatch(Value::Type::Number, Value::Type::Boolean, "bool"); }
+            virtual std::string & number() { return value; }
+            virtual std::string & string() { throw TypeMismatch(Value::Type::Number, Value::Type::String, "string"); }
+            virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw TypeMismatch(Value::Type::Number, Value::Type::Object, "object"); }
+
+            virtual size_t arraySize() { throw TypeMismatch(Value::Type::Number, Value::Type::Array, "arraySize"); }
+
+            virtual std::vector<bool> & boolArray() { throw TypeMismatch(Value::Type::Number, Value::Type::BoolArray, "boolArray"); }
+            virtual std::vector<std::string> & numberArray() { throw TypeMismatch(Value::Type::Number, Value::Type::NumberArray, "numberArray"); }
+            virtual std::vector<std::string> & stringArray() { throw TypeMismatch(Value::Type::Number, Value::Type::StringArray, "stringArray"); }
+	        virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
+                throw TypeMismatch(Value::Type::Number, Value::Type::ObjectArray, "objectArray");
+            }
+            virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw TypeMismatch(Value::Type::Number, Value::Type::MixedArray, "mixedArray"); }
+        
+        private:
+	        std::string value;
+        };
+        class String : public Value {
+        public:
+            String() : value() {}
+            String(const std::string & value) : value(value) {}
+            String(const String & other) : value(other.value) {}
+            virtual ~String() {}
+        
+            virtual Type type() { return Value::Type::String; }
+            
+            virtual bool & boolean() { throw TypeMismatch(Value::Type::String, Value::Type::Boolean, "bool"); }
+            virtual std::string & number() { throw TypeMismatch(Value::Type::String, Value::Type::Number, "number"); }
+            virtual std::string & string() { return value; }
+            virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw TypeMismatch(Value::Type::String, Value::Type::Object, "object"); }
+
+            virtual size_t arraySize() { throw TypeMismatch(Value::Type::String, Value::Type::Array, "arraySize"); }
+
+            virtual std::vector<bool> & boolArray() { throw TypeMismatch(Value::Type::String, Value::Type::BoolArray, "boolArray"); }
+            virtual std::vector<std::string> & numberArray() { throw TypeMismatch(Value::Type::String, Value::Type::NumberArray, "numberArray"); }
+            virtual std::vector<std::string> & stringArray() { throw TypeMismatch(Value::Type::String, Value::Type::StringArray, "stringArray"); }
+	        virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
+                throw TypeMismatch(Value::Type::String, Value::Type::ObjectArray, "objectArray");
+            }
+            virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw TypeMismatch(Value::Type::String, Value::Type::MixedArray, "mixedArray"); }
+        
+        private:
+	        std::string value;
+        };
+        class Object : public Value {
+        public:
+            Object() : value() {}
+            Object(const Object & other) : value(other.value) {}
+            virtual ~Object() {}
+        
+            virtual Type type() { return Value::Type::Object; }
+            
+            virtual bool & boolean() { throw TypeMismatch(Value::Type::Object, Value::Type::Boolean, "bool"); }
+            virtual std::string & number() { throw TypeMismatch(Value::Type::Object, Value::Type::Number, "number"); }
+            virtual std::string & string() { throw TypeMismatch(Value::Type::Object, Value::Type::String, "string"); }
+            virtual std::map<std::string, std::shared_ptr<Value>> & object() { return value; }
+
+            virtual size_t arraySize() { throw TypeMismatch(Value::Type::Object, Value::Type::Array, "arraySize"); }
+
+            virtual std::vector<bool> & boolArray() { throw TypeMismatch(Value::Type::Object, Value::Type::BoolArray, "boolArray"); }
+            virtual std::vector<std::string> & numberArray() { throw TypeMismatch(Value::Type::Object, Value::Type::NumberArray, "numberArray"); }
+            virtual std::vector<std::string> & stringArray() { throw TypeMismatch(Value::Type::Object, Value::Type::StringArray, "stringArray"); }
+	        virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
+                throw TypeMismatch(Value::Type::Object, Value::Type::ObjectArray, "objectArray");
+            }
+            virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw TypeMismatch(Value::Type::Object, Value::Type::MixedArray, "mixedArray"); }
+        
+        private:
+	        std::map<std::string, std::shared_ptr<Value>> value;
+        };
 	
-            class Bool : public Value {
-            public:
-                Bool() : value(false) {}
-                Bool(bool value) : value(value) {}
-                Bool(const Bool & other) : value(other.value) {}
-                virtual ~Bool() {}
+        class BoolArray : public Value {
+        public:
+            BoolArray() : values() {}
+            BoolArray(const BoolArray & other) : values(other.values) {}
+            virtual ~BoolArray() {}
         
-                virtual Type type() { return Value::Type::Boolean; }
-        
-                virtual bool & boolean() { return value; }
-                virtual std::string & number() { throw Exception("Cannot call number() on a Json::Bool type!"); }
-                virtual std::string & string() { throw Exception("Cannot call string() on a Json::Bool type!"); }
-                virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw Exception("Cannot call object() on a Json::Bool type!"); }
+            virtual Type type() { return Value::Type::BoolArray; }
+            
+            virtual bool & boolean() { throw TypeMismatch(Value::Type::BoolArray, Value::Type::Boolean, "bool"); }
+            virtual std::string & number() { throw TypeMismatch(Value::Type::BoolArray, Value::Type::Number, "number"); }
+            virtual std::string & string() { throw TypeMismatch(Value::Type::BoolArray, Value::Type::String, "string"); }
+            virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw TypeMismatch(Value::Type::BoolArray, Value::Type::Object, "object"); }
 
-                virtual size_t arraySize() { throw Exception("Cannot call arraySize() on a Json::Bool type!"); }
+            virtual size_t arraySize() { throw TypeMismatch(Value::Type::BoolArray, Value::Type::Array, "arraySize"); }
+            
+            virtual std::vector<bool> & boolArray() { return values; }
+            virtual std::vector<std::string> & numberArray() { throw TypeMismatch(Value::Type::BoolArray, Value::Type::NumberArray, "numberArray"); }
+            virtual std::vector<std::string> & stringArray() { throw TypeMismatch(Value::Type::BoolArray, Value::Type::StringArray, "stringArray"); }
+	        virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
+                throw TypeMismatch(Value::Type::BoolArray, Value::Type::ObjectArray, "objectArray");
+            }
+            virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw TypeMismatch(Value::Type::BoolArray, Value::Type::MixedArray, "mixedArray"); }
+        
+        private:
+	        std::vector<bool> values;
+        };
+        class NumberArray : public Value {
+        public:
+            NumberArray() : values() {}
+            NumberArray(const NumberArray & other) : values(other.values) {}
+            virtual ~NumberArray() {}
+        
+            virtual Type type() { return Value::Type::NumberArray; }
+            
+            virtual bool & boolean() { throw TypeMismatch(Value::Type::NumberArray, Value::Type::Boolean, "bool"); }
+            virtual std::string & number() { throw TypeMismatch(Value::Type::NumberArray, Value::Type::Number, "number"); }
+            virtual std::string & string() { throw TypeMismatch(Value::Type::NumberArray, Value::Type::String, "string"); }
+            virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw TypeMismatch(Value::Type::NumberArray, Value::Type::Object, "object"); }
 
-                virtual std::vector<bool> & boolArray() { throw Exception("Cannot call boolArray() on a Json::Bool type!"); }
-                virtual std::vector<std::string> & numberArray() { throw Exception("Cannot call numberArray() on a Json::Bool type!"); }
-                virtual std::vector<std::string> & stringArray() { throw Exception("Cannot call stringArray() on a Json::Bool type!"); }
-	            virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
-                    throw Exception("Cannot call objectArray() on a Json::Bool type!");
-                }
-                virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw Exception("Cannot call mixedArray() on a Json::Bool type!"); }
+            virtual size_t arraySize() { throw TypeMismatch(Value::Type::NumberArray, Value::Type::Array, "arraySize"); }
 
-            private:
-	            bool value;
-            };
-            class Number : public Value {
-            public:
-                Number() : value() {}
-                Number(const std::string & value) : value(value) {}
-                Number(const Number & other) : value(other.value) {}
-                virtual ~Number() {}
+            virtual std::vector<bool> & boolArray() { throw TypeMismatch(Value::Type::NumberArray, Value::Type::BoolArray, "boolArray"); }
+            virtual std::vector<std::string> & numberArray() { return values; }
+            virtual std::vector<std::string> & stringArray() { throw TypeMismatch(Value::Type::NumberArray, Value::Type::StringArray, "stringArray"); }
+	        virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
+                throw TypeMismatch(Value::Type::NumberArray, Value::Type::ObjectArray, "objectArray");
+            }
+            virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw TypeMismatch(Value::Type::NumberArray, Value::Type::MixedArray, "mixedArray"); }
         
-                virtual Type type() { return Value::Type::Number; }
+        private:
+	        std::vector<std::string> values;
+        };
+        class StringArray : public Value {
+        public:
+            StringArray() : values() {}
+            StringArray(const StringArray & other) : values(other.values) {}
+            virtual ~StringArray() {}
         
-                virtual bool & boolean() { throw Exception("Cannot call boolean() on a Json::Number type!"); }
-                virtual std::string & number() { return value; }
-                virtual std::string & string() { throw Exception("Cannot call string() on a Json::Number type!"); }
-                virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw Exception("Cannot call object() on a Json::Number type!"); }
+            virtual Type type() { return Value::Type::StringArray; }
+            
+            virtual bool & boolean() { throw TypeMismatch(Value::Type::StringArray, Value::Type::Boolean, "bool"); }
+            virtual std::string & number() { throw TypeMismatch(Value::Type::StringArray, Value::Type::Number, "number"); }
+            virtual std::string & string() { throw TypeMismatch(Value::Type::StringArray, Value::Type::String, "string"); }
+            virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw TypeMismatch(Value::Type::StringArray, Value::Type::Object, "object"); }
 
-                virtual size_t arraySize() { throw Exception("Cannot call arraySize() on a Json::Number type!"); }
+            virtual size_t arraySize() { throw TypeMismatch(Value::Type::StringArray, Value::Type::Array, "arraySize"); }
 
-                virtual std::vector<bool> & boolArray() { throw Exception("Cannot call boolArray() on a Json::Number type!"); }
-                virtual std::vector<std::string> & numberArray() { throw Exception("Cannot call numberArray() on a Json::Number type!"); }
-                virtual std::vector<std::string> & stringArray() { throw Exception("Cannot call stringArray() on a Json::Number type!"); }
-	            virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
-                    throw Exception("Cannot call objectArray() on a Json::Number type!");
-                }
-                virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw Exception("Cannot call mixedArray() on a Json::Number type!"); }
+            virtual std::vector<bool> & boolArray() { throw TypeMismatch(Value::Type::StringArray, Value::Type::BoolArray, "boolArray"); }
+            virtual std::vector<std::string> & numberArray() { throw TypeMismatch(Value::Type::StringArray, Value::Type::NumberArray, "numberArray"); }
+            virtual std::vector<std::string> & stringArray() { return values; }
+	        virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
+                throw TypeMismatch(Value::Type::StringArray, Value::Type::ObjectArray, "objectArray");
+            }
+            virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw TypeMismatch(Value::Type::StringArray, Value::Type::MixedArray, "mixedArray"); }
         
-            private:
-	            std::string value;
-            };
-            class String : public Value {
-            public:
-                String() : value() {}
-                String(const std::string & value) : value(value) {}
-                String(const String & other) : value(other.value) {}
-                virtual ~String() {}
+        private:
+	        std::vector<std::string> values;
+        };
+        class ObjectArray : public Value {
+        public:
+            ObjectArray() : values() {}
+            ObjectArray(const ObjectArray & other) : values(other.values) {}
+            virtual ~ObjectArray() {}
         
-                virtual Type type() { return Value::Type::String; }
-        
-                virtual bool & boolean() { throw Exception("Cannot call boolean() on a Json::String type!"); }
-                virtual std::string & number() { throw Exception("Cannot call number() on a Json::String type!"); }
-                virtual std::string & string() { return value; }
-                virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw Exception("Cannot call object() on a Json::String type!"); }
+            virtual Type type() { return Value::Type::ObjectArray; }
+            
+            virtual bool & boolean() { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Boolean, "bool"); }
+            virtual std::string & number() { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Number, "number"); }
+            virtual std::string & string() { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::String, "string"); }
+            virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Object, "object"); }
 
-                virtual size_t arraySize() { throw Exception("Cannot call arraySize() on a Json::String type!"); }
+            virtual size_t arraySize() { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Array, "arraySize"); }
 
-                virtual std::vector<bool> & boolArray() { throw Exception("Cannot call boolArray() on a Json::String type!"); }
-                virtual std::vector<std::string> & numberArray() { throw Exception("Cannot call numberArray() on a Json::String type!"); }
-                virtual std::vector<std::string> & stringArray() { throw Exception("Cannot call stringArray() on a Json::String type!"); }
-	            virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
-                    throw Exception("Cannot call objectArray() on a Json::String type!");
-                }
-                virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw Exception("Cannot call mixedArray() on a Json::String type!"); }
+            virtual std::vector<bool> & boolArray() { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::BoolArray, "boolArray"); }
+            virtual std::vector<std::string> & numberArray() { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::NumberArray, "numberArray"); }
+            virtual std::vector<std::string> & stringArray() { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::StringArray, "stringArray"); }
+            virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() { return values; }
+            virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::MixedArray, "mixedArray"); }
         
-            private:
-	            std::string value;
-            };
-            class Object : public Value {
-            public:
-                Object() : value() {}
-                Object(const Object & other) : value(other.value) {}
-                virtual ~Object() {}
+        private:
+	        std::vector<std::map<std::string, std::shared_ptr<Value>>> values;
+        };
+        class MixedArray : public Value {
+        public:
+            MixedArray() : values() {}
+            MixedArray(const MixedArray & other) : values(other.values) {}
+            virtual ~MixedArray() {}
         
-                virtual Type type() { return Value::Type::Object; }
-        
-                virtual bool & boolean() { throw Exception("Cannot call boolean() on a Json::Object type!"); }
-                virtual std::string & number() { throw Exception("Cannot call number() on a Json::Object type!"); }
-                virtual std::string & string() { throw Exception("Cannot call string() on a Json::Object type!"); }
-                virtual std::map<std::string, std::shared_ptr<Value>> & object() { return value; }
+            virtual Type type() { return Value::Type::MixedArray; }
+            
+            virtual bool & boolean() { throw TypeMismatch(Value::Type::MixedArray, Value::Type::Boolean, "bool"); }
+            virtual std::string & number() { throw TypeMismatch(Value::Type::MixedArray, Value::Type::Number, "number"); }
+            virtual std::string & string() { throw TypeMismatch(Value::Type::MixedArray, Value::Type::String, "string"); }
+            virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw TypeMismatch(Value::Type::MixedArray, Value::Type::Object, "object"); }
 
-                virtual size_t arraySize() { throw Exception("Cannot call arraySize() on a Json::Object type!"); }
+            virtual size_t arraySize() { throw TypeMismatch(Value::Type::MixedArray, Value::Type::Array, "arraySize"); }
 
-                virtual std::vector<bool> & boolArray() { throw Exception("Cannot call boolArray() on a Json::Object type!"); }
-                virtual std::vector<std::string> & numberArray() { throw Exception("Cannot call numberArray() on a Json::Object type!"); }
-                virtual std::vector<std::string> & stringArray() { throw Exception("Cannot call stringArray() on a Json::Object type!"); }
-	            virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
-                    throw Exception("Cannot call objectArray() on a Json::Object type!");
-                }
-                virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw Exception("Cannot call mixedArray() on a Json::Object type!"); }
-        
-            private:
-	            std::map<std::string, std::shared_ptr<Value>> value;
-            };
-	
-            class BoolArray : public Value {
-            public:
-                BoolArray() : values() {}
-                BoolArray(const BoolArray & other) : values(other.values) {}
-                virtual ~BoolArray() {}
-        
-                virtual Type type() { return Value::Type::BoolArray; }
-        
-                virtual bool & boolean() { throw Exception("Cannot call boolean() on a Json::BoolArray type!"); }
-                virtual std::string & number() { throw Exception("Cannot call number() on a Json::BoolArray type!"); }
-                virtual std::string & string() { throw Exception("Cannot call string() on a Json::BoolArray type!"); }
-                virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw Exception("Cannot call object() on a Json::BoolArray type!"); }
+            virtual std::vector<bool> & boolArray() { throw TypeMismatch(Value::Type::MixedArray, Value::Type::BoolArray, "boolArray"); }
+            virtual std::vector<std::string> & numberArray() { throw TypeMismatch(Value::Type::MixedArray, Value::Type::NumberArray, "numberArray"); }
+            virtual std::vector<std::string> & stringArray() { throw TypeMismatch(Value::Type::MixedArray, Value::Type::StringArray, "stringArray"); }
+	        virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
+                throw TypeMismatch(Value::Type::MixedArray, Value::Type::ObjectArray, "objectArray");
+            }
+            virtual std::vector<std::shared_ptr<Value>> & mixedArray() { return values; }
 
-                virtual size_t arraySize() { throw Exception("Cannot call arraySize() on a Json::BoolArray type!"); }
-
-                virtual std::vector<bool> & boolArray() { return values; }
-                virtual std::vector<std::string> & numberArray() { throw Exception("Cannot call numberArray() on a Json::BoolArray type!"); }
-                virtual std::vector<std::string> & stringArray() { throw Exception("Cannot call stringArray() on a Json::BoolArray type!"); }
-	            virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
-                    throw Exception("Cannot call objectArray() on a Json::BoolArray type!");
-                }
-                virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw Exception("Cannot call mixedArray() on a Json::BoolArray type!"); }
-        
-            private:
-	            std::vector<bool> values;
-            };
-            class NumberArray : public Value {
-            public:
-                NumberArray() : values() {}
-                NumberArray(const NumberArray & other) : values(other.values) {}
-                virtual ~NumberArray() {}
-        
-                virtual Type type() { return Value::Type::NumberArray; }
-        
-                virtual bool & boolean() { throw Exception("Cannot call boolean() on a Json::NumberArray type!"); }
-                virtual std::string & number() { throw Exception("Cannot call number() on a Json::NumberArray type!"); }
-                virtual std::string & string() { throw Exception("Cannot call string() on a Json::NumberArray type!"); }
-                virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw Exception("Cannot call object() on a Json::NumberArray type!"); }
-
-                virtual size_t arraySize() { throw Exception("Cannot call arraySize() on a Json::NumberArray type!"); }
-
-                virtual std::vector<bool> & boolArray() { throw Exception("Cannot call boolArray() on a Json::NumberArray type!"); }
-                virtual std::vector<std::string> & numberArray() { return values; }
-                virtual std::vector<std::string> & stringArray() { throw Exception("Cannot call stringArray() on a Json::NumberArray type!"); }
-	            virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
-                    throw Exception("Cannot call objectArray() on a Json::NumberArray type!");
-                }
-                virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw Exception("Cannot call mixedArray() on a Json::NumberArray type!"); }
-        
-            private:
-	            std::vector<std::string> values;
-            };
-            class StringArray : public Value {
-            public:
-                StringArray() : values() {}
-                StringArray(const StringArray & other) : values(other.values) {}
-                virtual ~StringArray() {}
-        
-                virtual Type type() { return Value::Type::StringArray; }
-        
-                virtual bool & boolean() { throw Exception("Cannot call boolean() on a Json::StringArray type!"); }
-                virtual std::string & number() { throw Exception("Cannot call number() on a Json::StringArray type!"); }
-                virtual std::string & string() { throw Exception("Cannot call string() on a Json::StringArray type!"); }
-                virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw Exception("Cannot call object() on a Json::StringArray type!"); }
-
-                virtual size_t arraySize() { throw Exception("Cannot call arraySize() on a Json::StringArray type!"); }
-
-                virtual std::vector<bool> & boolArray() { throw Exception("Cannot call boolArray() on a Json::StringArray type!"); }
-                virtual std::vector<std::string> & numberArray() { throw Exception("Cannot call numberArray() on a Json::StringArray type!"); }
-                virtual std::vector<std::string> & stringArray() { return values; }
-	            virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
-                    throw Exception("Cannot call objectArray() on a Json::StringArray type!");
-                }
-                virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw Exception("Cannot call mixedArray() on a Json::StringArray type!"); }
-        
-            private:
-	            std::vector<std::string> values;
-            };
-            class ObjectArray : public Value {
-            public:
-                ObjectArray() : values() {}
-                ObjectArray(const ObjectArray & other) : values(other.values) {}
-                virtual ~ObjectArray() {}
-        
-                virtual Type type() { return Value::Type::ObjectArray; }
-        
-                virtual bool & boolean() { throw Exception("Cannot call boolean() on a Json::ObjectArray type!"); }
-                virtual std::string & number() { throw Exception("Cannot call number() on a Json::ObjectArray type!"); }
-                virtual std::string & string() { throw Exception("Cannot call string() on a Json::ObjectArray type!"); }
-                virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw Exception("Cannot call object() on a Json::ObjectArray type!"); }
-
-                virtual size_t arraySize() { throw Exception("Cannot call arraySize() on a Json::ObjectArray type!"); }
-
-                virtual std::vector<bool> & boolArray() { throw Exception("Cannot call boolArray() on a Json::ObjectArray type!"); }
-                virtual std::vector<std::string> & numberArray() { throw Exception("Cannot call numberArray() on a Json::ObjectArray type!"); }
-                virtual std::vector<std::string> & stringArray() { throw Exception("Cannot call stringArray() on a Json::ObjectArray type!"); }
-                virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() { return values; }
-                virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw Exception("Cannot call mixedArray() on a Json::ObjectArray type!"); }
-        
-            private:
-	            std::vector<std::map<std::string, std::shared_ptr<Value>>> values;
-            };
-            class MixedArray : public Value {
-            public:
-                MixedArray() : values() {}
-                MixedArray(const MixedArray & other) : values(other.values) {}
-                virtual ~MixedArray() {}
-        
-                virtual Type type() { return Value::Type::MixedArray; }
-        
-                virtual bool & boolean() { throw Exception("Cannot call boolean() on a Json::MixedArray type!"); }
-                virtual std::string & number() { throw Exception("Cannot call number() on a Json::MixedArray type!"); }
-                virtual std::string & string() { throw Exception("Cannot call string() on a Json::MixedArray type!"); }
-                virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw Exception("Cannot call object() on a Json::MixedArray type!"); }
-
-                virtual size_t arraySize() { throw Exception("Cannot call arraySize() on a Json::MixedArray type!"); }
-
-                virtual std::vector<bool> & boolArray() { throw Exception("Cannot call boolArray() on a Json::MixedArray type!"); }
-                virtual std::vector<std::string> & numberArray() { throw Exception("Cannot call numberArray() on a Json::MixedArray type!"); }
-                virtual std::vector<std::string> & stringArray() { throw Exception("Cannot call stringArray() on a Json::MixedArray type!"); }
-	            virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() {
-                    throw Exception("Cannot call objectArray() on a Json::MixedArray type!");
-                }
-                virtual std::vector<std::shared_ptr<Value>> & mixedArray() { return values; }
-
-            private:
-                std::vector<std::shared_ptr<Value>> values;
-            };
+        private:
+            std::vector<std::shared_ptr<Value>> values;
         };
     };
     
