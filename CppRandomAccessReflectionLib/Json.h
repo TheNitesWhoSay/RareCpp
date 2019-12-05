@@ -1,8 +1,8 @@
 #ifndef JSON_H
 #define JSON_H
+#include <istream>
 #include <ostream>
 #include <sstream>
-#include <typeinfo>
 #include <typeindex>
 #include <type_traits>
 #include <functional>

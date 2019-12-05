@@ -72,10 +72,8 @@ struct EnhancedContext : public Json::Context
     int enhanced;
 };
 
-// In a .cpp file you can only use explicit instantiation (as below in From, or just specifying explicit template arguments as below in To)
+// In a .cpp file you can usually only use explicit instantiation for templates (under normal circumstances)
 // In a .h or .hpp file you could use proper template arguments (e.g. have the method apply to any index, or to the same type in any object at any index)
-/**/
-
 template <size_t FieldIndex>
 struct Json::Input::Customize<A, A::TestEnum, FieldIndex>
 {
@@ -100,18 +98,18 @@ struct Json::Input::CustomizeType<A>
 {
     static bool As(std::istream & is, Context & context, A & object)
     {
-        /*char c = '\0';
-        Json::Checked::get(is, c, '{', "object opening \"{\"");
-        if ( !Json::Checked::tryGet(is, '}', "object closing \"}\" or field name opening \"") )
+        char c = '\0';
+        Json::Read::ObjectPrefix(is, c);
+        if ( !Json::Read::TryObjectSuffix(is) )
         {
             do
             {
-                std::string fieldName = Read::FieldName(is, c);
-                Read::Field(is, c, object, fieldName);
+                std::string fieldName = Json::Read::FieldName(is, c);
+                Json::Read::Field(is, context, c, object, fieldName);
             }
-            while ( Checked::get(is, ',', '}', "\",\" or object closing \"}\"") );
-        }*/
-        return false;
+            while ( Json::Read::FieldSeparator(is) );
+        }
+        return true;
     }
 };
 
