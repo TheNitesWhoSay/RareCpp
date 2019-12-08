@@ -70,6 +70,8 @@ struct EnhancedContext : public Json::Context
 
     EnhancedContext(int enhanced) : enhanced(enhanced) {}
 
+    static std::shared_ptr<EnhancedContext> Make(int enhanced) { return std::shared_ptr<EnhancedContext>(new EnhancedContext(enhanced)); }
+
     int enhanced;
 };
 
@@ -117,13 +119,17 @@ struct Json::Output::Customize<A, A::TestEnum>
 {
     static bool As(std::ostream & os, Context & context, const A & object, const A::TestEnum & value)
     {
-        EnhancedContext & enhanced = dynamic_cast<EnhancedContext &>(context);
-        switch ( value )
-        {
-            case A::TestEnum::first: Json::Put::String(os, "firstCustom" + std::to_string(enhanced.enhanced)); return true;
-            case A::TestEnum::second: Json::Put::String(os, "secondCustom" + std::to_string(enhanced.enhanced)); return true;
+        try {
+            EnhancedContext & enhanced = dynamic_cast<EnhancedContext &>(context);
+            switch ( value )
+            {
+                case A::TestEnum::first: Json::Put::String(os, "firstCustom" + std::to_string(enhanced.enhanced)); return true;
+                case A::TestEnum::second: Json::Put::String(os, "secondCustom" + std::to_string(enhanced.enhanced)); return true;
+            }
+            return true;
+        } catch ( std::bad_cast & e ) {
+            return false;
         }
-        return false;
     }
 };
 

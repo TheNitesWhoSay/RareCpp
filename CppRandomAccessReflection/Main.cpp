@@ -23,8 +23,8 @@ std::ostream & operator<<(std::ostream & os, const A::TestEnum & testEnum)
 {
     switch ( testEnum )
     {
-        case A::TestEnum::first: os << "first"; break;
-        case A::TestEnum::second: os << "second"; break;
+        case A::TestEnum::first: Json::Put::String(os, "first"); break;
+        case A::TestEnum::second: Json::Put::String(os, "second"); break;
     }
     return os;
 }
@@ -325,7 +325,7 @@ int main()
     a.runtime = Json::Object::Make();
     Json::Object & runtime = (Json::Object &)*a.runtime;
     runtime.put("field", Json::Bool::Make(true));
-    std::cout << Json::pretty<Statics::Included>(a) << std::endl << std::endl;
+    std::cout << Json::pretty<Statics::Excluded>(a) << std::endl << std::endl;
     do {
         bool successfulRead = false;
         try {
@@ -336,7 +336,7 @@ int main()
         }
         //Json::putClassFieldCache(std::cout);
         //std::cout << "..." << std::endl;
-        std::cout << "Read in: " << Json::pretty(a, std::shared_ptr<Json::Context>(new EnhancedContext(5))) << std::endl;
+        std::cout << "Read in: " << Json::pretty(a, EnhancedContext::Make(1337)) << std::endl;
         std::cout << "..." << std::endl;
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
