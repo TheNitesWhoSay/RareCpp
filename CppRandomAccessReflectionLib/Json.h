@@ -42,7 +42,9 @@ namespace Json
         struct matches_statics
         {
             constexpr static bool value =
-                (statics == Statics::Included || statics == Statics::Only) && IsStatic || statics == Statics::Excluded && !IsStatic;
+                statics == Statics::Included ||
+                statics == Statics::Excluded && !IsStatic ||
+                statics == Statics::Only && IsStatic;
         };
 
         template <Statics statics, typename Object>
@@ -149,22 +151,34 @@ namespace Json
 
             virtual ~Value() {};
 
-            virtual Type type() = 0;
-        
+            virtual Type type() const = 0;
+            
             virtual bool & boolean() = 0;
             virtual std::string & number() = 0;
             virtual std::string & string() = 0;
             virtual std::map<std::string, std::shared_ptr<Value>> & object() = 0;
 
-            virtual size_t arraySize() = 0;
+            virtual const bool & boolean() const = 0;
+            virtual const std::string & number() const = 0;
+            virtual const std::string & string() const = 0;
+            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const = 0;
+
+            virtual size_t arraySize() const = 0;
+
             virtual std::vector<bool> & boolArray() = 0;
             virtual std::vector<std::string> & numberArray() = 0;
             virtual std::vector<std::string> & stringArray() = 0;
 	        virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() = 0;
 	        virtual std::vector<std::shared_ptr<Value>> & mixedArray() = 0;
+            
+            virtual const std::vector<bool> & boolArray() const = 0;
+            virtual const std::vector<std::string> & numberArray() const = 0;
+            virtual const std::vector<std::string> & stringArray() const = 0;
+	        virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const = 0;
+	        virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const = 0;
 
             template <typename T>
-            bool getNumber(T & num)
+            bool getNumber(T & num) const
             {
                 return (std::stringstream(number()) >> num).good();
             }
@@ -174,6 +188,7 @@ namespace Json
             {
                 number() = std::to_string(number);
             }
+
         };
 	    
         class TypeMismatch : public Exception
@@ -212,15 +227,24 @@ namespace Json
             Bool(bool value) : value(value) {}
             Bool(const Bool & other) : value(other.value) {}
             virtual ~Bool() {}
-        
-            virtual Type type() { return Value::Type::Boolean; }
-        
+            
+            static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new Bool()); }
+            static std::shared_ptr<Value> Make(bool value) { return std::shared_ptr<Value>(new Bool(value)); }
+            static std::shared_ptr<Value> Make(const Bool & other) { return std::shared_ptr<Value>(new Bool(other)); }
+            
+            virtual Type type() const { return Value::Type::Boolean; }
+            
             virtual bool & boolean() { return value; }
             virtual std::string & number() { throw TypeMismatch(Value::Type::Boolean, Value::Type::Number, "number"); }
             virtual std::string & string() { throw TypeMismatch(Value::Type::Boolean, Value::Type::String, "string"); }
             virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw TypeMismatch(Value::Type::Boolean, Value::Type::Object, "object"); }
 
-            virtual size_t arraySize() { throw TypeMismatch(Value::Type::Boolean, Value::Type::Array, "arraySize"); }
+            virtual const bool & boolean() const { return value; }
+            virtual const std::string & number() const { throw TypeMismatch(Value::Type::Boolean, Value::Type::Number, "number"); }
+            virtual const std::string & string() const { throw TypeMismatch(Value::Type::Boolean, Value::Type::String, "string"); }
+            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::Boolean, Value::Type::Object, "object"); }
+
+            virtual size_t arraySize() const { throw TypeMismatch(Value::Type::Boolean, Value::Type::Array, "arraySize"); }
 
             virtual std::vector<bool> & boolArray() { throw TypeMismatch(Value::Type::Boolean, Value::Type::BoolArray, "boolArray"); }
             virtual std::vector<std::string> & numberArray() { throw TypeMismatch(Value::Type::Boolean, Value::Type::NumberArray, "numberArray"); }
@@ -229,6 +253,14 @@ namespace Json
                 throw TypeMismatch(Value::Type::Boolean, Value::Type::ObjectArray, "objectArray");
             }
             virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw TypeMismatch(Value::Type::Boolean, Value::Type::MixedArray, "mixedArray"); }
+
+            virtual const std::vector<bool> & boolArray() const { throw TypeMismatch(Value::Type::Boolean, Value::Type::BoolArray, "boolArray"); }
+            virtual const std::vector<std::string> & numberArray() const { throw TypeMismatch(Value::Type::Boolean, Value::Type::NumberArray, "numberArray"); }
+            virtual const std::vector<std::string> & stringArray() const { throw TypeMismatch(Value::Type::Boolean, Value::Type::StringArray, "stringArray"); }
+	        virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const {
+                throw TypeMismatch(Value::Type::Boolean, Value::Type::ObjectArray, "objectArray");
+            }
+            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const { throw TypeMismatch(Value::Type::Boolean, Value::Type::MixedArray, "mixedArray"); }
 
         private:
 	        bool value;
@@ -239,15 +271,25 @@ namespace Json
             Number(const std::string & value) : value(value) {}
             Number(const Number & other) : value(other.value) {}
             virtual ~Number() {}
-        
-            virtual Type type() { return Value::Type::Number; }
+            
+            static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new Number()); }
+            static std::shared_ptr<Value> Make(const std::string & value) { return std::shared_ptr<Value>(new Number(value)); }
+            static std::shared_ptr<Value> Make(const Number & other) { return std::shared_ptr<Value>(new Number(other)); }
+            template <typename T> static std::shared_ptr<Value> Make(const T & number) { return std::shared_ptr<Value>(new Number(std::to_string(number))); }
+            
+            virtual Type type() const { return Value::Type::Number; }
             
             virtual bool & boolean() { throw TypeMismatch(Value::Type::Number, Value::Type::Boolean, "bool"); }
             virtual std::string & number() { return value; }
             virtual std::string & string() { throw TypeMismatch(Value::Type::Number, Value::Type::String, "string"); }
             virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw TypeMismatch(Value::Type::Number, Value::Type::Object, "object"); }
 
-            virtual size_t arraySize() { throw TypeMismatch(Value::Type::Number, Value::Type::Array, "arraySize"); }
+            virtual const bool & boolean() const { throw TypeMismatch(Value::Type::Number, Value::Type::Boolean, "bool"); }
+            virtual const std::string & number() const { return value; }
+            virtual const std::string & string() const { throw TypeMismatch(Value::Type::Number, Value::Type::String, "string"); }
+            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::Number, Value::Type::Object, "object"); }
+
+            virtual size_t arraySize() const { throw TypeMismatch(Value::Type::Number, Value::Type::Array, "arraySize"); }
 
             virtual std::vector<bool> & boolArray() { throw TypeMismatch(Value::Type::Number, Value::Type::BoolArray, "boolArray"); }
             virtual std::vector<std::string> & numberArray() { throw TypeMismatch(Value::Type::Number, Value::Type::NumberArray, "numberArray"); }
@@ -256,7 +298,15 @@ namespace Json
                 throw TypeMismatch(Value::Type::Number, Value::Type::ObjectArray, "objectArray");
             }
             virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw TypeMismatch(Value::Type::Number, Value::Type::MixedArray, "mixedArray"); }
-        
+
+            virtual const std::vector<bool> & boolArray() const { throw TypeMismatch(Value::Type::Number, Value::Type::BoolArray, "boolArray"); }
+            virtual const std::vector<std::string> & numberArray() const { throw TypeMismatch(Value::Type::Number, Value::Type::NumberArray, "numberArray"); }
+            virtual const std::vector<std::string> & stringArray() const { throw TypeMismatch(Value::Type::Number, Value::Type::StringArray, "stringArray"); }
+	        virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const {
+                throw TypeMismatch(Value::Type::Number, Value::Type::ObjectArray, "objectArray");
+            }
+            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const { throw TypeMismatch(Value::Type::Number, Value::Type::MixedArray, "mixedArray"); }
+            
         private:
 	        std::string value;
         };
@@ -266,15 +316,24 @@ namespace Json
             String(const std::string & value) : value(value) {}
             String(const String & other) : value(other.value) {}
             virtual ~String() {}
-        
-            virtual Type type() { return Value::Type::String; }
+            
+            static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new String()); }
+            static std::shared_ptr<Value> Make(const std::string & value) { return std::shared_ptr<Value>(new String(value)); }
+            static std::shared_ptr<Value> Make(const String & other) { return std::shared_ptr<Value>(new String(other)); }
+            
+            virtual Type type() const { return Value::Type::String; }
             
             virtual bool & boolean() { throw TypeMismatch(Value::Type::String, Value::Type::Boolean, "bool"); }
             virtual std::string & number() { throw TypeMismatch(Value::Type::String, Value::Type::Number, "number"); }
             virtual std::string & string() { return value; }
             virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw TypeMismatch(Value::Type::String, Value::Type::Object, "object"); }
 
-            virtual size_t arraySize() { throw TypeMismatch(Value::Type::String, Value::Type::Array, "arraySize"); }
+            virtual const bool & boolean() const { throw TypeMismatch(Value::Type::String, Value::Type::Boolean, "bool"); }
+            virtual const std::string & number() const { throw TypeMismatch(Value::Type::String, Value::Type::Number, "number"); }
+            virtual const std::string & string() const { return value; }
+            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::String, Value::Type::Object, "object"); }
+
+            virtual size_t arraySize() const { throw TypeMismatch(Value::Type::String, Value::Type::Array, "arraySize"); }
 
             virtual std::vector<bool> & boolArray() { throw TypeMismatch(Value::Type::String, Value::Type::BoolArray, "boolArray"); }
             virtual std::vector<std::string> & numberArray() { throw TypeMismatch(Value::Type::String, Value::Type::NumberArray, "numberArray"); }
@@ -283,7 +342,15 @@ namespace Json
                 throw TypeMismatch(Value::Type::String, Value::Type::ObjectArray, "objectArray");
             }
             virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw TypeMismatch(Value::Type::String, Value::Type::MixedArray, "mixedArray"); }
-        
+
+            virtual const std::vector<bool> & boolArray() const { throw TypeMismatch(Value::Type::String, Value::Type::BoolArray, "boolArray"); }
+            virtual const std::vector<std::string> & numberArray() const { throw TypeMismatch(Value::Type::String, Value::Type::NumberArray, "numberArray"); }
+            virtual const std::vector<std::string> & stringArray() const { throw TypeMismatch(Value::Type::String, Value::Type::StringArray, "stringArray"); }
+	        virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const {
+                throw TypeMismatch(Value::Type::String, Value::Type::ObjectArray, "objectArray");
+            }
+            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const { throw TypeMismatch(Value::Type::String, Value::Type::MixedArray, "mixedArray"); }
+            
         private:
 	        std::string value;
         };
@@ -292,15 +359,23 @@ namespace Json
             Object() : value() {}
             Object(const Object & other) : value(other.value) {}
             virtual ~Object() {}
-        
-            virtual Type type() { return Value::Type::Object; }
+            
+            static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new Object()); }
+            static std::shared_ptr<Value> Make(const Object & other) { return std::shared_ptr<Value>(new Object(other)); }
+            
+            virtual Type type() const { return Value::Type::Object; }
             
             virtual bool & boolean() { throw TypeMismatch(Value::Type::Object, Value::Type::Boolean, "bool"); }
             virtual std::string & number() { throw TypeMismatch(Value::Type::Object, Value::Type::Number, "number"); }
             virtual std::string & string() { throw TypeMismatch(Value::Type::Object, Value::Type::String, "string"); }
             virtual std::map<std::string, std::shared_ptr<Value>> & object() { return value; }
+            
+            virtual const bool & boolean() const { throw TypeMismatch(Value::Type::Object, Value::Type::Boolean, "bool"); }
+            virtual const std::string & number() const { throw TypeMismatch(Value::Type::Object, Value::Type::Number, "number"); }
+            virtual const std::string & string() const { throw TypeMismatch(Value::Type::Object, Value::Type::String, "string"); }
+            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { return value; }
 
-            virtual size_t arraySize() { throw TypeMismatch(Value::Type::Object, Value::Type::Array, "arraySize"); }
+            virtual size_t arraySize() const { throw TypeMismatch(Value::Type::Object, Value::Type::Array, "arraySize"); }
 
             virtual std::vector<bool> & boolArray() { throw TypeMismatch(Value::Type::Object, Value::Type::BoolArray, "boolArray"); }
             virtual std::vector<std::string> & numberArray() { throw TypeMismatch(Value::Type::Object, Value::Type::NumberArray, "numberArray"); }
@@ -309,7 +384,20 @@ namespace Json
                 throw TypeMismatch(Value::Type::Object, Value::Type::ObjectArray, "objectArray");
             }
             virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw TypeMismatch(Value::Type::Object, Value::Type::MixedArray, "mixedArray"); }
-        
+
+            virtual const std::vector<bool> & boolArray() const { throw TypeMismatch(Value::Type::Object, Value::Type::BoolArray, "boolArray"); }
+            virtual const std::vector<std::string> & numberArray() const { throw TypeMismatch(Value::Type::Object, Value::Type::NumberArray, "numberArray"); }
+            virtual const std::vector<std::string> & stringArray() const { throw TypeMismatch(Value::Type::Object, Value::Type::StringArray, "stringArray"); }
+	        virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const {
+                throw TypeMismatch(Value::Type::Object, Value::Type::ObjectArray, "objectArray");
+            }
+            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const { throw TypeMismatch(Value::Type::Object, Value::Type::MixedArray, "mixedArray"); }
+            
+            virtual void put(std::string fieldName, std::shared_ptr<Value> value)
+            {
+                this->value.insert(std::pair<std::string, std::shared_ptr<Value>>(fieldName, value));
+            }
+            
         private:
 	        std::map<std::string, std::shared_ptr<Value>> value;
         };
@@ -319,15 +407,23 @@ namespace Json
             BoolArray() : values() {}
             BoolArray(const BoolArray & other) : values(other.values) {}
             virtual ~BoolArray() {}
-        
-            virtual Type type() { return Value::Type::BoolArray; }
+            
+            static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new BoolArray()); }
+            static std::shared_ptr<Value> Make(const BoolArray & other) { return std::shared_ptr<Value>(new BoolArray(other)); }
+
+            virtual Type type() const { return Value::Type::BoolArray; }
             
             virtual bool & boolean() { throw TypeMismatch(Value::Type::BoolArray, Value::Type::Boolean, "bool"); }
             virtual std::string & number() { throw TypeMismatch(Value::Type::BoolArray, Value::Type::Number, "number"); }
             virtual std::string & string() { throw TypeMismatch(Value::Type::BoolArray, Value::Type::String, "string"); }
             virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw TypeMismatch(Value::Type::BoolArray, Value::Type::Object, "object"); }
+            
+            virtual const bool & boolean() const { throw TypeMismatch(Value::Type::BoolArray, Value::Type::Boolean, "bool"); }
+            virtual const std::string & number() const { throw TypeMismatch(Value::Type::BoolArray, Value::Type::Number, "number"); }
+            virtual const std::string & string() const { throw TypeMismatch(Value::Type::BoolArray, Value::Type::String, "string"); }
+            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::BoolArray, Value::Type::Object, "object"); }
 
-            virtual size_t arraySize() { throw TypeMismatch(Value::Type::BoolArray, Value::Type::Array, "arraySize"); }
+            virtual size_t arraySize() const { throw TypeMismatch(Value::Type::BoolArray, Value::Type::Array, "arraySize"); }
             
             virtual std::vector<bool> & boolArray() { return values; }
             virtual std::vector<std::string> & numberArray() { throw TypeMismatch(Value::Type::BoolArray, Value::Type::NumberArray, "numberArray"); }
@@ -336,7 +432,15 @@ namespace Json
                 throw TypeMismatch(Value::Type::BoolArray, Value::Type::ObjectArray, "objectArray");
             }
             virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw TypeMismatch(Value::Type::BoolArray, Value::Type::MixedArray, "mixedArray"); }
-        
+            
+            virtual const std::vector<bool> & boolArray() const { return values; }
+            virtual const std::vector<std::string> & numberArray() const { throw TypeMismatch(Value::Type::BoolArray, Value::Type::NumberArray, "numberArray"); }
+            virtual const std::vector<std::string> & stringArray() const { throw TypeMismatch(Value::Type::BoolArray, Value::Type::StringArray, "stringArray"); }
+	        virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const {
+                throw TypeMismatch(Value::Type::BoolArray, Value::Type::ObjectArray, "objectArray");
+            }
+            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const { throw TypeMismatch(Value::Type::BoolArray, Value::Type::MixedArray, "mixedArray"); }
+            
         private:
 	        std::vector<bool> values;
         };
@@ -345,15 +449,23 @@ namespace Json
             NumberArray() : values() {}
             NumberArray(const NumberArray & other) : values(other.values) {}
             virtual ~NumberArray() {}
-        
-            virtual Type type() { return Value::Type::NumberArray; }
+            
+            static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new NumberArray()); }
+            static std::shared_ptr<Value> Make(const NumberArray & other) { return std::shared_ptr<Value>(new NumberArray(other)); }
+            
+            virtual Type type() const { return Value::Type::NumberArray; }
             
             virtual bool & boolean() { throw TypeMismatch(Value::Type::NumberArray, Value::Type::Boolean, "bool"); }
             virtual std::string & number() { throw TypeMismatch(Value::Type::NumberArray, Value::Type::Number, "number"); }
             virtual std::string & string() { throw TypeMismatch(Value::Type::NumberArray, Value::Type::String, "string"); }
             virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw TypeMismatch(Value::Type::NumberArray, Value::Type::Object, "object"); }
+            
+            virtual const bool & boolean() const { throw TypeMismatch(Value::Type::NumberArray, Value::Type::Boolean, "bool"); }
+            virtual const std::string & number() const { throw TypeMismatch(Value::Type::NumberArray, Value::Type::Number, "number"); }
+            virtual const std::string & string() const { throw TypeMismatch(Value::Type::NumberArray, Value::Type::String, "string"); }
+            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::NumberArray, Value::Type::Object, "object"); }
 
-            virtual size_t arraySize() { throw TypeMismatch(Value::Type::NumberArray, Value::Type::Array, "arraySize"); }
+            virtual size_t arraySize() const { throw TypeMismatch(Value::Type::NumberArray, Value::Type::Array, "arraySize"); }
 
             virtual std::vector<bool> & boolArray() { throw TypeMismatch(Value::Type::NumberArray, Value::Type::BoolArray, "boolArray"); }
             virtual std::vector<std::string> & numberArray() { return values; }
@@ -362,7 +474,15 @@ namespace Json
                 throw TypeMismatch(Value::Type::NumberArray, Value::Type::ObjectArray, "objectArray");
             }
             virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw TypeMismatch(Value::Type::NumberArray, Value::Type::MixedArray, "mixedArray"); }
-        
+
+            virtual const std::vector<bool> & boolArray() const { throw TypeMismatch(Value::Type::NumberArray, Value::Type::BoolArray, "boolArray"); }
+            virtual const std::vector<std::string> & numberArray() const { return values; }
+            virtual const std::vector<std::string> & stringArray() const { throw TypeMismatch(Value::Type::NumberArray, Value::Type::StringArray, "stringArray"); }
+	        virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const {
+                throw TypeMismatch(Value::Type::NumberArray, Value::Type::ObjectArray, "objectArray");
+            }
+            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const { throw TypeMismatch(Value::Type::NumberArray, Value::Type::MixedArray, "mixedArray"); }
+            
         private:
 	        std::vector<std::string> values;
         };
@@ -371,15 +491,23 @@ namespace Json
             StringArray() : values() {}
             StringArray(const StringArray & other) : values(other.values) {}
             virtual ~StringArray() {}
-        
-            virtual Type type() { return Value::Type::StringArray; }
+            
+            static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new StringArray()); }
+            static std::shared_ptr<Value> Make(const StringArray & other) { return std::shared_ptr<Value>(new StringArray(other)); }
+            
+            virtual Type type() const { return Value::Type::StringArray; }
             
             virtual bool & boolean() { throw TypeMismatch(Value::Type::StringArray, Value::Type::Boolean, "bool"); }
             virtual std::string & number() { throw TypeMismatch(Value::Type::StringArray, Value::Type::Number, "number"); }
             virtual std::string & string() { throw TypeMismatch(Value::Type::StringArray, Value::Type::String, "string"); }
             virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw TypeMismatch(Value::Type::StringArray, Value::Type::Object, "object"); }
+            
+            virtual const bool & boolean() const { throw TypeMismatch(Value::Type::StringArray, Value::Type::Boolean, "bool"); }
+            virtual const std::string & number() const { throw TypeMismatch(Value::Type::StringArray, Value::Type::Number, "number"); }
+            virtual const std::string & string() const { throw TypeMismatch(Value::Type::StringArray, Value::Type::String, "string"); }
+            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::StringArray, Value::Type::Object, "object"); }
 
-            virtual size_t arraySize() { throw TypeMismatch(Value::Type::StringArray, Value::Type::Array, "arraySize"); }
+            virtual size_t arraySize() const { throw TypeMismatch(Value::Type::StringArray, Value::Type::Array, "arraySize"); }
 
             virtual std::vector<bool> & boolArray() { throw TypeMismatch(Value::Type::StringArray, Value::Type::BoolArray, "boolArray"); }
             virtual std::vector<std::string> & numberArray() { throw TypeMismatch(Value::Type::StringArray, Value::Type::NumberArray, "numberArray"); }
@@ -388,7 +516,15 @@ namespace Json
                 throw TypeMismatch(Value::Type::StringArray, Value::Type::ObjectArray, "objectArray");
             }
             virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw TypeMismatch(Value::Type::StringArray, Value::Type::MixedArray, "mixedArray"); }
-        
+
+            virtual const std::vector<bool> & boolArray() const { throw TypeMismatch(Value::Type::StringArray, Value::Type::BoolArray, "boolArray"); }
+            virtual const std::vector<std::string> & numberArray() const { throw TypeMismatch(Value::Type::StringArray, Value::Type::NumberArray, "numberArray"); }
+            virtual const std::vector<std::string> & stringArray() const { return values; }
+	        virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const {
+                throw TypeMismatch(Value::Type::StringArray, Value::Type::ObjectArray, "objectArray");
+            }
+            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const { throw TypeMismatch(Value::Type::StringArray, Value::Type::MixedArray, "mixedArray"); }
+
         private:
 	        std::vector<std::string> values;
         };
@@ -397,22 +533,36 @@ namespace Json
             ObjectArray() : values() {}
             ObjectArray(const ObjectArray & other) : values(other.values) {}
             virtual ~ObjectArray() {}
-        
-            virtual Type type() { return Value::Type::ObjectArray; }
+            
+            static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new ObjectArray()); }
+            static std::shared_ptr<Value> Make(const ObjectArray & other) { return std::shared_ptr<Value>(new ObjectArray(other)); }
+            
+            virtual Type type() const { return Value::Type::ObjectArray; }
             
             virtual bool & boolean() { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Boolean, "bool"); }
             virtual std::string & number() { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Number, "number"); }
             virtual std::string & string() { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::String, "string"); }
             virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Object, "object"); }
+            
+            virtual const bool & boolean() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Boolean, "bool"); }
+            virtual const std::string & number() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Number, "number"); }
+            virtual const std::string & string() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::String, "string"); }
+            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Object, "object"); }
 
-            virtual size_t arraySize() { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Array, "arraySize"); }
+            virtual size_t arraySize() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Array, "arraySize"); }
 
             virtual std::vector<bool> & boolArray() { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::BoolArray, "boolArray"); }
             virtual std::vector<std::string> & numberArray() { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::NumberArray, "numberArray"); }
             virtual std::vector<std::string> & stringArray() { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::StringArray, "stringArray"); }
             virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() { return values; }
             virtual std::vector<std::shared_ptr<Value>> & mixedArray() { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::MixedArray, "mixedArray"); }
-        
+
+            virtual const std::vector<bool> & boolArray() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::BoolArray, "boolArray"); }
+            virtual const std::vector<std::string> & numberArray() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::NumberArray, "numberArray"); }
+            virtual const std::vector<std::string> & stringArray() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::StringArray, "stringArray"); }
+            virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const { return values; }
+            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::MixedArray, "mixedArray"); }
+            
         private:
 	        std::vector<std::map<std::string, std::shared_ptr<Value>>> values;
         };
@@ -421,15 +571,23 @@ namespace Json
             MixedArray() : values() {}
             MixedArray(const MixedArray & other) : values(other.values) {}
             virtual ~MixedArray() {}
-        
-            virtual Type type() { return Value::Type::MixedArray; }
+            
+            static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new MixedArray()); }
+            static std::shared_ptr<Value> Make(const MixedArray & other) { return std::shared_ptr<Value>(new MixedArray(other)); }
+            
+            virtual Type type() const { return Value::Type::MixedArray; }
             
             virtual bool & boolean() { throw TypeMismatch(Value::Type::MixedArray, Value::Type::Boolean, "bool"); }
             virtual std::string & number() { throw TypeMismatch(Value::Type::MixedArray, Value::Type::Number, "number"); }
             virtual std::string & string() { throw TypeMismatch(Value::Type::MixedArray, Value::Type::String, "string"); }
             virtual std::map<std::string, std::shared_ptr<Value>> & object() { throw TypeMismatch(Value::Type::MixedArray, Value::Type::Object, "object"); }
+            
+            virtual const bool & boolean() const { throw TypeMismatch(Value::Type::MixedArray, Value::Type::Boolean, "bool"); }
+            virtual const std::string & number() const { throw TypeMismatch(Value::Type::MixedArray, Value::Type::Number, "number"); }
+            virtual const std::string & string() const { throw TypeMismatch(Value::Type::MixedArray, Value::Type::String, "string"); }
+            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::MixedArray, Value::Type::Object, "object"); }
 
-            virtual size_t arraySize() { throw TypeMismatch(Value::Type::MixedArray, Value::Type::Array, "arraySize"); }
+            virtual size_t arraySize() const { throw TypeMismatch(Value::Type::MixedArray, Value::Type::Array, "arraySize"); }
 
             virtual std::vector<bool> & boolArray() { throw TypeMismatch(Value::Type::MixedArray, Value::Type::BoolArray, "boolArray"); }
             virtual std::vector<std::string> & numberArray() { throw TypeMismatch(Value::Type::MixedArray, Value::Type::NumberArray, "numberArray"); }
@@ -438,6 +596,14 @@ namespace Json
                 throw TypeMismatch(Value::Type::MixedArray, Value::Type::ObjectArray, "objectArray");
             }
             virtual std::vector<std::shared_ptr<Value>> & mixedArray() { return values; }
+
+            virtual const std::vector<bool> & boolArray() const { throw TypeMismatch(Value::Type::MixedArray, Value::Type::BoolArray, "boolArray"); }
+            virtual const std::vector<std::string> & numberArray() const { throw TypeMismatch(Value::Type::MixedArray, Value::Type::NumberArray, "numberArray"); }
+            virtual const std::vector<std::string> & stringArray() const { throw TypeMismatch(Value::Type::MixedArray, Value::Type::StringArray, "stringArray"); }
+	        virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const {
+                throw TypeMismatch(Value::Type::MixedArray, Value::Type::ObjectArray, "objectArray");
+            }
+            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const { return values; }
 
         private:
             std::vector<std::shared_ptr<Value>> values;
@@ -489,7 +655,7 @@ namespace Json
                 is_specialized<CustomizeType<Value, Annotate<>, Field>>::value; // CustomizeType<3arg>, OpAnnotations defaulted
         }
 
-        inline namespace Affixes
+        inline namespace StaticAffix
         {
             template <bool PrettyPrint, size_t IndentLevel, const char* indent = twoSpaces>
             struct IndentType { };
@@ -508,7 +674,7 @@ namespace Json
 
                 return os;
             }
-
+            
             template <bool PrettyPrint, bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
             struct ArrayPrefixType { };
 
@@ -636,60 +802,228 @@ namespace Json
         {
             inline namespace Affix
             {
+                template <bool PrettyPrint, const char* indent = twoSpaces>
+                void Indent(std::ostream & os, size_t indentLevel)
+                {
+                    if constexpr ( PrettyPrint )
+                    {
+                        for ( size_t i=0; i<indentLevel; i++ )
+                            os << indent;
+                    }
+                }
+                
+                template <bool PrettyPrint, bool ContainsPrimitives, const char* indent = twoSpaces>
+                void ArrayPrefix(std::ostream & os, size_t indentLevel)
+                {
+                    if constexpr ( !PrettyPrint )
+                        os << "[";
+                    else if constexpr ( ContainsPrimitives )
+                        os << "[ ";
+                    else
+                    {
+                        os << "[" << std::endl;
+                        Put::Indent<PrettyPrint, indent>(os, indentLevel);
+                    }
+                }
+
+                template <bool PrettyPrint, bool ContainsPrimitives, const char* indent = twoSpaces>
+                void ArraySuffix(std::ostream & os, size_t indentLevel)
+                {
+                    if constexpr ( !PrettyPrint )
+                        os << "]";
+                    else if constexpr ( ContainsPrimitives )
+                        os << " ]";
+                    else
+                    {
+                        os << std::endl;
+                        Put::Indent<PrettyPrint, indent>(os, indentLevel);
+                        os << "]";
+                    }
+                }
+                
+                template <bool PrettyPrint, const char* indent>
+                void ObjectPrefix(std::ostream & os, size_t indentLevel)
+                {
+                    os << "{";
+                }
+                
+                template <bool PrettyPrint, const char* indent = twoSpaces>
+                void ObjectSuffix(std::ostream & os, bool isEmpty, size_t indentLevel)
+                {
+                    if ( PrettyPrint && !isEmpty )
+                    {
+                        os << std::endl;
+                        Put::Indent<PrettyPrint, indent>(os, indentLevel);
+                        os << "}";
+                    }
+                    else
+                        os << "}";
+                }
+                
+                template <bool PrettyPrint, const char* indent = twoSpaces>
+                void FieldPrefix(std::ostream & os, bool isFirst, size_t indentLevel)
+                {
+                    if constexpr ( PrettyPrint )
+                    {
+                        if ( isFirst )
+                        {
+                            os << std::endl;
+                            Put::Indent<PrettyPrint, indent>(os, indentLevel);
+                        }
+                        else
+                        {
+                            os << "," << std::endl;
+                            Put::Indent<PrettyPrint, indent>(os, indentLevel);
+                        }
+                    }
+                    else if ( !isFirst )
+                        os << ",";
+                }
+
                 template <bool PrettyPrint, bool IsArray, bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
                 void NestedPrefix(std::ostream & os, bool isEmpty)
                 {
                     if constexpr ( IsArray )
                     {
                         if ( isEmpty )
-                            os << ArrayPrefix<false, ContainsPrimitives, IndentLevel, indent>;
+                            os << StaticAffix::ArrayPrefix<false, ContainsPrimitives, IndentLevel, indent>;
                         else
-                            os << ArrayPrefix<PrettyPrint, ContainsPrimitives, IndentLevel, indent>;
+                            os << StaticAffix::ArrayPrefix<PrettyPrint, ContainsPrimitives, IndentLevel, indent>;
                     }
                     else
                     {
                         if ( isEmpty )
-                            os << ObjectPrefix<false, IndentLevel, indent>;
+                            os << StaticAffix::ObjectPrefix<false, IndentLevel, indent>;
                         else
-                            os << ObjectPrefix<PrettyPrint, IndentLevel, indent>;
+                            os << StaticAffix::ObjectPrefix<PrettyPrint, IndentLevel, indent>;
                     }
                 }
 
+                template <bool PrettyPrint, const char* indent = twoSpaces>
+                void NestedPrefix(std::ostream & os, bool isArray, bool containsPrimitives, bool isEmpty, size_t indentLevel)
+                {
+                    if ( isArray )
+                    {
+                        if ( isEmpty )
+                        {
+                            if ( containsPrimitives )
+                                Put::ArrayPrefix<false, true, indent>(os, indentLevel);
+                            else
+                                Put::ArrayPrefix<false, false, indent>(os, indentLevel);
+                        }
+                        else
+                        {
+                            if ( containsPrimitives )
+                                Put::ArrayPrefix<PrettyPrint, true, indent>(os, indentLevel);
+                            else
+                                Put::ArrayPrefix<PrettyPrint, false, indent>(os, indentLevel);
+                        }
+                    }
+                    else
+                    {
+                        if ( isEmpty )
+                            Put::ObjectPrefix<false, indent>(os, indentLevel);
+                        else
+                            Put::ObjectPrefix<PrettyPrint, indent>(os, indentLevel);
+                    }
+                }
+                
                 template <bool PrettyPrint, bool IsArray, bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
                 void NestedSuffix(std::ostream & os, bool isEmpty)
                 {
                     if constexpr ( IsArray )
                     {
                         if ( isEmpty )
-                            os << ArraySuffix<false, ContainsPrimitives, IndentLevel, indent>;
+                            os << StaticAffix::ArraySuffix<false, ContainsPrimitives, IndentLevel, indent>;
                         else
-                            os << ArraySuffix<PrettyPrint, ContainsPrimitives, IndentLevel, indent>;
+                            os << StaticAffix::ArraySuffix<PrettyPrint, ContainsPrimitives, IndentLevel, indent>;
                     }
                     else
                     {
                         if ( isEmpty )
-                            os << ObjectSuffix<false, IndentLevel, indent>;
+                            os << StaticAffix::ObjectSuffix<false, IndentLevel, indent>;
                         else
-                            os << ObjectSuffix<PrettyPrint, IndentLevel, indent>;
+                            os << StaticAffix::ObjectSuffix<PrettyPrint, IndentLevel, indent>;
                     }
                 }
-
+                
+                template <bool PrettyPrint, const char* indent = twoSpaces>
+                void NestedSuffix(std::ostream & os, bool isArray, bool containsPrimitives, bool isEmpty, size_t indentLevel)
+                {
+                    if ( isArray )
+                    {
+                        if ( isEmpty )
+                        {
+                            if ( containsPrimitives )
+                                Put::ArraySuffix<false, true, indent>(os, indentLevel);
+                            else
+                                Put::ArraySuffix<false, false, indent>(os, indentLevel);
+                        }
+                        else
+                        {
+                            if ( containsPrimitives )
+                                Put::ArraySuffix<PrettyPrint, true, indent>(os, indentLevel);
+                            else
+                                Put::ArraySuffix<PrettyPrint, false, indent>(os, indentLevel);
+                        }
+                    }
+                    else
+                    {
+                        if ( isEmpty )
+                            Put::ObjectSuffix<false, indent>(os, isEmpty, indentLevel);
+                        else
+                            Put::ObjectSuffix<PrettyPrint, indent>(os, isEmpty, indentLevel);
+                    }
+                }
+                
                 template <bool PrettyPrint, bool IsJsonField, bool NestedSeparator, size_t IndentLevel, const char* indent = twoSpaces>
                 void Separator(std::ostream & os, bool isFirst)
                 {
                     if constexpr ( IsJsonField )
                     {
                         if ( isFirst && PrettyPrint )
-                            os << std::endl << Indent<PrettyPrint, IndentLevel, indent>;
+                            os << std::endl << StaticAffix::Indent<PrettyPrint, IndentLevel, indent>;
                         else if constexpr ( PrettyPrint )
-                            os << "," << std::endl << Indent<PrettyPrint, IndentLevel, indent>;
+                            os << "," << std::endl << StaticAffix::Indent<PrettyPrint, IndentLevel, indent>;
                         else if ( !isFirst )
                             os << ",";
                     }
                     else if ( !isFirst )
                     {
                         if constexpr ( NestedSeparator && PrettyPrint )
-                            os << "," << std::endl << Indent<PrettyPrint, IndentLevel, indent>;
+                            os << "," << std::endl << StaticAffix::Indent<PrettyPrint, IndentLevel, indent>;
+                        else if constexpr ( PrettyPrint )
+                            os << ", ";
+                        else
+                            os << ",";
+                    }
+                }
+                
+                template <bool PrettyPrint, bool IsJsonField, bool NestedSeparator, const char* indent = twoSpaces>
+                void Separator(std::ostream & os, bool isFirst, size_t indentLevel)
+                {
+                    if constexpr ( IsJsonField )
+                    {
+                        if ( isFirst && PrettyPrint )
+                        {
+                            os << std::endl;
+                            Put::Indent<PrettyPrint, indent>(os, indentLevel);
+                        }
+                        else if constexpr ( PrettyPrint )
+                        {
+                            os << "," << std::endl;
+                            Put::Indent<PrettyPrint, indent>(os, indentLevel);
+                        }
+                        else if ( !isFirst )
+                            os << ",";
+                    }
+                    else if ( !isFirst )
+                    {
+                        if constexpr ( NestedSeparator && PrettyPrint )
+                        {
+                            os << "," << std::endl;
+                            Put::Indent<PrettyPrint, indent>(os, indentLevel);
+                        }
                         else if constexpr ( PrettyPrint )
                             os << ", ";
                         else
@@ -771,6 +1105,32 @@ namespace Json
                 Put::String(os, ss.str());
             }
             
+            template <typename Annotations, bool PrettyPrint, const char* indent>
+            static constexpr void Value(std::ostream & os, Context & context,
+                size_t totalParentIterables, size_t indentLevel, const Generic::Value & value)
+            {
+                switch ( value.type() )
+                {
+                    case Generic::Value::Type::Boolean:
+                        os << (value.boolean() ? "true" : "false");
+                        break;
+                    case Generic::Value::Type::Number:
+                        os << value.number();
+                        break;
+                    case Generic::Value::Type::String:
+                        os << "\"" << value.string() << "\"";
+                        break;
+                    case Generic::Value::Type::Object:
+                    case Generic::Value::Type::BoolArray:
+                    case Generic::Value::Type::NumberArray:
+                    case Generic::Value::Type::StringArray:
+                    case Generic::Value::Type::ObjectArray:
+                    case Generic::Value::Type::MixedArray:
+                        Put::Iterable<Annotations, PrettyPrint, indent>(os, context, totalParentIterables, indentLevel, value);
+                        break;
+                }
+            }
+
             template <typename Annotations, typename Field, Statics statics,
                 bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, typename T>
             static constexpr void Value(std::ostream & os, Context & context, const Object & obj, const T & value)
@@ -792,6 +1152,8 @@ namespace Json
                     else
                         Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object>(os, context, obj, *value);
                 }
+                else if constexpr ( std::is_base_of<Generic::Value, T>::value )
+                    Put::Value<Annotations, PrettyPrint, indent>(os, context, TotalParentIterables, IndentLevel+1, (const Generic::Value &)value);
                 else if constexpr ( is_iterable<T>::value )
                     Put::Iterable<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object>(os, context, obj, value);
                 else if constexpr ( Field::template HasAnnotation<IsRoot> )
@@ -825,7 +1187,7 @@ namespace Json
                 constexpr bool ContainsIterables = is_iterable<typename pair_rhs<Element>::type>::value;
                 constexpr bool ContainsPrimitives = !Field::template HasAnnotation<Reflect::Reflected> && !ContainsIterables;
                 constexpr bool ContainsPairs = is_pair<Element>::value;
-            
+                
                 size_t i=0;
                 Put::NestedPrefix<PrettyPrint, !ContainsPairs, ContainsPrimitives, IndentLevel+TotalParentIterables+2, indent>(os, IsEmpty(iterable));
                 if constexpr ( is_stl_iterable<IterableValue>::value )
@@ -856,13 +1218,102 @@ namespace Json
                 Put::NestedSuffix<PrettyPrint, !ContainsPairs, ContainsPrimitives, IndentLevel+TotalParentIterables+1, indent>(os, IsEmpty(iterable));
             }
 
+            template <typename Annotations, bool PrettyPrint, const char* indent, typename GenericIterable>
+            static constexpr void Iterable(std::ostream & os, Context & context,
+                size_t totalParentIterables, size_t indentLevel, const GenericIterable & iterable)
+            {
+                bool isObject = iterable.type() == Generic::Value::Type::Object;
+                bool containsPrimitives = iterable.type() == Generic::Value::Type::BoolArray ||
+                    iterable.type() == Generic::Value::Type::NumberArray || iterable.type() == Generic::Value::Type::StringArray;
+                bool isEmpty = (isObject && iterable.object().empty()) || (!isObject && iterable.arraySize() == 0);
+
+                size_t i=0;
+                Put::NestedPrefix<PrettyPrint, indent>(os, !isObject, containsPrimitives, isEmpty, indentLevel+totalParentIterables+1);
+                switch ( iterable.type() )
+                {
+                    case Generic::Value::Type::Object:
+                    {
+                        const std::map<std::string, std::shared_ptr<Generic::Value>> & obj = iterable.object();
+                        bool isFirst = true;
+                        for ( const auto & field : obj )
+                        {
+                            Put::FieldPrefix<PrettyPrint, indent>(os, isFirst, indentLevel+totalParentIterables+1);
+                            Put::String(os, field.first);
+                            os << FieldNameValueSeparator<PrettyPrint>;
+                            Put::Value<Annotations, PrettyPrint, indent>(os, context, 0, indentLevel+totalParentIterables+1, (Generic::Value &)*field.second);
+                            isFirst = false;
+                        }
+                    }
+                    break;
+                    case Generic::Value::Type::BoolArray:
+                    {
+                        const std::vector<bool> & array = iterable.boolArray();
+                        for ( const auto & element : array )
+                        {
+                            Put::Separator<PrettyPrint, false, false, indent>(os, 0 == i++, indentLevel+totalParentIterables+2);
+                            os << (element ? "true" : "false");
+                        }
+                    }
+                    break;
+                    case Generic::Value::Type::NumberArray:
+                    {
+                        const std::vector<std::string> & array = iterable.numberArray();
+                        for ( const auto & element : array )
+                        {
+                            Put::Separator<PrettyPrint, false, false, indent>(os, 0 == i++, indentLevel+totalParentIterables+2);
+                            os << element;
+                        }
+                    }
+                    break;
+                    case Generic::Value::Type::StringArray:
+                    {
+                        const std::vector<std::string> & array = iterable.stringArray();
+                        for ( const auto & element : array )
+                        {
+                            Put::Separator<PrettyPrint, false, false, indent>(os, 0 == i++, indentLevel+totalParentIterables+2);
+                            os << element;
+                        }
+                    }
+                    break;
+                    case Generic::Value::Type::ObjectArray:
+                    {
+                        const std::vector<std::map<std::string, std::shared_ptr<Generic::Value>>> & array = iterable.objectArray();
+                        for ( const std::map<std::string, std::shared_ptr<Generic::Value>> & obj : array )
+                        {
+                            Put::Separator<PrettyPrint, false, true, indent>(os, 0 == i++, indentLevel+totalParentIterables+2);
+                            bool isFirst = true;
+                            for ( const auto & field : obj )
+                            {
+                                Put::FieldPrefix<PrettyPrint, indent>(os, isFirst, indentLevel+1);
+                                Put::String(os, field.first);
+                                os << FieldNameValueSeparator<PrettyPrint>;
+                                Put::Value<Annotations, PrettyPrint, indent>(os, context, totalParentIterables+1, indentLevel, (Generic::Value &)field.second);
+                                isFirst = false;
+                            }
+                        }
+                    }
+                    break;
+                    case Generic::Value::Type::MixedArray:
+                    {
+                        const std::vector<std::shared_ptr<Generic::Value>> & array = iterable.mixedArray();
+                        for ( const std::shared_ptr<Generic::Value> & element : array )
+                        {
+                            Put::Separator<PrettyPrint, false, true, indent>(os, 0 == i++, indentLevel+totalParentIterables+2);
+                            Put::Value<Annotations, PrettyPrint, indent>(os, context, totalParentIterables, indentLevel, *element);
+                        }
+                    }
+                    break;
+                }
+                Put::NestedSuffix<PrettyPrint, indent>(os, !isObject, containsPrimitives, isEmpty, indentLevel+totalParentIterables);
+            }
+
             template <typename Annotations, typename FieldClass, Statics statics,
                 bool PrettyPrint, size_t IndentLevel, const char* indent, typename Object>
             static constexpr void Field(std::ostream & os, Context & context, const Object & obj, const char* fieldName, const typename FieldClass::Type & value)
             {
                 if constexpr ( matches_statics<FieldClass::IsStatic, statics>::value )
                 {
-                    os << FieldPrefix<FieldClass::Index == FirstIndex<statics, Object>(), PrettyPrint, IndentLevel+1, indent>;
+                    os << StaticAffix::FieldPrefix<FieldClass::Index == FirstIndex<statics, Object>(), PrettyPrint, IndentLevel+1, indent>;
                     Put::String(os, fieldName);
                     os << FieldNameValueSeparator<PrettyPrint>;
                     Put::Value<Annotations, FieldClass, statics, PrettyPrint, 0, IndentLevel, indent, Object>(os, context, obj, value);
@@ -883,7 +1334,7 @@ namespace Json
                 bool PrettyPrint, size_t IndentLevel, const char* indent, typename Object>
             static constexpr void Super(std::ostream & os, Context & context, const Object & obj, const std::string & superFieldName)
             {
-                os << FieldPrefix<SuperIndex == 0, PrettyPrint, IndentLevel+1, indent>;
+                os << StaticAffix::FieldPrefix<SuperIndex == 0, PrettyPrint, IndentLevel+1, indent>;
                 Put::String(os, superFieldName);
                 os << FieldNameValueSeparator<PrettyPrint>;
                 Put::Object<Annotations, statics, PrettyPrint, IndentLevel+1, indent, T>(os, context, obj);
@@ -903,10 +1354,10 @@ namespace Json
             template <typename Annotations, Statics statics, bool PrettyPrint, size_t IndentLevel, const char* indent, typename T>
             static constexpr void Object(std::ostream & os, Context & context, const T & obj)
             {
-                os << ObjectPrefix<PrettyPrint, IndentLevel, indent, statics, T>;
+                os << StaticAffix::ObjectPrefix<PrettyPrint, IndentLevel, indent, statics, T>;
                 Put::Fields<Annotations, statics, PrettyPrint, IndentLevel, indent, T>(os, context, obj);
                 Put::Supers<Annotations, statics, PrettyPrint, IndentLevel, indent, T>(os, context, obj);
-                os << ObjectSuffix<PrettyPrint, IndentLevel, indent, statics, T>;
+                os << StaticAffix::ObjectSuffix<PrettyPrint, IndentLevel, indent, statics, T>;
             }
         }
         
@@ -949,6 +1400,12 @@ namespace Json
         constexpr Output::ReflectedObject<Annotations, statics, true, IndentLevel, indent, T> pretty(const T & t, std::shared_ptr<Context> context = nullptr)
         {
             return Output::ReflectedObject<Annotations, statics, true, IndentLevel, indent, T>(t, context);
+        }
+
+        std::ostream & operator<<(std::ostream & os, const Generic::Value & value)
+        {
+            Put::Value<Annotate<>, true, twoSpaces>(os, context, 0, 0, value);
+            return os;
         }
     };
     
@@ -1943,6 +2400,8 @@ namespace Json
                     else
                         Read::Value<InArray, Field>(is, context, c, object, *value);
                 }
+                else if constexpr ( std::is_base_of<Generic::Value, T>::value )
+                    ;
                 else if constexpr ( is_iterable<T>::value )
                     Read::Iterable<Field, T>(is, context, c, object, value);
                 else if constexpr ( Field::template HasAnnotation<IsRoot> )

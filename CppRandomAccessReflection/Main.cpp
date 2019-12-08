@@ -313,9 +313,19 @@ int main()
     std::cout << std::endl << Json::out(car) << std::endl << std::endl;
 
     StaticCluster s;
-    std::cout << Json::pretty<Statics::Only>(s) << std::endl << std::endl;
+    std::cout << std::endl << Json::pretty<Statics::Included>(s) << std::endl << std::endl;
+
+    Json::Object obj;
+    obj.put("asdf", Json::Bool::Make(true));
+    obj.put("jkl", Json::Number::Make(5));
+    obj.put("qwer", Json::String::Make("str"));
+    std::cout << obj << std::endl << std::endl;
 
     A a;
+    a.runtime = Json::Object::Make();
+    Json::Object & runtime = (Json::Object &)*a.runtime;
+    runtime.put("field", Json::Bool::Make(true));
+    std::cout << Json::pretty<Statics::Included>(a) << std::endl << std::endl;
     do {
         bool successfulRead = false;
         try {

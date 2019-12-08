@@ -49,6 +49,7 @@ public:
     std::map<std::string, std::string> map;
     std::vector<std::vector<int>> vecVec;
     int ray[2];
+    std::shared_ptr<Json::Value> runtime;
 
     class NestedClass
     {
@@ -60,7 +61,7 @@ public:
 
     using Parents = Inherit<SuperA, OtherSuperA>;
     REFLECT((Parents) A, () testEnum, (Reflected) composed, () first, () second,
-        () ptr, () boolean, (Json::String) str, (Json::String) map, () vecVec, () ray)
+        () ptr, () boolean, (Json::String) str, (Json::String) map, () vecVec, () ray, () runtime)
 };
 
 struct EnhancedContext : public Json::Context
@@ -87,9 +88,7 @@ struct Json::Input::Customize<A, A::TestEnum, FieldIndex>
             return true;
         }
         else
-        {
             return false;
-        }
     }
 };
 
