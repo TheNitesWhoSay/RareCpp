@@ -1218,9 +1218,9 @@ namespace Json
                 Put::NestedSuffix<PrettyPrint, !ContainsPairs, ContainsPrimitives, IndentLevel+TotalParentIterables+1, indent>(os, IsEmpty(iterable));
             }
 
-            template <typename Annotations, bool PrettyPrint, const char* indent, typename GenericIterable>
+            template <typename Annotations, bool PrettyPrint, const char* indent>
             static constexpr void Iterable(std::ostream & os, Context & context,
-                size_t totalParentIterables, size_t indentLevel, const GenericIterable & iterable)
+                size_t totalParentIterables, size_t indentLevel, const Generic::Value & iterable)
             {
                 bool isObject = iterable.type() == Generic::Value::Type::Object;
                 bool containsPrimitives = iterable.type() == Generic::Value::Type::BoolArray ||
@@ -2366,7 +2366,7 @@ namespace Json
                 if constexpr ( !std::is_const<EnumType>::value )
                     value = (typename remove_pointer<Value>::type)temp;
             }
-
+            
             template <bool InArray, typename Field, typename T, typename Object, bool AllowCustomization = true>
             static constexpr void Value(std::istream & is, Context & context, char & c, Object & object, T & value)
             {
@@ -2385,13 +2385,35 @@ namespace Json
 
                 if constexpr ( is_pointable<T>::value )
                 {
-                    if ( value == nullptr ) // If value pointer is nullptr the only valid value is "null"
-                        Consume::Null<InArray>(is, c);
-                    else if constexpr ( is_pointable<std::remove_pointer<T>::type>::value && // If value pointed to is also a pointer
-                        !std::is_const<std::remove_pointer<T>::type>::value ) // And value pointed to is not const
+                    using Dereferenced = typename remove_pointer<T>::type;
+                    if constexpr ( std::is_base_of<Generic::Value, Dereferenced>::value )
                     {
-                        Read::Value<InArray, Field>(is, context, c, object, *value);  // Only take the chance of assigning nullptr to that more deeply nested pointer
+                        if ( Consume::TryNull<InArray>(is, c) )
+                        {
+                            if ( !std::is_const<T>::value )
+                                value = nullptr;
+                        }
+                        else if ( value == nullptr )
+                        {
+                            if ( !std::is_const<T>::value )
+                            {
+                                if constexpr ( std::is_same<std::shared_ptr<Dereferenced>, T>::value )
+                                    value = std::shared_ptr<Dereferenced>(new Dereferenced());
+                                else if constexpr ( std::is_same<std::unique_ptr<Dereferenced>, T>::value )
+                                    value = std::unique_ptr<Dereferenced>(new Dereferenced());
+                                else if constexpr ( std::is_same<Dereferenced*, T>::value )
+                                    value = new Dereferenced();
+
+                                Read::Value<InArray>(is, context, value);
+                            }
+                        }
                     }
+                    else if ( value == nullptr ) // If value pointer is nullptr the only valid value is "null"
+                    {
+                        Consume::Null<InArray>(is, c);
+                    }
+                    else if constexpr ( is_pointable<Dereferenced>::value && !std::is_const<Dereferenced>::value )
+                        Read::Value<InArray, Field>(is, context, c, object, *value);  // Only take the chance of assigning nullptr to that more deeply nested pointer
                     else if ( Consume::TryNull<InArray>(is, c) ) // If value pointer is not nullptr, "null" is a possible value
                     {
                         if constexpr ( !std::is_const<T>::value )
@@ -2418,6 +2440,47 @@ namespace Json
                     Consume::ConstPrimitive<T>(is);
                 else
                     is >> value;
+            }
+
+            template <bool InArray>
+            static constexpr void Value(std::istream & is, Context & context, char & c, Generic::Value & value)
+            {
+                Checked::consumeWhitespace(is, "completion of field value");
+                Checked::peek(is, c, "completion of field value");
+                switch ( c )
+                {
+                    case '\"': // String or error
+                        value.string() = Read::String(is, c);
+                        break;
+                    case '-': case '0': case '1': case '2': case '3': case '4': case '5':
+                    case '6': case '7': case '8': case '9': // Number or error
+                        Consume::Number<InArray>(is, c);
+                        // TODO: Number reader
+                        break;
+                    case '{': // JSON object or error
+                        Consume::Iterable<false>(is, c);
+                        // TODO: Read generic object
+                        break;
+                    case '[': // JSON array or error
+                        Consume::Iterable<true>(is, c);
+                        // TODO: Read generic array
+                        break;
+                    case 't': // "true" or error
+                        Consume::True<InArray>(is, c);
+                        value.boolean() = true;
+                        break;
+                    case 'f': // "false" or error
+                        Consume::False<InArray>(is, c);
+                        value.boolean() = false;
+                        break;
+                    case 'n': // "null" or error
+                        Consume::Null<InArray>(is, c);
+                        throw Exception("Cannot place null in non-pointable value!"); // TODO: Specific exception
+                        break;
+                    default:
+                        throw InvalidUnknownFieldValue();
+                        break;
+                }
             }
 
             template <bool InArray, typename Field, typename Key, typename T, typename Object>
@@ -2457,6 +2520,35 @@ namespace Json
                     }
                     while ( Read::IterableElementSeparator<ContainsPairs>(is) );
                 }
+            }
+
+            static void Iterable(std::istream & is, Context & context, char & c, Generic::Value & value)
+            {
+                bool isObject = value.type() == Generic::Value::Type::Object;
+
+                /*Read::IterablePrefix<ContainsPairs>(is, c);
+                if ( !Read::TryIterableSuffix<ContainsPairs>(is) )
+                {
+                    Clear(iterable);
+                    size_t i=0;
+                    do
+                    {
+                        if constexpr ( is_static_array<T>::value )
+                        {
+                            if ( i >= static_array_size<T>::value )
+                                throw ArraySizeExceeded();
+                            else
+                                Read::Value<!ContainsPairs, Field>(is, context, c, object, iterable[i++]);
+                        }
+                        else // Appendable STL container
+                        {
+                            typename element_type<T>::type value;
+                            Read::Value<!ContainsPairs, Field>(is, context, c, object, value);
+                            Append<T, typename element_type<T>::type>(iterable, value);
+                        }
+                    }
+                    while ( Read::IterableElementSeparator<ContainsPairs>(is) );
+                }*/
             }
 
             template <typename Object>
