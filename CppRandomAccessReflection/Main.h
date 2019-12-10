@@ -127,7 +127,7 @@ struct Json::Output::Customize<A, A::TestEnum>
                 case A::TestEnum::second: Json::Put::String(os, "secondCustom" + std::to_string(enhanced.enhanced)); return true;
             }
             return true;
-        } catch ( std::bad_cast & e ) {
+        } catch ( std::bad_cast & ) {
             return false;
         }
     }

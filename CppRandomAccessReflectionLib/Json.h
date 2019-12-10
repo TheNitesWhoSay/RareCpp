@@ -81,6 +81,12 @@ namespace Json
             Exception(const char* what) : std::exception(what) {}
         };
 
+        class NullUnassignable : public Exception
+        {
+        public:
+            NullUnassignable() : Exception("Null cannot be assigned to a non-pointable value!") {}
+        };
+
         inline namespace TypeNames
         {
             std::string simplifyTypeStr(const std::string & superTypeStr)
@@ -130,9 +136,10 @@ namespace Json
         };
 
         class Value;
+        class TypeMismatch;
         using ObjectPtr = std::shared_ptr<std::map<std::string, std::shared_ptr<Value>>>;
         using FieldsPtr = std::shared_ptr<std::map<std::string, std::shared_ptr<Value>>>;
-
+        
         class Value {
         public:
             enum_t(Type, uint8_t, {
@@ -148,6 +155,62 @@ namespace Json
                 ObjectArray,
                 MixedArray
             });
+
+            class Assigner
+            {
+            public:
+                Assigner(Value* allocatedValue) : allocatedValue(allocatedValue) {}
+                ~Assigner() { if ( allocatedValue != nullptr ) delete allocatedValue; }
+
+                /// Assigns the stored Json::Generic::Value to the value passed to the method, then discards the stored Json::Generic::Value
+                template <typename T>
+                void into(T & value)
+                {
+                    if constexpr ( is_pointable<T>::value )
+                    {
+                        if ( allocatedValue != nullptr )
+                        {
+                            using Dereferenced = typename remove_pointer<T>::type;
+                            if ( value == nullptr )
+                            {
+                                if constexpr ( std::is_same<std::shared_ptr<Dereferenced>, T>::value )
+                                    value = std::shared_ptr<Dereferenced>(allocatedValue);
+                                else if constexpr ( std::is_same<std::unique_ptr<Dereferenced>, T>::value )
+                                    value = std::unique_ptr<Dereferenced>(allocatedValue);
+                                else
+                                    throw Exception("Cannot assign a non-null value to a null pointer unless the type is std::shared_ptr or std::unique_ptr");
+                            }
+                            else if ( value->type() != allocatedValue->type() ) // value != nullptr
+                                throw TypeMismatch(value->type(), allocatedValue->type());
+                            else if constexpr ( std::is_same<std::shared_ptr<Dereferenced>, T>::value ) // value != nullptr && value->type() == allocatedValue->type()
+                                value = std::shared_ptr<Dereferenced>(allocatedValue);
+                            else if constexpr ( std::is_same<std::unique_ptr<Dereferenced>, T>::value ) // value != nullptr && value->type() == allocatedValue->type()
+                                value = std::unique_ptr<Dereferenced>(allocatedValue);
+                            else // value != nullptr && value->type() == allocatedValue->type()
+                            {
+                                *value = *allocatedValue; // Non-null but not a smart pointer you can trust to perform cleanup, use value assignment
+                                delete allocatedValue;
+                            }
+
+                            allocatedValue = nullptr;
+                        }
+                        else if ( value != nullptr ) // allocatedValue == nullptr
+                            value = nullptr;
+                    }
+                    else if ( allocatedValue == nullptr ) // !is_pointable<T>::value
+                        throw NullUnassignable();
+                    else if ( value.type() != allocatedValue->type() ) // !is_pointable<T>::value && allocatedValue != nullptr
+                        throw TypeMismatch(value.type(), allocatedValue->type());
+                    else // !is_pointable<T>::value && allocatedValue != nullptr && value.type() == allocatedValue->type()
+                    {
+                        value = *allocatedValue;
+                        allocatedValue = nullptr;
+                    }
+                }
+
+            private:
+                Value* allocatedValue;
+            };
 
             virtual ~Value() {};
 
@@ -188,9 +251,8 @@ namespace Json
             {
                 number() = std::to_string(number);
             }
-
         };
-	    
+
         class TypeMismatch : public Exception
         {
         public:
@@ -215,12 +277,17 @@ namespace Json
 
             TypeMismatch(Value::Type valueType, Value::Type functionType, const std::string & functionName)
                 : Exception((std::string("Cannot call ") + functionName + "() on a Json::" + getTypeStr(valueType) + " type!").c_str()),
-                valueType(valueType), functionType(functionType) {}
+                valueType(valueType), rValueType(Value::Type::None), functionType(functionType) {}
+
+            TypeMismatch(Value::Type lhsType, Value::Type rhsType)
+                : Exception((std::string("Cannot assign a Json::") + getTypeStr(rhsType) + " value to a Json::" + getTypeStr(lhsType) + " type!").c_str()),
+                valueType(valueType), rValueType(rhsType), functionType(Value::Type::None) {}
 
             Value::Type valueType;
+            Value::Type rValueType;
             Value::Type functionType;
         };
-
+	    
         class Bool : public Value {
         public:
             Bool() : value(false) {}
@@ -2247,6 +2314,20 @@ namespace Json
                     return false;
             }
 
+            template <bool InArray>
+            static constexpr bool True(std::istream & is, char & c)
+            {
+                Consume::True<InArray>(is, c);
+                return true;
+            }
+
+            template <bool InArray>
+            static constexpr bool False(std::istream & is, char & c)
+            {
+                Consume::False<InArray>(is, c);
+                return false;
+            }
+
             template <bool InArray, typename Value>
             static constexpr void Bool(std::istream & is, char & c, Value & value)
             {
@@ -2266,6 +2347,14 @@ namespace Json
                 }
                 else
                     throw Exception("Expected: \"true\" or \"false\"");
+            }
+
+            template <bool InArray>
+            static constexpr std::string Number(std::istream & is, char & c)
+            {
+                std::stringstream ss;
+                Consume::Value<InArray>(is, c, ss);
+                return ss.str();
             }
 
             static void String(std::istream & is, char & c, std::stringstream & ss)
@@ -2367,6 +2456,58 @@ namespace Json
                     value = (typename remove_pointer<Value>::type)temp;
             }
             
+            template <bool InArray>
+            static constexpr Generic::Value::Assigner GenericValue(std::istream & is, Context & context, char & c)
+            {
+                Checked::consumeWhitespace(is, "completion of field value");
+                Checked::peek(is, c, "completion of field value");
+                switch ( c )
+                {
+                    case '\"': return Generic::Value::Assigner(new Generic::String(Read::String(is, c))); // String or error
+                    case '{': return Read::GenericObject(is, context, c); // JSON object or error
+                    case '[': return Read::GenericArray<InArray>(is, context, c); // JSON array or error
+                    case 't': return Generic::Value::Assigner(new Generic::Bool(Read::True<InArray>(is, c))); // "true" or error
+                    case 'f': return Generic::Value::Assigner(new Generic::Bool(Read::False<InArray>(is, c))); // "false" or error
+                    case '-': case '0': case '1': case '2': case '3': case '4': case '5':
+                    case '6': case '7': case '8': case '9':
+                        return Generic::Value::Assigner(new Generic::Number(Read::Number<InArray>(is, c))); // Number or error
+                    case 'n':
+                        Consume::Null<InArray>(is, c);
+                        return Generic::Value::Assigner(nullptr); // "null" or error
+                    default:
+                        throw InvalidUnknownFieldValue();
+                }
+            }
+
+            template <bool InArray>
+            static Generic::Value::Assigner GenericArray(std::istream & is, Context & context, char & c)
+            {
+                Checked::consumeWhitespace(is, "completion of field value");
+                Checked::peek(is, c, "completion of field value");
+                switch ( c )
+                {
+                    case '\"': return Generic::Value::Assigner(new Generic::String(Read::String(is, c))); // String or error
+                    case '{': return Read::GenericObject(is, context, c); // JSON object or error
+                    case '[': return Read::GenericArray<InArray>(is, context, c); // JSON array or error
+                    case 't': return Generic::Value::Assigner(new Generic::Bool(Read::True<InArray>(is, c))); // "true" or error
+                    case 'f': return Generic::Value::Assigner(new Generic::Bool(Read::False<InArray>(is, c))); // "false" or error
+                    case '-': case '0': case '1': case '2': case '3': case '4': case '5':
+                    case '6': case '7': case '8': case '9':
+                        return Generic::Value::Assigner(new Generic::Number(Read::Number<InArray>(is, c))); // Number or error
+                    case 'n':
+                        Consume::Null<InArray>(is, c);
+                        return Generic::Value::Assigner(nullptr); // "null" or error
+                    default:
+                        throw InvalidUnknownFieldValue();
+                }
+            }
+            
+            static Generic::Value::Assigner GenericObject(std::istream & is, Context & context, char & c)
+            {
+                Consume::Iterable<true>(is, c);
+                throw Exception("TODO");
+            }
+
             template <bool InArray, typename Field, typename T, typename Object, bool AllowCustomization = true>
             static constexpr void Value(std::istream & is, Context & context, char & c, Object & object, T & value)
             {
@@ -2395,23 +2536,14 @@ namespace Json
                         }
                         else if ( value == nullptr )
                         {
-                            if ( !std::is_const<T>::value )
-                            {
-                                if constexpr ( std::is_same<std::shared_ptr<Dereferenced>, T>::value )
-                                    value = std::shared_ptr<Dereferenced>(new Dereferenced());
-                                else if constexpr ( std::is_same<std::unique_ptr<Dereferenced>, T>::value )
-                                    value = std::unique_ptr<Dereferenced>(new Dereferenced());
-                                else if constexpr ( std::is_same<Dereferenced*, T>::value )
-                                    value = new Dereferenced();
-
-                                Read::Value<InArray>(is, context, value);
-                            }
+                            if constexpr ( std::is_const<T>::value )
+                                Consume::Value<InArray>(is, c);
+                            else
+                                Read::GenericValue<InArray>(is, context, c).into(value);
                         }
                     }
-                    else if ( value == nullptr ) // If value pointer is nullptr the only valid value is "null"
-                    {
+                    else if ( value == nullptr ) // If value pointer is not a nullptr and not a Json::Generic the only valid value is "null"
                         Consume::Null<InArray>(is, c);
-                    }
                     else if constexpr ( is_pointable<Dereferenced>::value && !std::is_const<Dereferenced>::value )
                         Read::Value<InArray, Field>(is, context, c, object, *value);  // Only take the chance of assigning nullptr to that more deeply nested pointer
                     else if ( Consume::TryNull<InArray>(is, c) ) // If value pointer is not nullptr, "null" is a possible value
@@ -2423,7 +2555,12 @@ namespace Json
                         Read::Value<InArray, Field>(is, context, c, object, *value);
                 }
                 else if constexpr ( std::is_base_of<Generic::Value, T>::value )
-                    ;
+                {
+                    if constexpr ( std::is_const<T>::value )
+                        Consume::Value<InArray>(is, c);
+                    else
+                        Read::GenericValue<InArray>(is, context, c).into(value);
+                }
                 else if constexpr ( is_iterable<T>::value )
                     Read::Iterable<Field, T>(is, context, c, object, value);
                 else if constexpr ( Field::template HasAnnotation<IsRoot> )
@@ -2440,47 +2577,6 @@ namespace Json
                     Consume::ConstPrimitive<T>(is);
                 else
                     is >> value;
-            }
-
-            template <bool InArray>
-            static constexpr void Value(std::istream & is, Context & context, char & c, Generic::Value & value)
-            {
-                Checked::consumeWhitespace(is, "completion of field value");
-                Checked::peek(is, c, "completion of field value");
-                switch ( c )
-                {
-                    case '\"': // String or error
-                        value.string() = Read::String(is, c);
-                        break;
-                    case '-': case '0': case '1': case '2': case '3': case '4': case '5':
-                    case '6': case '7': case '8': case '9': // Number or error
-                        Consume::Number<InArray>(is, c);
-                        // TODO: Number reader
-                        break;
-                    case '{': // JSON object or error
-                        Consume::Iterable<false>(is, c);
-                        // TODO: Read generic object
-                        break;
-                    case '[': // JSON array or error
-                        Consume::Iterable<true>(is, c);
-                        // TODO: Read generic array
-                        break;
-                    case 't': // "true" or error
-                        Consume::True<InArray>(is, c);
-                        value.boolean() = true;
-                        break;
-                    case 'f': // "false" or error
-                        Consume::False<InArray>(is, c);
-                        value.boolean() = false;
-                        break;
-                    case 'n': // "null" or error
-                        Consume::Null<InArray>(is, c);
-                        throw Exception("Cannot place null in non-pointable value!"); // TODO: Specific exception
-                        break;
-                    default:
-                        throw InvalidUnknownFieldValue();
-                        break;
-                }
             }
 
             template <bool InArray, typename Field, typename Key, typename T, typename Object>
@@ -2520,35 +2616,6 @@ namespace Json
                     }
                     while ( Read::IterableElementSeparator<ContainsPairs>(is) );
                 }
-            }
-
-            static void Iterable(std::istream & is, Context & context, char & c, Generic::Value & value)
-            {
-                bool isObject = value.type() == Generic::Value::Type::Object;
-
-                /*Read::IterablePrefix<ContainsPairs>(is, c);
-                if ( !Read::TryIterableSuffix<ContainsPairs>(is) )
-                {
-                    Clear(iterable);
-                    size_t i=0;
-                    do
-                    {
-                        if constexpr ( is_static_array<T>::value )
-                        {
-                            if ( i >= static_array_size<T>::value )
-                                throw ArraySizeExceeded();
-                            else
-                                Read::Value<!ContainsPairs, Field>(is, context, c, object, iterable[i++]);
-                        }
-                        else // Appendable STL container
-                        {
-                            typename element_type<T>::type value;
-                            Read::Value<!ContainsPairs, Field>(is, context, c, object, value);
-                            Append<T, typename element_type<T>::type>(iterable, value);
-                        }
-                    }
-                    while ( Read::IterableElementSeparator<ContainsPairs>(is) );
-                }*/
             }
 
             template <typename Object>
