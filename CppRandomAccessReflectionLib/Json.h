@@ -1637,41 +1637,6 @@ namespace Json
                 StreamUngetFail(char c) : Exception((std::string("Attempt to unread last character (") + c + ") resulted in failure").c_str()) {}
             };
 
-            template <typename Field>
-            class UnexpectedFieldValue : public Exception
-            {
-            public:
-                template <typename Field>
-                static std::string getExpectation(Field field)
-                {
-                    std::string expectation;
-                    if constexpr ( Field::IsPointer )
-                        return "\"null\""; // TODO: More handling for pointers
-                    else if constexpr ( Field::IsBool )
-                        return "true or false";
-                    else if constexpr ( Field::IsArray )
-                        return "JSON Array";
-                    else if constexpr ( Field::IsObject )
-                        return "JSON Object";
-                    else if constexpr ( Field::template HasAnnotation<Json::String> )
-                        return "JSON String";
-                    else
-                        return "TODO: Implement more expectations";
-                }
-
-                UnexpectedFieldValue(Field field)
-                    : Exception((
-                        std::string("Unexpected value for field: \"") + field.name + "\". Expected: "
-                        + getExpectation<Field>(field)
-                    ).c_str()) {}
-
-                UnexpectedFieldValue(Field field, const char* fieldValue)
-                    : Exception((
-                        std::string("Unexpected value: \"") + fieldValue + "\" for field: \"" + field.name + "\". Expected: "
-                        + getExpectation<Field>(field)
-                    ).c_str()) {}
-            };
-
             class InvalidUnknownFieldValue : public Exception
             {
             public:
