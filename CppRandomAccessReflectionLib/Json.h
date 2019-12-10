@@ -2407,7 +2407,7 @@ namespace Json
                 Consume::False<InArray>(is, c);
                 return false;
             }
-
+            
             template <bool InArray, typename Value>
             static constexpr void Bool(std::istream & is, char & c, Value & value)
             {
@@ -2424,6 +2424,25 @@ namespace Json
                     Consume::False<InArray>(is, c);
                     if constexpr ( !std::is_const<Value>::value )
                         value = false;
+                }
+                else
+                    throw Exception("Expected: \"true\" or \"false\"");
+            }
+
+            template <bool InArray>
+            static constexpr bool Bool(std::istream & is, char & c)
+            {
+                Checked::consumeWhitespace(is, "true or false");
+                Checked::peek(is, c, "true or false");
+                if ( c == 't' )
+                {
+                    Consume::True<InArray>(is, c);
+                    return true;
+                }
+                else if ( c == 'f' )
+                {
+                    Consume::False<InArray>(is, c);
+                    return false;
                 }
                 else
                     throw Exception("Expected: \"true\" or \"false\"");
@@ -2536,6 +2555,17 @@ namespace Json
                     value = (typename remove_pointer<Value>::type)temp;
             }
             
+            static inline std::string FieldName(std::istream & is, char & c)
+            {
+                std::string fieldName;
+                try {
+                    Read::String(is, c, fieldName);
+                } catch ( UnexpectedLineEnding & e) {
+                    throw FieldNameUnexpectedLineEnding(e);
+                }
+                return fieldName;
+            }
+
             template <bool InArray>
             static constexpr Generic::Value::Assigner GenericValue(std::istream & is, Context & context, char & c)
             {
@@ -2585,122 +2615,133 @@ namespace Json
                 Checked::consumeWhitespace(is, "completion of field value");
                 Checked::peek(is, c, "completion of field value");
                 
-                Generic::Value* value = nullptr;
                 Generic::Value::Type arrayElementType = Read::ValueType(c);
-                switch ( arrayElementType )
+                Generic::Value* value = nullptr;
+                try
                 {
-                    case Generic::Value::Type::Null: value = new Generic::NullArray(); break;
-                    case Generic::Value::Type::Boolean: value = new Generic::BoolArray(); break;
-                    case Generic::Value::Type::Number: value = new Generic::NumberArray(); break;
-                    case Generic::Value::Type::String: value = new Generic::StringArray(); break;
-                    case Generic::Value::Type::Object: value = new Generic::ObjectArray(); break;
-                    case Generic::Value::Type::Array: value = new Generic::MixedArray(); break;
-                }
-
-                Generic::Value::Type elementType = Generic::Value::Type::None;
-                do
-                {
-                    elementType = Read::ValueType(c);
-
-                    if ( elementType != arrayElementType && arrayElementType != Generic::Value::Type::Array ) // Promote to mixed array
+                    switch ( arrayElementType )
                     {
-                        Generic::Value* newValue = new Generic::MixedArray();
-                        std::vector<std::shared_ptr<Generic::Value>> & mixedArray = newValue->mixedArray();
-                        switch ( arrayElementType )
-                        {
-                            case Generic::Value::Type::Null:
-                            {
-                                for ( size_t i=0; i<value->nullArray(); i++ )
-                                    mixedArray.push_back(nullptr);
-                            }
-                            break;
-                            case Generic::Value::Type::Boolean:
-                            {
-                                const std::vector<bool> & boolArray = value->boolArray();
-                                for ( size_t i=0; i<boolArray.size(); i++ )
-                                    mixedArray.push_back(Generic::Bool::Make(boolArray[i]));
-                            }
-                            break;
-                            case Generic::Value::Type::Number:
-                            {
-                                const std::vector<std::string> & numberArray = value->numberArray();
-                                for ( size_t i=0; i<numberArray.size(); i++ )
-                                    mixedArray.push_back(Generic::Number::Make(numberArray[i]));
-                            }
-                            break;
-                            case Generic::Value::Type::String:
-                            {
-                                const std::vector<std::string> & stringArray = value->stringArray();
-                                for ( size_t i=0; i<stringArray.size(); i++ )
-                                    mixedArray.push_back(Generic::String::Make(stringArray[i]));
-                            }
-                            break;
-                            case Generic::Value::Type::Object:
-                            {
-                                const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray = value->objectArray();
-                                for ( size_t i=0; i<objectArray.size(); i++ )
-                                    mixedArray.push_back(Generic::Object::Make(objectArray[i]));
-                            }
-                            break;
-                        }
-                        arrayElementType = Generic::Value::Type::Array;
-                        if ( value != nullptr )
-                            delete value;
-
-                        value = newValue;
+                        case Generic::Value::Type::Null: value = new Generic::NullArray(); break;
+                        case Generic::Value::Type::Boolean: value = new Generic::BoolArray(); break;
+                        case Generic::Value::Type::Number: value = new Generic::NumberArray(); break;
+                        case Generic::Value::Type::String: value = new Generic::StringArray(); break;
+                        case Generic::Value::Type::Object: value = new Generic::ObjectArray(); break;
+                        case Generic::Value::Type::Array: value = new Generic::MixedArray(); break;
                     }
 
-                    if ( arrayElementType == Generic::Value::Type::Array )
+                    Generic::Value::Type elementType = Generic::Value::Type::None;
+                    do
                     {
+                        elementType = Read::ValueType(c);
+
+                        if ( elementType != arrayElementType && arrayElementType != Generic::Value::Type::Array ) // Promote to mixed array
+                        {
+                            Generic::Value* newValue = new Generic::MixedArray();
+                            std::vector<std::shared_ptr<Generic::Value>> & mixedArray = newValue->mixedArray();
+                            switch ( arrayElementType )
+                            {
+                                case Generic::Value::Type::Null:
+                                {
+                                    for ( size_t i=0; i<value->nullArray(); i++ )
+                                        mixedArray.push_back(nullptr);
+                                }
+                                break;
+                                case Generic::Value::Type::Boolean:
+                                {
+                                    const std::vector<bool> & boolArray = value->boolArray();
+                                    for ( size_t i=0; i<boolArray.size(); i++ )
+                                        mixedArray.push_back(Generic::Bool::Make(boolArray[i]));
+                                }
+                                break;
+                                case Generic::Value::Type::Number:
+                                {
+                                    const std::vector<std::string> & numberArray = value->numberArray();
+                                    for ( size_t i=0; i<numberArray.size(); i++ )
+                                        mixedArray.push_back(Generic::Number::Make(numberArray[i]));
+                                }
+                                break;
+                                case Generic::Value::Type::String:
+                                {
+                                    const std::vector<std::string> & stringArray = value->stringArray();
+                                    for ( size_t i=0; i<stringArray.size(); i++ )
+                                        mixedArray.push_back(Generic::String::Make(stringArray[i]));
+                                }
+                                break;
+                                case Generic::Value::Type::Object:
+                                {
+                                    const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray = value->objectArray();
+                                    for ( size_t i=0; i<objectArray.size(); i++ )
+                                        mixedArray.push_back(Generic::Object::Make(objectArray[i]));
+                                }
+                                break;
+                            }
+                            arrayElementType = Generic::Value::Type::Array;
+                            if ( value != nullptr )
+                                delete value;
+
+                            value = newValue;
+                        }
+
                         switch ( elementType )
                         {
                             case Generic::Value::Type::Null: Consume::Null<true>(is, c); value->nullArray()++; break;
-                            case Generic::Value::Type::Boolean: value = new Generic::BoolArray(); break;
-                            case Generic::Value::Type::Number: value = new Generic::NumberArray(); break;
-                            case Generic::Value::Type::String: value = new Generic::StringArray(); break;
-                            case Generic::Value::Type::Object: value = new Generic::ObjectArray(); break;
-                            case Generic::Value::Type::Array: value = new Generic::MixedArray(); break;
+                            case Generic::Value::Type::Boolean: value->boolArray().push_back(Read::Bool<true>(is, c)); break;
+                            case Generic::Value::Type::Number: value->numberArray().push_back(Read::Number<true>(is, c)); break;
+                            case Generic::Value::Type::String: value->stringArray().push_back(Read::String(is, c)); break;
+                            case Generic::Value::Type::Object:
+                            {
+                                std::shared_ptr<Generic::Value> objectElement;
+                                Read::GenericObject(is, context, c).into(objectElement);
+                                value->objectArray().push_back(objectElement->object());
+                            }
+                            break;
+                            case Generic::Value::Type::Array:
+                            {
+                                std::shared_ptr<Generic::Value> arrayElement;
+                                Read::GenericArray<true>(is, context, c).into(arrayElement);
+                                value->mixedArray().push_back(arrayElement);
+                            }
+                            break;
                         }
                     }
-                    else // arrayElementType != Generic::Value::Type::Array
-                    {
-                        switch ( elementType )
-                        {
-                            case Generic::Value::Type::Null: value = new Generic::NullArray(); break;
-                            case Generic::Value::Type::Boolean: value = new Generic::BoolArray(); break;
-                            case Generic::Value::Type::Number: value = new Generic::NumberArray(); break;
-                            case Generic::Value::Type::String: value = new Generic::StringArray(); break;
-                            case Generic::Value::Type::Object: value = new Generic::ObjectArray(); break;
-                            case Generic::Value::Type::Array: value = new Generic::MixedArray(); break;
-                        }
-                    }
+                    while ( Read::IterableElementSeparator<false>(is) );
+                    
+                    return Generic::Value::Assigner(value);
 
+                } catch ( std::exception & e ) {
+                    if ( value != nullptr )
+                        delete value;
 
-
-                    switch ( c )
-                    {
-                        case '\"': return Generic::Value::Assigner(new Generic::String(Read::String(is, c))); // String or error
-                        case '{': return Read::GenericObject(is, context, c); // JSON object or error
-                        case '[': return Read::GenericArray<InArray>(is, context, c); // JSON array or error
-                        case 't': return Generic::Value::Assigner(new Generic::Bool(Read::True<InArray>(is, c))); // "true" or error
-                        case 'f': return Generic::Value::Assigner(new Generic::Bool(Read::False<InArray>(is, c))); // "false" or error
-                        case '-': case '0': case '1': case '2': case '3': case '4': case '5':
-                        case '6': case '7': case '8': case '9':
-                            return Generic::Value::Assigner(new Generic::Number(Read::Number<InArray>(is, c))); // Number or error
-                        case 'n':
-                            Consume::Null<InArray>(is, c);
-                            return Generic::Value::Assigner(nullptr); // "null" or error
-                        default:
-                            throw InvalidUnknownFieldValue();
-                    }
+                    throw e;
                 }
-                while ( Read::IterableElementSeparator<false>(is) );
             }
             
             static Generic::Value::Assigner GenericObject(std::istream & is, Context & context, char & c)
             {
-                Consume::Iterable<true>(is, c);
-                throw Exception("TODO");
+                Generic::Value* value = new Generic::Object();
+                try
+                {
+                    Read::ObjectPrefix(is, c);
+                    if ( !Read::TryObjectSuffix(is) )
+                    {
+                        do
+                        {
+                            std::string fieldName = Read::FieldName(is, c);
+                            std::shared_ptr<Generic::Value> fieldValue = nullptr;
+                            Read::GenericValue<false>(is, context, c).into(fieldValue);
+                            value->object().insert(std::pair<std::string, std::shared_ptr<Generic::Value>>(fieldName, fieldValue));
+                        }
+                        while ( Read::FieldSeparator(is) );
+                    }
+                    return Generic::Value::Assigner(value);
+                }
+                catch ( std::exception & e )
+                {
+                    if ( value != nullptr )
+                        delete value;
+
+                    throw e;
+                }
             }
 
             template <bool InArray, typename Field, typename T, typename Object, bool AllowCustomization = true>
@@ -2837,17 +2878,6 @@ namespace Json
                 }
                 else // Unknown field
                     Consume::Value<false>(is, c);
-            }
-
-            static inline std::string FieldName(std::istream & is, char & c)
-            {
-                std::string fieldName;
-                try {
-                    Read::String(is, c, fieldName);
-                } catch ( UnexpectedLineEnding & e) {
-                    throw FieldNameUnexpectedLineEnding(e);
-                }
-                return fieldName;
             }
 
             template <typename T>
