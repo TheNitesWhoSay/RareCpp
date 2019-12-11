@@ -1855,9 +1855,14 @@ namespace Json
                     throw Exception((std::string("Expected: ") + expectedDescription).c_str());
             }
 
+            template <bool IgnoreWhitespace = true>
             static inline void get(std::istream & is, char & c, const char* expectedDescription)
             {
-                is >> c;
+                if ( IgnoreWhitespace )
+                    is >> c;
+                else
+                    is.get(c);
+
                 if ( !is.good() )
                 {
                     if ( is.eof() )
@@ -1907,7 +1912,7 @@ namespace Json
 
             static inline void escapeSequenceGet(std::istream & is, char & c, const char* hexEscapeSequence)
             {
-                is >> c;
+                is.get(c);
                 if ( !is.good() )
                 {
                     if ( is.eof() )
@@ -2180,12 +2185,12 @@ namespace Json
                 ss.put('\"');
                 do
                 {
-                    Checked::get(is, c, "string value close quote");
+                    Checked::get<false>(is, c, "string value close quote");
                     ss.put(c);
                     switch ( c )
                     {
                         case '\\': // Escape sequence
-                            Checked::get(is, c, "completion of string escape sequence");
+                            Checked::get<false>(is, c, "completion of string escape sequence");
                             switch ( c )
                             {
                                 case '\"': break;
@@ -2462,11 +2467,11 @@ namespace Json
                 Checked::get(is, c, '\"', "string value open quote");
                 do
                 {
-                    Checked::get(is, c, "string value close quote");
+                    Checked::get<false>(is, c, "string value close quote");
                     switch ( c )
                     {
                         case '\\': // Escape sequence
-                            Checked::get(is, c, "completion of string escape sequence");
+                            Checked::get<false>(is, c, "completion of string escape sequence");
                             switch ( c )
                             {
                                 case '\"': ss.put('\"'); break;
