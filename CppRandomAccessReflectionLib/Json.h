@@ -1421,7 +1421,7 @@ namespace Json
                     {
                         for ( size_t i=0; i<iterable.nullArray(); i++ )
                         {
-                            Put::Separator<PrettyPrint, false, false, indent>(os, 0 == i, indentLevel+totalParentIterables+2);
+                            Put::Separator<PrettyPrint, false, false, indent>(os, 0 == i, indentLevel+totalParentIterables+1);
                             os << "null";
                         }
                     }
@@ -1479,8 +1479,11 @@ namespace Json
                         const std::vector<std::shared_ptr<Generic::Value>> & array = iterable.mixedArray();
                         for ( const std::shared_ptr<Generic::Value> & element : array )
                         {
-                            Put::Separator<PrettyPrint, false, true, indent>(os, 0 == i++, indentLevel+totalParentIterables+2);
-                            Put::Value<Annotations, PrettyPrint, indent>(os, context, totalParentIterables, indentLevel, *element);
+                            Put::Separator<PrettyPrint, false, true, indent>(os, 0 == i++, indentLevel+totalParentIterables+1);
+                            if ( element == nullptr )
+                                os << "null";
+                            else
+                                Put::Value<Annotations, PrettyPrint, indent>(os, context, totalParentIterables, indentLevel, *element);
                         }
                     }
                     break;
@@ -2691,7 +2694,7 @@ namespace Json
                             break;
                         }
                         arrayElementType = Generic::Value::Type::Array;
-                        result.swap(newResult);
+                        result = newResult;
                     }
 
                     if ( arrayElementType == Generic::Value::Type::Array )
