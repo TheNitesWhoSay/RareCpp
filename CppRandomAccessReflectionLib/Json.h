@@ -164,6 +164,12 @@ namespace Json
                 Assigner(Value* allocatedValue) : allocatedValue(allocatedValue) {}
                 ~Assigner() { if ( allocatedValue != nullptr ) delete allocatedValue; }
 
+                static std::shared_ptr<Assigner> Make(Value* allocatedValue) { return std::shared_ptr<Assigner>(new Assigner(allocatedValue)); }
+                
+                Value* get() { return allocatedValue; };
+                void set(Value* value) { if ( allocatedValue != nullptr ) delete allocatedValue; allocatedValue = value; }
+                void swap(Assigner & other) { std::swap(allocatedValue, other.allocatedValue); }
+
                 /// Assigns the stored Json::Generic::Value to the value passed to the method, then discards the stored Json::Generic::Value
                 template <typename T>
                 void into(T & value)
@@ -208,6 +214,13 @@ namespace Json
                         value = *allocatedValue;
                         allocatedValue = nullptr;
                     }
+                }
+
+                std::shared_ptr<Value> out()
+                {
+                    std::shared_ptr<Value> output = std::shared_ptr<Value>(allocatedValue);
+                    allocatedValue = nullptr;
+                    return output;
                 }
 
             private:
@@ -303,6 +316,8 @@ namespace Json
             static std::shared_ptr<Value> Make(bool value) { return std::shared_ptr<Value>(new Bool(value)); }
             static std::shared_ptr<Value> Make(const Bool & other) { return std::shared_ptr<Value>(new Bool(other)); }
             
+            Bool & operator=(const Value & other) { value = other.boolean(); return *this; }
+
             virtual Type type() const { return Value::Type::Boolean; }
             
             virtual bool & boolean() { return value; }
@@ -350,6 +365,8 @@ namespace Json
             static std::shared_ptr<Value> Make(const Number & other) { return std::shared_ptr<Value>(new Number(other)); }
             template <typename T> static std::shared_ptr<Value> Make(const T & number) { return std::shared_ptr<Value>(new Number(std::to_string(number))); }
             
+            Number & operator=(const Value & other) { value = other.number(); return *this; }
+            
             virtual Type type() const { return Value::Type::Number; }
             
             virtual bool & boolean() { throw TypeMismatch(Value::Type::Number, Value::Type::Boolean, "bool"); }
@@ -396,6 +413,8 @@ namespace Json
             static std::shared_ptr<Value> Make(const std::string & value) { return std::shared_ptr<Value>(new String(value)); }
             static std::shared_ptr<Value> Make(const String & other) { return std::shared_ptr<Value>(new String(other)); }
             
+            String & operator=(const Value & other) { value = other.string(); return *this; }
+            
             virtual Type type() const { return Value::Type::String; }
             
             virtual bool & boolean() { throw TypeMismatch(Value::Type::String, Value::Type::Boolean, "bool"); }
@@ -441,6 +460,8 @@ namespace Json
             static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new Object()); }
             static std::shared_ptr<Value> Make(const std::map<std::string, std::shared_ptr<Value>> & value) { return std::shared_ptr<Value>(new Object(value)); }
             static std::shared_ptr<Value> Make(const Object & other) { return std::shared_ptr<Value>(new Object(other)); }
+            
+            Object & operator=(const Value & other) { value = other.object(); return *this; }
             
             virtual Type type() const { return Value::Type::Object; }
             
@@ -494,6 +515,8 @@ namespace Json
             static std::shared_ptr<Value> Make(size_t nullCount) { return std::shared_ptr<Value>(new NullArray(nullCount)); }
             static std::shared_ptr<Value> Make(const NullArray & other) { return std::shared_ptr<Value>(new NullArray(other)); }
             
+            NullArray & operator=(const Value & other) { nullCount = other.nullArray(); return *this; }
+            
             virtual Type type() const { return Value::Type::NullArray; }
             
             virtual bool & boolean() { throw TypeMismatch(Value::Type::NullArray, Value::Type::Boolean, "bool"); }
@@ -537,6 +560,8 @@ namespace Json
             
             static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new BoolArray()); }
             static std::shared_ptr<Value> Make(const BoolArray & other) { return std::shared_ptr<Value>(new BoolArray(other)); }
+            
+            BoolArray & operator=(const Value & other) { values = other.boolArray(); return *this; }
 
             virtual Type type() const { return Value::Type::BoolArray; }
             
@@ -582,6 +607,8 @@ namespace Json
             static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new NumberArray()); }
             static std::shared_ptr<Value> Make(const NumberArray & other) { return std::shared_ptr<Value>(new NumberArray(other)); }
             
+            NumberArray & operator=(const Value & other) { values = other.numberArray(); return *this; }
+            
             virtual Type type() const { return Value::Type::NumberArray; }
             
             virtual bool & boolean() { throw TypeMismatch(Value::Type::NumberArray, Value::Type::Boolean, "bool"); }
@@ -625,6 +652,8 @@ namespace Json
             
             static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new StringArray()); }
             static std::shared_ptr<Value> Make(const StringArray & other) { return std::shared_ptr<Value>(new StringArray(other)); }
+            
+            StringArray & operator=(const Value & other) { values = other.stringArray(); return *this; }
             
             virtual Type type() const { return Value::Type::StringArray; }
             
@@ -670,6 +699,8 @@ namespace Json
             static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new ObjectArray()); }
             static std::shared_ptr<Value> Make(const ObjectArray & other) { return std::shared_ptr<Value>(new ObjectArray(other)); }
             
+            ObjectArray & operator=(const Value & other) { values = other.objectArray(); return *this; }
+            
             virtual Type type() const { return Value::Type::ObjectArray; }
             
             virtual bool & boolean() { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Boolean, "bool"); }
@@ -709,6 +740,8 @@ namespace Json
             
             static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new MixedArray()); }
             static std::shared_ptr<Value> Make(const MixedArray & other) { return std::shared_ptr<Value>(new MixedArray(other)); }
+            
+            MixedArray & operator=(const Value & other) { values = other.mixedArray(); return *this; }
             
             virtual Type type() const { return Value::Type::MixedArray; }
             
@@ -2532,23 +2565,23 @@ namespace Json
             }
 
             template <bool InArray>
-            static constexpr Generic::Value::Assigner GenericValue(std::istream & is, Context & context, char & c)
+            static constexpr std::shared_ptr<Generic::Value::Assigner> GenericValue(std::istream & is, Context & context, char & c)
             {
                 Checked::consumeWhitespace(is, "completion of field value");
                 Checked::peek(is, c, "completion of field value");
                 switch ( c )
                 {
-                    case '\"': return Generic::Value::Assigner(new Generic::String(Read::String(is, c))); // String or error
+                    case '\"': return Generic::Value::Assigner::Make(new Generic::String(Read::String(is, c))); // String or error
                     case '{': return Read::GenericObject(is, context, c); // JSON object or error
                     case '[': return Read::GenericArray<InArray>(is, context, c); // JSON array or error
-                    case 't': return Generic::Value::Assigner(new Generic::Bool(Read::True<InArray>(is, c))); // "true" or error
-                    case 'f': return Generic::Value::Assigner(new Generic::Bool(Read::False<InArray>(is, c))); // "false" or error
+                    case 't': return Generic::Value::Assigner::Make(new Generic::Bool(Read::True<InArray>(is, c))); // "true" or error
+                    case 'f': return Generic::Value::Assigner::Make(new Generic::Bool(Read::False<InArray>(is, c))); // "false" or error
                     case '-': case '0': case '1': case '2': case '3': case '4': case '5':
                     case '6': case '7': case '8': case '9':
-                        return Generic::Value::Assigner(new Generic::Number(Read::Number<InArray>(is, c))); // Number or error
+                        return Generic::Value::Assigner::Make(new Generic::Number(Read::Number<InArray>(is, c))); // Number or error
                     case 'n':
                         Consume::Null<InArray>(is, c);
-                        return Generic::Value::Assigner(nullptr); // "null" or error
+                        return Generic::Value::Assigner::Make(nullptr); // "null" or error
                     default:
                         throw InvalidUnknownFieldValue();
                 }
@@ -2571,142 +2604,111 @@ namespace Json
             }
 
             template <bool InArray>
-            static Generic::Value::Assigner GenericArray(std::istream & is, Context & context, char & c)
+            static std::shared_ptr<Generic::Value::Assigner> GenericArray(std::istream & is, Context & context, char & c)
             {
                 Read::ArrayPrefix(is, c);
                 if ( Read::TryArraySuffix(is) )
-                    return Generic::Value::Assigner(new Json::Generic::NullArray());
+                    return Generic::Value::Assigner::Make(new Generic::NullArray());
 
                 Checked::consumeWhitespace(is, "completion of field value");
                 Checked::peek(is, c, "completion of field value");
                 
                 Generic::Value::Type arrayElementType = Read::ValueType(c);
-                Generic::Value* value = nullptr;
-                try
+
+                std::shared_ptr<Generic::Value::Assigner> result = std::shared_ptr<Generic::Value::Assigner>(nullptr);
+                switch ( arrayElementType )
                 {
-                    switch ( arrayElementType )
-                    {
-                        case Generic::Value::Type::Null: value = new Generic::NullArray(); break;
-                        case Generic::Value::Type::Boolean: value = new Generic::BoolArray(); break;
-                        case Generic::Value::Type::Number: value = new Generic::NumberArray(); break;
-                        case Generic::Value::Type::String: value = new Generic::StringArray(); break;
-                        case Generic::Value::Type::Object: value = new Generic::ObjectArray(); break;
-                        case Generic::Value::Type::Array: value = new Generic::MixedArray(); break;
-                    }
+                    case Generic::Value::Type::Null: result->set(new Generic::NullArray()); break;
+                    case Generic::Value::Type::Boolean: result->set(new Generic::BoolArray()); break;
+                    case Generic::Value::Type::Number: result->set(new Generic::NumberArray()); break;
+                    case Generic::Value::Type::String: result->set(new Generic::StringArray()); break;
+                    case Generic::Value::Type::Object: result->set(new Generic::ObjectArray()); break;
+                    case Generic::Value::Type::Array: result->set(new Generic::MixedArray()); break;
+                }
 
-                    Generic::Value::Type elementType = Generic::Value::Type::None;
-                    do
-                    {
-                        elementType = Read::ValueType(c);
+                Generic::Value::Type elementType = Generic::Value::Type::None;
+                do
+                {
+                    elementType = Read::ValueType(c);
 
-                        if ( elementType != arrayElementType && arrayElementType != Generic::Value::Type::Array ) // Promote to mixed array
+                    if ( elementType != arrayElementType && arrayElementType != Generic::Value::Type::Array ) // Promote to mixed array
+                    {
+                        std::shared_ptr<Generic::Value::Assigner> newResult = Generic::Value::Assigner::Make(new Generic::MixedArray());
+                        std::vector<std::shared_ptr<Generic::Value>> & mixedArray = newResult->get()->mixedArray();
+                        switch ( arrayElementType )
                         {
-                            Generic::Value* newValue = new Generic::MixedArray();
-                            std::vector<std::shared_ptr<Generic::Value>> & mixedArray = newValue->mixedArray();
-                            switch ( arrayElementType )
+                            case Generic::Value::Type::Null:
                             {
-                                case Generic::Value::Type::Null:
-                                {
-                                    for ( size_t i=0; i<value->nullArray(); i++ )
-                                        mixedArray.push_back(nullptr);
-                                }
-                                break;
-                                case Generic::Value::Type::Boolean:
-                                {
-                                    const std::vector<bool> & boolArray = value->boolArray();
-                                    for ( size_t i=0; i<boolArray.size(); i++ )
-                                        mixedArray.push_back(Generic::Bool::Make(boolArray[i]));
-                                }
-                                break;
-                                case Generic::Value::Type::Number:
-                                {
-                                    const std::vector<std::string> & numberArray = value->numberArray();
-                                    for ( size_t i=0; i<numberArray.size(); i++ )
-                                        mixedArray.push_back(Generic::Number::Make(numberArray[i]));
-                                }
-                                break;
-                                case Generic::Value::Type::String:
-                                {
-                                    const std::vector<std::string> & stringArray = value->stringArray();
-                                    for ( size_t i=0; i<stringArray.size(); i++ )
-                                        mixedArray.push_back(Generic::String::Make(stringArray[i]));
-                                }
-                                break;
-                                case Generic::Value::Type::Object:
-                                {
-                                    const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray = value->objectArray();
-                                    for ( size_t i=0; i<objectArray.size(); i++ )
-                                        mixedArray.push_back(Generic::Object::Make(objectArray[i]));
-                                }
-                                break;
+                                for ( size_t i=0; i<result->get()->nullArray(); i++ )
+                                    mixedArray.push_back(nullptr);
                             }
-                            arrayElementType = Generic::Value::Type::Array;
-                            if ( value != nullptr )
-                                delete value;
-
-                            value = newValue;
-                        }
-
-                        switch ( elementType )
-                        {
-                            case Generic::Value::Type::Null: Consume::Null<true>(is, c); value->nullArray()++; break;
-                            case Generic::Value::Type::Boolean: value->boolArray().push_back(Read::Bool<true>(is, c)); break;
-                            case Generic::Value::Type::Number: value->numberArray().push_back(Read::Number<true>(is, c)); break;
-                            case Generic::Value::Type::String: value->stringArray().push_back(Read::String(is, c)); break;
+                            break;
+                            case Generic::Value::Type::Boolean:
+                            {
+                                const std::vector<bool> & boolArray = result->get()->boolArray();
+                                for ( size_t i=0; i<boolArray.size(); i++ )
+                                    mixedArray.push_back(Generic::Bool::Make(boolArray[i]));
+                            }
+                            break;
+                            case Generic::Value::Type::Number:
+                            {
+                                const std::vector<std::string> & numberArray = result->get()->numberArray();
+                                for ( size_t i=0; i<numberArray.size(); i++ )
+                                    mixedArray.push_back(Generic::Number::Make(numberArray[i]));
+                            }
+                            break;
+                            case Generic::Value::Type::String:
+                            {
+                                const std::vector<std::string> & stringArray = result->get()->stringArray();
+                                for ( size_t i=0; i<stringArray.size(); i++ )
+                                    mixedArray.push_back(Generic::String::Make(stringArray[i]));
+                            }
+                            break;
                             case Generic::Value::Type::Object:
                             {
-                                std::shared_ptr<Generic::Value> objectElement;
-                                Read::GenericObject(is, context, c).into(objectElement);
-                                value->objectArray().push_back(objectElement->object());
-                            }
-                            break;
-                            case Generic::Value::Type::Array:
-                            {
-                                std::shared_ptr<Generic::Value> arrayElement;
-                                Read::GenericArray<true>(is, context, c).into(arrayElement);
-                                value->mixedArray().push_back(arrayElement);
+                                const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray = result->get()->objectArray();
+                                for ( size_t i=0; i<objectArray.size(); i++ )
+                                    mixedArray.push_back(Generic::Object::Make(objectArray[i]));
                             }
                             break;
                         }
+                        arrayElementType = Generic::Value::Type::Array;
+                        result->swap(*newResult);
                     }
-                    while ( Read::IterableElementSeparator<false>(is) );
-                    
-                    return Generic::Value::Assigner(value);
 
-                } catch ( std::exception & e ) {
-                    if ( value != nullptr )
-                        delete value;
-
-                    throw e;
+                    switch ( elementType )
+                    {
+                        case Generic::Value::Type::Null: Consume::Null<true>(is, c); result->get()->nullArray()++; break;
+                        case Generic::Value::Type::Boolean: result->get()->boolArray().push_back(Read::Bool<true>(is, c)); break;
+                        case Generic::Value::Type::Number: result->get()->numberArray().push_back(Read::Number<true>(is, c)); break;
+                        case Generic::Value::Type::String: result->get()->stringArray().push_back(Read::String(is, c)); break;
+                        case Generic::Value::Type::Object: result->get()->objectArray().push_back(Read::GenericObject(is, context, c)->out()->object()); break;
+                        case Generic::Value::Type::Array: result->get()->mixedArray().push_back(Read::GenericArray<true>(is, context, c)->out()); break;
+                    }
                 }
+                while ( Read::IterableElementSeparator<false>(is) );
+                    
+                return result;
             }
             
-            static Generic::Value::Assigner GenericObject(std::istream & is, Context & context, char & c)
+            static std::shared_ptr<Generic::Value::Assigner> GenericObject(std::istream & is, Context & context, char & c)
             {
-                Generic::Value* value = new Generic::Object();
-                try
-                {
-                    Read::ObjectPrefix(is, c);
-                    if ( !Read::TryObjectSuffix(is) )
-                    {
-                        do
-                        {
-                            std::string fieldName = Read::FieldName(is, c);
-                            std::shared_ptr<Generic::Value> fieldValue = nullptr;
-                            Read::GenericValue<false>(is, context, c).into(fieldValue);
-                            value->object().insert(std::pair<std::string, std::shared_ptr<Generic::Value>>(fieldName, fieldValue));
-                        }
-                        while ( Read::FieldSeparator(is) );
-                    }
-                    return Generic::Value::Assigner(value);
-                }
-                catch ( std::exception & e )
-                {
-                    if ( value != nullptr )
-                        delete value;
+                std::shared_ptr<Generic::Value::Assigner> result = Generic::Value::Assigner::Make(new Generic::Object());
+                auto & obj = result->get()->object();
 
-                    throw e;
+                Read::ObjectPrefix(is, c);
+                if ( !Read::TryObjectSuffix(is) )
+                {
+                    do
+                    {
+                        std::string fieldName = Read::FieldName(is, c);
+                        Read::FieldNameValueSeparator(is, c);
+                        std::shared_ptr<Generic::Value> value = Read::GenericValue<false>(is, context, c)->out();
+                        obj.insert(std::pair<std::string, std::shared_ptr<Generic::Value>>(fieldName, value));
+                    }
+                    while ( Read::FieldSeparator(is) );
                 }
+                return result;
             }
 
             template <bool InArray, typename Field, typename T, typename Object, bool AllowCustomization = true>
@@ -2740,7 +2742,7 @@ namespace Json
                             if constexpr ( std::is_const<T>::value )
                                 Consume::Value<InArray>(is, c);
                             else
-                                Read::GenericValue<InArray>(is, context, c).into(value);
+                                Read::GenericValue<InArray>(is, context, c)->into(value);
                         }
                     }
                     else if ( value == nullptr ) // If value pointer is not a nullptr and not a Json::Generic the only valid value is "null"
@@ -2760,7 +2762,7 @@ namespace Json
                     if constexpr ( std::is_const<T>::value )
                         Consume::Value<InArray>(is, c);
                     else
-                        Read::GenericValue<InArray>(is, context, c).into(value);
+                        Read::GenericValue<InArray>(is, context, c)->into(value);
                 }
                 else if constexpr ( is_iterable<T>::value )
                     Read::Iterable<Field, T>(is, context, c, object, value);

@@ -321,16 +321,26 @@ int main()
     obj.put("qwer", Json::String::Make("str"));
     std::cout << obj << std::endl << std::endl;
 
+    do {
+        try {
+            std::cin >> Json::in(obj);
+        } catch ( Json::Exception & e ) {
+            std::cout << std::endl << "Exception: " << e.what() << std::endl;
+        }
+        std::cout << "Read in: " << Json::pretty(obj) << std::endl;
+        std::cout << "..." << std::endl;
+        std::cin.clear();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    } while ( true );
+
     A a;
     a.runtime = Json::Object::Make();
     Json::Object & runtime = (Json::Object &)*a.runtime;
     runtime.put("field", Json::Bool::Make(true));
     std::cout << Json::pretty<Statics::Excluded>(a) << std::endl << std::endl;
     do {
-        bool successfulRead = false;
         try {
             std::cin >> Json::in(a);
-            successfulRead = true;
         } catch ( Json::Exception & e ) {
             std::cout << std::endl << "Exception: " << e.what() << std::endl;
         }
