@@ -18,6 +18,9 @@ namespace Json
         /// Field annotation telling JSON to explicitly use the numeric value of an enum
         struct EnumInt {};
 
+        /// Field annotation telling JSON to skip a field during input or output TODO: use it
+        struct JsonIgnore {};
+
         struct Unspecialized {};
 
         template <typename T>
@@ -48,6 +51,17 @@ namespace Json
         };
 
         template <Statics statics, typename Object>
+        static constexpr bool HasFields()
+        {
+            if constexpr ( statics == Statics::Excluded )
+                return Object::Class::TotalFields > Object::Class::TotalStaticFields;
+            else if constexpr ( statics == Statics::Included )
+                return Object::Class::TotalFields > 0;
+            else if constexpr ( statics == Statics::Only )
+                return Object::Class::TotalStaticFields > 0;
+        }
+
+        template <Statics statics, typename Object>
         static constexpr size_t FirstIndex()
         {
             if constexpr ( statics == Statics::Only || statics == Statics::Excluded )
@@ -61,6 +75,22 @@ namespace Json
                 }
             }
             return 0;
+        }
+
+        template <Statics statics, typename Object>
+        static constexpr size_t LastIndex()
+        {
+            if constexpr ( Object::Class::TotalFields > 0 && (statics == Statics::Only || statics == Statics::Excluded) )
+            {
+                for ( size_t i=Object::Class::TotalFields-1; i>0; i-- )
+                {
+                    if constexpr ( statics == Statics::Only && Object::Class::Fields[i].IsStatic )
+                        return i;
+                    else if constexpr ( statics == Statics::Excluded && !Object::Class::Fields[i].IsStatic )
+                        return i;
+                }
+            }
+            return Object::Class::TotalFields - 1;
         }
 
         constexpr size_t NoFieldIndex = std::numeric_limits<size_t>::max();
@@ -114,6 +144,11 @@ namespace Json
             {
                 return std::string("__") + simplifyTypeStr(TypeToStr<T>());
             }
+
+            std::string fieldClusterToJsonFieldName()
+            {
+                return std::string("____fieldCluster");
+            }
         }
     };
 
@@ -155,7 +190,8 @@ namespace Json
                 NumberArray,
                 StringArray,
                 ObjectArray,
-                MixedArray
+                MixedArray,
+                FieldCluster
             });
 
             class Assigner
@@ -776,6 +812,23 @@ namespace Json
         private:
             std::vector<std::shared_ptr<Value>> values;
         };
+
+        class FieldCluster : public Object
+        {
+        public:
+            FieldCluster() : Object() {}
+            FieldCluster(const std::map<std::string, std::shared_ptr<Value>> & value) : Object(value) {}
+            FieldCluster(const FieldCluster & other) : Object(other) {}
+            virtual ~FieldCluster() {}
+            
+            static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new FieldCluster()); }
+            static std::shared_ptr<Value> Make(const std::map<std::string, std::shared_ptr<Value>> & value) { return std::shared_ptr<Value>(new FieldCluster(value)); }
+            static std::shared_ptr<Value> Make(const FieldCluster & other) { return std::shared_ptr<Value>(new FieldCluster(other)); }
+            
+            FieldCluster & operator=(const Value & other) { object() = other.object(); return *this; }
+            
+            virtual Type type() const { return Value::Type::FieldCluster; }
+        };
     };
     
     inline namespace Output
@@ -1273,7 +1326,7 @@ namespace Json
                 Put::String(os, ss.str());
             }
             
-            template <typename Annotations, bool PrettyPrint, const char* indent>
+            template <typename Annotations, bool PrettyPrint, const char* indent, bool IsFirst>
             static constexpr void Value(std::ostream & os, Context & context,
                 size_t totalParentIterables, size_t indentLevel, const Generic::Value & value)
             {
@@ -1297,11 +1350,25 @@ namespace Json
                     case Generic::Value::Type::MixedArray:
                         Put::Iterable<Annotations, PrettyPrint, indent>(os, context, totalParentIterables, indentLevel, value);
                         break;
+                    case Generic::Value::Type::FieldCluster:
+                    {
+                        const std::map<std::string, std::shared_ptr<Generic::Value>> & fieldCluster = value.object();
+                        bool isFirst = IsFirst;
+                        for ( const auto & field : fieldCluster )
+                        {
+                            Put::FieldPrefix<PrettyPrint, indent>(os, isFirst, indentLevel+totalParentIterables);
+                            Put::String(os, field.first);
+                            os << FieldNameValueSeparator<PrettyPrint>;
+                            Put::Value<Annotations, PrettyPrint, indent, false>(os, context, 0, indentLevel+totalParentIterables, (Generic::Value &)*field.second);
+                            isFirst = false;
+                        }
+                    }
+                    break;
                 }
             }
 
             template <typename Annotations, typename Field, Statics statics,
-                bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, typename T>
+                bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, bool IsFirst, typename T>
             static constexpr void Value(std::ostream & os, Context & context, const Object & obj, const T & value)
             {
                 if constexpr ( Customizers::HaveSpecialization<Object, T, Field::Index, Annotations, Field, statics,
@@ -1319,11 +1386,11 @@ namespace Json
                     if ( value == nullptr )
                         os << "null";
                     else
-                        Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object>(os, context, obj, *value);
+                        Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object, IsFirst>(os, context, obj, *value);
                 }
                 else if constexpr ( std::is_base_of<Generic::Value, T>::value )
                 {
-                    Put::Value<Annotations, PrettyPrint, indent>(os, context, TotalParentIterables,
+                    Put::Value<Annotations, PrettyPrint, indent, IsFirst>(os, context, TotalParentIterables,
                         IndentLevel+(Field::template HasAnnotation<IsRoot> ) ? 0 : 1, (const Generic::Value &)value);
                 }
                 else if constexpr ( is_iterable<T>::value )
@@ -1343,12 +1410,12 @@ namespace Json
             }
             
             template <typename Annotations, typename Field, Statics statics,
-                bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, typename T, typename Key>
+                bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, bool IsFirst, typename T, typename Key>
             static constexpr void Value(std::ostream & os, Context & context, const Object & obj, const std::pair<Key, T> & pair)
             {
                 Put::String(os, pair.first);
                 os << FieldNameValueSeparator<PrettyPrint>;
-                Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object>(os, context, obj, pair.second);
+                Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object, IsFirst>(os, context, obj, pair.second);
             }
 
             template <typename Annotations, typename Field, Statics statics,
@@ -1367,7 +1434,7 @@ namespace Json
                     for ( auto & element : iterable )
                     {
                         Put::Separator<PrettyPrint, ContainsPairs, ContainsIterables, IndentLevel+TotalParentIterables+2, indent>(os, 0 == i++);
-                        Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object>(os, context, obj, element);
+                        Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, false>(os, context, obj, element);
                     }
                 }
                 else if constexpr ( is_adaptor<IterableValue>::value )
@@ -1376,7 +1443,7 @@ namespace Json
                     for ( auto it = sequenceContainer.begin(); it != sequenceContainer.end(); ++it )
                     {
                         Put::Separator<ContainsPairs, ContainsIterables, IndentLevel+TotalParentIterables+2, indent>(os, 0 == i++);
-                        Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object>(os, context, obj, *it);
+                        Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, false>(os, context, obj, *it);
                     }
                 }
                 else if constexpr ( std::is_array<IterableValue>::value && std::extent<Field::Type>::value > 0 )
@@ -1384,7 +1451,7 @@ namespace Json
                     for ( ; i<std::extent<Field::Type>::value; i++ )
                     {
                         Put::Separator<PrettyPrint, ContainsPairs, ContainsIterables, IndentLevel+TotalParentIterables+2, indent>(os, 0 == i);
-                        Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object>(os, context, obj, iterable[i]);
+                        Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, false>(os, context, obj, iterable[i]);
                     }
                 }
                 Put::NestedSuffix<PrettyPrint, !ContainsPairs, ContainsPrimitives, IndentLevel+TotalParentIterables+1, indent>(os, IsEmpty(iterable));
@@ -1412,7 +1479,7 @@ namespace Json
                             Put::FieldPrefix<PrettyPrint, indent>(os, isFirst, indentLevel+totalParentIterables+1);
                             Put::String(os, field.first);
                             os << FieldNameValueSeparator<PrettyPrint>;
-                            Put::Value<Annotations, PrettyPrint, indent>(os, context, 0, indentLevel+totalParentIterables+1, (Generic::Value &)*field.second);
+                            Put::Value<Annotations, PrettyPrint, indent, false>(os, context, 0, indentLevel+totalParentIterables+1, (Generic::Value &)*field.second);
                             isFirst = false;
                         }
                     }
@@ -1469,7 +1536,7 @@ namespace Json
                                 Put::FieldPrefix<PrettyPrint, indent>(os, isFirst, totalParentIterables+indentLevel+2);
                                 Put::String(os, field.first);
                                 os << FieldNameValueSeparator<PrettyPrint>;
-                                Put::Value<Annotations, PrettyPrint, indent>(os, context, totalParentIterables+1, indentLevel, (Generic::Value &)*field.second);
+                                Put::Value<Annotations, PrettyPrint, indent, false>(os, context, totalParentIterables+1, indentLevel, (Generic::Value &)*field.second);
                                 isFirst = false;
                             }
                             Put::ObjectSuffix<PrettyPrint, indent>(os, obj.empty(), totalParentIterables+indentLevel+1);
@@ -1485,7 +1552,7 @@ namespace Json
                             if ( element == nullptr )
                                 os << "null";
                             else
-                                Put::Value<Annotations, PrettyPrint, indent>(os, context, totalParentIterables+1, indentLevel, *element);
+                                Put::Value<Annotations, PrettyPrint, indent, false>(os, context, totalParentIterables+1, indentLevel, *element);
                         }
                     }
                     break;
@@ -1499,10 +1566,21 @@ namespace Json
             {
                 if constexpr ( matches_statics<FieldClass::IsStatic, statics>::value )
                 {
-                    os << StaticAffix::FieldPrefix<FieldClass::Index == FirstIndex<statics, Object>(), PrettyPrint, IndentLevel+1, indent>;
-                    Put::String(os, fieldName);
-                    os << FieldNameValueSeparator<PrettyPrint>;
-                    Put::Value<Annotations, FieldClass, statics, PrettyPrint, 0, IndentLevel, indent, Object>(os, context, obj, value);
+                    if constexpr ( std::is_base_of<Generic::FieldCluster, FieldClass::Type>::value )
+                    {
+                        if constexpr ( FieldClass::Index == FirstIndex<statics, Object>() )
+                            throw Exception("Json::Generic::FieldCluster cannot be the first or the only field in an object");
+                        else
+                            Put::Value<Annotations, FieldClass, statics, PrettyPrint, 0, IndentLevel, indent, Object, false>(os, context, obj, value);
+                    }
+                    else
+                    {
+                        os << StaticAffix::FieldPrefix<FieldClass::Index == FirstIndex<statics, Object>(), PrettyPrint, IndentLevel+1, indent>;
+                        Put::String(os, fieldName);
+                        os << FieldNameValueSeparator<PrettyPrint>;
+                        Put::Value<Annotations, FieldClass, statics, PrettyPrint, 0, IndentLevel, indent,
+                            Object, FieldClass::Index == FirstIndex<statics, Object>()>(os, context, obj, value);
+                    }
                 }
             }
             
@@ -1520,7 +1598,7 @@ namespace Json
                 bool PrettyPrint, size_t IndentLevel, const char* indent, typename Object>
             static constexpr void Super(std::ostream & os, Context & context, const Object & obj, const std::string & superFieldName)
             {
-                os << StaticAffix::FieldPrefix<SuperIndex == 0, PrettyPrint, IndentLevel+1, indent>;
+                os << StaticAffix::FieldPrefix<SuperIndex == 0 && !HasFields<statics, Object>(), PrettyPrint, IndentLevel+1, indent>;
                 Put::String(os, superFieldName);
                 os << FieldNameValueSeparator<PrettyPrint>;
                 Put::Object<Annotations, statics, PrettyPrint, IndentLevel+1, indent, T>(os, context, obj);
@@ -1562,7 +1640,7 @@ namespace Json
                 if ( context == nullptr )
                     context = std::shared_ptr<Context>(new Context());
 
-                Put::Value<Annotations, ReflectedField<Object>, statics, PrettyPrint, 0, IndentLevel, indent, Object, Object>(os, *context, obj, obj);
+                Put::Value<Annotations, ReflectedField<Object>, statics, PrettyPrint, 0, IndentLevel, indent, Object, true, Object>(os, *context, obj, obj);
                 return os;
             }
         };
@@ -1590,7 +1668,7 @@ namespace Json
 
         std::ostream & operator<<(std::ostream & os, const Generic::Value & value)
         {
-            Put::Value<Annotate<>, true, twoSpaces>(os, context, 0, 0, value);
+            Put::Value<Annotate<>, true, twoSpaces, true>(os, context, 0, 0, value);
             return os;
         }
     };
@@ -1723,8 +1801,20 @@ namespace Json
                     {
                         for ( size_t fieldIndex = 0; fieldIndex < Class::TotalFields; fieldIndex++ )
                         {
-                            inserted.first->second.insert(std::pair<size_t, JsonField>(
-                                strHash(Class::Fields[fieldIndex].name), JsonField(fieldIndex, JsonField::Type::Regular, Class::Fields[fieldIndex].name)));
+                            Class::FieldAt(fieldIndex, [&](auto & field) {
+                                using Field = typename std::remove_reference<decltype(field)>::type;
+                                if constexpr ( std::is_base_of<Generic::FieldCluster, Field::Type>::value )
+                                {
+                                    std::string fieldName = fieldClusterToJsonFieldName();
+                                    inserted.first->second.insert(std::pair<size_t, JsonField>(
+                                        strHash(fieldName), JsonField(fieldIndex, JsonField::Type::Regular, fieldName)));
+                                }
+                                else
+                                {
+                                    inserted.first->second.insert(std::pair<size_t, JsonField>(
+                                        strHash(Class::Fields[fieldIndex].name), JsonField(fieldIndex, JsonField::Type::Regular, Class::Fields[fieldIndex].name)));
+                                }
+                            });
                         }
                     }
 
@@ -2873,7 +2963,7 @@ namespace Json
                             Read::Value<false, FieldType>(is, context, c, object, value);
                         });
                     }
-                    else
+                    else if ( jsonField->type )
                     {
                         Object::Supers::At(object, jsonField->index, [&](auto & superObj) {
                             using Super = typename std::remove_reference<decltype(superObj)>::type;
@@ -2882,7 +2972,15 @@ namespace Json
                     }
                 }
                 else // Unknown field
-                    Consume::Value<false>(is, c);
+                {
+                    jsonField = getJsonField(object, fieldClusterToJsonFieldName());
+                    if ( jsonField != nullptr ) // Has FieldCluster
+                    {
+                        throw Exception("TODO: Add to FieldCluster");
+                    }
+                    else // No FieldCluster
+                        Consume::Value<false>(is, c);
+                }
             }
 
             template <typename T>

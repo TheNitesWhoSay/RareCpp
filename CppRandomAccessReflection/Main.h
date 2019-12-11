@@ -50,6 +50,7 @@ public:
     std::vector<std::vector<int>> vecVec;
     int ray[2];
     std::shared_ptr<Json::Value> runtime;
+    Json::Generic::FieldCluster unknownFields;
 
     class NestedClass
     {
@@ -61,7 +62,7 @@ public:
 
     using Parents = Inherit<SuperA, OtherSuperA>;
     REFLECT((Parents) A, () testEnum, (Reflected) composed, () first, () second,
-        () ptr, () boolean, (Json::String) str, (Json::String) map, () vecVec, () ray, () runtime)
+        () ptr, () boolean, (Json::String) str, (Json::String) map, () vecVec, () ray, () runtime, () unknownFields)
 };
 
 struct EnhancedContext : public Json::Context

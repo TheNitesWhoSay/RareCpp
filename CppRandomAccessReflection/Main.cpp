@@ -321,7 +321,7 @@ int main()
     obj.put("qwer", Json::String::Make("str"));
     std::cout << obj << std::endl << std::endl;
 
-    do {
+    /*do {
         try {
             std::cin >> Json::in(obj);
         } catch ( Json::Exception & e ) {
@@ -331,9 +331,11 @@ int main()
         std::cout << "..." << std::endl;
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    } while ( true );
+    } while ( true );*/
 
     A a;
+    a.unknownFields.put("firstRandomField", Json::Bool::Make(false));
+    a.unknownFields.put("secondRandomField", Json::Bool::Make(false));
     a.runtime = Json::Object::Make();
     Json::Object & runtime = (Json::Object &)*a.runtime;
     runtime.put("field", Json::Bool::Make(true));
@@ -344,8 +346,8 @@ int main()
         } catch ( Json::Exception & e ) {
             std::cout << std::endl << "Exception: " << e.what() << std::endl;
         }
-        //Json::putClassFieldCache(std::cout);
-        //std::cout << "..." << std::endl;
+        Json::putClassFieldCache(std::cout);
+        std::cout << "..." << std::endl;
         std::cout << "Read in: " << Json::pretty(a, EnhancedContext::Make(1337)) << std::endl;
         std::cout << "..." << std::endl;
         std::cin.clear();

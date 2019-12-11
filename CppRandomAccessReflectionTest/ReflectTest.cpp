@@ -433,7 +433,7 @@ class UseFieldAtTest {
             struct first_ { static constexpr Fields::Field<int, decltype(&UseFieldAtTest::first), 0> field = { "first", "int", 0, false, false, &UseFieldAtTest::first }; };
             struct second_ { static constexpr Fields::Field<float, decltype(&UseFieldAtTest::second), 1> field = { "second", "float", 0, false, false, &UseFieldAtTest::second }; };
             template <typename Function>
-            static void FieldAt(UseFieldAtTest & object, size_t fieldIndex, Function function) {
+            static void FieldAt(size_t fieldIndex, Function function) {
                 switch ( fieldIndex ) {
                     USE_FIELD_AT(() first)
                     USE_FIELD_AT(() second)
@@ -448,7 +448,54 @@ TEST(ReflectTest, RfMacroUseFieldAt)
     size_t index = 0;
 
     bool visited = false;
-    UseFieldAtTest::Class::FieldAt(useFieldTest, 0, [&](auto & field, auto & value) {
+    UseFieldAtTest::Class::FieldAt(0, [&](auto & field) {
+        EXPECT_STREQ("first", field.name);
+        EXPECT_STREQ("int", field.typeStr);
+        EXPECT_EQ(0, field.arraySize);
+        EXPECT_EQ(false, field.isIterable);
+        EXPECT_EQ(false, field.isReflected);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    
+    visited = false;
+    UseFieldAtTest::Class::FieldAt(1, [&](auto & field) {
+        EXPECT_STREQ("second", field.name);
+        EXPECT_STREQ("float", field.typeStr);
+        EXPECT_EQ(0, field.arraySize);
+        EXPECT_EQ(false, field.isIterable);
+        EXPECT_EQ(false, field.isReflected);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+}
+
+class UseFieldValueAtTest {
+    public:
+        int first;
+        float second;
+
+        struct Class {
+            enum_t(IndexOf, size_t, { first, second });
+            struct first_ { static constexpr Fields::Field<int, decltype(&UseFieldValueAtTest::first), 0> field = { "first", "int", 0, false, false, &UseFieldValueAtTest::first }; };
+            struct second_ { static constexpr Fields::Field<float, decltype(&UseFieldValueAtTest::second), 1> field = { "second", "float", 0, false, false, &UseFieldValueAtTest::second }; };
+            template <typename Function>
+            static void FieldAt(UseFieldValueAtTest & object, size_t fieldIndex, Function function) {
+                switch ( fieldIndex ) {
+                    USE_FIELD_VALUE_AT(() first)
+                    USE_FIELD_VALUE_AT(() second)
+                }
+            }
+        };
+};
+
+TEST(ReflectTest, RfMacroUseFieldValueAt)
+{
+    UseFieldValueAtTest useFieldTest = { 1, 1.1f };
+    size_t index = 0;
+
+    bool visited = false;
+    UseFieldValueAtTest::Class::FieldAt(useFieldTest, 0, [&](auto & field, auto & value) {
         EXPECT_STREQ("first", field.name);
         EXPECT_STREQ("int", field.typeStr);
         EXPECT_EQ(0, field.arraySize);
@@ -460,7 +507,7 @@ TEST(ReflectTest, RfMacroUseFieldAt)
     EXPECT_TRUE(visited);
     
     visited = false;
-    UseFieldAtTest::Class::FieldAt(useFieldTest, 1, [&](auto & field, auto & value) {
+    UseFieldValueAtTest::Class::FieldAt(useFieldTest, 1, [&](auto & field, auto & value) {
         EXPECT_STREQ("second", field.name);
         EXPECT_STREQ("float", field.typeStr);
         EXPECT_EQ(0, field.arraySize);
@@ -529,6 +576,11 @@ public:
             FOR_EACH(USE_FIELD_VALUE, () first, () second)
         }
         template <typename Function> static void FieldAt(CumulativeMacroTest & object, size_t fieldIndex, Function function) {
+            switch ( fieldIndex ) {
+                FOR_EACH(USE_FIELD_VALUE_AT, () first, () second)
+            }
+        }
+        template <typename Function> static void FieldAt(size_t fieldIndex, Function function) {
             switch ( fieldIndex ) {
                 FOR_EACH(USE_FIELD_AT, () first, () second)
             }

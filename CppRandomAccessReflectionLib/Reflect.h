@@ -666,7 +666,8 @@ namespace Reflect
     Class::RHS(x)_::field.isIterable, Class::RHS(x)_::field.isReflected },
 #define USE_FIELD(x) function(RHS(x)_::field);
 #define USE_FIELD_VALUE(x) function(RHS(x)_::field, object.RHS(x));
-#define USE_FIELD_AT(x) case IndexOf::RHS(x): function(RHS(x)_::field, object.RHS(x)); break;
+#define USE_FIELD_AT(x) case IndexOf::RHS(x): function(RHS(x)_::field); break;
+#define USE_FIELD_VALUE_AT(x) case IndexOf::RHS(x): function(RHS(x)_::field, object.RHS(x)); break;
 #define ADD_IF_STATIC(x) + ( RHS(x)_::Field::IsStatic ? 1 : 0 )
 
 
@@ -687,6 +688,8 @@ struct Class { \
     template <typename Function> static void ForEachField(RHS(objectType) & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
     template <typename Function> static void ForEachField(const RHS(objectType) & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
     template <typename Function> static void FieldAt(RHS(objectType) & object, size_t fieldIndex, Function function) { \
+        switch ( fieldIndex ) { FOR_EACH(USE_FIELD_VALUE_AT, __VA_ARGS__) } } \
+    template <typename Function> static void FieldAt(size_t fieldIndex, Function function) { \
         switch ( fieldIndex ) { FOR_EACH(USE_FIELD_AT, __VA_ARGS__) } } \
 }; \
 using Supers = Inherit<LHS(objectType)>;
@@ -702,6 +705,7 @@ struct Class { \
     template <typename Function> static void ForEachField(RHS(objectType) & object, Function function) {} \
     template <typename Function> static void ForEachField(const RHS(objectType) & object, Function function) { } \
     template <typename Function> static void FieldAt(RHS(objectType) & object, size_t fieldIndex, Function function) {} \
+    template <typename Function> static void FieldAt(size_t fieldIndex, Function function) {} \
 }; \
 using Supers = Inherit<LHS(objectType)>;
 
