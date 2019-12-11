@@ -1452,7 +1452,7 @@ namespace Json
                         for ( const auto & element : array )
                         {
                             Put::Separator<PrettyPrint, false, false, indent>(os, 0 == i++, indentLevel+totalParentIterables+2);
-                            os << element;
+                            os << "\"" << element << "\"";
                         }
                     }
                     break;
@@ -1463,14 +1463,16 @@ namespace Json
                         {
                             Put::Separator<PrettyPrint, false, true, indent>(os, 0 == i++, indentLevel+totalParentIterables+2);
                             bool isFirst = true;
+                            Put::ObjectPrefix<PrettyPrint, indent>(os, totalParentIterables+indentLevel);
                             for ( const auto & field : obj )
                             {
-                                Put::FieldPrefix<PrettyPrint, indent>(os, isFirst, indentLevel+1);
+                                Put::FieldPrefix<PrettyPrint, indent>(os, isFirst, totalParentIterables+indentLevel+2);
                                 Put::String(os, field.first);
                                 os << FieldNameValueSeparator<PrettyPrint>;
-                                Put::Value<Annotations, PrettyPrint, indent>(os, context, totalParentIterables+1, indentLevel, (Generic::Value &)field.second);
+                                Put::Value<Annotations, PrettyPrint, indent>(os, context, totalParentIterables+1, indentLevel, (Generic::Value &)*field.second);
                                 isFirst = false;
                             }
+                            Put::ObjectSuffix<PrettyPrint, indent>(os, obj.empty(), totalParentIterables+indentLevel+1);
                         }
                     }
                     break;
@@ -1483,7 +1485,7 @@ namespace Json
                             if ( element == nullptr )
                                 os << "null";
                             else
-                                Put::Value<Annotations, PrettyPrint, indent>(os, context, totalParentIterables, indentLevel, *element);
+                                Put::Value<Annotations, PrettyPrint, indent>(os, context, totalParentIterables+1, indentLevel, *element);
                         }
                     }
                     break;
