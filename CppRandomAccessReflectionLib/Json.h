@@ -1289,6 +1289,7 @@ namespace Json
                         os << "\"" << value.string() << "\"";
                         break;
                     case Generic::Value::Type::Object:
+                    case Generic::Value::Type::NullArray:
                     case Generic::Value::Type::BoolArray:
                     case Generic::Value::Type::NumberArray:
                     case Generic::Value::Type::StringArray:
@@ -1413,6 +1414,15 @@ namespace Json
                             os << FieldNameValueSeparator<PrettyPrint>;
                             Put::Value<Annotations, PrettyPrint, indent>(os, context, 0, indentLevel+totalParentIterables+1, (Generic::Value &)*field.second);
                             isFirst = false;
+                        }
+                    }
+                    break;
+                    case Generic::Value::Type::NullArray:
+                    {
+                        for ( size_t i=0; i<iterable.nullArray(); i++ )
+                        {
+                            Put::Separator<PrettyPrint, false, false, indent>(os, 0 == i, indentLevel+totalParentIterables+2);
+                            os << "null";
                         }
                     }
                     break;
@@ -2684,14 +2694,29 @@ namespace Json
                         result.swap(newResult);
                     }
 
-                    switch ( elementType )
+                    if ( arrayElementType == Generic::Value::Type::Array )
                     {
-                        case Generic::Value::Type::Null: Consume::Null<true>(is, c); result->get()->nullArray()++; break;
-                        case Generic::Value::Type::Boolean: result->get()->boolArray().push_back(Read::Bool<true>(is, c)); break;
-                        case Generic::Value::Type::Number: result->get()->numberArray().push_back(Read::Number<true>(is, c)); break;
-                        case Generic::Value::Type::String: result->get()->stringArray().push_back(Read::String(is, c)); break;
-                        case Generic::Value::Type::Object: result->get()->objectArray().push_back(Read::GenericObject(is, context, c)->out()->object()); break;
-                        case Generic::Value::Type::Array: result->get()->mixedArray().push_back(Read::GenericArray<true>(is, context, c)->out()); break;
+                        switch ( elementType )
+                        {
+                            case Generic::Value::Type::Null: Consume::Null<true>(is, c); result->get()->mixedArray().push_back(nullptr); break;
+                            case Generic::Value::Type::Boolean: result->get()->mixedArray().push_back(Generic::Bool::Make(Read::Bool<true>(is, c))); break;
+                            case Generic::Value::Type::Number: result->get()->mixedArray().push_back(Generic::Number::Make(Read::Number<true>(is, c))); break;
+                            case Generic::Value::Type::String: result->get()->mixedArray().push_back(Generic::String::Make(Read::String(is, c))); break;
+                            case Generic::Value::Type::Object: result->get()->mixedArray().push_back(Read::GenericObject(is, context, c)->out()); break;
+                            case Generic::Value::Type::Array: result->get()->mixedArray().push_back(Read::GenericArray<true>(is, context, c)->out()); break;
+                        }
+                    }
+                    else
+                    {
+                        switch ( elementType )
+                        {
+                            case Generic::Value::Type::Null: Consume::Null<true>(is, c); result->get()->nullArray()++; break;
+                            case Generic::Value::Type::Boolean: result->get()->boolArray().push_back(Read::Bool<true>(is, c)); break;
+                            case Generic::Value::Type::Number: result->get()->numberArray().push_back(Read::Number<true>(is, c)); break;
+                            case Generic::Value::Type::String: result->get()->stringArray().push_back(Read::String(is, c)); break;
+                            case Generic::Value::Type::Object: result->get()->objectArray().push_back(Read::GenericObject(is, context, c)->out()->object()); break;
+                            case Generic::Value::Type::Array: result->get()->mixedArray().push_back(Read::GenericArray<true>(is, context, c)->out()); break;
+                        }
                     }
                 }
                 while ( Read::IterableElementSeparator<false>(is) );
