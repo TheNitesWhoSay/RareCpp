@@ -167,8 +167,6 @@ namespace Json
                 static std::shared_ptr<Assigner> Make(Value* allocatedValue) { return std::shared_ptr<Assigner>(new Assigner(allocatedValue)); }
                 
                 Value* get() { return allocatedValue; };
-                void set(Value* value) { if ( allocatedValue != nullptr ) delete allocatedValue; allocatedValue = value; }
-                void swap(Assigner & other) { std::swap(allocatedValue, other.allocatedValue); }
 
                 /// Assigns the stored Json::Generic::Value to the value passed to the method, then discards the stored Json::Generic::Value
                 template <typename T>
@@ -529,7 +527,7 @@ namespace Json
             virtual const std::string & string() const { throw TypeMismatch(Value::Type::NullArray, Value::Type::String, "string"); }
             virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::NullArray, Value::Type::Object, "object"); }
 
-            virtual size_t arraySize() const { throw TypeMismatch(Value::Type::NullArray, Value::Type::Array, "arraySize"); }
+            virtual size_t arraySize() const { return nullCount; }
             
             virtual size_t & nullArray() { return nullCount; }
             virtual std::vector<bool> & boolArray() { throw TypeMismatch(Value::Type::NullArray, Value::Type::BoolArray, "boolArray"); }
@@ -575,7 +573,7 @@ namespace Json
             virtual const std::string & string() const { throw TypeMismatch(Value::Type::BoolArray, Value::Type::String, "string"); }
             virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::BoolArray, Value::Type::Object, "object"); }
 
-            virtual size_t arraySize() const { throw TypeMismatch(Value::Type::BoolArray, Value::Type::Array, "arraySize"); }
+            virtual size_t arraySize() const { return values.size(); }
             
             virtual size_t & nullArray() { throw TypeMismatch(Value::Type::BoolArray, Value::Type::NullArray, "nullArray"); }
             virtual std::vector<bool> & boolArray() { return values; }
@@ -621,7 +619,7 @@ namespace Json
             virtual const std::string & string() const { throw TypeMismatch(Value::Type::NumberArray, Value::Type::String, "string"); }
             virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::NumberArray, Value::Type::Object, "object"); }
 
-            virtual size_t arraySize() const { throw TypeMismatch(Value::Type::NumberArray, Value::Type::Array, "arraySize"); }
+            virtual size_t arraySize() const { return values.size(); }
             
             virtual size_t & nullArray() { throw TypeMismatch(Value::Type::NumberArray, Value::Type::NullArray, "nullArray"); }
             virtual std::vector<bool> & boolArray() { throw TypeMismatch(Value::Type::NumberArray, Value::Type::BoolArray, "boolArray"); }
@@ -667,7 +665,7 @@ namespace Json
             virtual const std::string & string() const { throw TypeMismatch(Value::Type::StringArray, Value::Type::String, "string"); }
             virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::StringArray, Value::Type::Object, "object"); }
 
-            virtual size_t arraySize() const { throw TypeMismatch(Value::Type::StringArray, Value::Type::Array, "arraySize"); }
+            virtual size_t arraySize() const { return values.size(); }
             
             virtual size_t & nullArray() { throw TypeMismatch(Value::Type::StringArray, Value::Type::NullArray, "nullArray"); }
             virtual std::vector<bool> & boolArray() { throw TypeMismatch(Value::Type::StringArray, Value::Type::BoolArray, "boolArray"); }
@@ -713,7 +711,7 @@ namespace Json
             virtual const std::string & string() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::String, "string"); }
             virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Object, "object"); }
 
-            virtual size_t arraySize() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Array, "arraySize"); }
+            virtual size_t arraySize() const { return values.size(); }
             
             virtual size_t & nullArray() { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::NullArray, "nullArray"); }
             virtual std::vector<bool> & boolArray() { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::BoolArray, "boolArray"); }
@@ -755,7 +753,7 @@ namespace Json
             virtual const std::string & string() const { throw TypeMismatch(Value::Type::MixedArray, Value::Type::String, "string"); }
             virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::MixedArray, Value::Type::Object, "object"); }
 
-            virtual size_t arraySize() const { throw TypeMismatch(Value::Type::MixedArray, Value::Type::Array, "arraySize"); }
+            virtual size_t arraySize() const { return values.size(); }
             
             virtual size_t & nullArray() { throw TypeMismatch(Value::Type::MixedArray, Value::Type::NullArray, "nullArray"); }
             virtual std::vector<bool> & boolArray() { throw TypeMismatch(Value::Type::MixedArray, Value::Type::BoolArray, "boolArray"); }
@@ -2623,20 +2621,22 @@ namespace Json
                 
                 Generic::Value::Type arrayElementType = Read::ValueType(c);
 
-                std::shared_ptr<Generic::Value::Assigner> result = std::shared_ptr<Generic::Value::Assigner>(nullptr);
+                std::shared_ptr<Generic::Value::Assigner> result = nullptr;
                 switch ( arrayElementType )
                 {
-                    case Generic::Value::Type::Null: result->set(new Generic::NullArray()); break;
-                    case Generic::Value::Type::Boolean: result->set(new Generic::BoolArray()); break;
-                    case Generic::Value::Type::Number: result->set(new Generic::NumberArray()); break;
-                    case Generic::Value::Type::String: result->set(new Generic::StringArray()); break;
-                    case Generic::Value::Type::Object: result->set(new Generic::ObjectArray()); break;
-                    case Generic::Value::Type::Array: result->set(new Generic::MixedArray()); break;
+                    case Generic::Value::Type::Null: result = Generic::Value::Assigner::Make(new Generic::NullArray()); break;
+                    case Generic::Value::Type::Boolean: result = Generic::Value::Assigner::Make(new Generic::BoolArray()); break;
+                    case Generic::Value::Type::Number: result = Generic::Value::Assigner::Make(new Generic::NumberArray()); break;
+                    case Generic::Value::Type::String: result = Generic::Value::Assigner::Make(new Generic::StringArray()); break;
+                    case Generic::Value::Type::Object: result = Generic::Value::Assigner::Make(new Generic::ObjectArray()); break;
+                    case Generic::Value::Type::Array: result = Generic::Value::Assigner::Make(new Generic::MixedArray()); break;
                 }
 
                 Generic::Value::Type elementType = Generic::Value::Type::None;
                 do
                 {
+                    Checked::consumeWhitespace(is, "completion of field value");
+                    Checked::peek(is, c, "completion of field value");
                     elementType = Read::ValueType(c);
 
                     if ( elementType != arrayElementType && arrayElementType != Generic::Value::Type::Array ) // Promote to mixed array
@@ -2681,7 +2681,7 @@ namespace Json
                             break;
                         }
                         arrayElementType = Generic::Value::Type::Array;
-                        result->swap(*newResult);
+                        result.swap(newResult);
                     }
 
                     switch ( elementType )
