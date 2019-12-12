@@ -2878,8 +2878,21 @@ namespace Json
                                 Read::GenericValue<InArray>(is, context, c)->into(value);
                         }
                     }
-                    else if ( value == nullptr ) // If value pointer is not a nullptr and not a Json::Generic the only valid value is "null"
-                        Consume::Null<InArray>(is, c);
+                    else if ( value == nullptr ) // Value is a nullptr and not a Json::Generic
+                    {
+                        if constexpr ( std::is_same<std::shared_ptr<Dereferenced>, T>::value )
+                        {
+                            value = std::shared_ptr<Dereferenced>(new Dereferenced());
+                            Read::Value<InArray, Field>(is, context, c, object, *value);
+                        }
+                        else if constexpr ( std::is_same<std::unique_ptr<Dereferenced>, T>::value )
+                        {
+                            value = std::unique_ptr<Dereferenced>(new Dereferenced());
+                            Read::Value<InArray, Field>(is, context, c, object, *value);
+                        }
+                        else // Value pointed to is a nullptr and value is not a smart pointer or generic, only valid value is null
+                            Consume::Null<InArray>(is, c);
+                    }
                     else if constexpr ( is_pointable<Dereferenced>::value && !std::is_const<Dereferenced>::value )
                         Read::Value<InArray, Field>(is, context, c, object, *value);  // Only take the chance of assigning nullptr to that more deeply nested pointer
                     else if ( Consume::TryNull<InArray>(is, c) ) // If value pointer is not nullptr, "null" is a possible value
