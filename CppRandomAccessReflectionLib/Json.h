@@ -18,7 +18,7 @@ namespace Json
         /// Field annotation telling JSON to explicitly use the numeric value of an enum
         struct EnumInt {};
 
-        /// Field annotation telling JSON to skip a field during input or output TODO: use it
+        /// Field annotation telling JSON to skip a field during input or output
         struct Ignore {};
 
         struct Unspecialized {};
@@ -57,7 +57,7 @@ namespace Json
                 return Object::Class::TotalFields > Object::Class::TotalStaticFields;
             else if constexpr ( statics == Statics::Included )
                 return Object::Class::TotalFields > 0;
-            else // if constexpr ( statics == Statics::Only )
+            else // statics == Statics::Only
                 return Object::Class::TotalStaticFields > 0;
         }
 
