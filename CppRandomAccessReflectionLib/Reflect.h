@@ -488,6 +488,12 @@ namespace Reflect
             static constexpr size_t Index = index;
         };
 
+        template <typename T>
+        struct SuperType
+        {
+            using type = T;
+        };
+
         /// Inherit "inherit-from": used to denote a set of classes whose properties are being inherited by another reflected class
         template <typename ... Ts>
         struct Inherit;
@@ -500,8 +506,14 @@ namespace Reflect
             template <typename Function, typename SubClass>
             static void ForEach(SubClass & object, Function function) {}
 
+            template <typename Function>
+            static constexpr void ForEach(Function function) {}
+
             template <typename Function, typename SubClass>
             static void At(SubClass & object, size_t superIndex, Function function) {}
+
+            template <typename Function>
+            static constexpr void At(size_t superIndex, Function function) {}
         };
 
         template <>
@@ -512,8 +524,14 @@ namespace Reflect
             template <typename Function, typename SubClass>
             static void ForEach(SubClass & object, Function function) {}
 
+            template <typename Function>
+            static constexpr void ForEach(Function function) {}
+
             template <typename Function, typename SubClass>
             static void At(SubClass & object, size_t superIndex, Function function) {}
+
+            template <typename Function>
+            static constexpr void At(size_t superIndex, Function function) {}
         };
 
         template <typename T>
@@ -526,10 +544,21 @@ namespace Reflect
                 function(SuperIndex<0>(), (T &)object);
             }
 
+            template <typename Function>
+            static constexpr void ForEach(Function function) {
+                function(SuperIndex<0>(), SuperType<T>());
+            }
+
             template <typename Function, typename SubClass>
             static void At(SubClass & object, size_t superIndex, Function function) {
                 if ( superIndex == 0 )
                     function((T &)object);
+            }
+
+            template <typename Function>
+            static constexpr void At(size_t superIndex, Function function) {
+                if ( superIndex == 0 )
+                    function(SuperType<T>());
             }
         };
 
@@ -543,16 +572,27 @@ namespace Reflect
                 function(SuperIndex<0>(), (T &)object);
             }
 
+            template <typename Function>
+            static constexpr void ForEach(Function function) {
+                function(SuperIndex<0>(), SuperType<T>());
+            }
+
             template <typename Function, typename SubClass>
             static void At(SubClass & object, size_t superIndex, Function function) {
                 if ( superIndex == 0 )
                     function((T &)object);
             }
+
+            template <typename Function>
+            static constexpr void At(size_t superIndex, Function function) {
+                if ( superIndex == 0 )
+                    function(SuperType<T>());
+            }
         };
 
         template <typename ... Ts>
         struct Inherit<Inherit<Ts ...>> {
-        
+
             static constexpr size_t TotalSupers = sizeof...(Ts);
 
             template <size_t Index, typename Function, typename SubClass>
@@ -569,6 +609,22 @@ namespace Reflect
             template <typename Function, typename SubClass>
             static void ForEach(SubClass & object, Function function) {
                 ForEachRecursion<0, Function, SubClass, Ts ...>(object, function);
+            }
+
+            template <size_t Index, typename Function>
+            static constexpr void ForEachRecursion(Function function) {
+                // Base case for recursion
+            }
+
+            template <size_t Index, typename Function, typename CurrentSuperClassType, typename... NextSuperClassTypes>
+            static constexpr void ForEachRecursion(Function function) {
+                function(SuperIndex<Index>(), SuperType<CurrentSuperClassType>());
+                ForEachRecursion<Index+1, Function, NextSuperClassTypes...>(function);
+            }
+
+            template <typename Function>
+            static constexpr void ForEach(Function function) {
+                ForEachRecursion<0, Function, Ts ...>(function);
             }
         
             template <size_t Index, typename Function, typename SubClass>
@@ -587,6 +643,24 @@ namespace Reflect
             template <typename Function, typename SubClass>
             static void At(SubClass & object, size_t superIndex, Function function) {
                 AtRecursion<0, Function, SubClass, Ts ...>(object, superIndex, function);
+            }
+        
+            template <size_t Index, typename Function>
+            static constexpr void AtRecursion(size_t superIndex, Function function) {
+                // Base case for recursion
+            }
+        
+            template <size_t Index, typename Function, typename CurrentSuperClassType, typename... NextSuperClassTypes>
+            static constexpr void AtRecursion(size_t superIndex, Function function) {
+                if ( Index == superIndex )
+                    function(SuperType<CurrentSuperClassType>());
+
+                AtRecursion<Index+1, Function, NextSuperClassTypes...>(superIndex, function);
+            }
+
+            template <typename Function>
+            static constexpr void At(size_t superIndex, Function function) {
+                AtRecursion<0, Function, Ts ...>(superIndex, function);
             }
         };
     }
@@ -684,12 +758,12 @@ struct Class { \
     static constexpr size_t TotalFields = COUNT_ARGUMENTS(__VA_ARGS__); \
     static constexpr size_t TotalStaticFields = 0 FOR_EACH(ADD_IF_STATIC, __VA_ARGS__); \
     static constexpr Fields::Field<> Fields[TotalFields] = { FOR_EACH(GET_FIELD, __VA_ARGS__) }; \
-    template <typename Function> static void ForEachField(Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
+    template <typename Function> constexpr static void ForEachField(Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
     template <typename Function> static void ForEachField(RHS(objectType) & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
     template <typename Function> static void ForEachField(const RHS(objectType) & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
     template <typename Function> static void FieldAt(RHS(objectType) & object, size_t fieldIndex, Function function) { \
         switch ( fieldIndex ) { FOR_EACH(USE_FIELD_VALUE_AT, __VA_ARGS__) } } \
-    template <typename Function> static void FieldAt(size_t fieldIndex, Function function) { \
+    template <typename Function> constexpr static void FieldAt(size_t fieldIndex, Function function) { \
         switch ( fieldIndex ) { FOR_EACH(USE_FIELD_AT, __VA_ARGS__) } } \
 }; \
 using Supers = Inherit<LHS(objectType)>;
@@ -701,11 +775,11 @@ struct Class { \
     static constexpr size_t TotalFields = 0; \
     static constexpr size_t TotalStaticFields = 0; \
     static constexpr Fields::Field<> Fields[1] = { { "", "", 0, false, false } }; \
-    template <typename Function> static void ForEachField(Function function) {} \
+    template <typename Function> constexpr static void ForEachField(Function function) {} \
     template <typename Function> static void ForEachField(RHS(objectType) & object, Function function) {} \
     template <typename Function> static void ForEachField(const RHS(objectType) & object, Function function) { } \
     template <typename Function> static void FieldAt(RHS(objectType) & object, size_t fieldIndex, Function function) {} \
-    template <typename Function> static void FieldAt(size_t fieldIndex, Function function) {} \
+    template <typename Function> constexpr static void FieldAt(size_t fieldIndex, Function function) {} \
 }; \
 using Supers = Inherit<LHS(objectType)>;
 

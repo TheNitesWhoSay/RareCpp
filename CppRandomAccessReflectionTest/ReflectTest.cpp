@@ -38,169 +38,344 @@ TEST(ReflectTest, InheritedType)
 
     int val = 0;
     bool visited = false;
-    Inherit<>::ForEach(val, [&](auto index, auto superClass) { visited = true; });
+    Inherit<>::ForEach(val, [&](auto index, auto superObj) { visited = true; });
     EXPECT_FALSE(visited);
     visited = false;
-    Inherit<>::At(val, 0, [&](auto superClass) { visited = true; });
+    Inherit<>::ForEach([&](auto index, auto superType) { visited = true });
+    EXPECT_FALSE(visited);
+    visited = false;
+    Inherit<>::At(val, 0, [&](auto superObj) { visited = true; });
+    EXPECT_FALSE(visited);
+    visited = false;
+    Inherit<>::At(0, [&](auto superType) { visited = true; });
     EXPECT_FALSE(visited);
 
     visited = false;
-    Inherit<Inherit<>>::ForEach(val, [&](auto index, auto superClass) { visited = true; });
+    Inherit<Inherit<>>::ForEach(val, [&](auto index, auto superObj) { visited = true; });
     EXPECT_FALSE(visited);
     visited = false;
-    Inherit<Inherit<>>::At(val, 0, [&](auto superClass) { visited = true; });
+    Inherit<Inherit<>>::ForEach([&](auto index, auto superType) { visited = true; });
     EXPECT_FALSE(visited);
-
+    visited = false;
+    Inherit<Inherit<>>::At(val, 0, [&](auto superObj) { visited = true; });
+    EXPECT_FALSE(visited);
+    visited = false;
+    Inherit<Inherit<>>::At(0, [&](auto superType) { visited = true });
+    EXPECT_FALSE(visited);
+    
     size_t visitCount = 0;
-    Inherit<int>::ForEach(val, [&](auto index, auto superClass) {
+    Inherit<int>::ForEach(val, [&](auto index, auto superObj) {
         EXPECT_EQ(0, decltype(index)::Index);
-        bool isSame = std::is_same<int, decltype(superClass)>::value;
+        bool isSame = std::is_same<int, decltype(superObj)>::value;
+        EXPECT_TRUE(isSame);
+        visitCount ++;
+    });
+    EXPECT_EQ(1, visitCount);
+    visitCount = 0;
+    Inherit<int>::ForEach([&](auto index, auto superType) {
+        using Super = typename decltype(superType)::type;
+        EXPECT_EQ(0, decltype(index)::Index);
+        bool isSame = std::is_same<int, Super>::value;
         EXPECT_TRUE(isSame);
         visitCount ++;
     });
     EXPECT_EQ(1, visitCount);
     visited = false;
-    Inherit<int>::At(val, 0, [&](auto superClass) {
-        bool isSame = std::is_same<int, decltype(superClass)>::value;
+    Inherit<int>::At(val, 0, [&](auto superObj) {
+        bool isSame = std::is_same<int, decltype(superObj)>::value;
         EXPECT_TRUE(isSame);
         visited = true;
     });
     EXPECT_TRUE(visited);
     visited = false;
-    Inherit<int>::At(val, 1, [&](auto superClass) { visited = true; });
+    Inherit<int>::At(0, [&](auto superType) {
+        using Super = typename decltype(superType)::type;
+        bool isSame = std::is_same<int, Super>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    Inherit<int>::At(val, 1, [&](auto superObj) { visited = true; });
     EXPECT_FALSE(visited);
-
+    visited = false;
+    Inherit<int>::At(1, [&](auto superType) { visited = true; });
+    EXPECT_FALSE(visited);
+    
     visitCount = 0;
-    Inherit<Inherit<int>>::ForEach(val, [&](auto index, auto superClass) {
+    Inherit<Inherit<int>>::ForEach(val, [&](auto index, auto superObj) {
         EXPECT_EQ(0, decltype(index)::Index);
-        bool isSame = std::is_same<int, decltype(superClass)>::value;
+        bool isSame = std::is_same<int, decltype(superObj)>::value;
+        EXPECT_TRUE(isSame);
+        visitCount ++;
+    });
+    EXPECT_EQ(1, visitCount);
+    visitCount = 0;
+    Inherit<Inherit<int>>::ForEach([&](auto index, auto superType) {
+        using Super = typename decltype(superType)::type;
+        EXPECT_EQ(0, decltype(index)::Index);
+        bool isSame = std::is_same<int, Super>::value;
         EXPECT_TRUE(isSame);
         visitCount ++;
     });
     EXPECT_EQ(1, visitCount);
     visited = false;
-    Inherit<Inherit<int>>::At(val, 0, [&](auto superClass) {
-        bool isSame = std::is_same<int, decltype(superClass)>::value;
+    Inherit<Inherit<int>>::At(val, 0, [&](auto superObj) {
+        bool isSame = std::is_same<int, decltype(superObj)>::value;
         EXPECT_TRUE(isSame);
         visited = true;
     });
     EXPECT_TRUE(visited);
     visited = false;
-    Inherit<Inherit<int>>::At(val, 1, [&](auto superClass) { visited = true; });
+    Inherit<Inherit<int>>::At(0, [&](auto superType) {
+        using Super = typename decltype(superType)::type;
+        bool isSame = std::is_same<int, Super>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    Inherit<Inherit<int>>::At(val, 1, [&](auto superObj) { visited = true; });
     EXPECT_FALSE(visited);
-
+    visited = false;
+    Inherit<Inherit<int>>::At(1, [&](auto superType) { visited = true; });
+    EXPECT_FALSE(visited);
+    
     visitCount = 0;
-    TwoArg::ForEach(val, [&](auto index, auto superClass) {
+    TwoArg::ForEach(val, [&](auto index, auto superObj) {
         EXPECT_EQ(visitCount, decltype(index)::Index);
         bool isSame = false;
         switch ( decltype(index)::Index ) {
-            case 0: isSame = std::is_same<int, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
-            case 1: isSame = std::is_same<float, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
+            case 0: isSame = std::is_same<int, decltype(superObj)>::value; EXPECT_TRUE(isSame); break;
+            case 1: isSame = std::is_same<float, decltype(superObj)>::value; EXPECT_TRUE(isSame); break;
+            default: EXPECT_TRUE(false); break;
+        }
+        visitCount ++;
+    });
+    EXPECT_EQ(2, visitCount);
+    visitCount = 0;
+    TwoArg::ForEach([&](auto index, auto superType) {
+        using Super = typename decltype(superType)::type;
+        EXPECT_EQ(visitCount, decltype(index)::Index);
+        bool isSame = false;
+        switch ( decltype(index)::Index ) {
+            case 0: isSame = std::is_same<int, Super>::value; EXPECT_TRUE(isSame); break;
+            case 1: isSame = std::is_same<float, Super>::value; EXPECT_TRUE(isSame); break;
             default: EXPECT_TRUE(false); break;
         }
         visitCount ++;
     });
     EXPECT_EQ(2, visitCount);
     visited = false;
-    TwoArg::At(val, 0, [&](auto superClass) {
-        bool isSame = std::is_same<int, decltype(superClass)>::value;
+    TwoArg::At(val, 0, [&](auto superObj) {
+        bool isSame = std::is_same<int, decltype(superObj)>::value;
         EXPECT_TRUE(isSame);
         visited = true;
     });
     EXPECT_TRUE(visited);
     visited = false;
-    TwoArg::At(val, 1, [&](auto superClass) {
-        bool isSame = std::is_same<float, decltype(superClass)>::value;
+    TwoArg::At(0, [&](auto superType) {
+        using Super = typename decltype(superType)::type;
+        bool isSame = std::is_same<int, Super>::value;
         EXPECT_TRUE(isSame);
         visited = true;
     });
     EXPECT_TRUE(visited);
     visited = false;
-    TwoArg::At(val, 2, [&](auto superClass) { visited = true; });
+    TwoArg::At(val, 1, [&](auto superObj) {
+        bool isSame = std::is_same<float, decltype(superObj)>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    TwoArg::At(1, [&](auto superType) {
+        using Super = typename decltype(superType)::type;
+        bool isSame = std::is_same<float, Super>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    TwoArg::At(val, 2, [&](auto superObj) { visited = true; });
     EXPECT_FALSE(visited);
-
+    visited = false;
+    TwoArg::At(2, [&](auto superType) { visited = true; });
+    EXPECT_FALSE(visited);
+    
     visitCount = 0;
-    ThreeArg::ForEach(val, [&](auto index, auto superClass) {
+    ThreeArg::ForEach(val, [&](auto index, auto superObj) {
         EXPECT_EQ(visitCount, decltype(index)::Index);
         bool isSame = false;
         switch ( decltype(index)::Index ) {
-            case 0: isSame = std::is_same<int, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
-            case 1: isSame = std::is_same<float, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
-            case 2: isSame = std::is_same<char, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
+            case 0: isSame = std::is_same<int, decltype(superObj)>::value; EXPECT_TRUE(isSame); break;
+            case 1: isSame = std::is_same<float, decltype(superObj)>::value; EXPECT_TRUE(isSame); break;
+            case 2: isSame = std::is_same<char, decltype(superObj)>::value; EXPECT_TRUE(isSame); break;
+            default: EXPECT_TRUE(false); break;
+        }
+        visitCount ++;
+    });
+    EXPECT_EQ(3, visitCount);
+    visitCount = 0;
+    ThreeArg::ForEach([&](auto index, auto superType) {
+        using Super = typename decltype(superType)::type;
+        EXPECT_EQ(visitCount, decltype(index)::Index);
+        bool isSame = false;
+        switch ( decltype(index)::Index ) {
+            case 0: isSame = std::is_same<int, Super>::value; EXPECT_TRUE(isSame); break;
+            case 1: isSame = std::is_same<float, Super>::value; EXPECT_TRUE(isSame); break;
+            case 2: isSame = std::is_same<char, Super>::value; EXPECT_TRUE(isSame); break;
             default: EXPECT_TRUE(false); break;
         }
         visitCount ++;
     });
     EXPECT_EQ(3, visitCount);
     visited = false;
-    ThreeArg::At(val, 0, [&](auto superClass) {
-        bool isSame = std::is_same<int, decltype(superClass)>::value;
+    ThreeArg::At(val, 0, [&](auto superObj) {
+        bool isSame = std::is_same<int, decltype(superObj)>::value;
         EXPECT_TRUE(isSame);
         visited = true;
     });
     EXPECT_TRUE(visited);
     visited = false;
-    ThreeArg::At(val, 1, [&](auto superClass) {
-        bool isSame = std::is_same<float, decltype(superClass)>::value;
+    ThreeArg::At(0, [&](auto superType) {
+        using Super = typename decltype(superType)::type;
+        bool isSame = std::is_same<int, Super>::value;
         EXPECT_TRUE(isSame);
         visited = true;
     });
     EXPECT_TRUE(visited);
     visited = false;
-    ThreeArg::At(val, 2, [&](auto superClass) {
-        bool isSame = std::is_same<char, decltype(superClass)>::value;
+    ThreeArg::At(val, 1, [&](auto superObj) {
+        bool isSame = std::is_same<float, decltype(superObj)>::value;
         EXPECT_TRUE(isSame);
         visited = true;
     });
     EXPECT_TRUE(visited);
     visited = false;
-    ThreeArg::At(val, 3, [&](auto superClass) { visited = true; });
+    ThreeArg::At(1, [&](auto superType) {
+        using Super = typename decltype(superType)::type;
+        bool isSame = std::is_same<float, Super>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    ThreeArg::At(val, 2, [&](auto superObj) {
+        bool isSame = std::is_same<char, decltype(superObj)>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    ThreeArg::At(2, [&](auto superType) {
+        using Super = typename decltype(superType)::type;
+        bool isSame = std::is_same<char, Super>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    ThreeArg::At(val, 3, [&](auto superObj) { visited = true; });
     EXPECT_FALSE(visited);
-
+    visited = false;
+    ThreeArg::At(3, [&](auto superType) { visited = true; });
+    EXPECT_FALSE(visited);
+    
     visitCount = 0;
-    FourArg::ForEach(val, [&](auto index, auto superClass) {
+    FourArg::ForEach(val, [&](auto index, auto superObj) {
         EXPECT_EQ(visitCount, decltype(index)::Index);
         bool isSame = false;
         switch ( decltype(index)::Index ) {
-            case 0: isSame = std::is_same<int, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
-            case 1: isSame = std::is_same<float, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
-            case 2: isSame = std::is_same<short, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
-            case 3: isSame = std::is_same<char, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
+            case 0: isSame = std::is_same<int, decltype(superObj)>::value; EXPECT_TRUE(isSame); break;
+            case 1: isSame = std::is_same<float, decltype(superObj)>::value; EXPECT_TRUE(isSame); break;
+            case 2: isSame = std::is_same<short, decltype(superObj)>::value; EXPECT_TRUE(isSame); break;
+            case 3: isSame = std::is_same<char, decltype(superObj)>::value; EXPECT_TRUE(isSame); break;
+            default: EXPECT_TRUE(false); break;
+        }
+        visitCount ++;
+    });
+    EXPECT_EQ(4, visitCount);
+    visitCount = 0;
+    FourArg::ForEach([&](auto index, auto superType) {
+        using Super = typename decltype(superType)::type;
+        EXPECT_EQ(visitCount, decltype(index)::Index);
+        bool isSame = false;
+        switch ( decltype(index)::Index ) {
+            case 0: isSame = std::is_same<int, Super>::value; EXPECT_TRUE(isSame); break;
+            case 1: isSame = std::is_same<float, Super>::value; EXPECT_TRUE(isSame); break;
+            case 2: isSame = std::is_same<short, Super>::value; EXPECT_TRUE(isSame); break;
+            case 3: isSame = std::is_same<char, Super>::value; EXPECT_TRUE(isSame); break;
             default: EXPECT_TRUE(false); break;
         }
         visitCount ++;
     });
     EXPECT_EQ(4, visitCount);
     visited = false;
-    FourArg::At(val, 0, [&](auto superClass) {
-        bool isSame = std::is_same<int, decltype(superClass)>::value;
+    FourArg::At(val, 0, [&](auto superObj) {
+        bool isSame = std::is_same<int, decltype(superObj)>::value;
         EXPECT_TRUE(isSame);
         visited = true;
     });
     EXPECT_TRUE(visited);
     visited = false;
-    FourArg::At(val, 1, [&](auto superClass) {
-        bool isSame = std::is_same<float, decltype(superClass)>::value;
+    FourArg::At(0, [&](auto superType) {
+        using Super = typename decltype(superType)::type;
+        bool isSame = std::is_same<int, Super>::value;
         EXPECT_TRUE(isSame);
         visited = true;
     });
     EXPECT_TRUE(visited);
     visited = false;
-    FourArg::At(val, 2, [&](auto superClass) {
-        bool isSame = std::is_same<short, decltype(superClass)>::value;
+    FourArg::At(val, 1, [&](auto superObj) {
+        bool isSame = std::is_same<float, decltype(superObj)>::value;
         EXPECT_TRUE(isSame);
         visited = true;
     });
     EXPECT_TRUE(visited);
     visited = false;
-    FourArg::At(val, 3, [&](auto superClass) {
-        bool isSame = std::is_same<char, decltype(superClass)>::value;
+    FourArg::At(1, [&](auto superType) {
+        using Super = typename decltype(superType)::type;
+        bool isSame = std::is_same<float, Super>::value;
         EXPECT_TRUE(isSame);
         visited = true;
     });
     EXPECT_TRUE(visited);
     visited = false;
-    FourArg::At(val, 4, [&](auto superClass) { visited = true; });
+    FourArg::At(val, 2, [&](auto superObj) {
+        bool isSame = std::is_same<short, decltype(superObj)>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    FourArg::At(2, [&](auto superType) {
+        using Super = typename decltype(superType)::type;
+        bool isSame = std::is_same<short, Super>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    FourArg::At(val, 3, [&](auto superObj) {
+        bool isSame = std::is_same<char, decltype(superObj)>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    FourArg::At(3, [&](auto superType) {
+        using Super = typename decltype(superType)::type;
+        bool isSame = std::is_same<char, Super>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    FourArg::At(val, 4, [&](auto superObj) { visited = true; });
+    EXPECT_FALSE(visited);
+    visited = false;
+    FourArg::At(4, [&](auto superType) { visited = true; });
     EXPECT_FALSE(visited);
 }
 
