@@ -2976,7 +2976,10 @@ namespace Json
                     jsonField = getJsonField(object, fieldClusterToJsonFieldName());
                     if ( jsonField != nullptr ) // Has FieldCluster
                     {
-                        throw Exception("TODO: Add to FieldCluster");
+                        Object::Class::FieldAt(object, jsonField->index, [&](auto & field, auto & value) {
+                            using FieldType = typename std::remove_reference<decltype(field)>::type;
+                            throw Exception("TODO: Add to FieldCluster");
+                        });
                     }
                     else // No FieldCluster
                         Consume::Value<false>(is, c);
