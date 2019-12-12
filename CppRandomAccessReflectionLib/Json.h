@@ -19,7 +19,7 @@ namespace Json
         struct EnumInt {};
 
         /// Field annotation telling JSON to skip a field during input or output TODO: use it
-        struct JsonIgnore {};
+        struct Ignore {};
 
         struct Unspecialized {};
 
@@ -57,7 +57,7 @@ namespace Json
                 return Object::Class::TotalFields > Object::Class::TotalStaticFields;
             else if constexpr ( statics == Statics::Included )
                 return Object::Class::TotalFields > 0;
-            else if constexpr ( statics == Statics::Only )
+            else // if constexpr ( statics == Statics::Only )
                 return Object::Class::TotalStaticFields > 0;
         }
 
@@ -1578,7 +1578,7 @@ namespace Json
                         else
                             Put::Value<Annotations, FieldClass, statics, PrettyPrint, 0, IndentLevel, indent, Object, false>(os, context, obj, value);
                     }
-                    else
+                    else if constexpr ( !FieldClass::template HasAnnotation<Ignore> )
                     {
                         os << StaticAffix::FieldPrefix<FieldClass::Index == FirstIndex<statics, Object>(), PrettyPrint, IndentLevel+1, indent>;
                         Put::String(os, fieldName);
@@ -1603,10 +1603,13 @@ namespace Json
                 bool PrettyPrint, size_t IndentLevel, const char* indent, typename Object>
             static constexpr void Super(std::ostream & os, Context & context, const Object & obj, const std::string & superFieldName)
             {
-                os << StaticAffix::FieldPrefix<SuperIndex == 0 && !HasFields<statics, Object>(), PrettyPrint, IndentLevel+1, indent>;
-                Put::String(os, superFieldName);
-                os << FieldNameValueSeparator<PrettyPrint>;
-                Put::Object<Annotations, statics, PrettyPrint, IndentLevel+1, indent, T>(os, context, obj);
+                if constexpr ( HasFields<statics, T>() )
+                {
+                    os << StaticAffix::FieldPrefix<SuperIndex == 0 && !HasFields<statics, T>(), PrettyPrint, IndentLevel+1, indent>;
+                    Put::String(os, superFieldName);
+                    os << FieldNameValueSeparator<PrettyPrint>;
+                    Put::Object<Annotations, statics, PrettyPrint, IndentLevel+1, indent, T>(os, context, obj);
+                }
             }
             
             template <typename Annotations, Statics statics, bool PrettyPrint, size_t IndentLevel, const char* indent, typename Object>
@@ -1814,7 +1817,7 @@ namespace Json
                                     inserted.first->second.insert(std::pair<size_t, JsonField>(
                                         strHash(fieldName), JsonField(fieldIndex, JsonField::Type::Regular, fieldName)));
                                 }
-                                else
+                                else if constexpr ( !Field::template HasAnnotation<Ignore> )
                                 {
                                     inserted.first->second.insert(std::pair<size_t, JsonField>(
                                         strHash(Class::Fields[fieldIndex].name), JsonField(fieldIndex, JsonField::Type::Regular, Class::Fields[fieldIndex].name)));
@@ -1829,9 +1832,12 @@ namespace Json
                         {
                             Supers::At(t, superIndex, [&](auto & superObj) {
                                 using Super = typename std::remove_reference<decltype(superObj)>::type;
-                                std::string superTypeFieldName = superTypeToJsonFieldName<Super>();
-                                inserted.first->second.insert(std::pair<size_t, JsonField>(
-                                    strHash(superTypeFieldName), JsonField(superIndex, JsonField::Type::SuperClass, superTypeFieldName)));
+                                if constexpr ( HasFields<Statics::Included, Super>() )
+                                {
+                                    std::string superTypeFieldName = superTypeToJsonFieldName<Super>();
+                                    inserted.first->second.insert(std::pair<size_t, JsonField>(
+                                        strHash(superTypeFieldName), JsonField(superIndex, JsonField::Type::SuperClass, superTypeFieldName)));
+                                }
                             });
                         }
                     }
