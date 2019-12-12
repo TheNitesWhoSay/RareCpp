@@ -316,12 +316,8 @@ int main()
     std::cout << std::endl << Json::pretty<Statics::Included>(s) << std::endl << std::endl;
 
     Json::Object obj;
-    obj.put("asdf", Json::Bool::Make(true));
-    obj.put("jkl", Json::Number::Make(5));
-    obj.put("qwer", Json::String::Make("str"));
-    std::cout << obj << std::endl << std::endl;
-
-    /*try {
+    try {
+        std::cout << "Enter Any JSON:" << std::endl;
         std::cin >> Json::in(obj);
     } catch ( Json::Exception & e ) {
         std::cout << std::endl << "Exception: " << e.what() << std::endl;
@@ -329,21 +325,22 @@ int main()
     std::cout << "Read in: " << Json::pretty(obj) << std::endl;
     std::cout << "..." << std::endl;
     std::cin.clear();
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');*/
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
     A a;
-    a.runtime = Json::Object::Make();
-    Json::Object & runtime = (Json::Object &)*a.runtime;
-    runtime.put("field", Json::Bool::Make(true));
-    std::cout << Json::pretty<Statics::Excluded>(a) << std::endl << std::endl;
     do {
         try {
+            std::cout << "Enter Class A:" << std::endl;
             std::cin >> Json::in(a);
         } catch ( Json::Exception & e ) {
             std::cout << std::endl << "Exception: " << e.what() << std::endl;
         }
-        //Json::putClassFieldCache(std::cout);
-        //std::cout << "..." << std::endl;
+
+        if ( a.putCache )
+        {
+            Json::putClassFieldCache(std::cout);
+            std::cout << "..." << std::endl;
+        }
         std::cout << "Read in: " << Json::pretty(a, EnhancedContext::Make(1337)) << std::endl;
         std::cout << "..." << std::endl;
         std::cin.clear();

@@ -159,7 +159,8 @@ namespace Json
         public:
             enum_t(Type, size_t, {
                 Regular = 0,
-                SuperClass = 1
+                SuperClass = 1,
+                FieldCluster = 2
             });
         
             JsonField() : index(0), type(Type::Regular), name("") {}
@@ -172,8 +173,6 @@ namespace Json
 
         class Value;
         class TypeMismatch;
-        using ObjectPtr = std::shared_ptr<std::map<std::string, std::shared_ptr<Value>>>;
-        using FieldsPtr = std::shared_ptr<std::map<std::string, std::shared_ptr<Value>>>;
         
         class Value {
         public:
@@ -1815,7 +1814,7 @@ namespace Json
                                 {
                                     std::string fieldName = fieldClusterToJsonFieldName();
                                     inserted.first->second.insert(std::pair<size_t, JsonField>(
-                                        strHash(fieldName), JsonField(fieldIndex, JsonField::Type::Regular, fieldName)));
+                                        strHash(fieldName), JsonField(fieldIndex, JsonField::Type::FieldCluster, fieldName)));
                                 }
                                 else if constexpr ( !Field::template HasAnnotation<Ignore> )
                                 {
@@ -1880,7 +1879,8 @@ namespace Json
                         os << "    \"" << fieldNameToJsonField.first << "\": {" << std::endl
                             << "      \"index\": " << fieldNameToJsonField.second.index << "," << std::endl
                             << "      \"type\": "
-                            << (fieldNameToJsonField.second.type == JsonField::Type::Regular ? "\"Regular\"" : "\"SuperClass\"")
+                            << (fieldNameToJsonField.second.type == JsonField::Type::Regular ? "\"Regular\"" :
+                                (fieldNameToJsonField.second.type == JsonField::Type::SuperClass ? "\"SuperClass\"" : "\"FieldCluster\""))
                             << "," << std::endl
                             << "      \"name\": \"" << fieldNameToJsonField.second.name << "\"" << std::endl;
 
@@ -2003,16 +2003,6 @@ namespace Json
                     get(is, c, expectedDescription);
                 else
                     get(is, c, secondaryDescription);
-            }
-
-            template <bool usePrimary>
-            static constexpr inline void get(std::istream & is, char & c, int expectedChar, int secondaryChar,
-                const char* expectedDescription, const char* secondaryDescription)
-            {
-                if constexpr ( usePrimary )
-                    get(is, c, expectedChar, expectedDescription);
-                else
-                    get(is, c, secondaryChar, secondaryDescription);
             }
 
             static inline bool unget(std::istream & is, char ungetting)
@@ -2987,7 +2977,7 @@ namespace Json
                             Read::Value<false, FieldType>(is, context, c, object, value);
                         });
                     }
-                    else if ( jsonField->type )
+                    else if ( jsonField->type == JsonField::Type::SuperClass )
                     {
                         Object::Supers::At(object, jsonField->index, [&](auto & superObj) {
                             using Super = typename std::remove_reference<decltype(superObj)>::type;

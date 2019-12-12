@@ -37,7 +37,7 @@ public:
     static const std::unordered_map<std::string, TestEnum> TestEnumCache;
     static const std::unordered_map<std::string, TestEnum> TestEnumCacheCustom;
 
-    A() : testEnum(TestEnum::first), first(0), ptr(nullptr), composed(), boolean(false), str("") { ray[0] = 0; ray[1] = 0; }
+    A() : testEnum(TestEnum::first), first(0), ptr(nullptr), composed(), boolean(false), putCache(false), str("") { ray[0] = 0; ray[1] = 0; }
 
     TestEnum testEnum;
     int first;
@@ -45,6 +45,7 @@ public:
     int* ptr;
     Composed composed;
     bool boolean;
+    bool putCache;
     std::string str;
     std::map<std::string, std::string> map;
     std::vector<std::vector<int>> vecVec;
@@ -63,7 +64,7 @@ public:
 
     using Parents = Inherit<SuperA, OtherSuperA>;
     REFLECT((Parents) A, () testEnum, (Reflected) composed, () first, () second,
-        () ptr, (Json::Ignore) boolean, (Json::String) str, (Json::String) map, () vecVec, () ray, () runtime, () autoAllocate, () unknownFields)
+        () ptr, (Json::Ignore) boolean, () putCache, (Json::String) str, (Json::String) map, () vecVec, () ray, () runtime, () autoAllocate, () unknownFields)
 };
 
 struct EnhancedContext : public Json::Context
