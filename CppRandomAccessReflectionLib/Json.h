@@ -216,18 +216,18 @@ namespace Json
                             if ( value == nullptr )
                             {
                                 if constexpr ( std::is_same<std::shared_ptr<Dereferenced>, T>::value )
-                                    value = std::shared_ptr<Dereferenced>(allocatedValue);
+                                    value = std::shared_ptr<Dereferenced>(dynamic_cast<Dereferenced*>(allocatedValue));
                                 else if constexpr ( std::is_same<std::unique_ptr<Dereferenced>, T>::value )
-                                    value = std::unique_ptr<Dereferenced>(allocatedValue);
+                                    value = std::unique_ptr<Dereferenced>(dynamic_cast<Dereferenced*>(allocatedValue));
                                 else
                                     throw Exception("Cannot assign a non-null value to a null pointer unless the type is std::shared_ptr or std::unique_ptr");
                             }
                             else if ( value->type() != allocatedValue->type() ) // value != nullptr
                                 throw TypeMismatch(value->type(), allocatedValue->type());
                             else if constexpr ( std::is_same<std::shared_ptr<Dereferenced>, T>::value ) // value != nullptr && value->type() == allocatedValue->type()
-                                value = std::shared_ptr<Dereferenced>(allocatedValue);
+                                value = std::shared_ptr<Dereferenced>(dynamic_cast<Dereferenced*>(allocatedValue));
                             else if constexpr ( std::is_same<std::unique_ptr<Dereferenced>, T>::value ) // value != nullptr && value->type() == allocatedValue->type()
-                                value = std::unique_ptr<Dereferenced>(allocatedValue);
+                                value = std::unique_ptr<Dereferenced>(dynamic_cast<Dereferenced*>(allocatedValue));
                             else // value != nullptr && value->type() == allocatedValue->type()
                             {
                                 *value = *allocatedValue; // Non-null but not a smart pointer you can trust to perform cleanup, use value assignment
@@ -531,7 +531,7 @@ namespace Json
             
             virtual void put(std::string fieldName, std::shared_ptr<Value> value)
             {
-                this->value.insert(std::pair<std::string, std::shared_ptr<Value>>(fieldName, value));
+                this->value.insert_or_assign(fieldName, value);
             }
             
         private:
@@ -1566,10 +1566,15 @@ namespace Json
             {
                 if constexpr ( matches_statics<FieldClass::IsStatic, statics>::value )
                 {
-                    if constexpr ( std::is_base_of<Generic::FieldCluster, FieldClass::Type>::value )
+                    if constexpr ( std::is_base_of<Generic::FieldCluster, remove_pointer<FieldClass::Type>::type>::value )
                     {
                         if constexpr ( FieldClass::Index == FirstIndex<statics, Object>() )
                             throw Exception("Json::Generic::FieldCluster cannot be the first or the only field in an object");
+                        else if constexpr ( is_pointable<FieldClass::Type>::value )
+                        {
+                            if ( value != nullptr )
+                                Put::Value<Annotations, FieldClass, statics, PrettyPrint, 0, IndentLevel, indent, Object, false>(os, context, obj, *value);
+                        }
                         else
                             Put::Value<Annotations, FieldClass, statics, PrettyPrint, 0, IndentLevel, indent, Object, false>(os, context, obj, value);
                     }
@@ -1803,7 +1808,7 @@ namespace Json
                         {
                             Class::FieldAt(fieldIndex, [&](auto & field) {
                                 using Field = typename std::remove_reference<decltype(field)>::type;
-                                if constexpr ( std::is_base_of<Generic::FieldCluster, Field::Type>::value )
+                                if constexpr ( std::is_base_of<Generic::FieldCluster, remove_pointer<Field::Type>::type>::value )
                                 {
                                     std::string fieldName = fieldClusterToJsonFieldName();
                                     inserted.first->second.insert(std::pair<size_t, JsonField>(
@@ -2977,8 +2982,26 @@ namespace Json
                     if ( jsonField != nullptr ) // Has FieldCluster
                     {
                         Object::Class::FieldAt(object, jsonField->index, [&](auto & field, auto & value) {
-                            using FieldType = typename std::remove_reference<decltype(field)>::type;
-                            throw Exception("TODO: Add to FieldCluster");
+                            using ValueType = typename std::remove_reference<decltype(value)>::type;
+                            if constexpr ( std::is_base_of<Generic::Object, remove_pointer<ValueType>::type>::value )
+                            {
+                                if constexpr ( is_pointable<ValueType>::value )
+                                {
+                                    using Dereferenced = typename remove_pointer<ValueType>::type;
+                                    if constexpr ( std::is_same<std::shared_ptr<Dereferenced>, ValueType>::value )
+                                        value = std::shared_ptr<Dereferenced>(new Dereferenced());
+                                    else if constexpr ( std::is_same<std::unique_ptr<Dereferenced>, ValueType>::value )
+                                        value = std::unique_ptr<Dereferenced>(new Dereferenced());
+                                    else
+                                        throw Exception("Cannot assign a non-null value to a null pointer unless the type is std::shared_ptr or std::unique_ptr");
+
+                                    value->put(fieldName, Read::GenericValue<false>(is, context, c)->out());
+                                }
+                                else
+                                    value.put(fieldName, Read::GenericValue<false>(is, context, c)->out());
+                            }
+                            else
+                                throw Exception(TypeToStr<ValueType>().c_str());
                         });
                     }
                     else // No FieldCluster

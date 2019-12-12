@@ -50,7 +50,7 @@ public:
     std::vector<std::vector<int>> vecVec;
     int ray[2];
     std::shared_ptr<Json::Value> runtime;
-    Json::Generic::FieldCluster unknownFields;
+    std::shared_ptr<Json::Generic::FieldCluster> unknownFields;
 
     class NestedClass
     {
