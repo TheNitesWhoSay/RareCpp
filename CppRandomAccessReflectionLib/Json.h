@@ -51,46 +51,58 @@ namespace Json
         };
 
         template <Statics statics, typename Object>
+        static constexpr size_t IgnoredFieldCount()
+        {
+            size_t count = 0;
+            Object::Class::ForEachField([&](auto & field) {
+                using Field = typename std::remove_reference<decltype(field)>::type;
+                if constexpr ( Field::template HasAnnotation<Ignore> && matches_statics<Field::IsStatic, statics>::value )
+                    count ++;
+            });
+            return count;
+        }
+
+        template <Statics statics, typename Object>
         static constexpr bool HasFields()
         {
             if constexpr ( statics == Statics::Excluded )
-                return Object::Class::TotalFields > Object::Class::TotalStaticFields;
+                return Object::Class::TotalFields - Object::Class::TotalStaticFields - IgnoredFieldCount<statics, Object>() > 0;
             else if constexpr ( statics == Statics::Included )
-                return Object::Class::TotalFields > 0;
+                return Object::Class::TotalFields - IgnoredFieldCount<statics, Object>() > 0;
             else // statics == Statics::Only
-                return Object::Class::TotalStaticFields > 0;
+                return Object::Class::TotalStaticFields - IgnoredFieldCount<statics, Object>() > 0;
+        }
+
+        template <size_t Index, Statics statics, typename Object>
+        static constexpr size_t FirstIndexRecursion()
+        {
+            size_t firstIndex = 0;
+            Object::Class::FieldAt(Index, [&](auto & field) {
+                using Field = typename std::remove_reference<decltype(field)>::type;
+                if constexpr ( !Field::template HasAnnotation<Ignore> && matches_statics<Field::IsStatic, statics>::value )
+                    firstIndex = Field::Index;
+                else if constexpr ( Index < Object::Class::TotalFields )
+                    firstIndex = FirstIndexRecursion<Index+1, statics, Object>();
+            });
+            return firstIndex;
         }
 
         template <Statics statics, typename Object>
         static constexpr size_t FirstIndex()
         {
-            if constexpr ( statics == Statics::Only || statics == Statics::Excluded )
-            {
-                for ( size_t i=0; i<Object::Class::TotalFields; i++ )
-                {
-                    if constexpr ( statics == Statics::Only && Object::Class::Fields[i].IsStatic )
-                        return i;
-                    else if constexpr ( statics == Statics::Excluded && !Object::Class::Fields[i].IsStatic )
-                        return i;
-                }
-            }
-            return 0;
+            return FirstIndexRecursion<0, statics, Object>();
         }
 
         template <Statics statics, typename Object>
         static constexpr size_t LastIndex()
         {
-            if constexpr ( Object::Class::TotalFields > 0 && (statics == Statics::Only || statics == Statics::Excluded) )
-            {
-                for ( size_t i=Object::Class::TotalFields-1; i>0; i-- )
-                {
-                    if constexpr ( statics == Statics::Only && Object::Class::Fields[i].IsStatic )
-                        return i;
-                    else if constexpr ( statics == Statics::Excluded && !Object::Class::Fields[i].IsStatic )
-                        return i;
-                }
-            }
-            return Object::Class::TotalFields - 1;
+            size_t lastIndex = 0;
+            Object::Class::ForEachField([&](auto & field) {
+                using Field = typename std::remove_reference<decltype(field)>::type;
+                if constexpr ( !Field::template HasAnnotation<Ignore> && matches_statics<Field::IsStatic, statics>::value )
+                    return lastIndex = Field::Index;
+            });
+            return lastIndex;
         }
 
         constexpr size_t NoFieldIndex = std::numeric_limits<size_t>::max();
@@ -154,9 +166,8 @@ namespace Json
 
     inline namespace Generic
     {
-        class JsonField
+        struct JsonField
         {
-        public:
             enum_t(Type, size_t, {
                 Regular = 0,
                 SuperClass = 1,
@@ -331,7 +342,7 @@ namespace Json
 
             TypeMismatch(Value::Type lhsType, Value::Type rhsType)
                 : Exception((std::string("Cannot assign a Json::") + getTypeStr(rhsType) + " value to a Json::" + getTypeStr(lhsType) + " type!").c_str()),
-                valueType(valueType), rValueType(rhsType), functionType(Value::Type::None) {}
+                valueType(lhsType), rValueType(rhsType), functionType(Value::Type::None) {}
 
             Value::Type valueType;
             Value::Type rValueType;
@@ -388,7 +399,7 @@ namespace Json
         };
         class Number : public Value {
         public:
-            Number() : value() {}
+            Number() : value("0") {}
             Number(const std::string & value) : value(value) {}
             Number(const Number & other) : value(other.value) {}
             virtual ~Number() {}
