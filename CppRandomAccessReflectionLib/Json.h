@@ -182,11 +182,9 @@ namespace Json
             std::string name;
         };
 
-        class Value;
-        class TypeMismatch;
-        
         class Value {
         public:
+
             enum_t(Type, uint8_t, {
                 None,
                 Null,
@@ -203,6 +201,41 @@ namespace Json
                 MixedArray,
                 FieldCluster
             });
+            
+            class TypeMismatch : public Exception
+            {
+            public:
+                static std::string getTypeStr(Value::Type type)
+                {
+                    switch ( type )
+                    {
+                        case Value::Type::None: return "None";
+                        case Value::Type::Boolean: return "Boolean";
+                        case Value::Type::Number: return "Number";
+                        case Value::Type::String: return "String";
+                        case Value::Type::Object: return "Object";
+                        case Value::Type::Array: return "Array";
+                        case Value::Type::BoolArray: return "BoolArray";
+                        case Value::Type::NumberArray: return "NumberArray";
+                        case Value::Type::StringArray: return "StringArray";
+                        case Value::Type::ObjectArray: return "ObjectArray";
+                        case Value::Type::MixedArray: return "MixedArray";
+                    }
+                    return "Unknown";
+                }
+
+                TypeMismatch(Type valueType, Type functionType, const std::string & functionName)
+                    : Exception((std::string("Cannot call ") + functionName + "() on a Json::" + getTypeStr(valueType) + " type!").c_str()),
+                    valueType(valueType), rValueType(Type::None), functionType(functionType) {}
+
+                TypeMismatch(Value::Type lhsType, Value::Type rhsType)
+                    : Exception((std::string("Cannot assign a Json::") + getTypeStr(rhsType) + " value to a Json::" + getTypeStr(lhsType) + " type!").c_str()),
+                    valueType(lhsType), rValueType(rhsType), functionType(Value::Type::None) {}
+
+                Value::Type valueType;
+                Value::Type rValueType;
+                Value::Type functionType;
+            };
 
             class Assigner
             {
@@ -225,10 +258,13 @@ namespace Json
                             using Dereferenced = typename remove_pointer<T>::type;
                             if ( value == nullptr )
                             {
-                                if constexpr ( std::is_same<std::shared_ptr<Dereferenced>, T>::value )
-                                    value = std::shared_ptr<Dereferenced>(dynamic_cast<Dereferenced*>(allocatedValue));
+                                Dereferenced* casted = dynamic_cast<Dereferenced*>(allocatedValue);
+                                if ( casted == nullptr )
+                                    throw TypeMismatch(Value::Type::None, allocatedValue->type());
+                                else if constexpr ( std::is_same<std::shared_ptr<Dereferenced>, T>::value )
+                                    value = std::shared_ptr<Dereferenced>(casted);
                                 else if constexpr ( std::is_same<std::unique_ptr<Dereferenced>, T>::value )
-                                    value = std::unique_ptr<Dereferenced>(dynamic_cast<Dereferenced*>(allocatedValue));
+                                    value = std::unique_ptr<Dereferenced>(casted);
                                 else
                                     throw Exception("Cannot assign a non-null value to a null pointer unless the type is std::shared_ptr or std::unique_ptr");
                             }
@@ -249,15 +285,20 @@ namespace Json
                         else if ( value != nullptr ) // allocatedValue == nullptr
                             value = nullptr;
                     }
-                    else if ( allocatedValue == nullptr ) // !is_pointable<T>::value
-                        throw NullUnassignable();
-                    else if ( value.type() != allocatedValue->type() ) // !is_pointable<T>::value && allocatedValue != nullptr
-                        throw TypeMismatch(value.type(), allocatedValue->type());
-                    else // !is_pointable<T>::value && allocatedValue != nullptr && value.type() == allocatedValue->type()
+                    else if constexpr ( std::is_base_of<Value, T>::value )
                     {
-                        value = *allocatedValue;
-                        allocatedValue = nullptr;
+                        if ( allocatedValue == nullptr ) // !is_pointable<T>::value
+                            throw NullUnassignable();
+                        else if ( value.type() != allocatedValue->type() ) // !is_pointable<T>::value && allocatedValue != nullptr
+                            throw TypeMismatch(value.type(), allocatedValue->type());
+                        else // !is_pointable<T>::value && allocatedValue != nullptr && value.type() == allocatedValue->type()
+                        {
+                            value = *allocatedValue;
+                            allocatedValue = nullptr;
+                        }
                     }
+                    else
+                        throw Exception("Cannot assign generic value to any type except Json::Value");
                 }
 
                 std::shared_ptr<Value> out()
@@ -314,41 +355,6 @@ namespace Json
             }
         };
 
-        class TypeMismatch : public Exception
-        {
-        public:
-            static std::string getTypeStr(Value::Type type)
-            {
-                switch ( type )
-                {
-                    case Value::Type::None: return "None";
-                    case Value::Type::Boolean: return "Boolean";
-                    case Value::Type::Number: return "Number";
-                    case Value::Type::String: return "String";
-                    case Value::Type::Object: return "Object";
-                    case Value::Type::Array: return "Array";
-                    case Value::Type::BoolArray: return "BoolArray";
-                    case Value::Type::NumberArray: return "NumberArray";
-                    case Value::Type::StringArray: return "StringArray";
-                    case Value::Type::ObjectArray: return "ObjectArray";
-                    case Value::Type::MixedArray: return "MixedArray";
-                }
-                return "Unknown";
-            }
-
-            TypeMismatch(Value::Type valueType, Value::Type functionType, const std::string & functionName)
-                : Exception((std::string("Cannot call ") + functionName + "() on a Json::" + getTypeStr(valueType) + " type!").c_str()),
-                valueType(valueType), rValueType(Value::Type::None), functionType(functionType) {}
-
-            TypeMismatch(Value::Type lhsType, Value::Type rhsType)
-                : Exception((std::string("Cannot assign a Json::") + getTypeStr(rhsType) + " value to a Json::" + getTypeStr(lhsType) + " type!").c_str()),
-                valueType(lhsType), rValueType(rhsType), functionType(Value::Type::None) {}
-
-            Value::Type valueType;
-            Value::Type rValueType;
-            Value::Type functionType;
-        };
-	    
         class Bool : public Value {
         public:
             Bool() : value(false) {}
@@ -405,6 +411,7 @@ namespace Json
             virtual ~Number() {}
             
             static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new Number()); }
+            static std::shared_ptr<Value> Make(const char* value) { return std::shared_ptr<Value>(new Number(value)); }
             static std::shared_ptr<Value> Make(const std::string & value) { return std::shared_ptr<Value>(new Number(value)); }
             static std::shared_ptr<Value> Make(const Number & other) { return std::shared_ptr<Value>(new Number(other)); }
             template <typename T> static std::shared_ptr<Value> Make(const T & number) { return std::shared_ptr<Value>(new Number(std::to_string(number))); }
@@ -599,10 +606,12 @@ namespace Json
         class BoolArray : public Value {
         public:
             BoolArray() : values() {}
+            BoolArray(const std::vector<bool> & values) : values(values) {}
             BoolArray(const BoolArray & other) : values(other.values) {}
             virtual ~BoolArray() {}
             
             static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new BoolArray()); }
+            static std::shared_ptr<Value> Make(const std::vector<bool> & values) { return std::shared_ptr<Value>(new BoolArray(values)); }
             static std::shared_ptr<Value> Make(const BoolArray & other) { return std::shared_ptr<Value>(new BoolArray(other)); }
             
             BoolArray & operator=(const Value & other) { values = other.boolArray(); return *this; }
@@ -645,10 +654,12 @@ namespace Json
         class NumberArray : public Value {
         public:
             NumberArray() : values() {}
+            NumberArray(const std::vector<std::string> & values) : values(values) {}
             NumberArray(const NumberArray & other) : values(other.values) {}
             virtual ~NumberArray() {}
             
             static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new NumberArray()); }
+            static std::shared_ptr<Value> Make(const std::vector<std::string> & values) { return std::shared_ptr<Value>(new NumberArray(values)); }
             static std::shared_ptr<Value> Make(const NumberArray & other) { return std::shared_ptr<Value>(new NumberArray(other)); }
             
             NumberArray & operator=(const Value & other) { values = other.numberArray(); return *this; }
@@ -691,10 +702,12 @@ namespace Json
         class StringArray : public Value {
         public:
             StringArray() : values() {}
+            StringArray(const std::vector<std::string> & other) : values(other) {}
             StringArray(const StringArray & other) : values(other.values) {}
             virtual ~StringArray() {}
             
             static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new StringArray()); }
+            static std::shared_ptr<Value> Make(const std::vector<std::string> & values) { return std::shared_ptr<Value>(new StringArray(values)); }
             static std::shared_ptr<Value> Make(const StringArray & other) { return std::shared_ptr<Value>(new StringArray(other)); }
             
             StringArray & operator=(const Value & other) { values = other.stringArray(); return *this; }
@@ -737,10 +750,12 @@ namespace Json
         class ObjectArray : public Value {
         public:
             ObjectArray() : values() {}
+            ObjectArray(const std::vector<std::map<std::string, std::shared_ptr<Value>>> & values) : values(values) {}
             ObjectArray(const ObjectArray & other) : values(other.values) {}
             virtual ~ObjectArray() {}
             
             static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new ObjectArray()); }
+            static std::shared_ptr<Value> Make(const std::vector<std::map<std::string, std::shared_ptr<Value>>> & values) { return std::shared_ptr<Value>(new ObjectArray(values)); }
             static std::shared_ptr<Value> Make(const ObjectArray & other) { return std::shared_ptr<Value>(new ObjectArray(other)); }
             
             ObjectArray & operator=(const Value & other) { values = other.objectArray(); return *this; }
@@ -779,10 +794,12 @@ namespace Json
         class MixedArray : public Value {
         public:
             MixedArray() : values() {}
+            MixedArray(const std::vector<std::shared_ptr<Value>> & values) : values(values) {}
             MixedArray(const MixedArray & other) : values(other.values) {}
             virtual ~MixedArray() {}
             
             static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new MixedArray()); }
+            static std::shared_ptr<Value> Make(const std::vector<std::shared_ptr<Value>> & values) { return std::shared_ptr<Value>(new MixedArray(values)); }
             static std::shared_ptr<Value> Make(const MixedArray & other) { return std::shared_ptr<Value>(new MixedArray(other)); }
             
             MixedArray & operator=(const Value & other) { values = other.mixedArray(); return *this; }
