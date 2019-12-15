@@ -8,6 +8,9 @@
     <Filter Include="Source Files\ReflectTest">
       <UniqueIdentifier>{0423b888-d68e-491a-af43-adc6a93b26c6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{8cf6c8e7-27ef-495e-81ac-0eb827b841d5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="JsonTest.cpp">
@@ -31,5 +34,10 @@
     <ClCompile Include="FieldTest.cpp">
       <Filter>Source Files\ReflectTest</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="JsonTest.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

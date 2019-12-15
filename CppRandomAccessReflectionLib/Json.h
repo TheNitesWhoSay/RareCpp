@@ -992,12 +992,7 @@ namespace Json
                 }
                 else
                 {
-                    constexpr bool NotEmpty =
-                        statics == Statics::Only && Object::Class::TotalStaticFields > 0 ||
-                        statics == Statics::Included && Object::Class::TotalFields > 0 ||
-                        statics == Statics::Excluded && Object::Class::TotalFields > 0 && Object::Class::TotalStaticFields < Object::Class::TotalFields ||
-                        Object::Supers::TotalSupers > 0;
-
+                    constexpr bool NotEmpty = HasFields<statics, Object>();
                     if constexpr ( PrettyPrint && NotEmpty )
                         os << std::endl << Indent<PrettyPrint, IndentLevel, indent> << "}";
                     else

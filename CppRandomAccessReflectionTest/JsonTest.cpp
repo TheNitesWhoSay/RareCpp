@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
-#include "../CppRandomAccessReflectionLib/Json.h"
 #include <regex>
+#include "../CppRandomAccessReflectionLib/Json.h"
+#include "JsonTest.h"
 using namespace Reflect;
 using Json::Statics;
 
@@ -108,6 +109,7 @@ TEST(JsonSharedTest, IgnoredFieldCount)
     EXPECT_EQ(0, ignoredFieldCount);
     ignoredFieldCount = Json::IgnoredFieldCount<Statics::Excluded, IgnoreBothField>();
     EXPECT_EQ(1, ignoredFieldCount);
+    
     ignoredFieldCount = Json::IgnoredFieldCount<Statics::Excluded, IgnoreMixed>();
     EXPECT_EQ(2, ignoredFieldCount);
 
@@ -1407,3 +1409,419 @@ TEST(JsonGenericTest, GenericValueAssigner)
     std::shared_ptr<Json::String> stringSharedPtr = std::unique_ptr<Json::String>(new Json::String("asdf"));
     EXPECT_THROW(numberSharedPtrAssigner.into(stringSharedPtr), Json::Value::TypeMismatch);
 }
+
+TEST(JsonOutputTest, OutputCustomizeNoSpecialization)
+{
+    CustomizeNoSpecialization noSpecialization;
+
+    bool isSpecialized = Json::Output::Customize<CustomizeNoSpecialization, int, CustomizeNoSpecialization::Class::IndexOf::integer,
+        Annotate<>, CustomizeNoSpecialization::Class::integer_::Field, Json::Statics::Included, true, 0, 0, Json::twoSpaces>
+        ::As(std::cout, Json::context, noSpecialization, noSpecialization.integer);
+    EXPECT_FALSE(isSpecialized);
+
+    isSpecialized = Json::Output::Customize<CustomizeNoSpecialization, char, CustomizeNoSpecialization::Class::IndexOf::character,
+        Annotate<>, CustomizeNoSpecialization::Class::character_::Field, Json::Statics::Included, true, 0, 0, Json::twoSpaces>
+        ::As(std::cout, Json::context, noSpecialization, noSpecialization.character);
+    EXPECT_FALSE(isSpecialized);
+
+    isSpecialized = Json::Output::HaveSpecialization<CustomizeNoSpecialization, int, CustomizeNoSpecialization::Class::IndexOf::integer,
+        Annotate<>, CustomizeNoSpecialization::Class::integer_::Field, Json::Statics::Included, true, 0, 0, Json::twoSpaces>;
+    EXPECT_FALSE(isSpecialized);
+}
+
+TEST(JsonOutputTest, OutputCustomizeFullySpecialized)
+{
+    CustomizeFullySpecialized fullySpecialized;
+
+    bool isSpecialized = Json::Output::Customize<CustomizeFullySpecialized, int, CustomizeFullySpecialized::Class::IndexOf::firstField,
+        Annotate<>, CustomizeFullySpecialized::Class::firstField_::Field, Json::Statics::Included, true, 0, 0, Json::twoSpaces>
+        ::As(std::cout, Json::context, fullySpecialized, fullySpecialized.firstField);
+    EXPECT_TRUE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<CustomizeFullySpecialized, int, CustomizeFullySpecialized::Class::IndexOf::firstField,
+        Annotate<>, CustomizeFullySpecialized::Class::firstField_::Field, Json::Statics::Included, true, 0, 0, Json::twoSpaces>;
+    EXPECT_TRUE(isSpecialized);
+
+    isSpecialized = Json::Output::Customize<CustomizeFullySpecialized, int, CustomizeFullySpecialized::Class::IndexOf::secondField,
+        Annotate<>, CustomizeFullySpecialized::Class::secondField_::Field, Json::Statics::Included, true, 0, 0, Json::twoSpaces>
+        ::As(std::cout, Json::context, fullySpecialized, fullySpecialized.secondField);
+    EXPECT_TRUE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<CustomizeFullySpecialized, int, CustomizeFullySpecialized::Class::IndexOf::secondField,
+        Annotate<>, CustomizeFullySpecialized::Class::secondField_::Field, Json::Statics::Included, true, 0, 0, Json::twoSpaces>;
+    EXPECT_TRUE(isSpecialized);
+
+    isSpecialized = Json::Output::Customize<CustomizeFullySpecialized, char, CustomizeFullySpecialized::Class::IndexOf::unspecialized,
+        Annotate<>, CustomizeFullySpecialized::Class::unspecialized_::Field, Json::Statics::Included, true, 0, 0, Json::twoSpaces>
+        ::As(std::cout, Json::context, fullySpecialized, fullySpecialized.unspecialized);
+    EXPECT_FALSE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<CustomizeFullySpecialized, char, CustomizeFullySpecialized::Class::IndexOf::unspecialized,
+        Annotate<>, CustomizeFullySpecialized::Class::unspecialized_::Field, Json::Statics::Included, true, 0, 0, Json::twoSpaces>;
+    EXPECT_FALSE(isSpecialized);
+}
+
+TEST(JsonOutputTest, OutputCustomize5ArgSpecialized)
+{
+    Customize5ArgSpecialized fiveArgSpecialized;
+
+    bool isSpecialized = Json::Output::Customize<Customize5ArgSpecialized, int, Customize5ArgSpecialized::Class::IndexOf::firstField,
+        Annotate<>, Customize5ArgSpecialized::Class::firstField_::Field>::As(std::cout, Json::context, fiveArgSpecialized, fiveArgSpecialized.firstField);
+    EXPECT_TRUE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<Customize5ArgSpecialized, int, Customize5ArgSpecialized::Class::IndexOf::firstField,
+        Annotate<>, Customize5ArgSpecialized::Class::firstField_::Field>;
+    EXPECT_TRUE(isSpecialized);
+
+    isSpecialized = Json::Output::Customize<Customize5ArgSpecialized, int, Customize5ArgSpecialized::Class::IndexOf::secondField,
+        Annotate<>, Customize5ArgSpecialized::Class::secondField_::Field>::As(std::cout, Json::context, fiveArgSpecialized, fiveArgSpecialized.secondField);
+    EXPECT_TRUE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<Customize5ArgSpecialized, int, Customize5ArgSpecialized::Class::IndexOf::secondField,
+        Annotate<>, Customize5ArgSpecialized::Class::secondField_::Field>;
+    EXPECT_TRUE(isSpecialized);
+
+    isSpecialized = Json::Output::Customize<Customize5ArgSpecialized, char, Customize5ArgSpecialized::Class::IndexOf::unspecialized,
+        Annotate<>, Customize5ArgSpecialized::Class::unspecialized_::Field>::As(std::cout, Json::context, fiveArgSpecialized, fiveArgSpecialized.unspecialized);
+    EXPECT_FALSE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<Customize5ArgSpecialized, char, Customize5ArgSpecialized::Class::IndexOf::unspecialized,
+        Annotate<>, Customize5ArgSpecialized::Class::unspecialized_::Field>;
+    EXPECT_FALSE(isSpecialized);
+}
+
+TEST(JsonOutputTest, OutputCustomize4ArgSpecialized)
+{
+    Customize4ArgSpecialized fourArgSpecialized;
+
+    bool isSpecialized = Json::Output::Customize<Customize4ArgSpecialized, int, Customize4ArgSpecialized::Class::IndexOf::firstField,
+        Annotate<>>::As(std::cout, Json::context, fourArgSpecialized, fourArgSpecialized.firstField);
+    EXPECT_TRUE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<Customize4ArgSpecialized, int, Customize4ArgSpecialized::Class::IndexOf::firstField,
+        Annotate<>>;
+    EXPECT_TRUE(isSpecialized);
+
+    isSpecialized = Json::Output::Customize<Customize4ArgSpecialized, int, Customize4ArgSpecialized::Class::IndexOf::secondField,
+        Annotate<>>::As(std::cout, Json::context, fourArgSpecialized, fourArgSpecialized.secondField);
+    EXPECT_TRUE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<Customize4ArgSpecialized, int, Customize4ArgSpecialized::Class::IndexOf::secondField,
+        Annotate<>>;
+    EXPECT_TRUE(isSpecialized);
+
+    isSpecialized = Json::Output::Customize<Customize4ArgSpecialized, char, Customize4ArgSpecialized::Class::IndexOf::unspecialized,
+        Annotate<>>::As(std::cout, Json::context, fourArgSpecialized, fourArgSpecialized.unspecialized);
+    EXPECT_FALSE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<Customize4ArgSpecialized, char, Customize4ArgSpecialized::Class::IndexOf::unspecialized,
+        Annotate<>>;
+    EXPECT_FALSE(isSpecialized);
+}
+
+TEST(JsonOutputTest, OutputCustomize3ArgSpecialized)
+{
+    Customize3ArgSpecialized threeArgSpecialized;
+
+    bool isSpecialized = Json::Output::Customize<Customize3ArgSpecialized, int, Customize3ArgSpecialized::Class::IndexOf::firstField>
+        ::As(std::cout, Json::context, threeArgSpecialized, threeArgSpecialized.firstField);
+    EXPECT_TRUE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<Customize3ArgSpecialized, int, Customize3ArgSpecialized::Class::IndexOf::firstField>;
+    EXPECT_TRUE(isSpecialized);
+
+    isSpecialized = Json::Output::Customize<Customize3ArgSpecialized, int, Customize3ArgSpecialized::Class::IndexOf::secondField>
+        ::As(std::cout, Json::context, threeArgSpecialized, threeArgSpecialized.secondField);
+    EXPECT_TRUE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<Customize3ArgSpecialized, int, Customize3ArgSpecialized::Class::IndexOf::secondField>;
+    EXPECT_TRUE(isSpecialized);
+
+    isSpecialized = Json::Output::Customize<Customize3ArgSpecialized, char, Customize3ArgSpecialized::Class::IndexOf::unspecialized>
+        ::As(std::cout, Json::context, threeArgSpecialized, threeArgSpecialized.unspecialized);
+    EXPECT_FALSE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<Customize3ArgSpecialized, char, Customize3ArgSpecialized::Class::IndexOf::unspecialized>;
+    EXPECT_FALSE(isSpecialized);
+}
+
+TEST(JsonOutputTest, OutputCustomize2ArgSpecialized)
+{
+    Customize2ArgSpecialized twoArgSpecialized;
+
+    bool isSpecialized = Json::Output::Customize<Customize2ArgSpecialized, int>
+        ::As(std::cout, Json::context, twoArgSpecialized, twoArgSpecialized.firstField);
+    EXPECT_TRUE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<Customize2ArgSpecialized, int>;
+    EXPECT_TRUE(isSpecialized);
+
+    isSpecialized = Json::Output::Customize<Customize2ArgSpecialized, int>
+        ::As(std::cout, Json::context, twoArgSpecialized, twoArgSpecialized.secondField);
+    EXPECT_TRUE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<Customize2ArgSpecialized, int>;
+    EXPECT_TRUE(isSpecialized);
+
+    isSpecialized = Json::Output::Customize<Customize2ArgSpecialized, char>
+        ::As(std::cout, Json::context, twoArgSpecialized, twoArgSpecialized.unspecialized);
+    EXPECT_FALSE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<Customize2ArgSpecialized, char>;
+    EXPECT_FALSE(isSpecialized);
+}
+
+TEST(JsonOutputTest, Customize5ArgSpecialized_OpAnnotationsDefaulted)
+{
+    Customize5ArgSpecialized_OpAnnotationsDefaulted fiveArgSpecialized_OpAnnotationsDefaulted;
+
+    bool isSpecialized = Json::Output::Customize<Customize5ArgSpecialized_OpAnnotationsDefaulted, int, Customize5ArgSpecialized_OpAnnotationsDefaulted::Class::IndexOf::firstField,
+        Annotate<>, Customize5ArgSpecialized_OpAnnotationsDefaulted::Class::firstField_::Field>
+        ::As(std::cout, Json::context, fiveArgSpecialized_OpAnnotationsDefaulted, fiveArgSpecialized_OpAnnotationsDefaulted.firstField);
+    EXPECT_TRUE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<Customize5ArgSpecialized_OpAnnotationsDefaulted, int, Customize5ArgSpecialized_OpAnnotationsDefaulted::Class::IndexOf::firstField,
+        Annotate<>, Customize5ArgSpecialized_OpAnnotationsDefaulted::Class::firstField_::Field>;
+    EXPECT_TRUE(isSpecialized);
+
+    isSpecialized = Json::Output::Customize<Customize5ArgSpecialized_OpAnnotationsDefaulted, int, Customize5ArgSpecialized_OpAnnotationsDefaulted::Class::IndexOf::secondField,
+        Annotate<>, Customize5ArgSpecialized_OpAnnotationsDefaulted::Class::secondField_::Field>
+        ::As(std::cout, Json::context, fiveArgSpecialized_OpAnnotationsDefaulted, fiveArgSpecialized_OpAnnotationsDefaulted.secondField);
+    EXPECT_TRUE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<Customize5ArgSpecialized_OpAnnotationsDefaulted, int, Customize5ArgSpecialized_OpAnnotationsDefaulted::Class::IndexOf::secondField,
+        Annotate<>, Customize5ArgSpecialized_OpAnnotationsDefaulted::Class::secondField_::Field>;
+    EXPECT_TRUE(isSpecialized);
+
+    isSpecialized = Json::Output::Customize<Customize5ArgSpecialized_OpAnnotationsDefaulted, char, Customize5ArgSpecialized_OpAnnotationsDefaulted::Class::IndexOf::unspecialized,
+        Annotate<>, Customize5ArgSpecialized_OpAnnotationsDefaulted::Class::unspecialized_::Field>
+        ::As(std::cout, Json::context, fiveArgSpecialized_OpAnnotationsDefaulted, fiveArgSpecialized_OpAnnotationsDefaulted.unspecialized);
+    EXPECT_FALSE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<Customize5ArgSpecialized_OpAnnotationsDefaulted, char, Customize5ArgSpecialized_OpAnnotationsDefaulted::Class::IndexOf::unspecialized,
+        Annotate<>, Customize5ArgSpecialized_OpAnnotationsDefaulted::Class::unspecialized_::Field>;
+    EXPECT_FALSE(isSpecialized);
+}
+
+TEST(JsonOutputTest, Customize5ArgSpecialized_FieldIndexDefaulted)
+{
+    Customize5ArgSpecialized_FieldIndexDefaulted fiveArgSpecialized_FieldIndexDefaulted;
+
+    bool isSpecialized = Json::Output::Customize<Customize5ArgSpecialized_FieldIndexDefaulted, int, Json::NoFieldIndex,
+        Annotate<>, Customize5ArgSpecialized_FieldIndexDefaulted::Class::firstField_::Field>
+        ::As(std::cout, Json::context, fiveArgSpecialized_FieldIndexDefaulted, fiveArgSpecialized_FieldIndexDefaulted.firstField);
+    EXPECT_TRUE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<Customize5ArgSpecialized_FieldIndexDefaulted, int, Json::NoFieldIndex,
+        Annotate<>, Customize5ArgSpecialized_FieldIndexDefaulted::Class::firstField_::Field>;
+    EXPECT_TRUE(isSpecialized);
+
+    isSpecialized = Json::Output::Customize<Customize5ArgSpecialized_FieldIndexDefaulted, int, Json::NoFieldIndex,
+        Annotate<>, Customize5ArgSpecialized_FieldIndexDefaulted::Class::secondField_::Field>
+        ::As(std::cout, Json::context, fiveArgSpecialized_FieldIndexDefaulted, fiveArgSpecialized_FieldIndexDefaulted.secondField);
+    EXPECT_TRUE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<Customize5ArgSpecialized_FieldIndexDefaulted, int, Json::NoFieldIndex,
+        Annotate<>, Customize5ArgSpecialized_FieldIndexDefaulted::Class::secondField_::Field>;
+    EXPECT_TRUE(isSpecialized);
+
+    isSpecialized = Json::Output::Customize<Customize5ArgSpecialized_FieldIndexDefaulted, char, Json::NoFieldIndex,
+        Annotate<>, Customize5ArgSpecialized_FieldIndexDefaulted::Class::unspecialized_::Field>
+        ::As(std::cout, Json::context, fiveArgSpecialized_FieldIndexDefaulted, fiveArgSpecialized_FieldIndexDefaulted.unspecialized);
+    EXPECT_FALSE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<Customize5ArgSpecialized_FieldIndexDefaulted, char, Json::NoFieldIndex,
+        Annotate<>, Customize5ArgSpecialized_FieldIndexDefaulted::Class::unspecialized_::Field>;
+    EXPECT_FALSE(isSpecialized);
+}
+
+TEST(JsonOutputTest, Customize5ArgSpecialized_BothDefaulted)
+{
+    Customize5ArgSpecialized_BothDefaulted fiveArgSpecialized_BothDefaulted;
+
+    bool isSpecialized = Json::Output::Customize<Customize5ArgSpecialized_BothDefaulted, int, Json::NoFieldIndex,
+        Annotate<>, Customize5ArgSpecialized_BothDefaulted::Class::firstField_::Field>
+        ::As(std::cout, Json::context, fiveArgSpecialized_BothDefaulted, fiveArgSpecialized_BothDefaulted.firstField);
+    EXPECT_TRUE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<Customize5ArgSpecialized_BothDefaulted, int, Json::NoFieldIndex,
+        Annotate<>, Customize5ArgSpecialized_BothDefaulted::Class::firstField_::Field>;
+    EXPECT_TRUE(isSpecialized);
+
+    isSpecialized = Json::Output::Customize<Customize5ArgSpecialized_BothDefaulted, int, Json::NoFieldIndex,
+        Annotate<>, Customize5ArgSpecialized_BothDefaulted::Class::secondField_::Field>
+        ::As(std::cout, Json::context, fiveArgSpecialized_BothDefaulted, fiveArgSpecialized_BothDefaulted.secondField);
+    EXPECT_TRUE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<Customize5ArgSpecialized_BothDefaulted, int, Json::NoFieldIndex,
+        Annotate<>, Customize5ArgSpecialized_BothDefaulted::Class::secondField_::Field>;
+    EXPECT_TRUE(isSpecialized);
+
+    isSpecialized = Json::Output::Customize<Customize5ArgSpecialized_BothDefaulted, char, Json::NoFieldIndex,
+        Annotate<>, Customize5ArgSpecialized_BothDefaulted::Class::unspecialized_::Field>
+        ::As(std::cout, Json::context, fiveArgSpecialized_BothDefaulted, fiveArgSpecialized_BothDefaulted.unspecialized);
+    EXPECT_FALSE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<Customize5ArgSpecialized_BothDefaulted, char, Json::NoFieldIndex,
+        Annotate<>, Customize5ArgSpecialized_BothDefaulted::Class::unspecialized_::Field>;
+    EXPECT_FALSE(isSpecialized);
+}
+
+TEST(JsonOutputTest, Customize4ArgSpecialized_FieldIndexDefaulted)
+{
+    Customize4ArgSpecialized_FieldIndexDefaulted fourArgSpecialized_FieldIndexDefaulted;
+
+    bool isSpecialized = Json::Output::Customize<Customize4ArgSpecialized_FieldIndexDefaulted, int, Json::NoFieldIndex, Annotate<>>
+        ::As(std::cout, Json::context, fourArgSpecialized_FieldIndexDefaulted, fourArgSpecialized_FieldIndexDefaulted.firstField);
+    EXPECT_TRUE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<Customize4ArgSpecialized_FieldIndexDefaulted, int, Json::NoFieldIndex, Annotate<>>;
+    EXPECT_TRUE(isSpecialized);
+
+    isSpecialized = Json::Output::Customize<Customize4ArgSpecialized_FieldIndexDefaulted, int, Json::NoFieldIndex, Annotate<>>
+        ::As(std::cout, Json::context, fourArgSpecialized_FieldIndexDefaulted, fourArgSpecialized_FieldIndexDefaulted.secondField);
+    EXPECT_TRUE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<Customize4ArgSpecialized_FieldIndexDefaulted, int, Json::NoFieldIndex, Annotate<>>;
+    EXPECT_TRUE(isSpecialized);
+
+    isSpecialized = Json::Output::Customize<Customize4ArgSpecialized_FieldIndexDefaulted, char, Json::NoFieldIndex, Annotate<>>
+        ::As(std::cout, Json::context, fourArgSpecialized_FieldIndexDefaulted, fourArgSpecialized_FieldIndexDefaulted.unspecialized);
+    EXPECT_FALSE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<Customize4ArgSpecialized_FieldIndexDefaulted, char, Json::NoFieldIndex, Annotate<>>;
+    EXPECT_FALSE(isSpecialized);
+}
+
+TEST(JsonOutputTest, CustomizeTypeUnspecialized)
+{
+    ContainsUnspecialized containsUnspecialized;
+
+    bool isSpecialized = Json::Output::CustomizeType<UnspecializedType, Annotate<>, ContainsUnspecialized::Class::unspecializedType_::Field,
+        Json::Statics::Included, true, 0, 0, Json::twoSpaces>::As(std::cout, Json::context, containsUnspecialized.unspecializedType);
+    EXPECT_FALSE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<ContainsUnspecialized, UnspecializedType, ContainsUnspecialized::Class::IndexOf::unspecializedType, Annotate<>, ContainsUnspecialized::Class::unspecializedType_::Field,
+        Json::Statics::Included, true, 0, 0, Json::twoSpaces>;
+    EXPECT_FALSE(isSpecialized);
+}
+
+TEST(JsonOutputTest, CustomizeTypeFullySpecialized)
+{
+    ContainsFullySpecialized containsFullySpecialized;
+
+    bool isSpecialized = Json::Output::CustomizeType<FullySpecializedType, Annotate<>, ContainsFullySpecialized::Class::fullySpecializedType_::Field,
+        Json::Statics::Included, true, 0, 0, Json::twoSpaces>::As(std::cout, Json::context, containsFullySpecialized.fullySpecializedType);
+    EXPECT_TRUE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<ContainsFullySpecialized, FullySpecializedType, ContainsFullySpecialized::Class::IndexOf::fullySpecializedType, Annotate<>, ContainsFullySpecialized::Class::fullySpecializedType_::Field,
+        Json::Statics::Included, true, 0, 0, Json::twoSpaces>;
+    EXPECT_TRUE(isSpecialized);
+}
+
+TEST(JsonOutputTest, CustomizeTypeThreeArgSpecialized)
+{
+    ContainsThreeArgSpecialized containsThreeArgSpecialized;
+
+    bool isSpecialized = Json::Output::CustomizeType<ThreeArgSpecializedType, Annotate<>, ContainsThreeArgSpecialized::Class::threeArgSpecializedType_::Field>
+        ::As(std::cout, Json::context, containsThreeArgSpecialized.threeArgSpecializedType);
+    EXPECT_TRUE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<ContainsThreeArgSpecialized, ThreeArgSpecializedType, ContainsThreeArgSpecialized::Class::IndexOf::threeArgSpecializedType, Annotate<>, ContainsThreeArgSpecialized::Class::threeArgSpecializedType_::Field>;
+    EXPECT_TRUE(isSpecialized);
+}
+
+TEST(JsonOutputTest, CustomizeTypeTwoArgSpecialized)
+{
+    ContainsTwoArgSpecialized containsTwoArgSpecialized;
+
+    bool isSpecialized = Json::Output::CustomizeType<TwoArgSpecializedType, Annotate<>>
+        ::As(std::cout, Json::context, containsTwoArgSpecialized.twoArgSpecializedType);
+    EXPECT_TRUE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<ContainsTwoArgSpecialized, TwoArgSpecializedType, ContainsTwoArgSpecialized::Class::IndexOf::twoArgSpecializedType, Annotate<>>;
+    EXPECT_TRUE(isSpecialized);
+}
+
+TEST(JsonOutputTest, CustomizeTypeOneArgSpecialized)
+{
+    ContainsOneArgSpecialized containsOneArgSpecialized;
+
+    bool isSpecialized = Json::Output::CustomizeType<OneArgSpecializedType>
+        ::As(std::cout, Json::context, containsOneArgSpecialized.oneArgSpecializedType);
+    EXPECT_TRUE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<ContainsOneArgSpecialized, OneArgSpecializedType>;
+    EXPECT_TRUE(isSpecialized);
+}
+
+TEST(JsonOutputTest, CustomizeTypeThreeArgSpecialized_OpAnnotationsDefaulted)
+{
+    ContainsThreeArgSpecializedType_OpAnnotationsDefaulted containsThreeArgSpecializedType_OpAnnotationsDefaulted;
+
+    bool isSpecialized = Json::Output::CustomizeType<ThreeArgSpecializedType_OpAnnotationsDefaulted, Annotate<>,
+        ContainsThreeArgSpecializedType_OpAnnotationsDefaulted::Class::threeArgSpecializedType_OpAnnotationsDefaulted_::Field>
+        ::As(std::cout, Json::context, containsThreeArgSpecializedType_OpAnnotationsDefaulted.threeArgSpecializedType_OpAnnotationsDefaulted);
+    EXPECT_TRUE(isSpecialized);
+    isSpecialized = Json::Output::HaveSpecialization<ContainsThreeArgSpecializedType_OpAnnotationsDefaulted, ThreeArgSpecializedType_OpAnnotationsDefaulted,
+        ContainsThreeArgSpecializedType_OpAnnotationsDefaulted::Class::IndexOf::threeArgSpecializedType_OpAnnotationsDefaulted,
+        Annotate<>, ContainsThreeArgSpecializedType_OpAnnotationsDefaulted::Class::threeArgSpecializedType_OpAnnotationsDefaulted_::Field>;
+    EXPECT_TRUE(isSpecialized);
+}
+
+TEST(JsonOutputTest, StaticIndent)
+{
+    std::stringstream zeroIndents;
+    zeroIndents << Json::Output::Indent<true, 0, Json::twoSpaces>;
+    EXPECT_STREQ("", zeroIndents.str().c_str());
+
+    std::stringstream oneIndent;
+    oneIndent << Json::Output::Indent<true, 1, Json::twoSpaces>;
+    EXPECT_STREQ("  ", oneIndent.str().c_str());
+
+    std::stringstream twoIndents;
+    twoIndents << Json::Output::Indent<true, 2, Json::twoSpaces>;
+    EXPECT_STREQ("    ", twoIndents.str().c_str());
+
+    std::stringstream threeIndents;
+    threeIndents << Json::Output::Indent<true, 3, Json::twoSpaces>;
+    EXPECT_STREQ("      ", threeIndents.str().c_str());
+
+    std::stringstream zeroIndentsUnpretty;
+    zeroIndentsUnpretty << Json::Output::Indent<false, 0, Json::twoSpaces>;
+    EXPECT_STREQ("", zeroIndentsUnpretty.str().c_str());
+
+    std::stringstream oneIndentUnpretty;
+    oneIndentUnpretty << Json::Output::Indent<false, 1, Json::twoSpaces>;
+    EXPECT_STREQ("", oneIndentUnpretty.str().c_str());
+
+    std::stringstream twoIndentsUnpretty;
+    twoIndentsUnpretty << Json::Output::Indent<false, 2, Json::twoSpaces>;
+    EXPECT_STREQ("", twoIndentsUnpretty.str().c_str());
+
+    std::stringstream threeIndentsUnpretty;
+    threeIndentsUnpretty << Json::Output::Indent<false, 3, Json::twoSpaces>;
+    EXPECT_STREQ("", threeIndentsUnpretty.str().c_str());
+}
+
+TEST(JsonOutputTest, StaticArrayPrefix)
+{
+    std::stringstream noPrettyPrint;
+    noPrettyPrint << Json::Output::ArrayPrefix<false, false, 0, Json::twoSpaces>;
+    EXPECT_STREQ("[", noPrettyPrint.str().c_str());
+
+    std::stringstream primitivePrettyPrint;
+    primitivePrettyPrint << Json::Output::ArrayPrefix<true, true, 0, Json::twoSpaces>;
+    EXPECT_STREQ("[ ", primitivePrettyPrint.str().c_str());
+
+    std::stringstream nonPrimitivePrettyCompare;
+    nonPrimitivePrettyCompare << "[" << std::endl << Json::Indent<true, 3, Json::twoSpaces>;
+    std::stringstream nonPrimitivePretty;
+    nonPrimitivePretty << Json::ArrayPrefix<true, false, 3, Json::twoSpaces>;
+    EXPECT_STREQ(nonPrimitivePrettyCompare.str().c_str(), nonPrimitivePretty.str().c_str());
+}
+
+TEST(JsonOutputTest, StaticArraySuffix)
+{
+    std::stringstream noPrettyPrint;
+    noPrettyPrint << Json::Output::ArraySuffix<false, false, 0, Json::twoSpaces>;
+    EXPECT_STREQ("]", noPrettyPrint.str().c_str());
+
+    std::stringstream primitivePrettyPrint;
+    primitivePrettyPrint << Json::Output::ArraySuffix<true, true, 0, Json::twoSpaces>;
+    EXPECT_STREQ(" ]", primitivePrettyPrint.str().c_str());
+
+    std::stringstream nonPrimitivePrettyCompare;
+    nonPrimitivePrettyCompare << std::endl << Json::Output::Indent<true, 3, Json::twoSpaces> << "]";
+    std::stringstream nonPrimitivePretty;
+    nonPrimitivePretty << Json::Output::ArraySuffix<true, false, 3, Json::twoSpaces>;
+    EXPECT_STREQ(nonPrimitivePrettyCompare.str().c_str(), nonPrimitivePretty.str().c_str());
+}
+
+TEST(JsonOutputTest, StaticObjectPrefix)
+{
+    std::stringstream objectPrefix;
+    objectPrefix << Json::Output::ObjectPrefix<false, 0, Json::twoSpaces, Json::Statics::Included, int>;
+    EXPECT_STREQ("{", objectPrefix.str().c_str());
+}
+
+/*TEST(JsonOutputTest, StaticObjectSuffix)
+{
+    std::stringstream voidPrettyCompare;
+    voidPrettyCompare << std::endl << Json::Output::Indent<true, 3, Json::twoSpaces> << "}";
+    std::stringstream voidPretty;
+    voidPretty << Json::Output::ObjectSuffix<true, 3, Json::twoSpaces, Json::Statics::Included, void>;
+    EXPECT_STREQ(voidPrettyCompare.str().c_str(), voidPretty.str().c_str());
+
+    std::stringstream voidNonPretty;
+    voidNonPretty << Json::Output::ObjectSuffix<false, 3, Json::twoSpaces, Json::Statics::Included, void>;
+    EXPECT_STREQ("}", voidNonPretty.str().c_str());
+}*/
