@@ -156,6 +156,13 @@ TEST(JsonSharedTest, IgnoredFieldCount)
     EXPECT_EQ(1, ignoredFieldCount);
 }
 
+struct EmptySuper { REFLECT_EMPTY(() EmptySuper) };
+struct FieldedSuper { int a; REFLECT(() FieldedSuper, () a) };
+struct NestedEmptySuper : EmptySuper { REFLECT_EMPTY((EmptySuper) NestedEmptySuper) };
+struct NestedFieldedSuper : FieldedSuper { REFLECT_EMPTY((FieldedSuper) NestedFieldedSuper) };
+struct DoublyNestedEmptySuper : NestedEmptySuper { REFLECT_EMPTY((NestedEmptySuper) DoublyNestedEmptySuper) };
+struct DoublyNestedFieldedSuper : NestedFieldedSuper { REFLECT_EMPTY((NestedFieldedSuper) DoublyNestedFieldedSuper) };
+
 TEST(JsonSharedTest, HasFields)
 {
     bool hasFields = Json::HasFields<Statics::Excluded, NoFields>();
@@ -233,6 +240,17 @@ TEST(JsonSharedTest, HasFields)
     hasFields = Json::HasFields<Statics::Only, OnlyIgnoreInstance>();
     EXPECT_TRUE(hasFields);
     
+    hasFields = Json::HasFields<Statics::Included, EmptySuper>();
+    EXPECT_FALSE(hasFields);
+    hasFields = Json::HasFields<Statics::Included, FieldedSuper>();
+    EXPECT_TRUE(hasFields);
+    hasFields = Json::HasFields<Statics::Included, NestedEmptySuper>();
+    EXPECT_FALSE(hasFields);
+    hasFields = Json::HasFields<Statics::Included, NestedFieldedSuper>();
+    EXPECT_TRUE(hasFields);
+    hasFields = Json::HasFields<Statics::Included, DoublyNestedEmptySuper>();
+    EXPECT_FALSE(hasFields);
+    hasFields = Json::HasFields<Statics::Included, DoublyNestedFieldedSuper>();
 }
 
 TEST(JsonSharedTest, FirstIndex)
@@ -1556,7 +1574,7 @@ TEST(JsonOutputTest, OutputCustomize2ArgSpecialized)
     EXPECT_FALSE(isSpecialized);
 }
 
-TEST(JsonOutputTest, Customize5ArgSpecialized_OpAnnotationsDefaulted)
+TEST(JsonOutputCustomizersTest, Customize5ArgSpecialized_OpAnnotationsDefaulted)
 {
     Customize5ArgSpecialized_OpAnnotationsDefaulted fiveArgSpecialized_OpAnnotationsDefaulted;
 
@@ -1585,7 +1603,7 @@ TEST(JsonOutputTest, Customize5ArgSpecialized_OpAnnotationsDefaulted)
     EXPECT_FALSE(isSpecialized);
 }
 
-TEST(JsonOutputTest, Customize5ArgSpecialized_FieldIndexDefaulted)
+TEST(JsonOutputCustomizersTest, Customize5ArgSpecialized_FieldIndexDefaulted)
 {
     Customize5ArgSpecialized_FieldIndexDefaulted fiveArgSpecialized_FieldIndexDefaulted;
 
@@ -1614,7 +1632,7 @@ TEST(JsonOutputTest, Customize5ArgSpecialized_FieldIndexDefaulted)
     EXPECT_FALSE(isSpecialized);
 }
 
-TEST(JsonOutputTest, Customize5ArgSpecialized_BothDefaulted)
+TEST(JsonOutputCustomizersTest, Customize5ArgSpecialized_BothDefaulted)
 {
     Customize5ArgSpecialized_BothDefaulted fiveArgSpecialized_BothDefaulted;
 
@@ -1643,7 +1661,7 @@ TEST(JsonOutputTest, Customize5ArgSpecialized_BothDefaulted)
     EXPECT_FALSE(isSpecialized);
 }
 
-TEST(JsonOutputTest, Customize4ArgSpecialized_FieldIndexDefaulted)
+TEST(JsonOutputCustomizersTest, Customize4ArgSpecialized_FieldIndexDefaulted)
 {
     Customize4ArgSpecialized_FieldIndexDefaulted fourArgSpecialized_FieldIndexDefaulted;
 
@@ -1666,7 +1684,7 @@ TEST(JsonOutputTest, Customize4ArgSpecialized_FieldIndexDefaulted)
     EXPECT_FALSE(isSpecialized);
 }
 
-TEST(JsonOutputTest, CustomizeTypeUnspecialized)
+TEST(JsonOutputCustomizersTest, CustomizeTypeUnspecialized)
 {
     ContainsUnspecialized containsUnspecialized;
 
@@ -1678,7 +1696,7 @@ TEST(JsonOutputTest, CustomizeTypeUnspecialized)
     EXPECT_FALSE(isSpecialized);
 }
 
-TEST(JsonOutputTest, CustomizeTypeFullySpecialized)
+TEST(JsonOutputCustomizersTest, CustomizeTypeFullySpecialized)
 {
     ContainsFullySpecialized containsFullySpecialized;
 
@@ -1690,7 +1708,7 @@ TEST(JsonOutputTest, CustomizeTypeFullySpecialized)
     EXPECT_TRUE(isSpecialized);
 }
 
-TEST(JsonOutputTest, CustomizeTypeThreeArgSpecialized)
+TEST(JsonOutputCustomizersTest, CustomizeTypeThreeArgSpecialized)
 {
     ContainsThreeArgSpecialized containsThreeArgSpecialized;
 
@@ -1701,7 +1719,7 @@ TEST(JsonOutputTest, CustomizeTypeThreeArgSpecialized)
     EXPECT_TRUE(isSpecialized);
 }
 
-TEST(JsonOutputTest, CustomizeTypeTwoArgSpecialized)
+TEST(JsonOutputCustomizersTest, CustomizeTypeTwoArgSpecialized)
 {
     ContainsTwoArgSpecialized containsTwoArgSpecialized;
 
@@ -1712,7 +1730,7 @@ TEST(JsonOutputTest, CustomizeTypeTwoArgSpecialized)
     EXPECT_TRUE(isSpecialized);
 }
 
-TEST(JsonOutputTest, CustomizeTypeOneArgSpecialized)
+TEST(JsonOutputCustomizersTest, CustomizeTypeOneArgSpecialized)
 {
     ContainsOneArgSpecialized containsOneArgSpecialized;
 
@@ -1723,7 +1741,7 @@ TEST(JsonOutputTest, CustomizeTypeOneArgSpecialized)
     EXPECT_TRUE(isSpecialized);
 }
 
-TEST(JsonOutputTest, CustomizeTypeThreeArgSpecialized_OpAnnotationsDefaulted)
+TEST(JsonOutputCustomizersTest, CustomizeTypeThreeArgSpecialized_OpAnnotationsDefaulted)
 {
     ContainsThreeArgSpecializedType_OpAnnotationsDefaulted containsThreeArgSpecializedType_OpAnnotationsDefaulted;
 
@@ -1737,7 +1755,7 @@ TEST(JsonOutputTest, CustomizeTypeThreeArgSpecialized_OpAnnotationsDefaulted)
     EXPECT_TRUE(isSpecialized);
 }
 
-TEST(JsonOutputTest, StaticIndent)
+TEST(JsonOutputStaticAffixTest, StaticIndent)
 {
     std::stringstream zeroIndents;
     zeroIndents << Json::Output::Indent<true, 0, Json::twoSpaces>;
@@ -1772,7 +1790,7 @@ TEST(JsonOutputTest, StaticIndent)
     EXPECT_STREQ("", threeIndentsUnpretty.str().c_str());
 }
 
-TEST(JsonOutputTest, StaticArrayPrefix)
+TEST(JsonOutputStaticAffixTest, StaticArrayPrefix)
 {
     std::stringstream noPrettyPrint;
     noPrettyPrint << Json::Output::ArrayPrefix<false, false, 0, Json::twoSpaces>;
@@ -1789,7 +1807,7 @@ TEST(JsonOutputTest, StaticArrayPrefix)
     EXPECT_STREQ(nonPrimitivePrettyCompare.str().c_str(), nonPrimitivePretty.str().c_str());
 }
 
-TEST(JsonOutputTest, StaticArraySuffix)
+TEST(JsonOutputStaticAffixTest, StaticArraySuffix)
 {
     std::stringstream noPrettyPrint;
     noPrettyPrint << Json::Output::ArraySuffix<false, false, 0, Json::twoSpaces>;
@@ -1806,14 +1824,80 @@ TEST(JsonOutputTest, StaticArraySuffix)
     EXPECT_STREQ(nonPrimitivePrettyCompare.str().c_str(), nonPrimitivePretty.str().c_str());
 }
 
-TEST(JsonOutputTest, StaticObjectPrefix)
+TEST(JsonOutputStaticAffixTest, StaticObjectPrefix)
 {
     std::stringstream objectPrefix;
     objectPrefix << Json::Output::ObjectPrefix<false, 0, Json::twoSpaces, Json::Statics::Included, int>;
     EXPECT_STREQ("{", objectPrefix.str().c_str());
 }
 
-/*TEST(JsonOutputTest, StaticObjectSuffix)
+struct TrulyEmpty
+{
+    REFLECT_EMPTY(() TrulyEmpty)
+};
+
+struct NoSuperOrStatic
+{
+    int instanceField;
+
+    REFLECT(() NoSuperOrStatic, () instanceField)
+};
+
+struct NoSuperOrInstance
+{
+    static int staticField;
+
+    REFLECT(() NoSuperOrInstance, () staticField)
+};
+int NoSuperOrInstance::staticField = 0;
+
+struct NoSuper
+{
+    int instanceField;
+    static int staticField;
+
+    REFLECT(() NoSuper, () instanceField, () staticField)
+};
+int NoSuper::staticField = 0;
+
+struct Super
+{
+    int instanceField;
+    static int staticField;
+
+    REFLECT(() Super, () instanceField, () staticField)
+};
+
+struct NoStaticOrInstance : public Super
+{
+    REFLECT_EMPTY((Super) NoStaticOrInstance)
+};
+
+struct NoStatic : public Super
+{
+    int instanceField;
+    
+    REFLECT((Super) NoStatic, () instanceField)
+};
+
+struct NoInstance : public Super
+{
+    static int staticField;
+
+    REFLECT((Super) NoInstance, () staticField)
+};
+int NoInstance::staticField = 0;
+
+struct Everything : public Super
+{
+    int instanceField;
+    static int staticField;
+
+    REFLECT((Super) Everything, () instanceField, () staticField)
+};
+int Everything::staticField = 0;
+
+TEST(JsonOutputStaticAffixTest, StaticObjectSuffix)
 {
     std::stringstream voidPrettyCompare;
     voidPrettyCompare << std::endl << Json::Output::Indent<true, 3, Json::twoSpaces> << "}";
@@ -1824,4 +1908,690 @@ TEST(JsonOutputTest, StaticObjectPrefix)
     std::stringstream voidNonPretty;
     voidNonPretty << Json::Output::ObjectSuffix<false, 3, Json::twoSpaces, Json::Statics::Included, void>;
     EXPECT_STREQ("}", voidNonPretty.str().c_str());
-}*/
+
+    std::stringstream nonVoidNonPretty;
+    nonVoidNonPretty << Json::Output::ObjectSuffix<false, 3, Json::twoSpaces, Json::Statics::Included, Everything>;
+    EXPECT_STREQ("}", nonVoidNonPretty.str().c_str());
+    
+    std::stringstream trulyEmptyExcluded;
+    std::stringstream trulyEmptyIncluded;
+    std::stringstream trulyEmptyOnly;
+    
+    std::stringstream noSuperOrStaticExcluded;
+    std::stringstream noSuperOrStaticIncluded;
+    std::stringstream noSuperOrStaticOnly;
+    
+    std::stringstream noSuperOrInstanceExcluded;
+    std::stringstream noSuperOrInstanceIncluded;
+    std::stringstream noSuperOrInstanceOnly;
+    
+    std::stringstream noSuperExcluded;
+    std::stringstream noSuperIncluded;
+    std::stringstream noSuperOnly;
+    
+    std::stringstream noStaticOrInstanceExcluded;
+    std::stringstream noStaticOrInstanceIncluded;
+    std::stringstream noStaticOrInstanceOnly;
+    
+    std::stringstream noStaticExcluded;
+    std::stringstream noStaticIncluded;
+    std::stringstream noStaticOnly;
+    
+    std::stringstream noInstanceExcluded;
+    std::stringstream noInstanceIncluded;
+    std::stringstream noInstanceOnly;
+    
+    std::stringstream everythingExcluded;
+    std::stringstream everythingIncluded;
+    std::stringstream everythingOnly;
+    
+    trulyEmptyExcluded << Json::ObjectSuffix<true, 3, Json::twoSpaces, Json::Statics::Excluded, TrulyEmpty>;
+    trulyEmptyIncluded << Json::ObjectSuffix<true, 3, Json::twoSpaces, Json::Statics::Included, TrulyEmpty>;
+    trulyEmptyOnly << Json::ObjectSuffix<true, 3, Json::twoSpaces, Json::Statics::Only, TrulyEmpty>;
+    
+    noSuperOrStaticExcluded << Json::ObjectSuffix<true, 3, Json::twoSpaces, Json::Statics::Excluded, NoSuperOrStatic>;
+    noSuperOrStaticIncluded << Json::ObjectSuffix<true, 3, Json::twoSpaces, Json::Statics::Included, NoSuperOrStatic>;
+    noSuperOrStaticOnly << Json::ObjectSuffix<true, 3, Json::twoSpaces, Json::Statics::Only, NoSuperOrStatic>;
+    
+    noSuperOrInstanceExcluded << Json::ObjectSuffix<true, 3, Json::twoSpaces, Json::Statics::Excluded, NoSuperOrInstance>;
+    noSuperOrInstanceIncluded << Json::ObjectSuffix<true, 3, Json::twoSpaces, Json::Statics::Included, NoSuperOrInstance>;
+    noSuperOrInstanceOnly << Json::ObjectSuffix<true, 3, Json::twoSpaces, Json::Statics::Only, NoSuperOrInstance>;
+    
+    noSuperExcluded << Json::ObjectSuffix<true, 3, Json::twoSpaces, Json::Statics::Excluded, NoSuper>;
+    noSuperIncluded << Json::ObjectSuffix<true, 3, Json::twoSpaces, Json::Statics::Included, NoSuper>;
+    noSuperOnly << Json::ObjectSuffix<true, 3, Json::twoSpaces, Json::Statics::Only, NoSuper>;
+    
+    noStaticOrInstanceExcluded << Json::ObjectSuffix<true, 3, Json::twoSpaces, Json::Statics::Excluded, NoStaticOrInstance>;
+    noStaticOrInstanceIncluded << Json::ObjectSuffix<true, 3, Json::twoSpaces, Json::Statics::Included, NoStaticOrInstance>;
+    noStaticOrInstanceOnly << Json::ObjectSuffix<true, 3, Json::twoSpaces, Json::Statics::Only, NoStaticOrInstance>;
+    
+    noStaticExcluded << Json::ObjectSuffix<true, 3, Json::twoSpaces, Json::Statics::Excluded, NoStatic>;
+    noStaticIncluded << Json::ObjectSuffix<true, 3, Json::twoSpaces, Json::Statics::Included, NoStatic>;
+    noStaticOnly << Json::ObjectSuffix<true, 3, Json::twoSpaces, Json::Statics::Only, NoStatic>;
+    
+    noInstanceExcluded << Json::ObjectSuffix<true, 3, Json::twoSpaces, Json::Statics::Excluded, NoInstance>;
+    noInstanceIncluded << Json::ObjectSuffix<true, 3, Json::twoSpaces, Json::Statics::Included, NoInstance>;
+    noInstanceOnly << Json::ObjectSuffix<true, 3, Json::twoSpaces, Json::Statics::Only, NoInstance>;
+    
+    everythingExcluded << Json::ObjectSuffix<true, 3, Json::twoSpaces, Json::Statics::Excluded, Everything>;
+    everythingIncluded << Json::ObjectSuffix<true, 3, Json::twoSpaces, Json::Statics::Included, Everything>;
+    everythingOnly << Json::ObjectSuffix<true, 3, Json::twoSpaces, Json::Statics::Only, Everything>;
+
+    std::stringstream prettyNotEmptyCompareStream;
+    prettyNotEmptyCompareStream << std::endl << Json::Indent<true, 3, Json::twoSpaces> << "}";
+    std::string prettyNotEmptyCompareStr = prettyNotEmptyCompareStream.str();
+    const char* prettyNotEmptyCompare = prettyNotEmptyCompareStr.c_str();
+    
+    EXPECT_STREQ("}", trulyEmptyExcluded.str().c_str());
+    EXPECT_STREQ("}", trulyEmptyIncluded.str().c_str());
+    EXPECT_STREQ("}", trulyEmptyOnly.str().c_str());
+    
+    EXPECT_STREQ(prettyNotEmptyCompare, noSuperOrStaticExcluded.str().c_str());
+    EXPECT_STREQ(prettyNotEmptyCompare, noSuperOrStaticIncluded.str().c_str());
+    EXPECT_STREQ("}", noSuperOrStaticOnly.str().c_str());
+    
+    EXPECT_STREQ("}", noSuperOrInstanceExcluded.str().c_str());
+    EXPECT_STREQ(prettyNotEmptyCompare, noSuperOrInstanceIncluded.str().c_str());
+    EXPECT_STREQ(prettyNotEmptyCompare, noSuperOrInstanceOnly.str().c_str());
+    
+    EXPECT_STREQ(prettyNotEmptyCompare, noSuperExcluded.str().c_str());
+    EXPECT_STREQ(prettyNotEmptyCompare, noSuperIncluded.str().c_str());
+    EXPECT_STREQ(prettyNotEmptyCompare, noSuperOnly.str().c_str());
+    
+    EXPECT_STREQ(prettyNotEmptyCompare, noStaticOrInstanceExcluded.str().c_str());
+    EXPECT_STREQ(prettyNotEmptyCompare, noStaticOrInstanceIncluded.str().c_str());
+    EXPECT_STREQ(prettyNotEmptyCompare, noStaticOrInstanceOnly.str().c_str());
+    
+    EXPECT_STREQ(prettyNotEmptyCompare, noStaticExcluded.str().c_str());
+    EXPECT_STREQ(prettyNotEmptyCompare, noStaticIncluded.str().c_str());
+    EXPECT_STREQ(prettyNotEmptyCompare, noStaticOnly.str().c_str());
+    
+    EXPECT_STREQ(prettyNotEmptyCompare, noInstanceExcluded.str().c_str());
+    EXPECT_STREQ(prettyNotEmptyCompare, noInstanceIncluded.str().c_str());
+    EXPECT_STREQ(prettyNotEmptyCompare, noInstanceOnly.str().c_str());
+    
+    EXPECT_STREQ(prettyNotEmptyCompare, everythingExcluded.str().c_str());
+    EXPECT_STREQ(prettyNotEmptyCompare, everythingIncluded.str().c_str());
+    EXPECT_STREQ(prettyNotEmptyCompare, everythingOnly.str().c_str());
+}
+
+TEST(JsonOutputStaticAffixTest, StaticFieldPrefix)
+{
+    std::stringstream nonPrettyFirstField;
+    nonPrettyFirstField << Json::Output::FieldPrefix<true, false, 3, Json::twoSpaces>;
+    EXPECT_STREQ("", nonPrettyFirstField.str().c_str());
+
+    std::stringstream nonPrettyNonFirst;
+    nonPrettyNonFirst << Json::Output::FieldPrefix<false, false, 3, Json::twoSpaces>;
+    EXPECT_STREQ(",", nonPrettyNonFirst.str().c_str());
+
+    std::stringstream prettyFirstCompare;
+    prettyFirstCompare << std::endl << Json::Output::Indent<true, 3, Json::twoSpaces>;
+    std::stringstream prettyFirst;
+    prettyFirst << Json::Output::FieldPrefix<true, true, 3, Json::twoSpaces>;
+    EXPECT_STREQ(prettyFirstCompare.str().c_str(), prettyFirst.str().c_str());
+
+    std::stringstream prettyNonFirstCompare;
+    prettyNonFirstCompare << "," << std::endl << Json::Output::Indent<true, 3, Json::twoSpaces>;
+    std::stringstream prettyNonFirst;
+    prettyNonFirst << Json::Output::FieldPrefix<false, true, 3, Json::twoSpaces>;
+    EXPECT_STREQ(prettyNonFirstCompare.str().c_str(), prettyNonFirst.str().c_str());
+}
+
+TEST(JsonOutputStaticAffixTest, StaticFieldNameValueSeparator)
+{
+    std::stringstream pretty;
+    pretty << Json::Output::FieldNameValueSeparator<true>;
+    EXPECT_STREQ(": ", pretty.str().c_str());
+
+    std::stringstream nonPretty;
+    nonPretty << Json::Output::FieldNameValueSeparator<false>;
+    EXPECT_STREQ(":", nonPretty.str().c_str());
+}
+
+TEST(JsonOutputPutAffixTest, Indent)
+{
+    std::stringstream prettyIndent;
+    Json::Put::Indent<true, Json::twoSpaces>(prettyIndent, 3);
+    EXPECT_STREQ("      ", prettyIndent.str().c_str());
+
+    std::stringstream nonPrettyIndent;
+    Json::Put::Indent<false, Json::twoSpaces>(nonPrettyIndent, 3);
+    EXPECT_STREQ("", nonPrettyIndent.str().c_str());
+}
+
+TEST(JsonOutputPutAffixTest, ArrayPrefix)
+{
+    std::stringstream nonPretty;
+    Json::Put::ArrayPrefix<false, false, Json::twoSpaces>(nonPretty, 3);
+    EXPECT_STREQ("[", nonPretty.str().c_str());
+
+    std::stringstream prettyPrimitives;
+    Json::Put::ArrayPrefix<true, true, Json::twoSpaces>(prettyPrimitives, 3);
+    EXPECT_STREQ("[ ", prettyPrimitives.str().c_str());
+
+    std::stringstream prettyNonPrimitivesCompare;
+    prettyNonPrimitivesCompare << "[" << std::endl;
+    Json::Put::Indent<true, Json::twoSpaces>(prettyNonPrimitivesCompare, 3);
+
+    std::stringstream prettyNonPrimitives;
+    Json::Put::ArrayPrefix<true, false, Json::twoSpaces>(prettyNonPrimitives, 3);
+    EXPECT_STREQ(prettyNonPrimitivesCompare.str().c_str(), prettyNonPrimitives.str().c_str());
+}
+
+TEST(JsonOutputPutAffixTest, ArraySuffix)
+{
+    std::stringstream nonPretty;
+    Json::Put::ArraySuffix<false, false, Json::twoSpaces>(nonPretty, 3);
+    EXPECT_STREQ("]", nonPretty.str().c_str());
+
+    std::stringstream prettyPrimitives;
+    Json::Put::ArraySuffix<true, true, Json::twoSpaces>(prettyPrimitives, 3);
+    EXPECT_STREQ(" ]", prettyPrimitives.str().c_str());
+
+    std::stringstream prettyNonPrimitivesCompare;
+    prettyNonPrimitivesCompare << std::endl;
+    Json::Put::Indent<true, Json::twoSpaces>(prettyNonPrimitivesCompare, 3);
+    prettyNonPrimitivesCompare << "]";
+
+    std::stringstream prettyNonPrimitives;
+    Json::Put::ArraySuffix<true, false, Json::twoSpaces>(prettyNonPrimitives, 3);
+    EXPECT_STREQ(prettyNonPrimitivesCompare.str().c_str(), prettyNonPrimitives.str().c_str());
+}
+
+TEST(JsonOutputPutAffixTest, ObjectPrefix)
+{
+    std::stringstream objectPrefix;
+    Json::Put::ObjectPrefix<true, Json::twoSpaces>(objectPrefix, 3);
+    EXPECT_STREQ("{", objectPrefix.str().c_str());
+}
+
+TEST(JsonOutputPutAffixTest, ObjectSuffix)
+{
+    std::stringstream nonPretty;
+    Json::Put::ObjectSuffix<false, Json::twoSpaces>(nonPretty, false, 3);
+    EXPECT_STREQ("}", nonPretty.str().c_str());
+
+    std::stringstream prettyEmpty;
+    Json::Put::ObjectSuffix<true, Json::twoSpaces>(prettyEmpty, true, 3);
+    EXPECT_STREQ("}", prettyEmpty.str().c_str());
+
+    std::stringstream prettyNonEmptyCompare;
+    prettyNonEmptyCompare << std::endl;
+    Json::Put::Indent<true, Json::twoSpaces>(prettyNonEmptyCompare, 3);
+    prettyNonEmptyCompare << "}";
+
+    std::stringstream prettyNonEmpty;
+    Json::Put::ObjectSuffix<true, Json::twoSpaces>(prettyNonEmpty, false, 3);
+    EXPECT_STREQ(prettyNonEmptyCompare.str().c_str(), prettyNonEmpty.str().c_str());
+}
+
+TEST(JsonOutputPutAffixTest, FieldPrefix)
+{
+    std::stringstream prettyFirstCompare;
+    prettyFirstCompare << std::endl;
+    Json::Put::Indent<true, Json::twoSpaces>(prettyFirstCompare, 3);
+    std::stringstream prettyFirst;
+    Json::Put::FieldPrefix<true, Json::twoSpaces>(prettyFirst, true, 3);
+    EXPECT_STREQ(prettyFirstCompare.str().c_str(), prettyFirst.str().c_str());
+
+    std::stringstream prettyNonFirstCompare;
+    prettyNonFirstCompare << "," << std::endl;
+    Json::Put::Indent<true, Json::twoSpaces>(prettyNonFirstCompare, 3);
+    std::stringstream prettyNonFirst;
+    Json::Put::FieldPrefix<true, Json::twoSpaces>(prettyNonFirst, false, 3);
+    EXPECT_STREQ(prettyNonFirstCompare.str().c_str(), prettyNonFirst.str().c_str());
+
+    std::stringstream nonPrettyNonFirst;
+    Json::Put::FieldPrefix<false, Json::twoSpaces>(nonPrettyNonFirst, false, 3);
+    EXPECT_STREQ(",", nonPrettyNonFirst.str().c_str());
+
+    std::stringstream nonPrettyFirst;
+    Json::Put::FieldPrefix<false, Json::twoSpaces>(nonPrettyFirst, true, 3);
+    EXPECT_STREQ("", nonPrettyFirst.str().c_str());
+}
+
+TEST(JsonOutputPutAffixTest, PartiallyStaticNestedPrefix)
+{
+    std::stringstream emptyArrayCompare;
+    emptyArrayCompare << Json::ArrayPrefix<false, false, 3, Json::twoSpaces>;
+    std::stringstream emptyArray;
+    Json::Put::NestedPrefix<true, true, false, 3, Json::twoSpaces>(emptyArray, true);
+    EXPECT_STREQ(emptyArrayCompare.str().c_str(), emptyArray.str().c_str());
+    
+    std::stringstream nonEmptyArrayCompare;
+    nonEmptyArrayCompare << Json::ArrayPrefix<true, false, 3, Json::twoSpaces>;
+    std::stringstream nonEmptyArray;
+    Json::Put::NestedPrefix<true, true, false, 3, Json::twoSpaces>(nonEmptyArray, false);
+    EXPECT_STREQ(nonEmptyArrayCompare.str().c_str(), nonEmptyArray.str().c_str());
+
+    std::stringstream emptyObjectCompare;
+    emptyObjectCompare << Json::ObjectPrefix<false, 3, Json::twoSpaces>;
+    std::stringstream emptyObject;
+    Json::Put::NestedPrefix<true, false, false, 3, Json::twoSpaces>(emptyObject, true);
+    EXPECT_STREQ(emptyObjectCompare.str().c_str(), emptyObject.str().c_str());
+
+    std::stringstream nonEmptyObjectCompare;
+    nonEmptyObjectCompare << Json::ObjectPrefix<true, 3, Json::twoSpaces>;
+    std::stringstream nonEmptyObject;
+    Json::Put::NestedPrefix<true, false, false, 3, Json::twoSpaces>(nonEmptyObject, false);
+    EXPECT_STREQ(nonEmptyObjectCompare.str().c_str(), nonEmptyObject.str().c_str());
+}
+
+TEST(JsonOutputPutAffixTest, NestedPrefix)
+{
+    std::stringstream emptyArrayPrimitivesCompare;
+    Json::Put::ArrayPrefix<false, true, Json::twoSpaces>(emptyArrayPrimitivesCompare, 3);
+    std::stringstream emptyArrayPrimitives;
+    Json::Put::NestedPrefix<true, Json::twoSpaces>(emptyArrayPrimitives, true, true, true, 3);
+    EXPECT_STREQ(emptyArrayPrimitivesCompare.str().c_str(), emptyArrayPrimitives.str().c_str());
+
+    std::stringstream emptyArrayNonPrimitivesCompare;
+    Json::Put::ArrayPrefix<false, false, Json::twoSpaces>(emptyArrayNonPrimitivesCompare, 3);
+    std::stringstream emptyArrayNonPrimitives;
+    Json::Put::NestedPrefix<true, Json::twoSpaces>(emptyArrayNonPrimitives, true, false, true, 3);
+    EXPECT_STREQ(emptyArrayNonPrimitivesCompare.str().c_str(), emptyArrayNonPrimitives.str().c_str());
+    
+    std::stringstream nonEmptyArrayPrimitivesCompare;
+    Json::Put::ArrayPrefix<true, true, Json::twoSpaces>(nonEmptyArrayPrimitivesCompare, 3);
+    std::stringstream nonEmptyArrayPrimitives;
+    Json::Put::NestedPrefix<true, Json::twoSpaces>(nonEmptyArrayPrimitives, true, true, false, 3);
+    EXPECT_STREQ(nonEmptyArrayPrimitivesCompare.str().c_str(), nonEmptyArrayPrimitives.str().c_str());
+
+    std::stringstream nonEmptyArrayNonPrimitivesCompare;
+    Json::Put::ArrayPrefix<true, false, Json::twoSpaces>(nonEmptyArrayNonPrimitivesCompare, 3);
+    std::stringstream nonEmptyArrayNonPrimitives;
+    Json::Put::NestedPrefix<true, Json::twoSpaces>(nonEmptyArrayNonPrimitives, true, false, false, 3);
+    EXPECT_STREQ(nonEmptyArrayNonPrimitivesCompare.str().c_str(), nonEmptyArrayNonPrimitives.str().c_str());
+    
+    std::stringstream emptyObjectCompare;
+    Json::Put::ObjectPrefix<false, Json::twoSpaces>(emptyObjectCompare, 3);
+    std::stringstream emptyObject;
+    Json::Put::NestedPrefix<true, Json::twoSpaces>(emptyObject, false, true, true, 3);
+    EXPECT_STREQ(emptyObjectCompare.str().c_str(), emptyObject.str().c_str());
+
+    std::stringstream nonEmptyObjectCompare;
+    Json::Put::ObjectPrefix<true, Json::twoSpaces>(nonEmptyObjectCompare, 3);
+    std::stringstream nonEmptyObject;
+    Json::Put::NestedPrefix<true, Json::twoSpaces>(nonEmptyObject, false, true, false, 3);
+    EXPECT_STREQ(nonEmptyObjectCompare.str().c_str(), nonEmptyObject.str().c_str());
+}
+
+TEST(JsonOutputPutAffixTest, PartiallyStaticNestedSuffix)
+{
+    std::stringstream emptyArrayCompare;
+    emptyArrayCompare << Json::ArraySuffix<false, false, 3, Json::twoSpaces>;
+    std::stringstream emptyArray;
+    Json::Put::NestedSuffix<true, true, false, 3, Json::twoSpaces>(emptyArray, true);
+    EXPECT_STREQ(emptyArrayCompare.str().c_str(), emptyArray.str().c_str());
+
+    std::stringstream nonEmptyArrayCompare;
+    nonEmptyArrayCompare << Json::ArraySuffix<true, false, 3, Json::twoSpaces>;
+    std::stringstream nonEmptyArray;
+    Json::Put::NestedSuffix<true, true, false, 3, Json::twoSpaces>(nonEmptyArray, false);
+    EXPECT_STREQ(nonEmptyArrayCompare.str().c_str(), nonEmptyArray.str().c_str());
+
+    std::stringstream emptyObjectCompare;
+    emptyObjectCompare << Json::ObjectSuffix<false, 3, Json::twoSpaces>;
+    std::stringstream emptyObject;
+    Json::Put::NestedSuffix<true, false, false, 3, Json::twoSpaces>(emptyObject, true);
+    EXPECT_STREQ(emptyObjectCompare.str().c_str(), emptyObject.str().c_str());
+
+    std::stringstream nonEmptyObjectCompare;
+    nonEmptyObjectCompare << Json::ObjectSuffix<true, 3, Json::twoSpaces>;
+    std::stringstream nonEmptyObject;
+    Json::Put::NestedSuffix<true, false, false, 3, Json::twoSpaces>(nonEmptyObject, false);
+    EXPECT_STREQ(nonEmptyObjectCompare.str().c_str(), nonEmptyObject.str().c_str());
+}
+
+TEST(JsonOutputPutAffixTest, NestedSuffix)
+{
+    std::stringstream emptyArrayPrimitivesCompare;
+    Json::Put::ArraySuffix<false, true, Json::twoSpaces>(emptyArrayPrimitivesCompare, 3);
+    std::stringstream emptyArrayPrimitives;
+    Json::Put::NestedSuffix<true, Json::twoSpaces>(emptyArrayPrimitives, true, true, true, 3);
+    EXPECT_STREQ(emptyArrayPrimitivesCompare.str().c_str(), emptyArrayPrimitives.str().c_str());
+    
+    std::stringstream emptyArrayNonPrimitivesCompare;
+    Json::Put::ArraySuffix<false, false, Json::twoSpaces>(emptyArrayNonPrimitivesCompare, 3);
+    std::stringstream emptyArrayNonPrimitives;
+    Json::Put::NestedSuffix<true, Json::twoSpaces>(emptyArrayNonPrimitives, true, false, true, 3);
+    EXPECT_STREQ(emptyArrayNonPrimitivesCompare.str().c_str(), emptyArrayNonPrimitives.str().c_str());
+    
+    std::stringstream nonEmptyArrayPrimitivesCompare;
+    Json::Put::ArraySuffix<true, true, Json::twoSpaces>(nonEmptyArrayPrimitivesCompare, 3);
+    std::stringstream nonEmptyArrayPrimitives;
+    Json::Put::NestedSuffix<true, Json::twoSpaces>(nonEmptyArrayPrimitives, true, true, false, 3);
+    EXPECT_STREQ(nonEmptyArrayPrimitivesCompare.str().c_str(), nonEmptyArrayPrimitives.str().c_str());
+    
+    std::stringstream nonEmptyArrayNonPrimitivesCompare;
+    Json::Put::ArraySuffix<true, false, Json::twoSpaces>(nonEmptyArrayNonPrimitivesCompare, 3);
+    std::stringstream nonEmptyArrayNonPrimitives;
+    Json::Put::NestedSuffix<true, Json::twoSpaces>(nonEmptyArrayNonPrimitives, true, false, false, 3);
+    EXPECT_STREQ(nonEmptyArrayNonPrimitivesCompare.str().c_str(), nonEmptyArrayNonPrimitives.str().c_str());
+    
+    std::stringstream emptyObjectCompare;
+    Json::Put::ObjectSuffix<false, Json::twoSpaces>(emptyObjectCompare, true, 3);
+    std::stringstream emptyObject;
+    Json::Put::NestedSuffix<true, Json::twoSpaces>(emptyObject, false, false, true, 3);
+    EXPECT_STREQ(emptyObjectCompare.str().c_str(), emptyObject.str().c_str());
+    
+    std::stringstream nonEmptyObjectCompare;
+    Json::Put::ObjectSuffix<true, Json::twoSpaces>(nonEmptyObjectCompare, false, 3);
+    std::stringstream nonEmptyObject;
+    Json::Put::NestedSuffix<true, Json::twoSpaces>(nonEmptyObject, false, false, false, 3);
+    EXPECT_STREQ(nonEmptyObjectCompare.str().c_str(), nonEmptyObject.str().c_str());
+}
+
+TEST(JsonOutputPutAffixTest, PartiallyStaticSeparator)
+{
+    std::stringstream jsonFirstPrettyCompare;
+    jsonFirstPrettyCompare << std::endl << Json::Indent<true, 3, Json::twoSpaces>;
+    std::stringstream jsonFirstPretty;
+    Json::Put::Separator<true, true, false, 3, Json::twoSpaces>(jsonFirstPretty, true);
+    EXPECT_STREQ(jsonFirstPrettyCompare.str().c_str(), jsonFirstPretty.str().c_str());
+    
+    std::stringstream jsonNonFirstPrettyCompare;
+    jsonNonFirstPrettyCompare << "," << std::endl << Json::Indent<true, 3, Json::twoSpaces>;
+    std::stringstream jsonNonFirstPretty;
+    Json::Put::Separator<true, true, false, 3, Json::twoSpaces>(jsonNonFirstPretty, false);
+    EXPECT_STREQ(jsonNonFirstPrettyCompare.str().c_str(), jsonNonFirstPretty.str().c_str());
+
+    std::stringstream jsonFirstNonPretty;
+    Json::Put::Separator<false, true, false, 3, Json::twoSpaces>(jsonFirstNonPretty, true);
+    EXPECT_STREQ("", jsonFirstNonPretty.str().c_str());
+
+    std::stringstream jsonNonFirstNonPretty;
+    Json::Put::Separator<false, true, false, 3, Json::twoSpaces>(jsonNonFirstNonPretty, false);
+    EXPECT_STREQ(",", jsonNonFirstNonPretty.str().c_str());
+    
+    std::stringstream nonJsonFieldFirst;
+    Json::Put::Separator<true, false, false, 3, Json::twoSpaces>(nonJsonFieldFirst, true);
+    EXPECT_STREQ("", nonJsonFieldFirst.str().c_str());
+
+    std::stringstream nonJsonFieldNestedPrettyCompare;
+    nonJsonFieldNestedPrettyCompare << "," << std::endl << Json::Indent<true, 3, Json::twoSpaces>;
+    std::stringstream nonJsonFieldNestedPretty;
+    Json::Put::Separator<true, false, true, 3, Json::twoSpaces>(nonJsonFieldNestedPretty, false);
+    EXPECT_STREQ(nonJsonFieldNestedPrettyCompare.str().c_str(), nonJsonFieldNestedPretty.str().c_str());
+
+    std::stringstream nonJsonFieldNonNestedPretty;
+    Json::Put::Separator<true, false, false, 3, Json::twoSpaces>(nonJsonFieldNonNestedPretty, false);
+    EXPECT_STREQ(", ", nonJsonFieldNonNestedPretty.str().c_str());
+
+    std::stringstream nonJsonFieldNestedNonPretty;
+    Json::Put::Separator<false, false, true, 3, Json::twoSpaces>(nonJsonFieldNestedNonPretty, false);
+    EXPECT_STREQ(",", nonJsonFieldNestedNonPretty.str().c_str());
+
+    std::stringstream nonJsonFieldNonNestedNonPretty;
+    Json::Put::Separator<false, false, false, 3, Json::twoSpaces>(nonJsonFieldNonNestedNonPretty, false);
+    EXPECT_STREQ(",", nonJsonFieldNonNestedNonPretty.str().c_str());
+}
+
+TEST(JsonOutputPutAffixTest, Separator)
+{
+    std::stringstream jsonFirstPrettyCompare;
+    jsonFirstPrettyCompare << std::endl;
+    Json::Put::Indent<true, Json::twoSpaces>(jsonFirstPrettyCompare, 3);
+    std::stringstream jsonFirstPretty;
+    Json::Put::Separator<true, true, false, Json::twoSpaces>(jsonFirstPretty, true, 3);
+    EXPECT_STREQ(jsonFirstPrettyCompare.str().c_str(), jsonFirstPretty.str().c_str());
+
+    std::stringstream jsonFirstNonPretty;
+    Json::Put::Separator<false, true, false, Json::twoSpaces>(jsonFirstNonPretty, true, 3);
+    EXPECT_STREQ("", jsonFirstNonPretty.str().c_str());
+
+    std::stringstream jsonNonFirstPrettyCompare;
+    jsonNonFirstPrettyCompare << "," << std::endl;
+    Json::Put::Indent<true, Json::twoSpaces>(jsonNonFirstPrettyCompare, 3);
+    std::stringstream jsonNonFirstPretty;
+    Json::Put::Separator<true, true, false, Json::twoSpaces>(jsonNonFirstPretty, false, 3);
+    EXPECT_STREQ(jsonNonFirstPrettyCompare.str().c_str(), jsonNonFirstPretty.str().c_str());
+
+    std::stringstream jsonNonFirstNonPretty;
+    Json::Put::Separator<false, true, false, Json::twoSpaces>(jsonNonFirstNonPretty, false, 3);
+    EXPECT_STREQ(",", jsonNonFirstNonPretty.str().c_str());
+    
+    std::stringstream nonJsonNonFirstNestedPrettyCompare;
+    nonJsonNonFirstNestedPrettyCompare << "," << std::endl;
+    Json::Put::Indent<true, Json::twoSpaces>(nonJsonNonFirstNestedPrettyCompare, 3);
+    std::stringstream nonJsonNonFirstNestedPretty;
+    Json::Put::Separator<true, false, true, Json::twoSpaces>(nonJsonNonFirstNestedPretty, false, 3);
+    EXPECT_STREQ(nonJsonNonFirstNestedPrettyCompare.str().c_str(), nonJsonNonFirstNestedPretty.str().c_str());
+
+    std::stringstream nonJsonNonFirstNestedNonPretty;
+    Json::Put::Separator<false, false, true, Json::twoSpaces>(nonJsonNonFirstNestedNonPretty, false, 3);
+    EXPECT_STREQ(",", nonJsonNonFirstNestedNonPretty.str().c_str());
+
+    std::stringstream nonJsonNonFirstNonNestedPretty;
+    Json::Put::Separator<true, false, false, Json::twoSpaces>(nonJsonNonFirstNonNestedPretty, false, 3);
+    EXPECT_STREQ(", ", nonJsonNonFirstNonNestedPretty.str().c_str());
+
+    std::stringstream nonJsonNonFirstNonNestedNonPretty;
+    Json::Put::Separator<false, false, false, Json::twoSpaces>(nonJsonNonFirstNonNestedNonPretty, false, 3);
+    EXPECT_STREQ(",", nonJsonNonFirstNonNestedNonPretty.str().c_str());
+}
+
+struct PlaceholderAnnotations {};
+
+TEST(JsonOutputPut, Customization)
+{
+    using Notate = Annotate<PlaceholderAnnotations>;
+    int objectPlaceholder;
+    using Field = CustomizeNoSpecialization::Class::integer_::Field;
+    CustomizeNoSpecialization customizeNoSpecialization;
+    bool customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+        std::cout, Json::context, customizeNoSpecialization, objectPlaceholder);
+    EXPECT_FALSE(customized);
+
+    CustomizeFullySpecialized customizeFullySpecialized;
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+        std::cout, Json::context, customizeFullySpecialized, objectPlaceholder);
+    EXPECT_TRUE(customized);
+
+    Customize5ArgSpecialized customize5ArgSpecialized;
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+        std::cout, Json::context, customize5ArgSpecialized, objectPlaceholder);
+    EXPECT_TRUE(customized);
+
+    Customize4ArgSpecialized customize4ArgSpecialized;
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+        std::cout, Json::context, customize4ArgSpecialized, objectPlaceholder);
+    EXPECT_TRUE(customized);
+
+    Customize3ArgSpecialized customize3ArgSpecialized;
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+        std::cout, Json::context, customize3ArgSpecialized, objectPlaceholder);
+    EXPECT_TRUE(customized);
+
+    Customize2ArgSpecialized customize2ArgSpecialized;
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+        std::cout, Json::context, customize2ArgSpecialized, objectPlaceholder);
+    EXPECT_TRUE(customized);
+
+    Customize5ArgSpecialized_OpAnnotationsDefaulted customize5ArgSpecialized_opAnnotationsDefaulted;
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+        std::cout, Json::context, customize5ArgSpecialized_opAnnotationsDefaulted, objectPlaceholder);
+    EXPECT_TRUE(customized);
+
+    Customize5ArgSpecialized_FieldIndexDefaulted customize5ArgSpecialized_fieldIndexDefaulted;
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+        std::cout, Json::context, customize5ArgSpecialized_fieldIndexDefaulted, objectPlaceholder);
+    EXPECT_TRUE(customized);
+
+    Customize5ArgSpecialized_BothDefaulted customize5ArgSpecialized_bothDefaulted;
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+        std::cout, Json::context, customize5ArgSpecialized_bothDefaulted, objectPlaceholder);
+    EXPECT_TRUE(customized);
+
+    Customize4ArgSpecialized_FieldIndexDefaulted customize4ArgSpecialized_fieldIndexDefaulted;
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+        std::cout, Json::context, customize4ArgSpecialized_fieldIndexDefaulted, objectPlaceholder);
+    EXPECT_TRUE(customized);
+
+    UnspecializedType unspecializedType;
+    ContainsUnspecialized containsUnspecialized;
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+        std::cout, Json::context, containsUnspecialized, unspecializedType);
+    EXPECT_FALSE(customized);
+
+    FullySpecializedType fullySpecializedType;
+    ContainsFullySpecialized containsFullySpecialized;
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+        std::cout, Json::context, containsFullySpecialized, fullySpecializedType);
+    EXPECT_TRUE(customized);
+
+    ThreeArgSpecializedType threeArgSpecializedType;
+    ContainsThreeArgSpecialized containsThreeArgSpecialized;
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+        std::cout, Json::context, containsThreeArgSpecialized, threeArgSpecializedType);
+    EXPECT_TRUE(customized);
+
+    TwoArgSpecializedType twoArgSpecializedType;
+    ContainsTwoArgSpecialized containsTwoArgSpecialized;
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+        std::cout, Json::context, containsTwoArgSpecialized, twoArgSpecializedType);
+    EXPECT_TRUE(customized);
+
+    OneArgSpecializedType oneArgSpecializedType;
+    ContainsOneArgSpecialized containsOneArgSpecialized;
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+        std::cout, Json::context, containsOneArgSpecialized, oneArgSpecializedType);
+    EXPECT_TRUE(customized);
+
+    ThreeArgSpecializedType_OpAnnotationsDefaulted threeArgSpecializedType_opAnnotationsDefaulted;
+    ContainsThreeArgSpecializedType_OpAnnotationsDefaulted containsThreeArgSpecializedType_opAnnotationDefaulted;
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+        std::cout, Json::context, containsThreeArgSpecializedType_opAnnotationDefaulted, threeArgSpecializedType_opAnnotationsDefaulted);
+    EXPECT_TRUE(customized);
+}
+
+TEST(JsonOutputPut, String)
+{
+    std::stringstream one, two, three, four, five, six, seven, eight, nine, ten, eleven;
+
+    Json::Output::Put::String(one, "asdf");
+    EXPECT_STREQ("\"asdf\"", one.str().c_str());
+    
+    Json::Output::Put::String(two, "\"");
+    EXPECT_STREQ("\"\\\"\"", two.str().c_str());
+    Json::Output::Put::String(three, "\\");
+    EXPECT_STREQ("\"\\\\\"", three.str().c_str());
+    Json::Output::Put::String(four, "/");
+    EXPECT_STREQ("\"\\/\"", four.str().c_str());
+    Json::Output::Put::String(five, "\b");
+    EXPECT_STREQ("\"\\b\"", five.str().c_str());
+    Json::Output::Put::String(six, "\f");
+    EXPECT_STREQ("\"\\f\"", six.str().c_str());
+    Json::Output::Put::String(seven, "\n");
+    EXPECT_STREQ("\"\\n\"", seven.str().c_str());
+    Json::Output::Put::String(eight, "\r");
+    EXPECT_STREQ("\"\\r\"", eight.str().c_str());
+    Json::Output::Put::String(nine, "\t");
+    EXPECT_STREQ("\"\\t\"", nine.str().c_str());
+
+    Json::Output::Put::String(ten, "");
+    EXPECT_STREQ("\"\"", ten.str().c_str());
+
+    Json::Output::Put::String(eleven, "asdf\"\\/\b\f\n\r\tjkl;");
+    EXPECT_STREQ("\"asdf\\\"\\\\\\/\\b\\f\\n\\r\\tjkl;\"", eleven.str().c_str());
+}
+
+struct OstreamOverloaded {};
+
+std::ostream & operator<<(std::ostream & os, const OstreamOverloaded &)
+{
+    os << "OstreamOverloaded";
+    return os;
+}
+
+TEST(JsonOutputPut, StringTemplate)
+{
+    std::stringstream one, two;
+
+    int integer = 1337;
+    OstreamOverloaded ostreamOverloaded;
+    
+    Json::Output::Put::String(one, integer);
+    EXPECT_STREQ("\"1337\"", one.str().c_str());
+
+    Json::Output::Put::String(two, ostreamOverloaded);
+    EXPECT_STREQ("\"OstreamOverloaded\"", two.str().c_str());
+}
+
+TEST(JsonOutputPut, GenericValue)
+{
+    std::stringstream booleanStream,
+        numberStream,
+        strStream,
+        objStream,
+        nullArrayStream,
+        boolArrayStream,
+        numberArrayStream,
+        strArrayStream,
+        objArrayStream,
+        mixedArrayStream,
+        fieldClusterStream;
+
+    Json::Bool boolean(true);
+    Json::Put::GenericValue<Annotate<>, false, Json::twoSpaces, true>(booleanStream, Json::context, 0, 0, boolean);
+    EXPECT_STREQ("true", booleanStream.str().c_str());
+
+    Json::Number number("123.456");
+    Json::Put::GenericValue<Annotate<>, false, Json::twoSpaces, true>(numberStream, Json::context, 0, 0, number);
+    EXPECT_STREQ("123.456", numberStream.str().c_str());
+
+    Json::String str("asd\nf");
+    Json::Put::GenericValue<Annotate<>, false, Json::twoSpaces, true>(strStream, Json::context, 0, 0, str);
+    EXPECT_STREQ("\"asd\\nf\"", strStream.str().c_str());
+
+    Json::Object obj;
+    obj.put("astr", Json::String::Make("asdf"));
+    obj.put("number", Json::Number::Make("1234"));
+    Json::Put::GenericValue<Annotate<>, false, Json::twoSpaces, true>(objStream, Json::context, 0, 0, obj);
+    EXPECT_STREQ("{\"astr\":\"asdf\",\"number\":1234}", objStream.str().c_str());
+
+    Json::NullArray nullArray(3);
+    Json::Put::GenericValue<Annotate<>, false, Json::twoSpaces, true>(nullArrayStream, Json::context, 0, 0, nullArray);
+    EXPECT_STREQ("[null,null,null]", nullArrayStream.str().c_str());
+
+    Json::BoolArray boolArray;
+    boolArray.boolArray().push_back(true);
+    boolArray.boolArray().push_back(true);
+    boolArray.boolArray().push_back(false);
+    Json::Put::GenericValue<Annotate<>, false, Json::twoSpaces, true>(boolArrayStream, Json::context, 0, 0, boolArray);
+    EXPECT_STREQ("[true,true,false]", boolArrayStream.str().c_str());
+
+    Json::NumberArray numberArray;
+    numberArray.numberArray().push_back("2");
+    numberArray.numberArray().push_back("1");
+    numberArray.numberArray().push_back("0.5");
+    Json::Put::GenericValue<Annotate<>, false, Json::twoSpaces, true>(numberArrayStream, Json::context, 0, 0, numberArray);
+    EXPECT_STREQ("[2,1,0.5]", numberArrayStream.str().c_str());
+
+    Json::StringArray strArray;
+    strArray.stringArray().push_back("as");
+    strArray.stringArray().push_back("df");
+    Json::Put::GenericValue<Annotate<>, false, Json::twoSpaces, true>(strArrayStream, Json::context, 0, 0, strArray);
+    EXPECT_STREQ("[\"as\",\"df\"]", strArrayStream.str().c_str());
+
+    Json::ObjectArray objArray;
+    Json::ObjectValue objElement;
+    objElement.insert(std::pair("astr", Json::String::Make("asdf")));
+    objElement.insert(std::pair("number", Json::Number::Make("1234")));
+    objArray.objectArray().push_back(objElement);
+    Json::Put::GenericValue<Annotate<>, false, Json::twoSpaces, true>(objArrayStream, Json::context, 0, 0, objArray);
+    EXPECT_STREQ("[{\"astr\":\"asdf\",\"number\":1234}]", objArrayStream.str().c_str());
+
+    Json::MixedArray mixedArray;
+    mixedArray.mixedArray().push_back(Json::Bool::Make(true));
+    mixedArray.mixedArray().push_back(nullptr);
+    Json::Put::GenericValue<Annotate<>, false, Json::twoSpaces, true>(mixedArrayStream, Json::context, 0, 0, mixedArray);
+    EXPECT_STREQ("[true,null]", mixedArrayStream.str().c_str());
+
+    Json::FieldCluster fieldCluster;
+    fieldCluster.put("astr", Json::String::Make("asdf"));
+    fieldCluster.put("number", Json::Number::Make("1234"));
+    Json::Put::GenericValue<Annotate<>, false, Json::twoSpaces, true>(fieldClusterStream, Json::context, 0, 0, fieldCluster);
+    EXPECT_STREQ("\"astr\":\"asdf\",\"number\":1234", fieldClusterStream.str().c_str());
+}

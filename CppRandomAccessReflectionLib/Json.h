@@ -65,12 +65,27 @@ namespace Json
         template <Statics statics, typename Object>
         static constexpr bool HasFields()
         {
-            if constexpr ( statics == Statics::Excluded )
-                return Object::Class::TotalFields - Object::Class::TotalStaticFields - IgnoredFieldCount<statics, Object>() > 0;
-            else if constexpr ( statics == Statics::Included )
-                return Object::Class::TotalFields - IgnoredFieldCount<statics, Object>() > 0;
-            else // statics == Statics::Only
-                return Object::Class::TotalStaticFields - IgnoredFieldCount<statics, Object>() > 0;
+            constexpr bool MatchesStaticsExcluded = statics == Statics::Excluded &&
+                Object::Class::TotalFields - Object::Class::TotalStaticFields - IgnoredFieldCount<statics, Object>() > 0;
+            constexpr bool MatchesStaticsIncluded = statics == Statics::Included &&
+                Object::Class::TotalFields - IgnoredFieldCount<statics, Object>() > 0;
+            constexpr bool MatchesStaticsOnly = statics == Statics::Only &&
+                Object::Class::TotalStaticFields - IgnoredFieldCount<statics, Object>() > 0;
+
+            if constexpr ( MatchesStaticsExcluded || MatchesStaticsIncluded || MatchesStaticsOnly )
+                return true;
+            else if constexpr ( Object::Supers::TotalSupers == 0 )
+                return false;
+            else
+            {
+                bool hasFields = false;
+                Object::Supers::ForEach([&](auto index, auto superType) {
+                    using Super = typename decltype(superType)::type;
+                    if constexpr ( HasFields<statics, Super>() )
+                        hasFields = true;
+                });
+                return hasFields;
+            }
         }
 
         template <size_t Index, Statics statics, typename Object>
@@ -181,7 +196,7 @@ namespace Json
             Type type;
             std::string name;
         };
-
+        
         class Value {
         public:
 
@@ -354,6 +369,9 @@ namespace Json
                 number() = std::to_string(number);
             }
         };
+        
+        using ObjectValue = std::map<std::string, std::shared_ptr<Value>>;
+        using ObjectValuePtr = std::shared_ptr<ObjectValue>;
 
         class Bool : public Value {
         public:
@@ -1287,20 +1305,20 @@ namespace Json
                 }
                 else if constexpr ( is_specialized<Customize<Object, Value, Field::Index, Annotations, Field>>::value )
                     return Customize<Object, Value, Field::Index, Annotations, Field>::As(os, context, obj, value); // Five Customize arguments specialized
-                else if constexpr ( is_specialized<Customize<Object, Value, Field::Index, Annotations>>::value )
-                    return Customize<Object, Value, Field::Index, Annotations>::As(os, context, obj, value); // Four Customize arguments specialized
-                else if constexpr ( is_specialized<Customize<Object, Value, Field::Index>>::value )
-                    return Customize<Object, Value, Field::Index>::As(os, context, obj, value); // Three Customize arguments specialized
-                else if constexpr ( is_specialized<Customize<Object, Value>>::value )
-                    return Customize<Object, Value>::As(os, context, obj, value); // Two Customize arguments specialized
                 else if constexpr ( is_specialized<Customize<Object, Value, Field::Index, Annotate<>, Field>>::value )
                     return Customize<Object, Value, Field::Index, Annotate<>, Field>::As(os, context, obj, value); // Customize<5args>, Annotations defaulted
                 else if constexpr ( is_specialized<Customize<Object, Value, NoFieldIndex, Annotations, Field>>::value )
                     return Customize<Object, Value, NoFieldIndex, Annotations, Field>::As(os, context, obj, value); // Customize<5args>, FieldIndex defaulted
                 else if constexpr ( is_specialized<Customize<Object, Value, NoFieldIndex, Annotate<>, Field>>::value )
                     return Customize<Object, Value, NoFieldIndex, Annotate<>, Field>::As(os, context, obj, value); // Customize<5args>, two args defaulted
+                else if constexpr ( is_specialized<Customize<Object, Value, Field::Index, Annotations>>::value )
+                    return Customize<Object, Value, Field::Index, Annotations>::As(os, context, obj, value); // Four Customize arguments specialized
                 else if constexpr ( is_specialized<Customize<Object, Value, NoFieldIndex, Annotations>>::value )
                     return Customize<Object, Value, NoFieldIndex, Annotations>::As(os, context, obj, value); // Customize<4args>, FieldIndex defaulted
+                else if constexpr ( is_specialized<Customize<Object, Value, Field::Index>>::value )
+                    return Customize<Object, Value, Field::Index>::As(os, context, obj, value); // Three Customize arguments specialized
+                else if constexpr ( is_specialized<Customize<Object, Value>>::value )
+                    return Customize<Object, Value>::As(os, context, obj, value); // Two Customize arguments specialized
                 else if constexpr ( is_specialized<CustomizeType<Value, Annotations, Field, statics,
                     PrettyPrint, TotalParentIterables, IndentLevel, indent>>::value )
                 {
@@ -1309,12 +1327,12 @@ namespace Json
                 }
                 else if constexpr ( is_specialized<CustomizeType<Value, Annotations, Field>>::value )
                     return CustomizeType<Value, Annotations, Field>::As(os, context, value); // Three CustomizeType arguments specialized
+                else if constexpr ( is_specialized<CustomizeType<Value, Annotate<>, Field>>::value )
+                    return CustomizeType<Value, Annotate<>, Field>::As(os, context, value); // CustomizeType<3args>, Annotations defaulted
                 else if constexpr ( is_specialized<CustomizeType<Value, Annotations>>::value )
                     return CustomizeType<Value, Annotations>::As(os, context, value); // Two CustomizeType arguments specialized
                 else if constexpr ( is_specialized<CustomizeType<Value>>::value )
                     return CustomizeType<Value>::As(os, context, value); // One CustomizeType argument specialized
-                else if constexpr ( is_specialized<CustomizeType<Value, Annotate<>, Field>>::value )
-                    return CustomizeType<Value, Annotate<>, Field>::As(os, context, value); // CustomizeType<3args>, Annotations defaulted
                 else
                     return false;
             }
@@ -1349,7 +1367,7 @@ namespace Json
             }
             
             template <typename Annotations, bool PrettyPrint, const char* indent, bool IsFirst>
-            static constexpr void Value(std::ostream & os, Context & context,
+            static constexpr void GenericValue(std::ostream & os, Context & context,
                 size_t totalParentIterables, size_t indentLevel, const Generic::Value & value)
             {
                 switch ( value.type() )
@@ -1361,7 +1379,7 @@ namespace Json
                         os << value.number();
                         break;
                     case Generic::Value::Type::String:
-                        os << "\"" << value.string() << "\"";
+                        Put::String(os, value.string());
                         break;
                     case Generic::Value::Type::Object:
                     case Generic::Value::Type::NullArray:
@@ -1370,7 +1388,7 @@ namespace Json
                     case Generic::Value::Type::StringArray:
                     case Generic::Value::Type::ObjectArray:
                     case Generic::Value::Type::MixedArray:
-                        Put::Iterable<Annotations, PrettyPrint, indent>(os, context, totalParentIterables, indentLevel, value);
+                        Put::GenericIterable<Annotations, PrettyPrint, indent>(os, context, totalParentIterables, indentLevel, value);
                         break;
                     case Generic::Value::Type::FieldCluster:
                     {
@@ -1381,12 +1399,115 @@ namespace Json
                             Put::FieldPrefix<PrettyPrint, indent>(os, isFirst, indentLevel+totalParentIterables);
                             Put::String(os, field.first);
                             os << FieldNameValueSeparator<PrettyPrint>;
-                            Put::Value<Annotations, PrettyPrint, indent, false>(os, context, 0, indentLevel+totalParentIterables, (Generic::Value &)*field.second);
+                            Put::GenericValue<Annotations, PrettyPrint, indent, false>(os, context, 0, indentLevel+totalParentIterables, (Generic::Value &)*field.second);
                             isFirst = false;
                         }
                     }
                     break;
                 }
+            }
+            
+            template <typename Annotations, bool PrettyPrint, const char* indent>
+            static constexpr void GenericIterable(std::ostream & os, Context & context,
+                size_t totalParentIterables, size_t indentLevel, const Generic::Value & iterable)
+            {
+                bool isObject = iterable.type() == Generic::Value::Type::Object;
+                bool containsPrimitives = iterable.type() == Generic::Value::Type::BoolArray ||
+                    iterable.type() == Generic::Value::Type::NumberArray || iterable.type() == Generic::Value::Type::StringArray;
+                bool isEmpty = (isObject && iterable.object().empty()) || (!isObject && iterable.arraySize() == 0);
+
+                size_t i=0;
+                Put::NestedPrefix<PrettyPrint, indent>(os, !isObject, containsPrimitives, isEmpty, indentLevel+totalParentIterables+1);
+                switch ( iterable.type() )
+                {
+                    case Generic::Value::Type::Object:
+                    {
+                        const std::map<std::string, std::shared_ptr<Generic::Value>> & obj = iterable.object();
+                        bool isFirst = true;
+                        for ( const auto & field : obj )
+                        {
+                            Put::FieldPrefix<PrettyPrint, indent>(os, isFirst, indentLevel+totalParentIterables+1);
+                            Put::String(os, field.first);
+                            os << FieldNameValueSeparator<PrettyPrint>;
+                            Put::GenericValue<Annotations, PrettyPrint, indent, false>(os, context, 0, indentLevel+totalParentIterables+1, (Generic::Value &)*field.second);
+                            isFirst = false;
+                        }
+                    }
+                    break;
+                    case Generic::Value::Type::NullArray:
+                    {
+                        for ( size_t i=0; i<iterable.nullArray(); i++ )
+                        {
+                            Put::Separator<PrettyPrint, false, false, indent>(os, 0 == i, indentLevel+totalParentIterables+1);
+                            os << "null";
+                        }
+                    }
+                    break;
+                    case Generic::Value::Type::BoolArray:
+                    {
+                        const std::vector<bool> & array = iterable.boolArray();
+                        for ( const auto & element : array )
+                        {
+                            Put::Separator<PrettyPrint, false, false, indent>(os, 0 == i++, indentLevel+totalParentIterables+2);
+                            os << (element ? "true" : "false");
+                        }
+                    }
+                    break;
+                    case Generic::Value::Type::NumberArray:
+                    {
+                        const std::vector<std::string> & array = iterable.numberArray();
+                        for ( const auto & element : array )
+                        {
+                            Put::Separator<PrettyPrint, false, false, indent>(os, 0 == i++, indentLevel+totalParentIterables+2);
+                            os << element;
+                        }
+                    }
+                    break;
+                    case Generic::Value::Type::StringArray:
+                    {
+                        const std::vector<std::string> & array = iterable.stringArray();
+                        for ( const auto & element : array )
+                        {
+                            Put::Separator<PrettyPrint, false, false, indent>(os, 0 == i++, indentLevel+totalParentIterables+2);
+                            os << "\"" << element << "\"";
+                        }
+                    }
+                    break;
+                    case Generic::Value::Type::ObjectArray:
+                    {
+                        const std::vector<std::map<std::string, std::shared_ptr<Generic::Value>>> & array = iterable.objectArray();
+                        for ( const std::map<std::string, std::shared_ptr<Generic::Value>> & obj : array )
+                        {
+                            Put::Separator<PrettyPrint, false, true, indent>(os, 0 == i++, indentLevel+totalParentIterables+2);
+                            bool isFirst = true;
+                            Put::ObjectPrefix<PrettyPrint, indent>(os, totalParentIterables+indentLevel);
+                            for ( const auto & field : obj )
+                            {
+                                Put::FieldPrefix<PrettyPrint, indent>(os, isFirst, totalParentIterables+indentLevel+2);
+                                Put::String(os, field.first);
+                                os << FieldNameValueSeparator<PrettyPrint>;
+                                Put::GenericValue<Annotations, PrettyPrint, indent, false>(os, context, totalParentIterables+1, indentLevel, (Generic::Value &)*field.second);
+                                isFirst = false;
+                            }
+                            Put::ObjectSuffix<PrettyPrint, indent>(os, obj.empty(), totalParentIterables+indentLevel+1);
+                        }
+                    }
+                    break;
+                    case Generic::Value::Type::MixedArray:
+                    {
+                        const std::vector<std::shared_ptr<Generic::Value>> & array = iterable.mixedArray();
+                        for ( const std::shared_ptr<Generic::Value> & element : array )
+                        {
+                            Put::Separator<PrettyPrint, false, true, indent>(os, 0 == i++, indentLevel+totalParentIterables+1);
+                            if ( element == nullptr )
+                                os << "null";
+                            else
+                                Put::GenericValue<Annotations, PrettyPrint, indent, false>(os, context, totalParentIterables+1, indentLevel, *element);
+                        }
+                    }
+                    break;
+                }
+                Put::NestedSuffix<PrettyPrint, indent>(os, !isObject, containsPrimitives, isEmpty, indentLevel+totalParentIterables);
             }
 
             template <typename Annotations, typename Field, Statics statics,
@@ -1412,7 +1533,7 @@ namespace Json
                 }
                 else if constexpr ( std::is_base_of<Generic::Value, T>::value )
                 {
-                    Put::Value<Annotations, PrettyPrint, indent, IsFirst>(os, context, TotalParentIterables,
+                    Put::GenericValue<Annotations, PrettyPrint, indent, IsFirst>(os, context, TotalParentIterables,
                         IndentLevel+(Field::template HasAnnotation<IsRoot> ) ? 0 : 1, (const Generic::Value &)value);
                 }
                 else if constexpr ( is_iterable<T>::value )
@@ -1477,109 +1598,6 @@ namespace Json
                     }
                 }
                 Put::NestedSuffix<PrettyPrint, !ContainsPairs, ContainsPrimitives, IndentLevel+TotalParentIterables+1, indent>(os, IsEmpty(iterable));
-            }
-
-            template <typename Annotations, bool PrettyPrint, const char* indent>
-            static constexpr void Iterable(std::ostream & os, Context & context,
-                size_t totalParentIterables, size_t indentLevel, const Generic::Value & iterable)
-            {
-                bool isObject = iterable.type() == Generic::Value::Type::Object;
-                bool containsPrimitives = iterable.type() == Generic::Value::Type::BoolArray ||
-                    iterable.type() == Generic::Value::Type::NumberArray || iterable.type() == Generic::Value::Type::StringArray;
-                bool isEmpty = (isObject && iterable.object().empty()) || (!isObject && iterable.arraySize() == 0);
-
-                size_t i=0;
-                Put::NestedPrefix<PrettyPrint, indent>(os, !isObject, containsPrimitives, isEmpty, indentLevel+totalParentIterables+1);
-                switch ( iterable.type() )
-                {
-                    case Generic::Value::Type::Object:
-                    {
-                        const std::map<std::string, std::shared_ptr<Generic::Value>> & obj = iterable.object();
-                        bool isFirst = true;
-                        for ( const auto & field : obj )
-                        {
-                            Put::FieldPrefix<PrettyPrint, indent>(os, isFirst, indentLevel+totalParentIterables+1);
-                            Put::String(os, field.first);
-                            os << FieldNameValueSeparator<PrettyPrint>;
-                            Put::Value<Annotations, PrettyPrint, indent, false>(os, context, 0, indentLevel+totalParentIterables+1, (Generic::Value &)*field.second);
-                            isFirst = false;
-                        }
-                    }
-                    break;
-                    case Generic::Value::Type::NullArray:
-                    {
-                        for ( size_t i=0; i<iterable.nullArray(); i++ )
-                        {
-                            Put::Separator<PrettyPrint, false, false, indent>(os, 0 == i, indentLevel+totalParentIterables+1);
-                            os << "null";
-                        }
-                    }
-                    break;
-                    case Generic::Value::Type::BoolArray:
-                    {
-                        const std::vector<bool> & array = iterable.boolArray();
-                        for ( const auto & element : array )
-                        {
-                            Put::Separator<PrettyPrint, false, false, indent>(os, 0 == i++, indentLevel+totalParentIterables+2);
-                            os << (element ? "true" : "false");
-                        }
-                    }
-                    break;
-                    case Generic::Value::Type::NumberArray:
-                    {
-                        const std::vector<std::string> & array = iterable.numberArray();
-                        for ( const auto & element : array )
-                        {
-                            Put::Separator<PrettyPrint, false, false, indent>(os, 0 == i++, indentLevel+totalParentIterables+2);
-                            os << element;
-                        }
-                    }
-                    break;
-                    case Generic::Value::Type::StringArray:
-                    {
-                        const std::vector<std::string> & array = iterable.stringArray();
-                        for ( const auto & element : array )
-                        {
-                            Put::Separator<PrettyPrint, false, false, indent>(os, 0 == i++, indentLevel+totalParentIterables+2);
-                            os << "\"" << element << "\"";
-                        }
-                    }
-                    break;
-                    case Generic::Value::Type::ObjectArray:
-                    {
-                        const std::vector<std::map<std::string, std::shared_ptr<Generic::Value>>> & array = iterable.objectArray();
-                        for ( const std::map<std::string, std::shared_ptr<Generic::Value>> & obj : array )
-                        {
-                            Put::Separator<PrettyPrint, false, true, indent>(os, 0 == i++, indentLevel+totalParentIterables+2);
-                            bool isFirst = true;
-                            Put::ObjectPrefix<PrettyPrint, indent>(os, totalParentIterables+indentLevel);
-                            for ( const auto & field : obj )
-                            {
-                                Put::FieldPrefix<PrettyPrint, indent>(os, isFirst, totalParentIterables+indentLevel+2);
-                                Put::String(os, field.first);
-                                os << FieldNameValueSeparator<PrettyPrint>;
-                                Put::Value<Annotations, PrettyPrint, indent, false>(os, context, totalParentIterables+1, indentLevel, (Generic::Value &)*field.second);
-                                isFirst = false;
-                            }
-                            Put::ObjectSuffix<PrettyPrint, indent>(os, obj.empty(), totalParentIterables+indentLevel+1);
-                        }
-                    }
-                    break;
-                    case Generic::Value::Type::MixedArray:
-                    {
-                        const std::vector<std::shared_ptr<Generic::Value>> & array = iterable.mixedArray();
-                        for ( const std::shared_ptr<Generic::Value> & element : array )
-                        {
-                            Put::Separator<PrettyPrint, false, true, indent>(os, 0 == i++, indentLevel+totalParentIterables+1);
-                            if ( element == nullptr )
-                                os << "null";
-                            else
-                                Put::Value<Annotations, PrettyPrint, indent, false>(os, context, totalParentIterables+1, indentLevel, *element);
-                        }
-                    }
-                    break;
-                }
-                Put::NestedSuffix<PrettyPrint, indent>(os, !isObject, containsPrimitives, isEmpty, indentLevel+totalParentIterables);
             }
 
             template <typename Annotations, typename FieldClass, Statics statics,
@@ -1698,7 +1716,7 @@ namespace Json
 
         std::ostream & operator<<(std::ostream & os, const Generic::Value & value)
         {
-            Put::Value<Annotate<>, true, twoSpaces, true>(os, context, 0, 0, value);
+            Put::GenericValue<Annotate<>, true, twoSpaces, true>(os, context, 0, 0, value);
             return os;
         }
     };
