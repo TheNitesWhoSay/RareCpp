@@ -2494,28 +2494,28 @@ namespace Json
             {
                 if constexpr ( is_specialized<Customize<Object, Value, FieldIndex, OpAnnotations, Field>>::value )
                     return Customize<Object, Value, FieldIndex, OpAnnotations, Field>::As(is, context, obj, value); // Customize fully specialized
-                else if constexpr ( is_specialized<Customize<Object, Value, FieldIndex, OpAnnotations>>::value )
-                    return Customize<Object, Value, FieldIndex, OpAnnotations>::As(is, context, obj, value); // Four Customize arguments specialized
-                else if constexpr ( is_specialized<Customize<Object, Value, FieldIndex>>::value )
-                    return Customize<Object, Value, FieldIndex>::As(is, context, obj, value); // Three Customize arguments specialized
-                else if constexpr ( is_specialized<Customize<Object, Value>>::value )
-                    return Customize<Object, Value>::As(is, context, obj, value); // Two Customize arguments specialized
                 else if constexpr ( is_specialized<Customize<Object, Value, FieldIndex, Annotate<>, Field>>::value )
                     return Customize<Object, Value, FieldIndex, Annotate<>, Field>::As(is, context, obj, value); // Customize<5args>, OpAnnotations defaulted
                 else if constexpr ( is_specialized<Customize<Object, Value, NoFieldIndex, OpAnnotations, Field>>::value )
                     return Customize<Object, Value, NoFieldIndex, OpAnnotations, Field>::As(is, context, obj, value); // Customize<5args>, FieldIndex defaulted
                 else if constexpr ( is_specialized<Customize<Object, Value, NoFieldIndex, Annotate<>, Field>>::value )
                     return Customize<Object, Value, NoFieldIndex, Annotate<>, Field>::As(is, context, obj, value); // Customize<5args>, both defaulted
+                else if constexpr ( is_specialized<Customize<Object, Value, FieldIndex, OpAnnotations>>::value )
+                    return Customize<Object, Value, FieldIndex, OpAnnotations>::As(is, context, obj, value); // Four Customize arguments specialized
                 else if constexpr ( is_specialized<Customize<Object, Value, NoFieldIndex, OpAnnotations>>::value )
                     return Customize<Object, Value, NoFieldIndex, OpAnnotations>::As(is, context, obj, value); // Customize<4args>, FieldIndex defaulted
+                else if constexpr ( is_specialized<Customize<Object, Value, FieldIndex>>::value )
+                    return Customize<Object, Value, FieldIndex>::As(is, context, obj, value); // Three Customize arguments specialized
+                else if constexpr ( is_specialized<Customize<Object, Value>>::value )
+                    return Customize<Object, Value>::As(is, context, obj, value); // Two Customize arguments specialized
                 else if constexpr ( is_specialized<CustomizeType<Value, OpAnnotations, Field>>::value )
                     return CustomizeType<Value, OpAnnotations, Field>::As(is, context, value); // CustomizeType fully specialized
+                else if constexpr ( is_specialized<CustomizeType<Value, Annotate<>, Field>>::value )
+                    return CustomizeType<Value, Annotate<>, Field>::As(is, context, value); // CustomizeType<3args>, OpAnnotations defaulted
                 else if constexpr ( is_specialized<CustomizeType<Value, OpAnnotations>>::value )
                     return CustomizeType<Value, OpAnnotations>::As(is, context, value); // CustomizeType<2args> specialized
                 else if constexpr ( is_specialized<CustomizeType<Value>>::value )
                     return CustomizeType<Value>::As(is, context, value); // CustomizeType<1arg> specialized
-                else if constexpr ( is_specialized<CustomizeType<Value, Annotate<>, Field>>::value )
-                    return CustomizeType<Value, Annotate<>, Field>::As(is, context, value); // CustomizeType<3args>, OpAnnotations defaulted
                 else
                     return false;
             }

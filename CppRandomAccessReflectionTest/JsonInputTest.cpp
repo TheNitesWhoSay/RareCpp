@@ -3,7 +3,10 @@
 #include "JsonInputTest.h"
 using namespace Reflect;
 
-TEST(JsonInputCustomizersTest, Customize)
+TEST(JsonInputCustomizersTest, CustomizeFullySpecialized)
 {
-    EXPECT_TRUE(true);
+    CustomizeFullySpecialized customizeFullySpecialized = { 1, 2, 'a' };
+    bool isSpecialized = Json::Input::Customize<CustomizeFullySpecialized, int, CustomizeFullySpecialized::Class::IndexOf::firstField, Annotate<>, CustomizeFullySpecialized::Class::firstField_::Field>
+        ::As(std::cin, Json::context, customizeFullySpecialized, customizeFullySpecialized.firstField);
+    EXPECT_TRUE(isSpecialized);
 }
