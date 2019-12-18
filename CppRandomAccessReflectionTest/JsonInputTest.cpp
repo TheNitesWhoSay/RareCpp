@@ -3,7 +3,7 @@
 #include "JsonInputTest.h"
 using namespace Reflect;
 
-TEST(JsonInputTest, Placeholder)
+TEST(JsonInputCustomizersTest, Customize)
 {
     EXPECT_TRUE(true);
 }

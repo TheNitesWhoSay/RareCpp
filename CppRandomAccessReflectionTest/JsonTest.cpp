@@ -1377,7 +1377,7 @@ TEST(JsonGenericTest, GenericValueAssigner)
     EXPECT_THROW(numberSharedPtrAssigner.into(stringSharedPtr), Json::Value::TypeMismatch);
 }
 
-TEST(JsonOutputTest, OutputCustomizeNoSpecialization)
+TEST(JsonOutputCustomizersTest, OutputCustomizeNoSpecialization)
 {
     CustomizeNoSpecialization noSpecialization;
 
@@ -1396,7 +1396,7 @@ TEST(JsonOutputTest, OutputCustomizeNoSpecialization)
     EXPECT_FALSE(isSpecialized);
 }
 
-TEST(JsonOutputTest, OutputCustomizeFullySpecialized)
+TEST(JsonOutputCustomizersTest, OutputCustomizeFullySpecialized)
 {
     CustomizeFullySpecialized fullySpecialized;
 
@@ -1425,7 +1425,7 @@ TEST(JsonOutputTest, OutputCustomizeFullySpecialized)
     EXPECT_FALSE(isSpecialized);
 }
 
-TEST(JsonOutputTest, OutputCustomize5ArgSpecialized)
+TEST(JsonOutputCustomizersTest, OutputCustomize5ArgSpecialized)
 {
     Customize5ArgSpecialized fiveArgSpecialized;
 
@@ -1451,7 +1451,7 @@ TEST(JsonOutputTest, OutputCustomize5ArgSpecialized)
     EXPECT_FALSE(isSpecialized);
 }
 
-TEST(JsonOutputTest, OutputCustomize4ArgSpecialized)
+TEST(JsonOutputCustomizersTest, OutputCustomize4ArgSpecialized)
 {
     Customize4ArgSpecialized fourArgSpecialized;
 
@@ -1477,7 +1477,7 @@ TEST(JsonOutputTest, OutputCustomize4ArgSpecialized)
     EXPECT_FALSE(isSpecialized);
 }
 
-TEST(JsonOutputTest, OutputCustomize3ArgSpecialized)
+TEST(JsonOutputCustomizersTest, OutputCustomize3ArgSpecialized)
 {
     Customize3ArgSpecialized threeArgSpecialized;
 
@@ -1500,7 +1500,7 @@ TEST(JsonOutputTest, OutputCustomize3ArgSpecialized)
     EXPECT_FALSE(isSpecialized);
 }
 
-TEST(JsonOutputTest, OutputCustomize2ArgSpecialized)
+TEST(JsonOutputCustomizersTest, OutputCustomize2ArgSpecialized)
 {
     Customize2ArgSpecialized twoArgSpecialized;
 
