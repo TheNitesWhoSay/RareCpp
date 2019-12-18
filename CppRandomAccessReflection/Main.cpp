@@ -5,7 +5,7 @@
 #include <memory>
 using Json::Statics;
 
-ENABLE_JSON_INPUT;
+ENABLE_JSON;
 
 int A::second = 0;
 

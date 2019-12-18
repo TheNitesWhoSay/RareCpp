@@ -34,9 +34,15 @@
     <ClCompile Include="FieldTest.cpp">
       <Filter>Source Files\ReflectTest</Filter>
     </ClCompile>
+    <ClCompile Include="JsonInputTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="JsonTest.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="JsonInputTest.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -5,6 +5,8 @@
 using namespace Reflect;
 using Json::Statics;
 
+ENABLE_JSON;
+
 std::ostream & operator <<(std::ostream & os, const CustomizeFullySpecialized &)
 {
     os << "Unspecialized!";

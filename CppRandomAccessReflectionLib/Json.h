@@ -129,7 +129,7 @@ namespace Json
         {
             virtual ~Context() {}
         };
-        Context context;
+        extern Context context;
 
         class Exception : public std::exception
         {
@@ -145,25 +145,7 @@ namespace Json
 
         inline namespace TypeNames
         {
-            std::string simplifyTypeStr(const std::string & superTypeStr)
-            {
-                std::string rawSimpleTypeStr = superTypeStr;
-                if ( rawSimpleTypeStr.find("struct ", 0) != std::string::npos )
-                    rawSimpleTypeStr.erase(0, strlen("struct "));
-                if ( rawSimpleTypeStr.find("class ", 0) != std::string::npos )
-                    rawSimpleTypeStr.erase(0, strlen("class "));
-
-                std::string simpleTypeStr;
-                for ( size_t i=0; i<rawSimpleTypeStr.size(); i++ )
-                {
-                    if ( rawSimpleTypeStr[i] != ' ' )
-                        simpleTypeStr += rawSimpleTypeStr[i];
-                    else if ( ++i < rawSimpleTypeStr.size() ) // Remove space and upper-case the letter following the space
-                        simpleTypeStr += std::toupper(rawSimpleTypeStr[i]);
-                }
-
-                return simpleTypeStr;
-            }
+            extern std::string simplifyTypeStr(const std::string & superTypeStr);
 
             template <typename T>
             std::string superTypeToJsonFieldName()
@@ -171,10 +153,7 @@ namespace Json
                 return std::string("__") + simplifyTypeStr(TypeToStr<T>());
             }
 
-            std::string fieldClusterToJsonFieldName()
-            {
-                return std::string("____fieldCluster");
-            }
+            extern std::string fieldClusterToJsonFieldName();
         }
     };
 
@@ -1719,12 +1698,6 @@ namespace Json
         {
             return Output::ReflectedObject<Annotations, statics, true, IndentLevel, indent, T>(t, context);
         }
-
-        std::ostream & operator<<(std::ostream & os, const Generic::Value & value)
-        {
-            Put::GenericValue<Annotate<>, true, twoSpaces, true>(os, context, 0, 0, value);
-            return os;
-        }
     };
     
     inline namespace Input
@@ -1941,10 +1914,6 @@ namespace Json
                     os << "  }" << std::endl;
                 os << "}" << std::endl;
             }
-
-            #define ENABLE_JSON_INPUT \
-            std::hash<std::string> Json::strHash; \
-            std::map<std::type_index, std::multimap<size_t, Json::Generic::JsonField>> Json::classToNameHashToJsonField
         };
 
         class Checked
@@ -3116,6 +3085,32 @@ namespace Json
         }
     }
     
+#define ENABLE_JSON \
+    std::hash<std::string> Json::strHash; \
+    std::map<std::type_index, std::multimap<size_t, Json::Generic::JsonField>> Json::classToNameHashToJsonField; \
+    Json::Shared::Context Json::Shared::context; \
+    std::string Json::Shared::simplifyTypeStr(const std::string & superTypeStr) { \
+        std::string rawSimpleTypeStr = superTypeStr; \
+        if ( rawSimpleTypeStr.find("struct ", 0) != std::string::npos ) \
+            rawSimpleTypeStr.erase(0, strlen("struct ")); \
+        if ( rawSimpleTypeStr.find("class ", 0) != std::string::npos ) \
+            rawSimpleTypeStr.erase(0, strlen("class ")); \
+        std::string simpleTypeStr; \
+        for ( size_t i=0; i<rawSimpleTypeStr.size(); i++ ) { \
+            if ( rawSimpleTypeStr[i] != ' ' ) \
+                simpleTypeStr += rawSimpleTypeStr[i]; \
+            else if ( ++i < rawSimpleTypeStr.size() ) /* Remove space and upper-case the letter following the space */ \
+                simpleTypeStr += std::toupper(rawSimpleTypeStr[i]); \
+        } \
+        return simpleTypeStr; \
+    } \
+    std::ostream & operator<<(std::ostream & os, const Json::Generic::Value & value) { \
+        Json::Put::GenericValue<Annotate<>, true, Json::twoSpaces, true>(os, Json::context, 0, 0, value); \
+        return os; \
+    } \
+    std::string Json::Shared::fieldClusterToJsonFieldName() { \
+        return std::string("____fieldCluster"); \
+    }
 };
 
 #endif
