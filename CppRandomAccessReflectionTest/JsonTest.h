@@ -28,6 +28,7 @@ struct Json::Output::Customize<CustomizeFullySpecialized, int, FieldIndex, OpAnn
 {
     static bool As(std::ostream & output, Json::Context & context, const CustomizeFullySpecialized & object, const int & value)
     {
+        Json::Put::String(output, "Customized" + std::to_string(value));
         return true;
     }
 };

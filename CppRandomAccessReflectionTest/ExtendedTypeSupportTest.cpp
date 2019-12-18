@@ -356,6 +356,53 @@ TEST(ExtendedTypeSupportTest, IsBool)
     EXPECT_FALSE(is_bool<const std::string>::value);
 }
 
+TEST(ExtendedTypeSupportTest, IsString)
+{
+    EXPECT_FALSE(is_string<bool>::value);
+    EXPECT_FALSE(is_string<uint8_t>::value);
+    EXPECT_FALSE(is_string<uint16_t>::value);
+    EXPECT_FALSE(is_string<uint32_t>::value);
+    EXPECT_FALSE(is_string<uint64_t>::value);
+    EXPECT_FALSE(is_string<int8_t>::value);
+    EXPECT_FALSE(is_string<int16_t>::value);
+    EXPECT_FALSE(is_string<int32_t>::value);
+    EXPECT_FALSE(is_string<int64_t>::value);
+    EXPECT_FALSE(is_string<char>::value);
+    EXPECT_FALSE(is_string<short>::value);
+    EXPECT_FALSE(is_string<int>::value);
+    EXPECT_FALSE(is_string<long>::value);
+    EXPECT_FALSE(is_string<unsigned char>::value);
+    EXPECT_FALSE(is_string<unsigned short>::value);
+    EXPECT_FALSE(is_string<unsigned int>::value);
+    EXPECT_FALSE(is_string<unsigned long>::value);
+    EXPECT_FALSE(is_string<float>::value);
+    EXPECT_FALSE(is_string<double>::value);
+    EXPECT_FALSE(is_string<char*>::value);
+    EXPECT_TRUE(is_string<std::string>::value);
+    
+    EXPECT_FALSE(is_string<const bool>::value);
+    EXPECT_FALSE(is_string<const uint8_t>::value);
+    EXPECT_FALSE(is_string<const uint16_t>::value);
+    EXPECT_FALSE(is_string<const uint32_t>::value);
+    EXPECT_FALSE(is_string<const uint64_t>::value);
+    EXPECT_FALSE(is_string<const int8_t>::value);
+    EXPECT_FALSE(is_string<const int16_t>::value);
+    EXPECT_FALSE(is_string<const int32_t>::value);
+    EXPECT_FALSE(is_string<const int64_t>::value);
+    EXPECT_FALSE(is_string<const char>::value);
+    EXPECT_FALSE(is_string<const short>::value);
+    EXPECT_FALSE(is_string<const int>::value);
+    EXPECT_FALSE(is_string<const long>::value);
+    EXPECT_FALSE(is_string<const unsigned char>::value);
+    EXPECT_FALSE(is_string<const unsigned short>::value);
+    EXPECT_FALSE(is_string<const unsigned int>::value);
+    EXPECT_FALSE(is_string<const unsigned long>::value);
+    EXPECT_FALSE(is_string<const float>::value);
+    EXPECT_FALSE(is_string<const double>::value);
+    EXPECT_FALSE(is_string<const char*>::value);
+    EXPECT_TRUE(is_string<const std::string>::value);
+}
+
 TEST(ExtendedTypeSupportTest, HasPushBack)
 {
     EXPECT_FALSE(has_push_back<int>::value);

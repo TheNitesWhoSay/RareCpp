@@ -352,6 +352,8 @@ namespace ExtendedTypeSupport
 
     template <typename T> struct is_bool { static constexpr bool value = std::is_same<bool, std::remove_const<T>::type>::value; };
     
+    template <typename T> struct is_string { static constexpr bool value = std::is_same<std::string, std::remove_const<T>::type>::value; };
+
     template <typename T> struct has_push_back { static constexpr bool value = false; };
     template <typename T> struct has_push_back<const T> { static constexpr bool value = has_push_back<T>::value; };
     template <typename T, typename A> struct has_push_back<std::vector<T, A>> { static constexpr bool value = true; };

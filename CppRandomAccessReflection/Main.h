@@ -64,7 +64,7 @@ public:
 
     using Parents = Inherit<SuperA, OtherSuperA>;
     REFLECT((Parents) A, () testEnum, (Reflected) composed, () first, () second,
-        () ptr, (Json::Ignore) boolean, () putCache, (Json::String) str, (Json::String) map, () vecVec, () ray, () runtime, () autoAllocate, () unknownFields)
+        () ptr, (Json::Ignore) boolean, () putCache, () str, () map, () vecVec, () ray, () runtime, () autoAllocate, () unknownFields)
 };
 
 struct EnhancedContext : public Json::Context

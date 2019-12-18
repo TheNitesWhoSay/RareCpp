@@ -21,6 +21,9 @@ namespace Json
         /// Field annotation telling JSON to skip a field during input or output
         struct Ignore {};
 
+        /// Field annotation telling JSON to treat a std::string field as though it wasn't a string
+        struct Unstring {};
+
         struct Unspecialized {};
 
         template <typename T>
@@ -62,7 +65,7 @@ namespace Json
             return count;
         }
 
-        template <Statics statics, typename Object>
+        template <Statics statics, typename Object, bool IncludeSupers = true>
         static constexpr bool HasFields()
         {
             constexpr bool MatchesStaticsExcluded = statics == Statics::Excluded &&
@@ -74,7 +77,7 @@ namespace Json
 
             if constexpr ( MatchesStaticsExcluded || MatchesStaticsIncluded || MatchesStaticsOnly )
                 return true;
-            else if constexpr ( Object::Supers::TotalSupers == 0 )
+            else if constexpr ( Object::Supers::TotalSupers == 0 || !IncludeSupers )
                 return false;
             else
             {
@@ -88,8 +91,8 @@ namespace Json
             }
         }
 
-        template <size_t Index, Statics statics, typename Object>
-        static constexpr size_t FirstIndexRecursion()
+        template <Statics statics, typename Object, size_t Index = 0>
+        static constexpr size_t FirstIndex()
         {
             size_t firstIndex = 0;
             Object::Class::FieldAt(Index, [&](auto & field) {
@@ -97,27 +100,23 @@ namespace Json
                 if constexpr ( !Field::template HasAnnotation<Ignore> && matches_statics<Field::IsStatic, statics>::value )
                     firstIndex = Field::Index;
                 else if constexpr ( Index < Object::Class::TotalFields )
-                    firstIndex = FirstIndexRecursion<Index+1, statics, Object>();
+                    firstIndex = FirstIndex<statics, Object, Index+1>();
             });
             return firstIndex;
         }
 
-        template <Statics statics, typename Object>
-        static constexpr size_t FirstIndex()
+        template <Statics statics, typename Object, size_t Index = 0>
+        static constexpr size_t FirstSuperIndex()
         {
-            return FirstIndexRecursion<0, statics, Object>();
-        }
-
-        template <Statics statics, typename Object>
-        static constexpr size_t LastIndex()
-        {
-            size_t lastIndex = 0;
-            Object::Class::ForEachField([&](auto & field) {
-                using Field = typename std::remove_reference<decltype(field)>::type;
-                if constexpr ( !Field::template HasAnnotation<Ignore> && matches_statics<Field::IsStatic, statics>::value )
-                    return lastIndex = Field::Index;
+            size_t firstSuperIndex = 0;
+            Object::Supers::At(Index, [&](auto super) {
+                using Super = typename std::remove_reference<decltype(super)>::type::type;
+                if constexpr ( HasFields<statics, Super>() )
+                    firstSuperIndex = Index;
+                else if constexpr ( Index < Object::Supers::TotalSupers )
+                    firstSuperIndex = FirstSuperIndex<statics, Object, Index+1>();
             });
-            return lastIndex;
+            return firstSuperIndex;
         }
 
         constexpr size_t NoFieldIndex = std::numeric_limits<size_t>::max();
@@ -1399,7 +1398,11 @@ namespace Json
                             Put::FieldPrefix<PrettyPrint, indent>(os, isFirst, indentLevel+totalParentIterables);
                             Put::String(os, field.first);
                             os << FieldNameValueSeparator<PrettyPrint>;
-                            Put::GenericValue<Annotations, PrettyPrint, indent, false>(os, context, 0, indentLevel+totalParentIterables, (Generic::Value &)*field.second);
+                            if ( field.second == nullptr )
+                                os << "null";
+                            else
+                                Put::GenericValue<Annotations, PrettyPrint, indent, false>(os, context, 0, indentLevel+totalParentIterables, (Generic::Value &)*field.second);
+
                             isFirst = false;
                         }
                     }
@@ -1548,6 +1551,8 @@ namespace Json
                     os << (typename promote_char<typename std::underlying_type<T>::type>::type)value;
                 else if constexpr ( is_bool<T>::value )
                     os << (value ? "true" : "false");
+                else if constexpr ( is_string<T>::value && !Field::template HasAnnotation<Json::Unstring> )
+                    Put::String(os, value);
                 else
                     os << (typename promote_char<T>::type)value;
             }
@@ -1585,7 +1590,7 @@ namespace Json
                     const auto & sequenceContainer = get_underlying_container(iterable);
                     for ( auto it = sequenceContainer.begin(); it != sequenceContainer.end(); ++it )
                     {
-                        Put::Separator<ContainsPairs, ContainsIterables, IndentLevel+TotalParentIterables+2, indent>(os, 0 == i++);
+                        Put::Separator<PrettyPrint, ContainsPairs, ContainsIterables, IndentLevel+TotalParentIterables+2, indent>(os, 0 == i++);
                         Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, false>(os, context, obj, *it);
                     }
                 }
@@ -1645,7 +1650,8 @@ namespace Json
             {
                 if constexpr ( HasFields<statics, T>() )
                 {
-                    os << StaticAffix::FieldPrefix<SuperIndex == 0 && !HasFields<statics, T>(), PrettyPrint, IndentLevel+1, indent>;
+                    constexpr bool IsFirst = !HasFields<statics, Object, false>() && SuperIndex == FirstSuperIndex<statics, Object>();
+                    os << StaticAffix::FieldPrefix<IsFirst, PrettyPrint, IndentLevel+1, indent>;
                     Put::String(os, superFieldName);
                     os << FieldNameValueSeparator<PrettyPrint>;
                     Put::Object<Annotations, statics, PrettyPrint, IndentLevel+1, indent, T>(os, context, obj);
@@ -2961,6 +2967,8 @@ namespace Json
                     Read::Bool<InArray>(is, c, value);
                 else if constexpr ( std::is_const<T>::value )
                     Consume::ConstPrimitive<T>(is);
+                else if constexpr ( is_string<T>::value && !Field::template HasAnnotation<Json::Unstring> )
+                    Read::String(is, c, value);
                 else
                     is >> value;
             }

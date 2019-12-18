@@ -115,10 +115,10 @@ public:
     
     REFLECT(() Car,
         (Reflected) wheels,
-        (Json::String) occupants,
-        (Json::String) testNest,
-        (Json::String) testMapNest,
-        (Json::String) occupantId,
+        () occupants,
+        () testNest,
+        () testMapNest,
+        () occupantId,
         (Reflected) occupantCupHolderUsage,
         (Reflected) cupHolders,
         (Reflected) fuelTank,
@@ -304,7 +304,16 @@ struct StaticCluster
     constexpr static decltype(boolean)* globalBool = &boolean;
     constexpr static decltype(ptr)* globalPtr = &ptr;
 
-    REFLECT(() StaticCluster, () staticVal, () globalValue, (Json::String) globalStr, () globalBool, () globalPtr)
+    REFLECT(() StaticCluster, () staticVal, () globalValue, () globalStr, () globalBool, () globalPtr)
+};
+
+struct FieldClusterPointer
+{
+    int regular;
+    std::unique_ptr<Json::FieldCluster> fieldClusterPointer;
+    int otherRegular;
+
+    REFLECT(() FieldClusterPointer, () regular, () fieldClusterPointer, () otherRegular)
 };
 
 int main()
