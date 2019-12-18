@@ -3085,6 +3085,10 @@ namespace Json
         }
     }
     
+    inline namespace Enabler
+    {
+        /// "ENABLE_JSON;" must be placed in a .cpp file in the target project
+        /// Having this macro avoids the need for a separate Json.cpp file
 #define ENABLE_JSON \
     std::hash<std::string> Json::strHash; \
     std::map<std::type_index, std::multimap<size_t, Json::Generic::JsonField>> Json::classToNameHashToJsonField; \
@@ -3110,6 +3114,7 @@ namespace Json
     } \
     std::string Json::Shared::fieldClusterToJsonFieldName() { \
         return std::string("____fieldCluster"); \
+    }
     }
 };
 
