@@ -243,11 +243,30 @@ TEST(JsonInputCheckedTest, TryGetPrimarySecondary)
 TEST(JsonInputCheckedTest, GetTrueFalse)
 {
     std::stringstream ssTrueMatch("t");
-    EXPECT_TRUE(Json::Checked::get(ssTrueMatch, 't', 'f', "t"));
+    EXPECT_TRUE(Json::Checked::getTrueFalse(ssTrueMatch, 't', 'f', "t"));
     std::stringstream ssFalseMatch("f");
-    EXPECT_FALSE(Json::Checked::get(ssFalseMatch, 't', 'f', "t"));
+    EXPECT_FALSE(Json::Checked::getTrueFalse(ssFalseMatch, 't', 'f', "t"));
     std::stringstream ssNoMatch("n");
-    EXPECT_THROW(Json::Checked::get(ssNoMatch, 't', 'f', "t"), Json::Exception);
+    EXPECT_THROW(Json::Checked::getTrueFalse(ssNoMatch, 't', 'f', "t"), Json::Exception);
+}
+
+TEST(JsonInputCheckedTest, GetTrueFalseSecondaryFalseChar)
+{
+    std::stringstream primary("b");
+    EXPECT_FALSE(Json::Checked::getTrueFalse<true>(primary, 'a', 'b', 'c', "b", "c"));
+
+    std::stringstream secondary("c");
+    EXPECT_FALSE(Json::Checked::getTrueFalse<false>(secondary, 'a', 'b', 'c', "b", "c"));
+}
+
+TEST(JsonInputCheckedTest, GetExpectedChar)
+{
+    char c = '\0';
+    std::stringstream expected("a");
+    EXPECT_NO_THROW(Json::Checked::get(expected, c, 'a', "a"));
+
+    std::stringstream unexpected("b");
+    EXPECT_THROW(Json::Checked::get(expected, c, 'c', "c"), Json::Exception);
 }
 
 TEST(JsonInputCheckedTest, GetChar)
@@ -269,15 +288,6 @@ TEST(JsonInputCheckedTest, GetChar)
     EXPECT_EQ('b', c);
 }
 
-TEST(JsonInputCheckedTest, GetTrueFalseSecondaryFalseChar)
-{
-    std::stringstream primary("b");
-    EXPECT_FALSE(Json::Checked::get<true>(primary, 'a', 'b', 'c', "b", "c"));
-
-    std::stringstream secondary("c");
-    EXPECT_FALSE(Json::Checked::get<false>(secondary, 'a', 'b', 'c', "b", "c"));
-}
-
 TEST(JsonInputCheckedTest, GetSecondaryDescription)
 {
     char c = '\0';
@@ -286,6 +296,22 @@ TEST(JsonInputCheckedTest, GetSecondaryDescription)
 
     std::stringstream secondary;
     EXPECT_THROW(Json::Checked::get<false>(primary, c, "expected", "secondary expected"), Json::UnexpectedInputEnd);
+}
+
+TEST(JsonInputCheckedTest, GetSecondary)
+{
+    char c = '\0';
+    std::stringstream primaryExpected("a");
+    EXPECT_NO_THROW(Json::Checked::get<true>(primaryExpected, c, 'a', 'b', "a", "b"));
+
+    std::stringstream secondaryExpected("d");
+    EXPECT_NO_THROW(Json::Checked::get<false>(secondaryExpected, c, 'c', 'd', "c", "d"));
+
+    std::stringstream primaryUnexpected("b");
+    EXPECT_THROW(Json::Checked::get<true>(primaryExpected, c, 'a', 'b', "a", "b"), Json::Exception);
+    
+    std::stringstream secondaryUnexpected("c");
+    EXPECT_THROW(Json::Checked::get<false>(secondaryExpected, c, 'c', 'd', "c", "d"), Json::Exception);
 }
 
 TEST(JsonInputCheckedTest, Unget)
@@ -341,7 +367,7 @@ TEST(JsonInputConsumeTest, Null)
     EXPECT_NO_THROW(Json::Consume::Null<true>(validNull, c));
 
     std::stringstream incompleteNull("nu");
-    EXPECT_THROW(Json::Consume::Null<true>(validNull, c), Json::UnexpectedInputEnd);
+    EXPECT_THROW(Json::Consume::Null<true>(incompleteNull, c), Json::UnexpectedInputEnd);
 }
 
 TEST(JsonInputConsumeTest, NullToStream)
@@ -460,4 +486,157 @@ TEST(JsonInputConsume, NumberToStream)
 
 TEST(JsonInputConsume, String)
 {
+    char c = '\0';
+    std::stringstream input("\"asdf\\\"\\r\\n\\fqwer\"");
+    EXPECT_NO_THROW(Json::Consume::String(input, c));
+}
+
+TEST(JsonInputConsume, StringToStream)
+{
+    char c = '\0';
+    std::stringstream input("\"asdf\\\"\\r\\n\\fqwer\"");
+    std::stringstream receiver;
+    EXPECT_NO_THROW(Json::Consume::String(input, c, receiver));
+    EXPECT_STREQ("\"asdf\\\"\\r\\n\\fqwer\"", receiver.str().c_str());
+}
+
+TEST(JsonInputConsume, Value)
+{
+    char c = '\0';
+    std::stringstream stringStream("\"asdf\"");
+    std::stringstream numberStream("1234,");
+    std::stringstream objectStream("{\"one\":1,\"two\":2}");
+    std::stringstream arrayStream("[1,2,3]");
+    std::stringstream trueStream("true,");
+    std::stringstream falseStream("false,");
+    std::stringstream nullStream("null,");
+    std::stringstream invalidStream("qqqq,");
+    
+    EXPECT_NO_THROW(Json::Consume::Value<true>(stringStream, c));
+    EXPECT_NO_THROW(Json::Consume::Value<true>(numberStream, c));
+    EXPECT_NO_THROW(Json::Consume::Value<true>(objectStream, c));
+    EXPECT_NO_THROW(Json::Consume::Value<true>(arrayStream, c));
+    EXPECT_NO_THROW(Json::Consume::Value<true>(trueStream, c));
+    EXPECT_NO_THROW(Json::Consume::Value<true>(falseStream, c));
+    EXPECT_NO_THROW(Json::Consume::Value<true>(nullStream, c));
+    EXPECT_THROW(Json::Consume::Value<true>(invalidStream, c), Json::InvalidUnknownFieldValue);
+}
+
+TEST(JsonInputConsume, ValueToStream)
+{
+    char c = '\0';
+    std::stringstream stringStream("\"asdf\"");
+    std::stringstream numberStream("1234,");
+    std::stringstream objectStream("{\"one\":1,\"two\":2}");
+    std::stringstream arrayStream("[1,2,3]");
+    std::stringstream trueStream("true,");
+    std::stringstream falseStream("false,");
+    std::stringstream nullStream("null,");
+    std::stringstream invalidStream("qqqq,");
+    
+    std::stringstream stringReceiver;
+    std::stringstream numberReceiver;
+    std::stringstream objectReceiver;
+    std::stringstream arrayReceiver;
+    std::stringstream trueReceiver;
+    std::stringstream falseReceiver;
+    std::stringstream nullReceiver;
+    std::stringstream invalidReceiver;
+    
+    EXPECT_NO_THROW(Json::Consume::Value<true>(stringStream, c, stringReceiver));
+    EXPECT_NO_THROW(Json::Consume::Value<true>(numberStream, c, numberReceiver));
+    EXPECT_NO_THROW(Json::Consume::Value<true>(objectStream, c, objectReceiver));
+    EXPECT_NO_THROW(Json::Consume::Value<true>(arrayStream, c, arrayReceiver));
+    EXPECT_NO_THROW(Json::Consume::Value<true>(trueStream, c, trueReceiver));
+    EXPECT_NO_THROW(Json::Consume::Value<true>(falseStream, c, falseReceiver));
+    EXPECT_NO_THROW(Json::Consume::Value<true>(nullStream, c, nullReceiver));
+    EXPECT_THROW(Json::Consume::Value<true>(invalidStream, c, invalidReceiver), Json::InvalidUnknownFieldValue);
+    
+    EXPECT_STREQ("\"asdf\"", stringReceiver.str().c_str());
+    EXPECT_STREQ("1234", numberReceiver.str().c_str());
+    EXPECT_STREQ("{\"one\":1,\"two\":2}", objectReceiver.str().c_str());
+    EXPECT_STREQ("[1,2,3]", arrayReceiver.str().c_str());
+    EXPECT_STREQ("true", trueReceiver.str().c_str());
+    EXPECT_STREQ("false", falseReceiver.str().c_str());
+    EXPECT_STREQ("null", nullReceiver.str().c_str());
+}
+
+TEST(JsonInputConsume, Iterable)
+{
+    char c = '\0';
+    std::stringstream stringArray("[\"asdf\",\"qwer\"]");
+    std::stringstream numberArray("[1,-2,-2.3,5.5,62312]");
+    std::stringstream objectArray("[{\"one\":1,\"two\":2},{\"three\":3},{}]");
+    std::stringstream arrayArray("[[1,2,3],[],[4,5,6]]");
+    std::stringstream boolArray("[true,false,true,true,false]");
+    std::stringstream nullArray("[null,null,null]");
+    std::stringstream mixedArray("[null,1,\"two\",{},[]]");
+    
+    EXPECT_NO_THROW(Json::Consume::Iterable<true>(stringArray, c));
+    EXPECT_NO_THROW(Json::Consume::Iterable<true>(numberArray, c));
+    EXPECT_NO_THROW(Json::Consume::Iterable<true>(objectArray, c));
+    EXPECT_NO_THROW(Json::Consume::Iterable<true>(arrayArray, c));
+    EXPECT_NO_THROW(Json::Consume::Iterable<true>(boolArray, c));
+    EXPECT_NO_THROW(Json::Consume::Iterable<true>(nullArray, c));
+    EXPECT_NO_THROW(Json::Consume::Iterable<true>(mixedArray, c));
+}
+
+TEST(JsonInputConsume, IterableToStream)
+{
+    char c = '\0';
+    std::stringstream emptyArray("[]");
+    std::stringstream stringArray("[\"asdf\",\"qwer\"]");
+    std::stringstream numberArray("[1,-2,-2.3,5.5,62312]");
+    std::stringstream objectArray("[{\"one\":1,\"two\":2},{\"three\":3},{}]");
+    std::stringstream arrayArray("[[1,2,3],[],[4,5,6]]");
+    std::stringstream boolArray("[true,false,true,true,false]");
+    std::stringstream nullArray("[null,null,null]");
+    std::stringstream mixedArray("[null,1,\"two\",{},[]]");
+    std::stringstream emptyObj("{}");
+    std::stringstream obj("{\"one\":\"str\",\"two\":2,\"three\":{},\"four\":[],\"five\":true,\"six\":null}");
+    
+    std::stringstream emptyArrayReceiver;
+    std::stringstream stringArrayReceiver;
+    std::stringstream numberArrayReceiver;
+    std::stringstream objectArrayReceiver;
+    std::stringstream arrayArrayReceiver;
+    std::stringstream boolArrayReceiver;
+    std::stringstream nullArrayReceiver;
+    std::stringstream mixedArrayReceiver;
+    std::stringstream emptyObjReceiver;
+    std::stringstream objReceiver;
+    
+    EXPECT_NO_THROW(Json::Consume::Iterable<true>(emptyArray, c, emptyArrayReceiver));
+    EXPECT_NO_THROW(Json::Consume::Iterable<true>(stringArray, c, stringArrayReceiver));
+    EXPECT_NO_THROW(Json::Consume::Iterable<true>(numberArray, c, numberArrayReceiver));
+    EXPECT_NO_THROW(Json::Consume::Iterable<true>(objectArray, c, objectArrayReceiver));
+    EXPECT_NO_THROW(Json::Consume::Iterable<true>(arrayArray, c, arrayArrayReceiver));
+    EXPECT_NO_THROW(Json::Consume::Iterable<true>(boolArray, c, boolArrayReceiver));
+    EXPECT_NO_THROW(Json::Consume::Iterable<true>(nullArray, c, nullArrayReceiver));
+    EXPECT_NO_THROW(Json::Consume::Iterable<true>(mixedArray, c, mixedArrayReceiver));
+    EXPECT_NO_THROW(Json::Consume::Iterable<false>(emptyObj, c, emptyObjReceiver));
+    EXPECT_NO_THROW(Json::Consume::Iterable<false>(obj, c, objReceiver));
+    
+    EXPECT_STREQ("[]", emptyArrayReceiver.str().c_str());
+    EXPECT_STREQ("[\"asdf\",\"qwer\"]", stringArrayReceiver.str().c_str());
+    EXPECT_STREQ("[1,-2,-2.3,5.5,62312]", numberArrayReceiver.str().c_str());
+    EXPECT_STREQ("[{\"one\":1,\"two\":2},{\"three\":3},{}]", objectArrayReceiver.str().c_str());
+    EXPECT_STREQ("[[1,2,3],[],[4,5,6]]", arrayArrayReceiver.str().c_str());
+    EXPECT_STREQ("[true,false,true,true,false]", boolArrayReceiver.str().c_str());
+    EXPECT_STREQ("[null,null,null]", nullArrayReceiver.str().c_str());
+    EXPECT_STREQ("[null,1,\"two\",{},[]]", mixedArrayReceiver.str().c_str());
+    EXPECT_STREQ("{}", emptyObjReceiver.str().c_str());
+    EXPECT_STREQ("{\"one\":\"str\",\"two\":2,\"three\":{},\"four\":[],\"five\":true,\"six\":null}", objReceiver.str().c_str());
+}
+
+TEST(JsonInputRead, ObjectPrefix)
+{
+    char c = '\0';
+    std::stringstream objPrefix("{");
+    std::stringstream arrayPrefix("[");
+    std::stringstream letter("a");
+    
+    EXPECT_NO_THROW(Json::Read::ObjectPrefix(objPrefix, c));
+    EXPECT_THROW(Json::Read::ObjectPrefix(arrayPrefix, c), Json::Exception);
+    EXPECT_THROW(Json::Read::ObjectPrefix(letter, c), Json::Exception);
 }

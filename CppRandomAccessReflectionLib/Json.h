@@ -1966,7 +1966,7 @@ namespace Json
                     return tryGet(is, secondaryCharacter, secondaryDescription);
             }
 
-            static bool get(std::istream & is, char trueChar, char falseChar, const char* expectedDescription)
+            static bool getTrueFalse(std::istream & is, char trueChar, char falseChar, const char* expectedDescription)
             {
                 char c = '\0';
                 is >> c;
@@ -1984,11 +1984,40 @@ namespace Json
                 else
                     throw Exception((std::string("Expected: ") + expectedDescription).c_str());
             }
+            
+            template <bool usePrimary>
+            static constexpr inline bool getTrueFalse(std::istream & is, char trueChar, char falseChar, char secondaryFalseChar,
+                const char* expectedDescription, const char* secondaryDescription)
+            {
+                if constexpr ( usePrimary )
+                    return getTrueFalse(is, trueChar, falseChar, expectedDescription);
+                else
+                    return getTrueFalse(is, trueChar, secondaryFalseChar, secondaryDescription);
+            }
+
+            template <bool IgnoreWhitespace = true>
+            static void get(std::istream & is, char & c, char expectation, const char* expectedDescription)
+            {
+                if constexpr ( IgnoreWhitespace )
+                    is >> c;
+                else
+                    is.get(c);
+
+                if ( !is.good() )
+                {
+                    if ( is.eof() )
+                        throw UnexpectedInputEnd(expectedDescription);
+                    else
+                        throw StreamReadFail();
+                }
+                else if ( c != expectation )
+                    throw Exception((std::string("Expected: ") + expectedDescription).c_str());
+            }
 
             template <bool IgnoreWhitespace = true>
             static inline void get(std::istream & is, char & c, const char* expectedDescription)
             {
-                if ( IgnoreWhitespace )
+                if constexpr ( IgnoreWhitespace )
                     is >> c;
                 else
                     is.get(c);
@@ -2001,16 +2030,6 @@ namespace Json
                         throw StreamReadFail();
                 }
             }
-            
-            template <bool usePrimary>
-            static constexpr inline char get(std::istream & is, char trueChar, char falseChar, char secondaryFalseChar,
-                const char* expectedDescription, const char* secondaryDescription)
-            {
-                if constexpr ( usePrimary )
-                    return get(is, trueChar, falseChar, expectedDescription);
-                else
-                    return get(is, trueChar, secondaryFalseChar, secondaryDescription);
-            }
 
             template <bool usePrimary>
             static constexpr inline void get(std::istream & is, char & c, const char* expectedDescription, const char* secondaryDescription)
@@ -2019,6 +2038,29 @@ namespace Json
                     get(is, c, expectedDescription);
                 else
                     get(is, c, secondaryDescription);
+            }
+
+            template <bool usePrimary>
+            static constexpr inline void get(std::istream & is, char & c, char expectation, char secondaryExpectation, const char* expectedDescription, const char* secondaryDescription)
+            {
+                is >> c;
+                if ( !is.good() )
+                {
+                    if ( is.eof() )
+                        throw UnexpectedInputEnd(expectedDescription);
+                    else
+                        throw StreamReadFail();
+                }
+                else if constexpr ( usePrimary )
+                {
+                    if ( c != expectation )
+                        throw Exception((std::string("Expected: ") + expectedDescription).c_str());
+                }
+                else
+                {
+                    if ( c != secondaryExpectation )
+                        throw Exception((std::string("Expected: ") + secondaryDescription).c_str());
+                }
             }
 
             static inline bool unget(std::istream & is, char ungetting)
@@ -2072,7 +2114,7 @@ namespace Json
                 Checked::consumeWhitespace(is, "completion of field value");
                 int expectation[] = { 'n', 'u', 'l', 'l' };
                 for ( size_t i=0; i<4; i++ )
-                    Checked::get(is, c, expectation[i], "completion of field value");
+                    Checked::get<false>(is, c, expectation[i], "completion of field value");
 
                 Checked::consumeWhitespace(is, "\",\" or \"}\"");
                 Checked::peek(is, c, "\",\" or \"}\"");
@@ -2098,7 +2140,7 @@ namespace Json
                 {
                     int expectation[] = { 'n', 'u', 'l', 'l' };
                     for ( size_t i=0; i<4; i++ )
-                        Checked::get(is, c, expectation[i], "completion of \"null\"");
+                        Checked::get<false>(is, c, expectation[i], "completion of \"null\"");
 
                     Checked::consumeWhitespace(is, "\",\" or \"}\"");
                     Checked::peek(is, c, "\",\" or \"}\"");
@@ -2118,7 +2160,7 @@ namespace Json
                 Checked::consumeWhitespace(is, "completion of field value");
                 int expectation[] = { 't', 'r', 'u', 'e' };
                 for ( size_t i=0; i<4; i++ )
-                    Checked::get(is, c, expectation[i], "completion of field value");
+                    Checked::get<false>(is, c, expectation[i], "completion of field value");
 
                 Checked::consumeWhitespace(is, "\",\" or \"}\"");
                 Checked::peek(is, c, "\",\" or \"}\"");
@@ -2141,7 +2183,7 @@ namespace Json
                 Checked::consumeWhitespace(is, "completion of field value");
                 int expectation[] = { 'f', 'a', 'l', 's', 'e' };
                 for ( size_t i=0; i<5; i++ )
-                    Checked::get(is, c, expectation[i], "completion of field value");
+                    Checked::get<false>(is, c, expectation[i], "completion of field value");
 
                 Checked::consumeWhitespace(is, "\",\" or \"}\"");
                 Checked::peek(is, c, "\",\" or \"}\"");
@@ -2269,14 +2311,15 @@ namespace Json
                 Checked::get(is, c, '\"', "string value open quote");
                 do
                 {
-                    Checked::get(is, c, "string value close quote");
+                    Checked::get<false>(is, c, "string value close quote");
                     switch ( c )
                     {
                         case '\\': // Escape sequence
-                            Checked::get(is, c, "completion of string escape sequence");
+                            Checked::get<false>(is, c, "completion of string escape sequence");
                             switch ( c )
                             {
-                                case '\"': case '\\': case '/': case 'b': case 'f': case 'n': case 'r': case 't': break;
+                                case '\"': c = '\0'; break;
+                                case '\\': case '/': case 'b': case 'f': case 'n': case 'r': case 't': break;
                                 case 'u':
                                 {
                                     char hexEscapeSequence[6] = { 'u', '\0', '\0', '\0', '\0', '\0' };
@@ -2311,9 +2354,10 @@ namespace Json
                     {
                         case '\\': // Escape sequence
                             Checked::get<false>(is, c, "completion of string escape sequence");
+                            ss.put(c);
                             switch ( c )
                             {
-                                case '\"': break;
+                                case '\"': c = '\0'; break;
                                 case '\\': break;
                                 case '/': break;
                                 case 'b': break;
@@ -2327,6 +2371,7 @@ namespace Json
                                     for ( size_t i=1; i<5; i++ )
                                     {
                                         Checked::escapeSequenceGet(is, c, hexEscapeSequence);
+                                        ss.put(c);
                                         hexEscapeSequence[i] = c;
                                         if ( !((c >= '0' && c <= '9') || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f')) )
                                             throw InvalidEscapeSequence((std::string(hexEscapeSequence)).c_str(), unicodeEscapeSequence);
@@ -2343,13 +2388,6 @@ namespace Json
                 } while ( c != '\"' );
             }
             
-            template <typename Value>
-            static constexpr void ConstPrimitive(std::istream & is)
-            {
-                typename std::remove_const<Value>::type placeholder;
-                is >> placeholder;
-            }
-
             template <bool InArray>
             static constexpr void Value(std::istream & is, char & c)
             {
@@ -2403,7 +2441,7 @@ namespace Json
                         }
                         Consume::Value<IsArray>(is, c);
                     }
-                    while ( Checked::get<IsArray>(is, ',', ']', '}', "\",\" or array closing \"]\"", "\",\" or object closing \"}\"") );
+                    while ( Checked::getTrueFalse<IsArray>(is, ',', ']', '}', "\",\" or array closing \"]\"", "\",\" or object closing \"}\"") );
                 }
             }
 
@@ -2430,7 +2468,7 @@ namespace Json
                         }
                         Consume::Value<IsArray>(is, c, ss);
                     }
-                    while ( Checked::get<IsArray>(is, ',', ']', '}', "\",\" or array closing \"]\"", "\",\" or object closing \"}\"") );
+                    while ( Checked::getTrueFalse<IsArray>(is, ',', ']', '}', "\",\" or array closing \"]\"", "\",\" or object closing \"}\"") );
                 }
                 ss << (IsArray ? ']' : '}');
             }
@@ -2452,7 +2490,7 @@ namespace Json
 
                 inline bool FieldSeparator(std::istream & is)
                 {
-                    return Checked::get(is, ',', '}', "\",\" or object closing \"}\"");
+                    return Checked::getTrueFalse(is, ',', '}', "\",\" or object closing \"}\"");
                 }
 
                 inline void FieldNameValueSeparator(std::istream & is, char & c)
@@ -2485,7 +2523,7 @@ namespace Json
                 template <bool IsObject>
                 inline bool IterableElementSeparator(std::istream & is)
                 {
-                    return Checked::get<IsObject>(is, ',', '}', ']', "\",\" or object closing \"}\"", "\",\" or array closing \"]\"");
+                    return Checked::getTrueFalse<IsObject>(is, ',', '}', ']', "\",\" or object closing \"}\"", "\",\" or array closing \"]\"");
                 }
             }
 
@@ -2594,7 +2632,7 @@ namespace Json
                             Checked::get<false>(is, c, "completion of string escape sequence");
                             switch ( c )
                             {
-                                case '\"': ss.put('\"'); break;
+                                case '\"': ss.put('\"'); c = '\0'; break;
                                 case '\\': ss.put('\\'); break;
                                 case '/': ss.put('/'); break;
                                 case 'b': ss.put('\b'); break;
@@ -2935,7 +2973,7 @@ namespace Json
                 else if constexpr ( is_bool<T>::value )
                     Read::Bool<InArray>(is, c, value);
                 else if constexpr ( std::is_const<T>::value )
-                    Consume::ConstPrimitive<T>(is);
+                    Consume::Value<InArray>(is, c);
                 else if constexpr ( is_string<T>::value && !Field::template HasAnnotation<Json::Unstring> )
                     Read::String(is, c, value);
                 else
