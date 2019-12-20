@@ -46,6 +46,7 @@ public:
     Composed composed;
     bool boolean;
     bool putCache;
+    uint16_t customInt;
     std::string str;
     std::map<std::string, std::string> map;
     std::vector<std::vector<int>> vecVec;
@@ -54,17 +55,21 @@ public:
     std::vector<std::shared_ptr<int>> autoAllocate;
     std::shared_ptr<Json::Generic::FieldCluster> unknownFields;
 
-    class NestedClass
-    {
-    public:
-        int nestedVal;
-
-        REFLECT(() NestedClass, () nestedVal)
-    };
-
     using Parents = Inherit<SuperA, OtherSuperA>;
     REFLECT((Parents) A, () testEnum, (Reflected) composed, () first, () second,
-        () ptr, (Json::Ignore) boolean, () putCache, () str, () map, () vecVec, () ray, () runtime, () autoAllocate, () unknownFields)
+        () ptr, (Json::Ignore) boolean, () putCache, () customInt, () str, () map, () vecVec, () ray, () runtime, () autoAllocate, () unknownFields)
+};
+
+template <>
+struct Json::Output::Customize<A, uint16_t, A::Class::IndexOf::customInt>
+{
+    static bool As(std::ostream & os, Context & context, const A & object, const uint16_t & value)
+    {
+        if ( value > 9000 )
+            Json::Put::String(os, "Over 9000!");
+
+        return value > 9000;
+    }
 };
 
 struct EnhancedContext : public Json::Context
