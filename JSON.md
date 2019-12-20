@@ -17,7 +17,7 @@ This JSON library will automatically...
 - Place any nested reflected objects as nested JSON objects
 
 There are a few annotations you can use to alter the JSON representation...
-- Json::String will result in the value given by the ostream operator being quoted and escaped as a JSON string
+- Json::String will result in the value given by the ostream operator being quoted and escaped as a JSON string (if your type is std::string this is the default behavior)
 - Json::Enum and Json::EnumInt can be used to alter how enums are represented
 
 ## Enums
