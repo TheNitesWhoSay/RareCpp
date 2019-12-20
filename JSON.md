@@ -10,11 +10,11 @@ std::cout << Json::pretty(myObj) << std::endl;
 ```
 
 This JSON library will automatically...
-- Place each field and accompanying value
+- Read or put each field and accompanying value
 - Infer the appropriate JSON representation for various types
-- Place any array, STL iterable, or nested STL iterable as a JSON array
-- Place any map or STL iterable containg pairs, or nested maps/STL iterables as a JSON object with keys being the field names
-- Place any nested reflected objects as nested JSON objects
+- Read or put any array, STL iterable, or nested STL iterable as a JSON array
+- Read or put any map or STL iterable containg pairs, or nested maps/STL iterables as a JSON object with keys being the field names
+- Read or put any nested reflected objects as nested JSON objects
 
 There are a few annotations you can use to alter the JSON representation...
 - Json::String will result in the value given by the ostream operator being quoted and escaped as a JSON string (if your type is std::string this is the default behavior)
