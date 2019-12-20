@@ -23,6 +23,100 @@ There are a few annotations you can use to alter the JSON representation...
 - Json::Unstring will demote an std::string type (which by default behaves like Json::String) so that it's put/read without quotes
 - Json::EnumInt can be used to force use of the integer value for an enum field that may otherwise have iostream overloads
 
+
+## Usage
+
+To use simply copy the Reflect.h and Json.h files into your project, then put the line ```ENABLE_JSON;``` near the top of one of your cpp files where Json.h is included; then REFLECT objects as needed and enjoy the awsome power of JSON!
+
+```
+struct MyObject
+{
+    int myInt;
+    std::string myString;
+    std::vector<int> myIntCollection;
+
+    REFLECT(() MyObject, () myInt, () myString, () myIntCollection)
+};
+
+int main()
+{
+    MyObject myObject = {};
+    std::cout << "Enter MyObject:" << std::endl;
+    std::cin >> Json::in(myObject);
+    std::cout << std::endl << std::endl << "You entered:" << std::endl;
+    std::cout << Json::pretty(myObject);
+}
+```
+
+```
+Enter MyObject:
+{ "myInt": 1337, "myString": "stringy", "myIntCollection": [2,4,6] }
+
+You entered:
+{
+  "myInt": 1337,
+  "myString": "stringy",
+  "myIntCollection": [ 2, 4, 6 ]
+}
+```
+
+
+
+## FieldClusters & Runtime JSON
+
+While the primary focus of this library is dealing with objects and JSON structures known at compile time, it's not unheard of to have JSON structures that you'll only come to know at runtime, it's perhaps even more common to have a structure that you know at compile time but which includes many fields that you don't need to use except to receive them, perhaps audit them, and pass them along. This is where this libraries JSON generics can come in handy.
+
+A Json::FieldCluster is for the latter case, where you know and use some fields in your program, but others you won't need to reference explicitly. To maximize performance and avoid misuse of field clusters, they may not be the first, nor may they be the only field in an object.
+
+```
+struct SomeStructure
+{
+    int usefulField;
+    Json::FieldCluster fieldCluster;
+
+    REFLECT(() RegularFields, () usefulField, () fieldCluster)
+};
+```
+
+Now if you read in something like...
+```
+{
+  "usefulField": 222,
+  "seedValue": "0x12A39B",
+  "sequence": 5
+}
+```
+
+The "seedValue" and "sequence" values would be automatically stored in the fieldCluster and will be streamed as if you had explicitly declared and reflected those fields, and can also, if for some reason necessary, be traversed programatically.
+
+You can also take in an entirely unknown object using Json::Object, e.g.
+```
+Json::Object obj;
+std::cin >> Json::in(obj);
+```
+
+All Generic types extend from Json::Value, FieldCluster extends Json::Object but has special I/O behavior and its own type. The following are the generic types...
+- Json::Value (pure virtual class, check the real type with the type() method)
+
+- Json::Bool (type: Json::Value::Type::Boolean)
+- Json::Number (type: Json::Value::Type::Number)
+- Json::String (type: Json::Value::Type::String)
+- Json::Object (type: Json::Value::Type::Object)
+
+- Json::NullArray (type: Json::Value::Type::NullArray)
+- Json::BoolArray (type: Json::Value::Type::BoolArray)
+- Json::NumberArray (type: Json::Value::Type::NumberArray
+- Json::StringArray (type: Json::Value::Type::StringArray)
+- Json::ObjectArray (type: Json::Value::Type::ObjectArray)
+- Json::MixedArray (type: Json::Value::Type::MixedArray)
+
+- Json::FieldCluster (type: Json::Value::Type::FieldCluster)
+
+The null, bool, string, and object arrays are optimized for the type of contents they contain, whereas the elements in MixedArray are all shared pointers to Json::Values. Any type that contains nested arrays are automatically a MixedArray.
+
+Json::Value has virtual methods for getting the contents of any given type, e.g. for a Json::Bool call the boolean() method to get the stored value, if it's not the correct type for that method a TypeMismatch exception is thrown, check the type of a Json::Value in advance to avoid that.
+
+
 ## Customizers
 
 In addition to the annotations, you can further customize behavior for specific types, or specific fields within a type. This is accomplished using partial template specialization on one of the following structs...
