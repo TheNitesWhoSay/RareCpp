@@ -14,8 +14,13 @@
 #include <utility>
 #include <type_traits>
 using namespace Reflect;
-using namespace Reflect::Fields;
 using namespace ExtendedTypeSupport;
+
+TEST(ReflectTest, SuperIndex)
+{
+    constexpr size_t superIndex = 5;
+    EXPECT_EQ(superIndex, SuperIndex<superIndex>::Index);
+}
 
 TEST(ReflectTest, InheritedType)
 {
@@ -33,169 +38,344 @@ TEST(ReflectTest, InheritedType)
 
     int val = 0;
     bool visited = false;
-    Inherit<>::ForEach(val, [&](auto index, auto superClass) { visited = true; });
+    Inherit<>::ForEach(val, [&](auto index, auto superObj) { visited = true; });
     EXPECT_FALSE(visited);
     visited = false;
-    Inherit<>::At(val, 0, [&](auto superClass) { visited = true; });
+    Inherit<>::ForEach([&](auto index, auto superType) { visited = true });
+    EXPECT_FALSE(visited);
+    visited = false;
+    Inherit<>::At(val, 0, [&](auto superObj) { visited = true; });
+    EXPECT_FALSE(visited);
+    visited = false;
+    Inherit<>::At(0, [&](auto superType) { visited = true; });
     EXPECT_FALSE(visited);
 
     visited = false;
-    Inherit<Inherit<>>::ForEach(val, [&](auto index, auto superClass) { visited = true; });
+    Inherit<Inherit<>>::ForEach(val, [&](auto index, auto superObj) { visited = true; });
     EXPECT_FALSE(visited);
     visited = false;
-    Inherit<Inherit<>>::At(val, 0, [&](auto superClass) { visited = true; });
+    Inherit<Inherit<>>::ForEach([&](auto index, auto superType) { visited = true; });
     EXPECT_FALSE(visited);
-
+    visited = false;
+    Inherit<Inherit<>>::At(val, 0, [&](auto superObj) { visited = true; });
+    EXPECT_FALSE(visited);
+    visited = false;
+    Inherit<Inherit<>>::At(0, [&](auto superType) { visited = true });
+    EXPECT_FALSE(visited);
+    
     size_t visitCount = 0;
-    Inherit<int>::ForEach(val, [&](auto index, auto superClass) {
+    Inherit<int>::ForEach(val, [&](auto index, auto superObj) {
         EXPECT_EQ(0, decltype(index)::Index);
-        bool isSame = std::is_same<int, decltype(superClass)>::value;
+        bool isSame = std::is_same<int, decltype(superObj)>::value;
+        EXPECT_TRUE(isSame);
+        visitCount ++;
+    });
+    EXPECT_EQ(1, visitCount);
+    visitCount = 0;
+    Inherit<int>::ForEach([&](auto index, auto superType) {
+        using Super = typename decltype(superType)::type;
+        EXPECT_EQ(0, decltype(index)::Index);
+        bool isSame = std::is_same<int, Super>::value;
         EXPECT_TRUE(isSame);
         visitCount ++;
     });
     EXPECT_EQ(1, visitCount);
     visited = false;
-    Inherit<int>::At(val, 0, [&](auto superClass) {
-        bool isSame = std::is_same<int, decltype(superClass)>::value;
+    Inherit<int>::At(val, 0, [&](auto superObj) {
+        bool isSame = std::is_same<int, decltype(superObj)>::value;
         EXPECT_TRUE(isSame);
         visited = true;
     });
     EXPECT_TRUE(visited);
     visited = false;
-    Inherit<int>::At(val, 1, [&](auto superClass) { visited = true; });
+    Inherit<int>::At(0, [&](auto superType) {
+        using Super = typename decltype(superType)::type;
+        bool isSame = std::is_same<int, Super>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    Inherit<int>::At(val, 1, [&](auto superObj) { visited = true; });
     EXPECT_FALSE(visited);
-
+    visited = false;
+    Inherit<int>::At(1, [&](auto superType) { visited = true; });
+    EXPECT_FALSE(visited);
+    
     visitCount = 0;
-    Inherit<Inherit<int>>::ForEach(val, [&](auto index, auto superClass) {
+    Inherit<Inherit<int>>::ForEach(val, [&](auto index, auto superObj) {
         EXPECT_EQ(0, decltype(index)::Index);
-        bool isSame = std::is_same<int, decltype(superClass)>::value;
+        bool isSame = std::is_same<int, decltype(superObj)>::value;
+        EXPECT_TRUE(isSame);
+        visitCount ++;
+    });
+    EXPECT_EQ(1, visitCount);
+    visitCount = 0;
+    Inherit<Inherit<int>>::ForEach([&](auto index, auto superType) {
+        using Super = typename decltype(superType)::type;
+        EXPECT_EQ(0, decltype(index)::Index);
+        bool isSame = std::is_same<int, Super>::value;
         EXPECT_TRUE(isSame);
         visitCount ++;
     });
     EXPECT_EQ(1, visitCount);
     visited = false;
-    Inherit<Inherit<int>>::At(val, 0, [&](auto superClass) {
-        bool isSame = std::is_same<int, decltype(superClass)>::value;
+    Inherit<Inherit<int>>::At(val, 0, [&](auto superObj) {
+        bool isSame = std::is_same<int, decltype(superObj)>::value;
         EXPECT_TRUE(isSame);
         visited = true;
     });
     EXPECT_TRUE(visited);
     visited = false;
-    Inherit<Inherit<int>>::At(val, 1, [&](auto superClass) { visited = true; });
+    Inherit<Inherit<int>>::At(0, [&](auto superType) {
+        using Super = typename decltype(superType)::type;
+        bool isSame = std::is_same<int, Super>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    Inherit<Inherit<int>>::At(val, 1, [&](auto superObj) { visited = true; });
     EXPECT_FALSE(visited);
-
+    visited = false;
+    Inherit<Inherit<int>>::At(1, [&](auto superType) { visited = true; });
+    EXPECT_FALSE(visited);
+    
     visitCount = 0;
-    TwoArg::ForEach(val, [&](auto index, auto superClass) {
+    TwoArg::ForEach(val, [&](auto index, auto superObj) {
         EXPECT_EQ(visitCount, decltype(index)::Index);
         bool isSame = false;
         switch ( decltype(index)::Index ) {
-            case 0: isSame = std::is_same<int, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
-            case 1: isSame = std::is_same<float, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
+            case 0: isSame = std::is_same<int, decltype(superObj)>::value; EXPECT_TRUE(isSame); break;
+            case 1: isSame = std::is_same<float, decltype(superObj)>::value; EXPECT_TRUE(isSame); break;
+            default: EXPECT_TRUE(false); break;
+        }
+        visitCount ++;
+    });
+    EXPECT_EQ(2, visitCount);
+    visitCount = 0;
+    TwoArg::ForEach([&](auto index, auto superType) {
+        using Super = typename decltype(superType)::type;
+        EXPECT_EQ(visitCount, decltype(index)::Index);
+        bool isSame = false;
+        switch ( decltype(index)::Index ) {
+            case 0: isSame = std::is_same<int, Super>::value; EXPECT_TRUE(isSame); break;
+            case 1: isSame = std::is_same<float, Super>::value; EXPECT_TRUE(isSame); break;
             default: EXPECT_TRUE(false); break;
         }
         visitCount ++;
     });
     EXPECT_EQ(2, visitCount);
     visited = false;
-    TwoArg::At(val, 0, [&](auto superClass) {
-        bool isSame = std::is_same<int, decltype(superClass)>::value;
+    TwoArg::At(val, 0, [&](auto superObj) {
+        bool isSame = std::is_same<int, decltype(superObj)>::value;
         EXPECT_TRUE(isSame);
         visited = true;
     });
     EXPECT_TRUE(visited);
     visited = false;
-    TwoArg::At(val, 1, [&](auto superClass) {
-        bool isSame = std::is_same<float, decltype(superClass)>::value;
+    TwoArg::At(0, [&](auto superType) {
+        using Super = typename decltype(superType)::type;
+        bool isSame = std::is_same<int, Super>::value;
         EXPECT_TRUE(isSame);
         visited = true;
     });
     EXPECT_TRUE(visited);
     visited = false;
-    TwoArg::At(val, 2, [&](auto superClass) { visited = true; });
+    TwoArg::At(val, 1, [&](auto superObj) {
+        bool isSame = std::is_same<float, decltype(superObj)>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    TwoArg::At(1, [&](auto superType) {
+        using Super = typename decltype(superType)::type;
+        bool isSame = std::is_same<float, Super>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    TwoArg::At(val, 2, [&](auto superObj) { visited = true; });
     EXPECT_FALSE(visited);
-
+    visited = false;
+    TwoArg::At(2, [&](auto superType) { visited = true; });
+    EXPECT_FALSE(visited);
+    
     visitCount = 0;
-    ThreeArg::ForEach(val, [&](auto index, auto superClass) {
+    ThreeArg::ForEach(val, [&](auto index, auto superObj) {
         EXPECT_EQ(visitCount, decltype(index)::Index);
         bool isSame = false;
         switch ( decltype(index)::Index ) {
-            case 0: isSame = std::is_same<int, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
-            case 1: isSame = std::is_same<float, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
-            case 2: isSame = std::is_same<char, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
+            case 0: isSame = std::is_same<int, decltype(superObj)>::value; EXPECT_TRUE(isSame); break;
+            case 1: isSame = std::is_same<float, decltype(superObj)>::value; EXPECT_TRUE(isSame); break;
+            case 2: isSame = std::is_same<char, decltype(superObj)>::value; EXPECT_TRUE(isSame); break;
+            default: EXPECT_TRUE(false); break;
+        }
+        visitCount ++;
+    });
+    EXPECT_EQ(3, visitCount);
+    visitCount = 0;
+    ThreeArg::ForEach([&](auto index, auto superType) {
+        using Super = typename decltype(superType)::type;
+        EXPECT_EQ(visitCount, decltype(index)::Index);
+        bool isSame = false;
+        switch ( decltype(index)::Index ) {
+            case 0: isSame = std::is_same<int, Super>::value; EXPECT_TRUE(isSame); break;
+            case 1: isSame = std::is_same<float, Super>::value; EXPECT_TRUE(isSame); break;
+            case 2: isSame = std::is_same<char, Super>::value; EXPECT_TRUE(isSame); break;
             default: EXPECT_TRUE(false); break;
         }
         visitCount ++;
     });
     EXPECT_EQ(3, visitCount);
     visited = false;
-    ThreeArg::At(val, 0, [&](auto superClass) {
-        bool isSame = std::is_same<int, decltype(superClass)>::value;
+    ThreeArg::At(val, 0, [&](auto superObj) {
+        bool isSame = std::is_same<int, decltype(superObj)>::value;
         EXPECT_TRUE(isSame);
         visited = true;
     });
     EXPECT_TRUE(visited);
     visited = false;
-    ThreeArg::At(val, 1, [&](auto superClass) {
-        bool isSame = std::is_same<float, decltype(superClass)>::value;
+    ThreeArg::At(0, [&](auto superType) {
+        using Super = typename decltype(superType)::type;
+        bool isSame = std::is_same<int, Super>::value;
         EXPECT_TRUE(isSame);
         visited = true;
     });
     EXPECT_TRUE(visited);
     visited = false;
-    ThreeArg::At(val, 2, [&](auto superClass) {
-        bool isSame = std::is_same<char, decltype(superClass)>::value;
+    ThreeArg::At(val, 1, [&](auto superObj) {
+        bool isSame = std::is_same<float, decltype(superObj)>::value;
         EXPECT_TRUE(isSame);
         visited = true;
     });
     EXPECT_TRUE(visited);
     visited = false;
-    ThreeArg::At(val, 3, [&](auto superClass) { visited = true; });
+    ThreeArg::At(1, [&](auto superType) {
+        using Super = typename decltype(superType)::type;
+        bool isSame = std::is_same<float, Super>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    ThreeArg::At(val, 2, [&](auto superObj) {
+        bool isSame = std::is_same<char, decltype(superObj)>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    ThreeArg::At(2, [&](auto superType) {
+        using Super = typename decltype(superType)::type;
+        bool isSame = std::is_same<char, Super>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    ThreeArg::At(val, 3, [&](auto superObj) { visited = true; });
     EXPECT_FALSE(visited);
-
+    visited = false;
+    ThreeArg::At(3, [&](auto superType) { visited = true; });
+    EXPECT_FALSE(visited);
+    
     visitCount = 0;
-    FourArg::ForEach(val, [&](auto index, auto superClass) {
+    FourArg::ForEach(val, [&](auto index, auto superObj) {
         EXPECT_EQ(visitCount, decltype(index)::Index);
         bool isSame = false;
         switch ( decltype(index)::Index ) {
-            case 0: isSame = std::is_same<int, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
-            case 1: isSame = std::is_same<float, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
-            case 2: isSame = std::is_same<short, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
-            case 3: isSame = std::is_same<char, decltype(superClass)>::value; EXPECT_TRUE(isSame); break;
+            case 0: isSame = std::is_same<int, decltype(superObj)>::value; EXPECT_TRUE(isSame); break;
+            case 1: isSame = std::is_same<float, decltype(superObj)>::value; EXPECT_TRUE(isSame); break;
+            case 2: isSame = std::is_same<short, decltype(superObj)>::value; EXPECT_TRUE(isSame); break;
+            case 3: isSame = std::is_same<char, decltype(superObj)>::value; EXPECT_TRUE(isSame); break;
+            default: EXPECT_TRUE(false); break;
+        }
+        visitCount ++;
+    });
+    EXPECT_EQ(4, visitCount);
+    visitCount = 0;
+    FourArg::ForEach([&](auto index, auto superType) {
+        using Super = typename decltype(superType)::type;
+        EXPECT_EQ(visitCount, decltype(index)::Index);
+        bool isSame = false;
+        switch ( decltype(index)::Index ) {
+            case 0: isSame = std::is_same<int, Super>::value; EXPECT_TRUE(isSame); break;
+            case 1: isSame = std::is_same<float, Super>::value; EXPECT_TRUE(isSame); break;
+            case 2: isSame = std::is_same<short, Super>::value; EXPECT_TRUE(isSame); break;
+            case 3: isSame = std::is_same<char, Super>::value; EXPECT_TRUE(isSame); break;
             default: EXPECT_TRUE(false); break;
         }
         visitCount ++;
     });
     EXPECT_EQ(4, visitCount);
     visited = false;
-    FourArg::At(val, 0, [&](auto superClass) {
-        bool isSame = std::is_same<int, decltype(superClass)>::value;
+    FourArg::At(val, 0, [&](auto superObj) {
+        bool isSame = std::is_same<int, decltype(superObj)>::value;
         EXPECT_TRUE(isSame);
         visited = true;
     });
     EXPECT_TRUE(visited);
     visited = false;
-    FourArg::At(val, 1, [&](auto superClass) {
-        bool isSame = std::is_same<float, decltype(superClass)>::value;
+    FourArg::At(0, [&](auto superType) {
+        using Super = typename decltype(superType)::type;
+        bool isSame = std::is_same<int, Super>::value;
         EXPECT_TRUE(isSame);
         visited = true;
     });
     EXPECT_TRUE(visited);
     visited = false;
-    FourArg::At(val, 2, [&](auto superClass) {
-        bool isSame = std::is_same<short, decltype(superClass)>::value;
+    FourArg::At(val, 1, [&](auto superObj) {
+        bool isSame = std::is_same<float, decltype(superObj)>::value;
         EXPECT_TRUE(isSame);
         visited = true;
     });
     EXPECT_TRUE(visited);
     visited = false;
-    FourArg::At(val, 3, [&](auto superClass) {
-        bool isSame = std::is_same<char, decltype(superClass)>::value;
+    FourArg::At(1, [&](auto superType) {
+        using Super = typename decltype(superType)::type;
+        bool isSame = std::is_same<float, Super>::value;
         EXPECT_TRUE(isSame);
         visited = true;
     });
     EXPECT_TRUE(visited);
     visited = false;
-    FourArg::At(val, 4, [&](auto superClass) { visited = true; });
+    FourArg::At(val, 2, [&](auto superObj) {
+        bool isSame = std::is_same<short, decltype(superObj)>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    FourArg::At(2, [&](auto superType) {
+        using Super = typename decltype(superType)::type;
+        bool isSame = std::is_same<short, Super>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    FourArg::At(val, 3, [&](auto superObj) {
+        bool isSame = std::is_same<char, decltype(superObj)>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    FourArg::At(3, [&](auto superType) {
+        using Super = typename decltype(superType)::type;
+        bool isSame = std::is_same<char, Super>::value;
+        EXPECT_TRUE(isSame);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    visited = false;
+    FourArg::At(val, 4, [&](auto superObj) { visited = true; });
+    EXPECT_FALSE(visited);
+    visited = false;
+    FourArg::At(4, [&](auto superType) { visited = true; });
     EXPECT_FALSE(visited);
 }
 
@@ -224,11 +404,11 @@ TEST(ReflectTest, Annotation)
 
 TEST(ReflectTest, ReflectedAnnotation)
 {
-    bool hasReflectionAnnotation = Field<void, void*, 0>::HasAnnotation<Reflected>;
+    bool hasReflectionAnnotation = Fields::Field<void, void*, 0>::HasAnnotation<Reflected>;
     EXPECT_FALSE(hasReflectionAnnotation);
-    hasReflectionAnnotation = Field<void, void*, 0, Annotate<>>::HasAnnotation<Reflected>;
+    hasReflectionAnnotation = Fields::Field<void, void*, 0, Annotate<>>::HasAnnotation<Reflected>;
     EXPECT_FALSE(hasReflectionAnnotation);
-    hasReflectionAnnotation = Field<void, void*, 0, Reflected>::HasAnnotation<Reflected>;
+    hasReflectionAnnotation = Fields::Field<void, void*, 0, Reflected>::HasAnnotation<Reflected>;
     EXPECT_TRUE(hasReflectionAnnotation);
 }
 
@@ -238,8 +418,7 @@ TEST(ReflectTest, RfMacroAliasType)
     public:
         int myField;
 
-        class Class {
-        public:
+        struct Class {
             ALIAS_TYPE(() myField);
         };
     };
@@ -255,8 +434,7 @@ TEST(ReflectTest, RfMacroGetFieldName)
         int first;
         float second;
 
-        class Class {
-        public:
+        struct Class {
             enum_t(IndexOf, size_t, {
                 FOR_EACH(GET_FIELD_NAME, () first, () second)
             });
@@ -272,8 +450,7 @@ public:
     int first;
     float second;
 
-    class Class {
-    public:
+    struct Class {
         using ClassType = DescribeFieldTest;
         enum_t(IndexOf, size_t, { first, second });
         using first = int;
@@ -284,6 +461,11 @@ public:
 
 TEST(ReflectTest, RfMacroDescribeField)
 {
+    bool isEqual = std::is_same<decltype(&DescribeFieldTest::first), DescribeFieldTest::Class::first_::Member>::value;
+    EXPECT_TRUE(isEqual);
+    isEqual = std::is_same<Fields::Field<int, DescribeFieldTest::Class::first_::Member, 0, Annotate<>>,
+        DescribeFieldTest::Class::first_::Field>::value;
+
     EXPECT_STREQ("first", DescribeFieldTest::Class::first_::nameStr.value);
     std::string firstTypeStr = DescribeFieldTest::Class::first_::typeStr.value;
     firstTypeStr.erase(std::remove(firstTypeStr.begin(), firstTypeStr.end(), ' '), firstTypeStr.end());
@@ -296,7 +478,22 @@ TEST(ReflectTest, RfMacroDescribeField)
     EXPECT_EQ(0, DescribeFieldTest::Class::first_::field.arraySize);
     EXPECT_EQ(false, DescribeFieldTest::Class::first_::field.isIterable);
     EXPECT_EQ(false, DescribeFieldTest::Class::first_::field.isReflected);
+    
+    isEqual = std::is_same<int, DescribeFieldTest::Class::first_::Field::Type>::value;
+    EXPECT_TRUE(isEqual);
+    isEqual = std::is_same<decltype(&DescribeFieldTest::first), DescribeFieldTest::Class::first_::Field::Pointer>::value;
+    EXPECT_TRUE(isEqual);
 
+    EXPECT_EQ(&DescribeFieldTest::first, DescribeFieldTest::Class::first_::field.p);
+    EXPECT_EQ(0, DescribeFieldTest::Class::first_::Field::Index);
+    EXPECT_FALSE(DescribeFieldTest::Class::first_::Field::IsStatic);
+    EXPECT_FALSE(DescribeFieldTest::Class::first_::Field::HasAnnotation<Reflected>);
+
+    
+    isEqual = std::is_same<decltype(&DescribeFieldTest::second), DescribeFieldTest::Class::second_::Member>::value;
+    EXPECT_TRUE(isEqual);
+    isEqual = std::is_same<Fields::Field<float, DescribeFieldTest::Class::second_::Member, 0, Annotate<>>,
+        DescribeFieldTest::Class::second_::Field>::value;
 
     EXPECT_STREQ("second", DescribeFieldTest::Class::second_::nameStr.value);
     std::string secondTypeStr = DescribeFieldTest::Class::second_::typeStr.value;
@@ -310,6 +507,16 @@ TEST(ReflectTest, RfMacroDescribeField)
     EXPECT_EQ(0, DescribeFieldTest::Class::second_::field.arraySize);
     EXPECT_EQ(false, DescribeFieldTest::Class::second_::field.isIterable);
     EXPECT_EQ(false, DescribeFieldTest::Class::second_::field.isReflected);
+    
+    isEqual = std::is_same<float, DescribeFieldTest::Class::second_::Field::Type>::value;
+    EXPECT_TRUE(isEqual);
+    isEqual = std::is_same<decltype(&DescribeFieldTest::second), DescribeFieldTest::Class::second_::Field::Pointer>::value;
+    EXPECT_TRUE(isEqual);
+
+    EXPECT_EQ(&DescribeFieldTest::second, DescribeFieldTest::Class::second_::field.p);
+    EXPECT_EQ(1, DescribeFieldTest::Class::second_::Field::Index);
+    EXPECT_FALSE(DescribeFieldTest::Class::second_::Field::IsStatic);
+    EXPECT_FALSE(DescribeFieldTest::Class::second_::Field::HasAnnotation<Reflected>);
 }
 
 class GetFieldTest {
@@ -317,11 +524,10 @@ public:
     int first;
     float second;
 
-    class Class {
-    public:
-        struct first_ { static constexpr Field<int> field = { "first", "int", 0, false, false }; };
-        struct second_ { static constexpr Field<float> field = { "second", "float", 0, false, false }; };
-        static constexpr Field<> Fields[2] = {
+    struct Class {
+        struct first_ { static constexpr Fields::Field<int> field = { "first", "int", 0, false, false }; };
+        struct second_ { static constexpr Fields::Field<float> field = { "second", "float", 0, false, false }; };
+        static constexpr Fields::Field<> Fields[2] = {
             GET_FIELD(() first)
             GET_FIELD(() second)
         };
@@ -348,10 +554,9 @@ class UseFieldTest {
         int first;
         float second;
 
-        class Class {
-        public:
-            struct first_ { static constexpr Field<int, decltype(&UseFieldTest::first), 0> field = { "first", "int", 0, false, false }; };
-            struct second_ { static constexpr Field<float, decltype(&UseFieldTest::second), 1> field = { "second", "float", 0, false, false }; };
+        struct Class {
+            struct first_ { static constexpr Fields::Field<int, decltype(&UseFieldTest::first), 0> field = { "first", "int", 0, false, false, &UseFieldTest::first }; };
+            struct second_ { static constexpr Fields::Field<float, decltype(&UseFieldTest::second), 1> field = { "second", "float", 0, false, false, &UseFieldTest::second }; };
             template <typename Function>
             static void ForEachField(UseFieldTest & object, Function function) {
                 USE_FIELD_VALUE(() first)
@@ -398,13 +603,12 @@ class UseFieldAtTest {
         int first;
         float second;
 
-        class Class {
-        public:
+        struct Class {
             enum_t(IndexOf, size_t, { first, second });
-            struct first_ { static constexpr Field<int> field = { "first", "int", 0, false, false }; };
-            struct second_ { static constexpr Field<float> field = { "second", "float", 0, false, false }; };
+            struct first_ { static constexpr Fields::Field<int, decltype(&UseFieldAtTest::first), 0> field = { "first", "int", 0, false, false, &UseFieldAtTest::first }; };
+            struct second_ { static constexpr Fields::Field<float, decltype(&UseFieldAtTest::second), 1> field = { "second", "float", 0, false, false, &UseFieldAtTest::second }; };
             template <typename Function>
-            static void FieldAt(UseFieldAtTest & object, size_t fieldIndex, Function function) {
+            static void FieldAt(size_t fieldIndex, Function function) {
                 switch ( fieldIndex ) {
                     USE_FIELD_AT(() first)
                     USE_FIELD_AT(() second)
@@ -419,7 +623,54 @@ TEST(ReflectTest, RfMacroUseFieldAt)
     size_t index = 0;
 
     bool visited = false;
-    UseFieldAtTest::Class::FieldAt(useFieldTest, 0, [&](auto & field, auto & value) {
+    UseFieldAtTest::Class::FieldAt(0, [&](auto & field) {
+        EXPECT_STREQ("first", field.name);
+        EXPECT_STREQ("int", field.typeStr);
+        EXPECT_EQ(0, field.arraySize);
+        EXPECT_EQ(false, field.isIterable);
+        EXPECT_EQ(false, field.isReflected);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+    
+    visited = false;
+    UseFieldAtTest::Class::FieldAt(1, [&](auto & field) {
+        EXPECT_STREQ("second", field.name);
+        EXPECT_STREQ("float", field.typeStr);
+        EXPECT_EQ(0, field.arraySize);
+        EXPECT_EQ(false, field.isIterable);
+        EXPECT_EQ(false, field.isReflected);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+}
+
+class UseFieldValueAtTest {
+    public:
+        int first;
+        float second;
+
+        struct Class {
+            enum_t(IndexOf, size_t, { first, second });
+            struct first_ { static constexpr Fields::Field<int, decltype(&UseFieldValueAtTest::first), 0> field = { "first", "int", 0, false, false, &UseFieldValueAtTest::first }; };
+            struct second_ { static constexpr Fields::Field<float, decltype(&UseFieldValueAtTest::second), 1> field = { "second", "float", 0, false, false, &UseFieldValueAtTest::second }; };
+            template <typename Function>
+            static void FieldAt(UseFieldValueAtTest & object, size_t fieldIndex, Function function) {
+                switch ( fieldIndex ) {
+                    USE_FIELD_VALUE_AT(() first)
+                    USE_FIELD_VALUE_AT(() second)
+                }
+            }
+        };
+};
+
+TEST(ReflectTest, RfMacroUseFieldValueAt)
+{
+    UseFieldValueAtTest useFieldTest = { 1, 1.1f };
+    size_t index = 0;
+
+    bool visited = false;
+    UseFieldValueAtTest::Class::FieldAt(useFieldTest, 0, [&](auto & field, auto & value) {
         EXPECT_STREQ("first", field.name);
         EXPECT_STREQ("int", field.typeStr);
         EXPECT_EQ(0, field.arraySize);
@@ -431,7 +682,7 @@ TEST(ReflectTest, RfMacroUseFieldAt)
     EXPECT_TRUE(visited);
     
     visited = false;
-    UseFieldAtTest::Class::FieldAt(useFieldTest, 1, [&](auto & field, auto & value) {
+    UseFieldValueAtTest::Class::FieldAt(useFieldTest, 1, [&](auto & field, auto & value) {
         EXPECT_STREQ("second", field.name);
         EXPECT_STREQ("float", field.typeStr);
         EXPECT_EQ(0, field.arraySize);
@@ -443,30 +694,68 @@ TEST(ReflectTest, RfMacroUseFieldAt)
     EXPECT_TRUE(visited);
 }
 
+struct AddIfStaticTest
+{
+    int testVal;
+    static int testStaticVal;
+    static int otherTestStaticVal;
+
+    struct Class
+    {
+        struct testVal_ {
+            using Field = Fields::Field<int, decltype(&AddIfStaticTest::testVal), 0>;
+        };
+        struct testStaticVal_ {
+            using Field = Fields::Field<int, decltype(&AddIfStaticTest::testStaticVal), 1>;
+        };
+        struct otherTestStaticVal_ {
+            using Field = Fields::Field<int, decltype(&AddIfStaticTest::otherTestStaticVal), 2>;
+        };
+
+        static constexpr size_t TotalStatics = 0
+            ADD_IF_STATIC(() testVal)
+            ADD_IF_STATIC(() testStaticVal)
+            ADD_IF_STATIC(() otherTestStaticVal);
+    };
+};
+
+TEST(ReflectTest, RfMacroAddIfStatic)
+{
+    EXPECT_EQ(2, AddIfStaticTest::Class::TotalStatics);
+}
+
 class CumulativeMacroTest {
 public:
     int first;
     float second;
 
-    class Class {
-    public:
+    struct Class {
         using ClassType = DescribeFieldTest;
-        static constexpr size_t TotalFields = COUNT_ARGUMENTS(() first, () second);
         enum_t(IndexOf, size_t, {
             FOR_EACH(GET_FIELD_NAME, () first, () second)
         });
         FOR_EACH(ALIAS_TYPE, () first, () second)
         FOR_EACH(DESCRIBE_FIELD, () first, () second)
-        static constexpr Field<> Fields[TotalFields] = {
+        static constexpr size_t TotalFields = COUNT_ARGUMENTS(() first, () second);
+        static constexpr size_t TotalStaticFields = 0 FOR_EACH(ADD_IF_STATIC, () first, () second);
+        static constexpr Fields::Field<> Fields[TotalFields] = {
             FOR_EACH(GET_FIELD, () first, () second)
         };
-        template <typename Function> static void ForEachField(CumulativeMacroTest & object, Function function) {
+        template <typename Function> static void ForEachField(Function function) {
             FOR_EACH(USE_FIELD, () first, () second)
+        }
+        template <typename Function> static void ForEachField(CumulativeMacroTest & object, Function function) {
+            FOR_EACH(USE_FIELD_VALUE, () first, () second)
         }
         template <typename Function> static void ForEachField(const CumulativeMacroTest & object, Function function) {
-            FOR_EACH(USE_FIELD, () first, () second)
+            FOR_EACH(USE_FIELD_VALUE, () first, () second)
         }
         template <typename Function> static void FieldAt(CumulativeMacroTest & object, size_t fieldIndex, Function function) {
+            switch ( fieldIndex ) {
+                FOR_EACH(USE_FIELD_VALUE_AT, () first, () second)
+            }
+        }
+        template <typename Function> static void FieldAt(size_t fieldIndex, Function function) {
             switch ( fieldIndex ) {
                 FOR_EACH(USE_FIELD_AT, () first, () second)
             }
@@ -503,13 +792,17 @@ public:
     std::map<int,float> map;
     std::vector<ReflectSubObj> objCollection;
     std::stack<int> stack;
+    static int staticPrimitive;
 
-    REFLECT((ReflectSuperObj) ReflectObj, () primitive, (Reflected) object, () primitiveArray, () map, (Reflected) objCollection, () stack)
+    REFLECT((ReflectSuperObj) ReflectObj, () primitive, (Reflected) object, () primitiveArray, () map, (Reflected) objCollection, () stack, () staticPrimitive)
 };
+
+int ReflectObj::staticPrimitive = 0;
 
 TEST(ReflectTest, RfMacroReflect)
 {
-    EXPECT_EQ(6, ReflectObj::Class::TotalFields);
+    EXPECT_EQ(7, ReflectObj::Class::TotalFields);
+    EXPECT_EQ(1, ReflectObj::Class::TotalStaticFields);
 
     EXPECT_EQ(0, ReflectObj::Class::IndexOf::primitive);
     EXPECT_EQ(1, ReflectObj::Class::IndexOf::object);
@@ -517,6 +810,7 @@ TEST(ReflectTest, RfMacroReflect)
     EXPECT_EQ(3, ReflectObj::Class::IndexOf::map);
     EXPECT_EQ(4, ReflectObj::Class::IndexOf::objCollection);
     EXPECT_EQ(5, ReflectObj::Class::IndexOf::stack);
+    EXPECT_EQ(6, ReflectObj::Class::IndexOf::staticPrimitive);
     
     bool isSame = std::is_same<int, ReflectObj::Class::primitive>::value;
     EXPECT_TRUE(isSame);
@@ -643,7 +937,7 @@ TEST(ReflectTest, RfMacroReflect)
     reflectObj.stack.push(2);
     reflectObj.stack.push(3);
     size_t index = 0;
-    ReflectObj::Class::ForEachField(reflectObj, [&](auto field, auto & value) {
+    ReflectObj::Class::ForEachField(reflectObj, [&](auto & field, auto & value) {
         
         using Field = std::remove_reference<decltype(field)>::type;
         using Value = std::remove_reference<decltype(value)>::type;
@@ -700,11 +994,34 @@ TEST(ReflectTest, RfMacroReflect)
 
                 EXPECT_TRUE(visited);
                 break;
+            case 6:
+                if constexpr ( Field::IsStatic )
+                    visited = true;
+
+                EXPECT_TRUE(visited);
+                break;
             default:
                 EXPECT_TRUE(false);
                 break;
         }
         index ++;
     });
-    EXPECT_EQ(6, index);
+    EXPECT_EQ(7, index);
+
+    index = 0;
+    bool visited = false;
+    ReflectObj::Class::ForEachField([&](auto & field) {
+        
+        using Field = std::remove_reference<decltype(field)>::type;
+
+        EXPECT_EQ(index, Field::Index);
+        if constexpr ( Field::IsStatic && Field::Index == 6 )
+        {
+            EXPECT_EQ(ReflectObj::staticPrimitive, *field.p);
+            visited = true;
+        }        
+        index ++;
+    });
+    EXPECT_TRUE(visited);
+    EXPECT_EQ(7, index);
 }

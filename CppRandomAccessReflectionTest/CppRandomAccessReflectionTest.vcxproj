@@ -157,11 +157,16 @@
   <ItemGroup>
     <ClCompile Include="ConstexprStrTest.cpp" />
     <ClCompile Include="FieldTest.cpp" />
+    <ClCompile Include="JsonInputTest.cpp" />
     <ClCompile Include="ReflectTest.cpp" />
     <ClCompile Include="ExtendedTypeSupportTest.cpp" />
     <ClCompile Include="TestMain.cpp" />
     <ClCompile Include="JsonTest.cpp" />
     <ClCompile Include="GenericMacroTest.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="JsonInputTest.h" />
+    <ClInclude Include="JsonTest.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

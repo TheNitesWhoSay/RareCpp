@@ -15,6 +15,24 @@
 #include <type_traits>
 using namespace ExtendedTypeSupport;
 
+TEST(ExtendedTypeSupportTest, PromoteChar)
+{
+    bool isSame = std::is_same<promote_char<char>::type, int>::value;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same<promote_char<signed char>::type, int>::value;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same<promote_char<unsigned char>::type, int>::value;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same<promote_char<const char>::type, const int>::value;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same<promote_char<const signed char>::type, const int>::value;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same<promote_char<const unsigned char>::type, const int>::value;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same<promote_char<short>::type, short>::value;
+    EXPECT_TRUE(isSame);
+}
+
 TEST(ExtendedTypeSupportTest, PairRhs)
 {
     bool isSame = std::is_same<float, pair_rhs<std::pair<int, float>>::type>::value;
@@ -338,6 +356,53 @@ TEST(ExtendedTypeSupportTest, IsBool)
     EXPECT_FALSE(is_bool<const std::string>::value);
 }
 
+TEST(ExtendedTypeSupportTest, IsString)
+{
+    EXPECT_FALSE(is_string<bool>::value);
+    EXPECT_FALSE(is_string<uint8_t>::value);
+    EXPECT_FALSE(is_string<uint16_t>::value);
+    EXPECT_FALSE(is_string<uint32_t>::value);
+    EXPECT_FALSE(is_string<uint64_t>::value);
+    EXPECT_FALSE(is_string<int8_t>::value);
+    EXPECT_FALSE(is_string<int16_t>::value);
+    EXPECT_FALSE(is_string<int32_t>::value);
+    EXPECT_FALSE(is_string<int64_t>::value);
+    EXPECT_FALSE(is_string<char>::value);
+    EXPECT_FALSE(is_string<short>::value);
+    EXPECT_FALSE(is_string<int>::value);
+    EXPECT_FALSE(is_string<long>::value);
+    EXPECT_FALSE(is_string<unsigned char>::value);
+    EXPECT_FALSE(is_string<unsigned short>::value);
+    EXPECT_FALSE(is_string<unsigned int>::value);
+    EXPECT_FALSE(is_string<unsigned long>::value);
+    EXPECT_FALSE(is_string<float>::value);
+    EXPECT_FALSE(is_string<double>::value);
+    EXPECT_FALSE(is_string<char*>::value);
+    EXPECT_TRUE(is_string<std::string>::value);
+    
+    EXPECT_FALSE(is_string<const bool>::value);
+    EXPECT_FALSE(is_string<const uint8_t>::value);
+    EXPECT_FALSE(is_string<const uint16_t>::value);
+    EXPECT_FALSE(is_string<const uint32_t>::value);
+    EXPECT_FALSE(is_string<const uint64_t>::value);
+    EXPECT_FALSE(is_string<const int8_t>::value);
+    EXPECT_FALSE(is_string<const int16_t>::value);
+    EXPECT_FALSE(is_string<const int32_t>::value);
+    EXPECT_FALSE(is_string<const int64_t>::value);
+    EXPECT_FALSE(is_string<const char>::value);
+    EXPECT_FALSE(is_string<const short>::value);
+    EXPECT_FALSE(is_string<const int>::value);
+    EXPECT_FALSE(is_string<const long>::value);
+    EXPECT_FALSE(is_string<const unsigned char>::value);
+    EXPECT_FALSE(is_string<const unsigned short>::value);
+    EXPECT_FALSE(is_string<const unsigned int>::value);
+    EXPECT_FALSE(is_string<const unsigned long>::value);
+    EXPECT_FALSE(is_string<const float>::value);
+    EXPECT_FALSE(is_string<const double>::value);
+    EXPECT_FALSE(is_string<const char*>::value);
+    EXPECT_TRUE(is_string<const std::string>::value);
+}
+
 TEST(ExtendedTypeSupportTest, HasPushBack)
 {
     EXPECT_FALSE(has_push_back<int>::value);
@@ -429,6 +494,260 @@ TEST(ExtendedTypeSupportTest, HasClear)
     EXPECT_TRUE(has_clear<Multimap>::value);
     EXPECT_TRUE(has_clear<UnorderedMap>::value);
     EXPECT_TRUE(has_clear<UnorderedMultimap>::value);
+}
+
+TEST(ExtendedTypeSupportTest, Append)
+{
+    std::vector<int> vector;
+    std::deque<int> deque;
+    std::forward_list<int> forwardList;
+    std::list<int> list;
+    std::stack<int> stack;
+    std::queue<int> queue;
+    std::priority_queue<int> priorityQueue;
+    std::set<int> set;
+    std::multiset<int> multiset;
+    std::unordered_set<int> unorderedSet;
+    std::unordered_multiset<int> unorderedMultiset;
+    std::map<int, int> map;
+    std::multimap<int, int> multimap;
+    std::unordered_map<int, int> unorderedMap;
+    std::unordered_multimap<int, int> unorderedMultimap;
+
+    int value = 7;
+    int key = 8;
+    std::pair<decltype(key), decltype(value)> keyValuePair = std::pair(key, value);
+    Append(vector, value);
+    Append(deque, value);
+    Append(forwardList, value);
+    Append(list, value);
+    Append(stack, value);
+    Append(queue, value);
+    Append(priorityQueue, value);
+    Append(set, value);
+    Append(multiset, value);
+    Append(unorderedSet, value);
+    Append(unorderedMultiset, value);
+    Append(map, keyValuePair);
+    Append(multimap, keyValuePair);
+    Append(unorderedMap, keyValuePair);
+    Append(unorderedMultimap, keyValuePair);
+    
+    EXPECT_EQ(value, *vector.begin());
+    EXPECT_EQ(value, *deque.begin());
+    EXPECT_EQ(value, *forwardList.begin());
+    EXPECT_EQ(value, *list.begin());
+    EXPECT_EQ(value, stack.top());
+    EXPECT_EQ(value, queue.front());
+    EXPECT_EQ(value, priorityQueue.top());
+    EXPECT_EQ(value, *set.begin());
+    EXPECT_EQ(value, *multiset.begin());
+    EXPECT_EQ(value, *unorderedSet.begin());
+    EXPECT_EQ(value, *unorderedMultiset.begin());
+    EXPECT_EQ(key, map.begin()->first);
+    EXPECT_EQ(key, multimap.begin()->first);
+    EXPECT_EQ(key, unorderedMap.begin()->first);
+    EXPECT_EQ(key, unorderedMultimap.begin()->first);
+    EXPECT_EQ(value, map.begin()->second);
+    EXPECT_EQ(value, multimap.begin()->second);
+    EXPECT_EQ(value, unorderedMap.begin()->second);
+    EXPECT_EQ(value, unorderedMultimap.begin()->second);
+
+    int newValue = 5;
+    int newKey = 6;
+    std::pair<decltype(newKey), decltype(newValue)> newKeyValuePair = std::pair(newKey, newValue);
+    
+    Append(vector, newValue);
+    Append(deque, newValue);
+    Append(forwardList, newValue);
+    Append(list, newValue);
+    Append(stack, newValue);
+    Append(queue, newValue);
+    Append(priorityQueue, newValue);
+    Append(set, newValue);
+    Append(multiset, newValue);
+    Append(unorderedSet, newValue);
+    Append(unorderedMultiset, newValue);
+    Append(map, newKeyValuePair);
+    Append(multimap, newKeyValuePair);
+    Append(unorderedMap, newKeyValuePair);
+    Append(unorderedMultimap, newKeyValuePair);
+    
+    EXPECT_EQ(newValue, *++vector.begin());
+    EXPECT_EQ(newValue, *++deque.begin());
+    EXPECT_EQ(newValue, *++forwardList.begin());
+    EXPECT_EQ(newValue, *++list.begin());
+
+    EXPECT_EQ(newValue, stack.top());
+    stack.pop();
+    EXPECT_EQ(value, stack.top());
+    EXPECT_EQ(newValue, queue.back());
+    EXPECT_EQ(value, queue.front());
+    EXPECT_EQ(value, priorityQueue.top());
+    priorityQueue.pop();
+    EXPECT_EQ(newValue, priorityQueue.top());
+
+    EXPECT_EQ(newValue, *set.begin());
+    EXPECT_EQ(newValue, *multiset.begin());
+    
+    EXPECT_NE(unorderedSet.end(), unorderedSet.find(newValue));
+    EXPECT_NE(unorderedMultiset.end(), unorderedMultiset.find(newValue));
+    EXPECT_EQ(newKey, (map.begin()++)->first);
+    EXPECT_EQ(newKey, (multimap.begin()++)->first);
+    EXPECT_EQ(newValue, (map.begin()++)->second);
+    EXPECT_EQ(newValue, (multimap.begin()++)->second);
+
+    EXPECT_NE(unorderedMap.end(), unorderedMap.find(newKey));
+    EXPECT_EQ(newValue, unorderedMap.find(newKey)->second);
+
+    EXPECT_NE(unorderedMultimap.end(), unorderedMultimap.find(newKey));
+    EXPECT_EQ(newValue, unorderedMultimap.find(newKey)->second);
+}
+
+TEST(ExtendedTypeSupportTest, IsEmpty)
+{
+    int basicArray[1] = { 0 };
+    std::array<int, 1> stlArray = { 0 };
+
+    EXPECT_FALSE(IsEmpty(basicArray));
+    EXPECT_FALSE(IsEmpty(stlArray));
+
+    std::vector<int> vector;
+    std::deque<int> deque;
+    std::forward_list<int> forwardList;
+    std::list<int> list;
+    std::stack<int> stack;
+    std::queue<int> queue;
+    std::priority_queue<int> priorityQueue;
+    std::set<int> set;
+    std::multiset<int> multiset;
+    std::unordered_set<int> unorderedSet;
+    std::unordered_multiset<int> unorderedMultiset;
+    std::map<int, int> map;
+    std::multimap<int, int> multimap;
+    std::unordered_map<int, int> unorderedMap;
+    std::unordered_multimap<int, int> unorderedMultimap;
+    
+    EXPECT_TRUE(IsEmpty(vector));
+    EXPECT_TRUE(IsEmpty(deque));
+    EXPECT_TRUE(IsEmpty(forwardList));
+    EXPECT_TRUE(IsEmpty(list));
+    EXPECT_TRUE(IsEmpty(stack));
+    EXPECT_TRUE(IsEmpty(queue));
+    EXPECT_TRUE(IsEmpty(priorityQueue));
+    EXPECT_TRUE(IsEmpty(set));
+    EXPECT_TRUE(IsEmpty(multiset));
+    EXPECT_TRUE(IsEmpty(unorderedSet));
+    EXPECT_TRUE(IsEmpty(unorderedMultiset));
+    EXPECT_TRUE(IsEmpty(map));
+    EXPECT_TRUE(IsEmpty(multimap));
+    EXPECT_TRUE(IsEmpty(unorderedMap));
+    EXPECT_TRUE(IsEmpty(unorderedMultimap));
+
+    vector.push_back(0);
+    deque.push_back(0);
+    forwardList.push_front(0);
+    list.push_back(0);
+    stack.push(0);
+    queue.push(0);
+    priorityQueue.push(0);
+    set.insert(0);
+    multiset.insert(0);
+    unorderedSet.insert(0);
+    unorderedMultiset.insert(0);
+    map.insert(std::pair<int, int>(0, 0));
+    multimap.insert(std::pair<int, int>(0, 0));
+    unorderedMap.insert(std::pair<int, int>(0, 0));
+    unorderedMultimap.insert(std::pair<int, int>(0, 0));
+    
+    EXPECT_FALSE(IsEmpty(vector));
+    EXPECT_FALSE(IsEmpty(deque));
+    EXPECT_FALSE(IsEmpty(forwardList));
+    EXPECT_FALSE(IsEmpty(list));
+    EXPECT_FALSE(IsEmpty(stack));
+    EXPECT_FALSE(IsEmpty(queue));
+    EXPECT_FALSE(IsEmpty(priorityQueue));
+    EXPECT_FALSE(IsEmpty(set));
+    EXPECT_FALSE(IsEmpty(multiset));
+    EXPECT_FALSE(IsEmpty(unorderedSet));
+    EXPECT_FALSE(IsEmpty(unorderedMultiset));
+    EXPECT_FALSE(IsEmpty(map));
+    EXPECT_FALSE(IsEmpty(multimap));
+    EXPECT_FALSE(IsEmpty(unorderedMap));
+    EXPECT_FALSE(IsEmpty(unorderedMultimap));
+}
+
+TEST(ExtendedTypeSupportTest, Clear)
+{
+    std::vector<int> vector = { 0, 0, 0 };
+    std::deque<int> deque = { 0, 0, 0 };
+    std::forward_list<int> forwardList = { 0, 0, 0 };
+    std::list<int> list = { 0, 0, 0 };
+    std::stack<int> stack;
+    std::queue<int> queue;
+    std::priority_queue<int> priorityQueue;
+    for ( size_t i=0; i<3; i++ )
+    {
+        stack.push(0);
+        queue.push(0);
+        priorityQueue.push(0);
+    }
+    std::set<int> set = { 0, 0, 0 };
+    std::multiset<int> multiset = { 0, 0, 0 };
+    std::unordered_set<int> unorderedSet = { 0, 0, 0 };
+    std::unordered_multiset<int> unorderedMultiset = { 0, 0, 0 };
+    std::map<int, int> map = { { 0, 0 }, { 0, 0 }, { 0, 0 } };
+    std::multimap<int, int> multimap = { { 0, 0 }, { 0, 0 }, { 0, 0 } };
+    std::unordered_map<int, int> unorderedMap = { { 0, 0 }, { 0, 0 }, { 0, 0 } };
+    std::unordered_multimap<int, int> unorderedMultimap = { { 0, 0 }, { 0, 0 }, { 0, 0 } };
+    
+    EXPECT_FALSE(vector.empty());
+    EXPECT_FALSE(deque.empty());
+    EXPECT_FALSE(forwardList.empty());
+    EXPECT_FALSE(list.empty());
+    EXPECT_FALSE(stack.empty());
+    EXPECT_FALSE(queue.empty());
+    EXPECT_FALSE(priorityQueue.empty());
+    EXPECT_FALSE(set.empty());
+    EXPECT_FALSE(multiset.empty());
+    EXPECT_FALSE(unorderedSet.empty());
+    EXPECT_FALSE(unorderedMultiset.empty());
+    EXPECT_FALSE(map.empty());
+    EXPECT_FALSE(multimap.empty());
+    EXPECT_FALSE(unorderedMap.empty());
+    EXPECT_FALSE(unorderedMultimap.empty());
+    
+    Clear(vector);
+    Clear(deque);
+    Clear(forwardList);
+    Clear(list);
+    Clear(stack);
+    Clear(queue);
+    Clear(priorityQueue);
+    Clear(set);
+    Clear(multiset);
+    Clear(unorderedSet);
+    Clear(unorderedMultiset);
+    Clear(map);
+    Clear(multimap);
+    Clear(unorderedMap);
+    Clear(unorderedMultimap);
+    
+    EXPECT_TRUE(vector.empty());
+    EXPECT_TRUE(deque.empty());
+    EXPECT_TRUE(forwardList.empty());
+    EXPECT_TRUE(list.empty());
+    EXPECT_TRUE(stack.empty());
+    EXPECT_TRUE(queue.empty());
+    EXPECT_TRUE(priorityQueue.empty());
+    EXPECT_TRUE(set.empty());
+    EXPECT_TRUE(multiset.empty());
+    EXPECT_TRUE(unorderedSet.empty());
+    EXPECT_TRUE(unorderedMultiset.empty());
+    EXPECT_TRUE(map.empty());
+    EXPECT_TRUE(multimap.empty());
+    EXPECT_TRUE(unorderedMap.empty());
+    EXPECT_TRUE(unorderedMultimap.empty());
 }
 
 TEST(ExtendedTypeSupportTest, HasType)
