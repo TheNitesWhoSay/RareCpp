@@ -1716,7 +1716,7 @@ namespace Json
             struct CustomizeType : public Unspecialized
             {
                 /// Should return true if you put any output, else you should leave output unchanged
-                static bool As(std::istream & input, Context & context, const Value & value) { return false; }
+                static bool As(std::istream & input, Context & context, Value & value) { return false; }
             };
 
             template <typename Object, typename Value, size_t FieldIndex = NoFieldIndex, typename OpAnnotations = Annotate<>, typename Field = NoField>
@@ -2709,7 +2709,7 @@ namespace Json
                 return str;
             }
 
-            template <typename Field, typename Value>
+            template <typename Value>
             static constexpr void EnumInt(std::istream & is, Value & value)
             {
                 using EnumType = typename promote_char<typename std::underlying_type<typename remove_pointer<Value>::type>::type>::type;
@@ -2969,7 +2969,7 @@ namespace Json
                 else if constexpr ( Field::template HasAnnotation<Json::String> )
                     Read::String(is, c, value);
                 else if constexpr ( Field::template HasAnnotation<Json::EnumInt> )
-                    Read::EnumInt<Field, T>(is, value);
+                    Read::EnumInt<T>(is, value);
                 else if constexpr ( is_bool<T>::value )
                     Read::Bool<InArray>(is, c, value);
                 else if constexpr ( std::is_const<T>::value )

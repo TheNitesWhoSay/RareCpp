@@ -3,6 +3,17 @@
 #include "JsonInputTest.h"
 using namespace Reflect;
 
+TEST(JsonInputCustomizersTest, CustomizeUnspecialized)
+{
+    CustomizeUnspecialized customizeUnspecialized = { 1, 2, 'a' };
+    bool isSpecialized = Json::Input::Customize<CustomizeUnspecialized, int, CustomizeUnspecialized::Class::IndexOf::firstField, Annotate<>, CustomizeUnspecialized::Class::firstField_::Field>
+        ::As(std::cin, Json::context, customizeUnspecialized, customizeUnspecialized.firstField);
+    EXPECT_FALSE(isSpecialized);
+
+    isSpecialized = Json::Input::HaveSpecialization<CustomizeUnspecialized, int>;
+    EXPECT_FALSE(isSpecialized);
+}
+
 TEST(JsonInputCustomizersTest, CustomizeFullySpecialized)
 {
     CustomizeFullySpecialized customizeFullySpecialized = { 1, 2, 'a' };
@@ -93,23 +104,24 @@ TEST(JsonInputCustomizersTest, Customize2Args)
 
 TEST(JsonInputCustomizersTest, CustomizeTypeFullySpecialized)
 {
+    std::stringstream input("0");
     CustomizeTypeFullySpecialized customizeTypeFullySpecialized;
     bool isSpecialized = Json::Input::CustomizeType<CustomizeTypeFullySpecialized, Annotate<>, CustomizeTypeFullySpecialized::Class::firstField_::Field>
-        ::As(std::cin, Json::context, customizeTypeFullySpecialized);
+        ::As(input, Json::context, customizeTypeFullySpecialized);
     EXPECT_TRUE(isSpecialized);
 
     isSpecialized = Json::Input::HaveSpecialization<CustomizeTypeFullySpecialized, CustomizeTypeFullySpecialized, CustomizeTypeFullySpecialized::Class::IndexOf::firstField, Annotate<>, CustomizeTypeFullySpecialized::Class::firstField_::Field>;
     EXPECT_TRUE(isSpecialized);
 }
 
-TEST(JsonInputCustomizersTest, Customize3Args_OpAnnotationsDefaulted)
+TEST(JsonInputCustomizersTest, CustomizeType3Args_OpAnnotationsDefaulted)
 {
-    Customize3Args_OpAnnotationsDefaulted customize3Args_OpAnnotationsDefaulted;
-    bool isSpecialized = Json::Input::CustomizeType<Customize3Args_OpAnnotationsDefaulted, Annotate<>, Customize3Args_OpAnnotationsDefaulted::Class::firstField_::Field>
-        ::As(std::cin, Json::context, customize3Args_OpAnnotationsDefaulted);
+    CustomizeType3Args_OpAnnotationsDefaulted customizeType3Args_OpAnnotationsDefaulted;
+    bool isSpecialized = Json::Input::CustomizeType<CustomizeType3Args_OpAnnotationsDefaulted, Annotate<>, CustomizeType3Args_OpAnnotationsDefaulted::Class::firstField_::Field>
+        ::As(std::cin, Json::context, customizeType3Args_OpAnnotationsDefaulted);
     EXPECT_TRUE(isSpecialized);
 
-    isSpecialized = Json::Input::HaveSpecialization<Customize3Args_OpAnnotationsDefaulted, Customize3Args_OpAnnotationsDefaulted, Customize3Args_OpAnnotationsDefaulted::Class::IndexOf::firstField, Annotate<>, Customize3Args_OpAnnotationsDefaulted::Class::firstField_::Field>;
+    isSpecialized = Json::Input::HaveSpecialization<CustomizeType3Args_OpAnnotationsDefaulted, CustomizeType3Args_OpAnnotationsDefaulted, CustomizeType3Args_OpAnnotationsDefaulted::Class::IndexOf::firstField, Annotate<>, CustomizeType3Args_OpAnnotationsDefaulted::Class::firstField_::Field>;
     EXPECT_TRUE(isSpecialized);
 }
 
@@ -629,7 +641,7 @@ TEST(JsonInputConsume, IterableToStream)
     EXPECT_STREQ("{\"one\":\"str\",\"two\":2,\"three\":{},\"four\":[],\"five\":true,\"six\":null}", objReceiver.str().c_str());
 }
 
-TEST(JsonInputRead, ObjectPrefix)
+TEST(JsonInputReadAffix, ObjectPrefix)
 {
     char c = '\0';
     std::stringstream objPrefix("{");
@@ -639,4 +651,784 @@ TEST(JsonInputRead, ObjectPrefix)
     EXPECT_NO_THROW(Json::Read::ObjectPrefix(objPrefix, c));
     EXPECT_THROW(Json::Read::ObjectPrefix(arrayPrefix, c), Json::Exception);
     EXPECT_THROW(Json::Read::ObjectPrefix(letter, c), Json::Exception);
+}
+
+TEST(JsonInputReadAffix, TryObjectSuffix)
+{
+    std::stringstream objSuffix("}");
+    std::stringstream arraySuffix("]");
+    std::stringstream letter("a");
+    
+    EXPECT_TRUE(Json::Read::TryObjectSuffix(objSuffix));
+    EXPECT_FALSE(Json::Read::TryObjectSuffix(arraySuffix));
+    EXPECT_FALSE(Json::Read::TryObjectSuffix(letter));
+}
+
+TEST(JsonInputReadAffix, FieldSeparator)
+{
+    std::stringstream fieldSeparator(",");
+    std::stringstream objSuffix("}");
+    std::stringstream arraySuffix("]");
+    std::stringstream letter("a");
+
+    EXPECT_TRUE(Json::Read::FieldSeparator(fieldSeparator));
+    EXPECT_FALSE(Json::Read::FieldSeparator(objSuffix));
+    EXPECT_THROW(Json::Read::FieldSeparator(arraySuffix), Json::Exception);
+    EXPECT_THROW(Json::Read::FieldSeparator(letter), Json::Exception);
+}
+
+TEST(JsonInputReadAffix, FieldNameValueSeparator)
+{
+    char c = '\0';
+    std::stringstream fieldNameValueSeparator(":");
+    std::stringstream letter("a");
+    EXPECT_NO_THROW(Json::Read::FieldNameValueSeparator(fieldNameValueSeparator, c));
+    EXPECT_THROW(Json::Read::FieldNameValueSeparator(letter, c), Json::Exception);
+}
+
+TEST(JsonInputReadAffix, ArrayPrefix)
+{
+    char c = '\0';
+    std::stringstream arrayPrefix("[");
+    std::stringstream objectPrefix("{");
+    std::stringstream letter("a");
+    EXPECT_NO_THROW(Json::Read::ArrayPrefix(arrayPrefix, c));
+    EXPECT_THROW(Json::Read::ArrayPrefix(objectPrefix, c), Json::Exception);
+    EXPECT_THROW(Json::Read::ArrayPrefix(letter, c), Json::Exception);
+}
+
+TEST(JsonInputReadAffix, TryArraySuffix)
+{
+    std::stringstream arraySuffix("]");
+    std::stringstream objectSuffix("}");
+    std::stringstream letter("a");
+    
+    EXPECT_TRUE(Json::Read::TryArraySuffix(arraySuffix));
+    EXPECT_FALSE(Json::Read::TryArraySuffix(objectSuffix));
+    EXPECT_FALSE(Json::Read::TryArraySuffix(letter));
+}
+
+TEST(JsonInputReadAffix, IterablePrefix)
+{
+    char c = '\0';
+    std::stringstream objectPrefixExpected("{");
+    std::stringstream objectPrefixUnexpected("{");
+    std::stringstream arrayPrefixExpected("[");
+    std::stringstream arrayPrefixUnexpected("[");
+    
+    EXPECT_NO_THROW(Json::Read::IterablePrefix<true>(objectPrefixExpected, c));
+    EXPECT_THROW(Json::Read::IterablePrefix<false>(objectPrefixUnexpected, c), Json::Exception);
+    EXPECT_NO_THROW(Json::Read::IterablePrefix<false>(arrayPrefixExpected, c));
+    EXPECT_THROW(Json::Read::IterablePrefix<true>(arrayPrefixUnexpected, c), Json::Exception);
+}
+
+TEST(JsonInputReadAffix, TryIterableSuffix)
+{
+    std::stringstream objectSuffixExpected("}");
+    std::stringstream objectSuffixUnexpected("}");
+    std::stringstream arraySuffixExpected("]");
+    std::stringstream arraySuffixUnexpected("]");
+    
+    EXPECT_TRUE(Json::Read::TryIterableSuffix<true>(objectSuffixExpected));
+    EXPECT_FALSE(Json::Read::TryIterableSuffix<false>(objectSuffixUnexpected));
+    EXPECT_TRUE(Json::Read::TryIterableSuffix<false>(arraySuffixExpected));
+    EXPECT_FALSE(Json::Read::TryIterableSuffix<true>(arraySuffixUnexpected));
+}
+
+TEST(JsonInputReadAffix, IterableElementSeparator)
+{
+    std::stringstream iterableElementSeparator(",");
+    std::stringstream objectTerminator("}");
+    std::stringstream objectTerminatorUnexpected("}");
+    std::stringstream arrayTerminator("]");
+    std::stringstream arrayTerminatorUnexpected("]");
+    
+    EXPECT_TRUE(Json::Read::IterableElementSeparator<true>(iterableElementSeparator));
+    EXPECT_FALSE(Json::Read::IterableElementSeparator<true>(objectTerminator));
+    EXPECT_THROW(Json::Read::IterableElementSeparator<false>(objectTerminatorUnexpected), Json::Exception);
+    EXPECT_FALSE(Json::Read::IterableElementSeparator<false>(arrayTerminator));
+    EXPECT_THROW(Json::Read::IterableElementSeparator<true>(arrayTerminatorUnexpected), Json::Exception);
+}
+
+TEST(JsonInputRead, Customization)
+{
+    CustomizeUnspecialized customizeUnspecialized;
+    CustomizeFullySpecialized customizeFullySpecialized;
+    Customize5Args_OpAnnotationsDefaulted customize5Args_OpAnnotationsDefaulted;
+    Customize5Args_FieldIndexDefaulted customize5Args_FieldIndexDefaulted;
+    Customize5Args_BothDefaulted customize5Args_BothDefaulted;
+    Customize4Args customize4Args;
+    Customize4Args_FieldIndexDefaulted customize4Args_FieldIndexDefaulted;
+    Customize3Args customize3Args;
+    Customize2Args customize2Args;
+    CustomizeTypeFullySpecialized customizeTypeFullySpecialized;
+    CustomizeType3Args_OpAnnotationsDefaulted customizeType3Args_OpAnnotationsDefaulted;
+    CustomizeType2Args customizeType2Args;
+    CustomizeType1Arg customizeType1Arg;
+
+    using AField = Fields::Field<>;
+
+    bool customized = Json::Read::Customization<CustomizeUnspecialized, int, 0, Annotate<>, AField>(std::cin, Json::context, customizeUnspecialized, customizeUnspecialized.firstField);
+    EXPECT_FALSE(customized);
+    customized = Json::Read::Customization<CustomizeFullySpecialized, int, 0, Annotate<>, AField>(std::cin, Json::context, customizeFullySpecialized, customizeFullySpecialized.firstField);
+    EXPECT_TRUE(customized);
+    customized = Json::Read::Customization<Customize5Args_OpAnnotationsDefaulted, int, 0, Annotate<>, AField>(std::cin, Json::context, customize5Args_OpAnnotationsDefaulted, customize5Args_OpAnnotationsDefaulted.firstField);
+    EXPECT_TRUE(customized);
+    customized = Json::Read::Customization<Customize5Args_FieldIndexDefaulted, int, 0, Annotate<>, AField>(std::cin, Json::context, customize5Args_FieldIndexDefaulted, customize5Args_FieldIndexDefaulted.firstField);
+    EXPECT_TRUE(customized);
+    customized = Json::Read::Customization<Customize5Args_BothDefaulted, int, 0, Annotate<>, AField>(std::cin, Json::context, customize5Args_BothDefaulted, customize5Args_BothDefaulted.firstField);
+    EXPECT_TRUE(customized);
+    customized = Json::Read::Customization<Customize4Args, int, 0, Annotate<>, AField>(std::cin, Json::context, customize4Args, customize4Args.firstField);
+    EXPECT_TRUE(customized);
+    customized = Json::Read::Customization<Customize4Args_FieldIndexDefaulted, int, 0, Annotate<>, AField>(std::cin, Json::context, customize4Args_FieldIndexDefaulted, customize4Args_FieldIndexDefaulted.firstField);
+    EXPECT_TRUE(customized);
+    customized = Json::Read::Customization<Customize3Args, int, 0, Annotate<>, AField>(std::cin, Json::context, customize3Args, customize3Args.firstField);
+    EXPECT_TRUE(customized);
+    customized = Json::Read::Customization<Customize2Args, int, 0, Annotate<>, AField>(std::cin, Json::context, customize2Args, customize2Args.firstField);
+    EXPECT_TRUE(customized);
+    std::stringstream input("0");
+    customized = Json::Read::Customization<CustomizeTypeFullySpecialized, CustomizeTypeFullySpecialized, 0, Annotate<>, AField>(input, Json::context, customizeTypeFullySpecialized, customizeTypeFullySpecialized);
+    EXPECT_TRUE(customized);
+    customized = Json::Read::Customization<CustomizeType3Args_OpAnnotationsDefaulted, CustomizeType3Args_OpAnnotationsDefaulted, 0, Annotate<>, AField>(std::cin, Json::context, customizeType3Args_OpAnnotationsDefaulted, customizeType3Args_OpAnnotationsDefaulted);
+    EXPECT_TRUE(customized);
+    customized = Json::Read::Customization<CustomizeType2Args, CustomizeType2Args, 0, Annotate<>, AField>(std::cin, Json::context, customizeType2Args, customizeType2Args);
+    EXPECT_TRUE(customized);
+    customized = Json::Read::Customization<CustomizeType1Arg, CustomizeType1Arg, 0, Annotate<>, AField>(std::cin, Json::context, customizeType1Arg, customizeType1Arg);
+    EXPECT_TRUE(customized);
+}
+
+TEST(JsonInputRead, True)
+{
+    char c = '\0';
+    std::stringstream trueStream("true,");
+    std::stringstream falseStream("false,");
+    EXPECT_TRUE(Json::Read::True<true>(trueStream, c));
+    EXPECT_THROW(Json::Read::True<true>(falseStream, c), Json::Exception);
+}
+
+TEST(JsonInputRead, False)
+{
+    char c = '\0';
+    std::stringstream falseStream("false,");
+    std::stringstream trueStream("true,");
+    EXPECT_FALSE(Json::Read::False<true>(falseStream, c));
+    EXPECT_THROW(Json::Read::False<true>(trueStream, c), Json::Exception);
+}
+
+TEST(JsonInputRead, BoolReference)
+{
+    char c = '\0';
+    bool value = false;
+
+    std::stringstream trueStream("true,");
+    Json::Read::Bool<true>(trueStream, c, value);
+    EXPECT_TRUE(value);
+
+    std::stringstream falseStream("false,");
+    Json::Read::Bool<true>(falseStream, c, value);
+    EXPECT_FALSE(value);
+
+    std::stringstream invalidStream("asdf");
+    EXPECT_THROW(Json::Read::Bool<true>(invalidStream, c, value), Json::Exception);
+}
+
+TEST(JsonInputRead, BoolReturn)
+{
+    char c = '\0';
+    
+    std::stringstream trueStream("true,");
+    EXPECT_TRUE(Json::Read::Bool<true>(trueStream, c));
+
+    std::stringstream falseStream("false,");
+    EXPECT_FALSE(Json::Read::Bool<true>(falseStream, c));
+
+    std::stringstream invalidStream("asdf");
+    EXPECT_THROW(Json::Read::Bool<true>(invalidStream, c), Json::Exception);
+}
+
+TEST(JsonInputRead, Number)
+{
+    char c = '\0';
+    std::stringstream validNumber("1234,");
+    std::string result = Json::Input::Read::Number<true>(validNumber, c);
+    EXPECT_STREQ("1234", result.c_str());
+
+    std::stringstream invalidNumber("asdf,");
+    EXPECT_THROW(Json::Input::Read::Number<true>(invalidNumber, c), Json::Exception);
+}
+
+TEST(JsonInputRead, StringToStream)
+{
+    char c = '\0';
+    std::stringstream emptyStr("\"\"\"");
+    std::stringstream basicStr("\"asdf\"");
+    std::stringstream quoteStr("\"\\\"\"");
+    std::stringstream backslashStr("\"\\\\\"");
+    std::stringstream forwardslashStr("\"\\/\"");
+    std::stringstream backspaceStr("\"\\b\"");
+    std::stringstream formFeedStr("\"\\f\"");
+    std::stringstream lineFeedStr("\"\\n\"");
+    std::stringstream carriageReturnStr("\"\\r\"");
+    std::stringstream tabStr("\"\\t\"");
+    std::stringstream unicodeCharacterStr("\"\\u0030\"");
+    std::stringstream everything("\" asdf \\\"\\\\\\/\\b\\f\\n\\r\\t\\u0030 \"");
+
+    std::stringstream emptyStrReceiver;
+    std::stringstream basicStrReceiver;
+    std::stringstream quoteStrReceiver;
+    std::stringstream backslashStrReceiver;
+    std::stringstream forwardslashStrReceiver;
+    std::stringstream backspaceStrReceiver;
+    std::stringstream formFeedStrReceiver;
+    std::stringstream lineFeedStrReceiver;
+    std::stringstream carriageReturnStrReceiver;
+    std::stringstream tabStrReceiver;
+    std::stringstream unicodeCharacterStrReceiver;
+    std::stringstream everythingReceiver;
+    
+    Json::Read::String(emptyStr, c, emptyStrReceiver);
+    Json::Read::String(basicStr, c, basicStrReceiver);
+    Json::Read::String(quoteStr, c, quoteStrReceiver);
+    Json::Read::String(backslashStr, c, backslashStrReceiver);
+    Json::Read::String(forwardslashStr, c, forwardslashStrReceiver);
+    Json::Read::String(backspaceStr, c, backspaceStrReceiver);
+    Json::Read::String(formFeedStr, c, formFeedStrReceiver);
+    Json::Read::String(lineFeedStr, c, lineFeedStrReceiver);
+    Json::Read::String(carriageReturnStr, c, carriageReturnStrReceiver);
+    Json::Read::String(tabStr, c, tabStrReceiver);
+    Json::Read::String(unicodeCharacterStr, c, unicodeCharacterStrReceiver);
+    Json::Read::String(everything, c, everythingReceiver);
+    
+    EXPECT_STREQ("", emptyStrReceiver.str().c_str());
+    EXPECT_STREQ("asdf", basicStrReceiver.str().c_str());
+    EXPECT_STREQ("\"", quoteStrReceiver.str().c_str());
+    EXPECT_STREQ("\\", backslashStrReceiver.str().c_str());
+    EXPECT_STREQ("/", forwardslashStrReceiver.str().c_str());
+    EXPECT_STREQ("\b", backspaceStrReceiver.str().c_str());
+    EXPECT_STREQ("\f", formFeedStrReceiver.str().c_str());
+    EXPECT_STREQ("\n", lineFeedStrReceiver.str().c_str());
+    EXPECT_STREQ("\r", carriageReturnStrReceiver.str().c_str());
+    EXPECT_STREQ("\t", tabStrReceiver.str().c_str());
+    EXPECT_STREQ("0", unicodeCharacterStrReceiver.str().c_str());
+    EXPECT_STREQ(" asdf \"\\/\b\f\n\r\t0 ", everythingReceiver.str().c_str());
+}
+
+TEST(JsonInputRead, StringReference)
+{
+    char c = '\0';
+    std::stringstream everything("\" asdf \\\"\\\\\\/\\b\\f\\n\\r\\t\\u0030 \"");
+    std::string result;
+    Json::Read::String(everything, c, result);
+    EXPECT_STREQ(" asdf \"\\/\b\f\n\r\t0 ", result.c_str());
+}
+
+TEST(JsonInputRead, StringTemplate)
+{
+    char c = '\0';
+    std::stringstream integerStream("\"1234\"");
+    int result = 0;
+    Json::Read::String(integerStream, c, result);
+    EXPECT_EQ(1234, result);
+}
+
+TEST(JsonInputRead, StringCharReturned)
+{
+    char c = '\0';
+    std::stringstream everything("\" asdf \\\"\\\\\\/\\b\\f\\n\\r\\t\\u0030 \"");
+    std::string result = Json::Read::String(everything, c);
+    EXPECT_STREQ(" asdf \"\\/\b\f\n\r\t0 ", result.c_str());
+}
+
+TEST(JsonInputRead, StringReturned)
+{
+    std::stringstream everything("\" asdf \\\"\\\\\\/\\b\\f\\n\\r\\t\\u0030 \"");
+    std::string result = Json::Read::String(everything);
+    EXPECT_STREQ(" asdf \"\\/\b\f\n\r\t0 ", result.c_str());
+}
+
+enum_t(EnumIntEnum, uint32_t, {
+    none = 0,
+    leet = 1337,
+    overNineThousand = 9001
+});
+
+TEST(JsonInputRead, EnumInt)
+{
+    std::stringstream leet("1337");
+    std::stringstream overNineThousand("9001");
+    EnumIntEnum result = EnumIntEnum::none;
+    Json::Read::EnumInt(leet, result);
+    EXPECT_EQ(EnumIntEnum::leet, result);
+    Json::Read::EnumInt(overNineThousand, result);
+    EXPECT_EQ(EnumIntEnum::overNineThousand, result);
+}
+
+TEST(JsonInputRead, FieldName)
+{
+    char c = '\0';
+    std::stringstream fieldNameStream("\"asdf\"");
+    std::string fieldName = Json::Read::FieldName(fieldNameStream, c);
+    EXPECT_STREQ("asdf", fieldName.c_str());
+}
+
+TEST(JsonInputRead, GenericValue)
+{
+    char c = '\0';
+    std::shared_ptr<Json::Value::Assigner> assigner;
+    
+    std::stringstream stringStream("\"string\"");
+    std::stringstream objectStream("{}");
+    std::stringstream arrayStream("[]");
+    std::stringstream boolStream("true,");
+    std::stringstream numberStream("1234,");
+    std::stringstream nullStream("null,");
+    std::stringstream invalidStream("qqq,");
+    
+    assigner = Json::Read::GenericValue<true>(stringStream, Json::context, c);
+    EXPECT_EQ(Json::Value::Type::String, assigner->get()->type());
+    assigner = Json::Read::GenericValue<true>(objectStream, Json::context, c);
+    EXPECT_EQ(Json::Value::Type::Object, assigner->get()->type());
+    assigner = Json::Read::GenericValue<true>(arrayStream, Json::context, c);
+    EXPECT_EQ(Json::Value::Type::NullArray, assigner->get()->type());
+    assigner = Json::Read::GenericValue<true>(boolStream, Json::context, c);
+    EXPECT_EQ(Json::Value::Type::Boolean, assigner->get()->type());
+    assigner = Json::Read::GenericValue<true>(numberStream, Json::context, c);
+    EXPECT_EQ(Json::Value::Type::Number, assigner->get()->type());
+    assigner = Json::Read::GenericValue<true>(nullStream, Json::context, c);
+    EXPECT_TRUE(assigner->get() == nullptr);
+
+    EXPECT_THROW(Json::Read::GenericValue<true>(invalidStream, Json::context, c), Json::InvalidUnknownFieldValue);
+}
+
+TEST(JsonInputRead, ValueType)
+{
+    char c = '\"';
+    EXPECT_EQ(Json::Value::Type::String, Json::Read::ValueType(c));
+
+    c = '{';
+    EXPECT_EQ(Json::Value::Type::Object, Json::Read::ValueType(c));
+
+    c = '[';
+    EXPECT_EQ(Json::Value::Type::Array, Json::Read::ValueType(c));
+
+    c = 't';
+    EXPECT_EQ(Json::Value::Type::Boolean, Json::Read::ValueType(c));
+    c = 'f';
+    EXPECT_EQ(Json::Value::Type::Boolean, Json::Read::ValueType(c));
+
+    c = '-';
+    EXPECT_EQ(Json::Value::Type::Number, Json::Read::ValueType(c));
+    c = '0';
+    EXPECT_EQ(Json::Value::Type::Number, Json::Read::ValueType(c));
+    c = '1';
+    EXPECT_EQ(Json::Value::Type::Number, Json::Read::ValueType(c));
+    c = '2';
+    EXPECT_EQ(Json::Value::Type::Number, Json::Read::ValueType(c));
+    c = '3';
+    EXPECT_EQ(Json::Value::Type::Number, Json::Read::ValueType(c));
+    c = '4';
+    EXPECT_EQ(Json::Value::Type::Number, Json::Read::ValueType(c));
+    c = '5';
+    EXPECT_EQ(Json::Value::Type::Number, Json::Read::ValueType(c));
+    c = '6';
+    EXPECT_EQ(Json::Value::Type::Number, Json::Read::ValueType(c));
+    c = '7';
+    EXPECT_EQ(Json::Value::Type::Number, Json::Read::ValueType(c));
+    c = '8';
+    EXPECT_EQ(Json::Value::Type::Number, Json::Read::ValueType(c));
+    c = '9';
+    EXPECT_EQ(Json::Value::Type::Number, Json::Read::ValueType(c));
+
+    c = 'n';
+    EXPECT_EQ(Json::Value::Type::Null, Json::Read::ValueType(c));
+
+    c = 'q';
+    EXPECT_THROW(Json::Read::ValueType(c), Json::InvalidUnknownFieldValue);
+}
+
+TEST(JsonInputRead, GenericArray)
+{
+    char c = '\0';
+    std::stringstream emptyArray("[]");
+    std::stringstream nullArray("[null, null, null]");
+    std::stringstream boolArray("[true, false, false, true]");
+    std::stringstream numberArray("[12, 13, 13.5, 15, -12.322, -5, 6]");
+    std::stringstream stringArray("[\"asdf\",\"qwerty\"]");
+    std::stringstream objectArray("[{}, {\"field\":true}, {\"str\":\"hello world\",\"num\":42}]");
+    std::stringstream mixedArray("[null, false]");
+    std::stringstream nestedArrays("[ [[true, false], [null, null]], [[\"as\"], [{\"df\":\"qw\"}]] ]");
+
+    std::shared_ptr<Json::Value::Assigner> assigner = nullptr;
+
+    assigner = Json::Read::GenericArray<true>(emptyArray, Json::context, c);
+    EXPECT_EQ(Json::Value::Type::NullArray, assigner->get()->type());
+
+    assigner = Json::Read::GenericArray<true>(nullArray, Json::context, c);
+    EXPECT_EQ(Json::Value::Type::NullArray, assigner->get()->type());
+    EXPECT_EQ(3, assigner->get()->nullArray());
+
+    assigner = Json::Read::GenericArray<true>(boolArray, Json::context, c);
+    EXPECT_EQ(Json::Value::Type::BoolArray, assigner->get()->type());
+    EXPECT_TRUE(assigner->get()->boolArray()[0]);
+    EXPECT_FALSE(assigner->get()->boolArray()[1]);
+    EXPECT_FALSE(assigner->get()->boolArray()[2]);
+    EXPECT_TRUE(assigner->get()->boolArray()[3]);
+    
+    assigner = Json::Read::GenericArray<true>(numberArray, Json::context, c);
+    EXPECT_EQ(Json::Value::Type::NumberArray, assigner->get()->type());
+    EXPECT_EQ(7, assigner->get()->arraySize());
+    EXPECT_STREQ("12", assigner->get()->numberArray()[0].c_str());
+    EXPECT_STREQ("13", assigner->get()->numberArray()[1].c_str());
+    EXPECT_STREQ("13.5", assigner->get()->numberArray()[2].c_str());
+    EXPECT_STREQ("15", assigner->get()->numberArray()[3].c_str());
+    EXPECT_STREQ("-12.322", assigner->get()->numberArray()[4].c_str());
+    EXPECT_STREQ("-5", assigner->get()->numberArray()[5].c_str());
+    EXPECT_STREQ("6", assigner->get()->numberArray()[6].c_str());
+
+    assigner = Json::Read::GenericArray<true>(stringArray, Json::context, c);
+    EXPECT_EQ(Json::Value::Type::StringArray, assigner->get()->type());
+    EXPECT_EQ(2, assigner->get()->arraySize());
+    EXPECT_STREQ("asdf", assigner->get()->stringArray()[0].c_str());
+    EXPECT_STREQ("qwerty", assigner->get()->stringArray()[1].c_str());
+
+    assigner = Json::Read::GenericArray<true>(objectArray, Json::context, c);
+    EXPECT_EQ(Json::Value::Type::ObjectArray, assigner->get()->type());
+    EXPECT_EQ(3, assigner->get()->arraySize());
+    EXPECT_TRUE(assigner->get()->objectArray()[0].empty());
+    EXPECT_TRUE(assigner->get()->objectArray()[1].find("field")->second->boolean());
+    EXPECT_STREQ("hello world", assigner->get()->objectArray()[2].find("str")->second->string().c_str());
+    EXPECT_STREQ("42", assigner->get()->objectArray()[2].find("num")->second->number().c_str());
+
+    assigner = Json::Read::GenericArray<true>(mixedArray, Json::context, c);
+    EXPECT_EQ(Json::Value::Type::MixedArray, assigner->get()->type());
+    EXPECT_EQ(2, assigner->get()->arraySize());
+    EXPECT_TRUE(assigner->get()->mixedArray()[0] == nullptr);
+    EXPECT_TRUE(assigner->get()->mixedArray()[1]->boolean() == false);
+
+    assigner = Json::Read::GenericArray<true>(nestedArrays, Json::context, c);
+    EXPECT_EQ(Json::Value::Type::MixedArray, assigner->get()->type());
+    EXPECT_EQ(2, assigner->get()->arraySize());
+    EXPECT_TRUE(assigner->get()->mixedArray()[0]->mixedArray()[0]->boolArray()[0]);
+    EXPECT_FALSE(assigner->get()->mixedArray()[0]->mixedArray()[0]->boolArray()[1]);
+    EXPECT_EQ(2, assigner->get()->mixedArray()[0]->mixedArray()[1]->nullArray());
+    EXPECT_STREQ("as", assigner->get()->mixedArray()[1]->mixedArray()[0]->stringArray()[0].c_str());
+    EXPECT_STREQ("qw", assigner->get()->mixedArray()[1]->mixedArray()[1]->objectArray()[0].find("df")->second->string().c_str());
+}
+
+TEST(JsonInputRead, GenericObject)
+{
+    char c = '\0';
+    std::shared_ptr<Json::Value::Assigner> assigner = nullptr;
+
+    std::stringstream emptyObject("{}");
+    std::stringstream basicObject("{\"one\":1,\"two\":2}");
+    
+    assigner = Json::Read::GenericObject(emptyObject, Json::context, c);
+    EXPECT_TRUE(assigner->get()->object().empty());
+
+    assigner = Json::Read::GenericObject(basicObject, Json::context, c);
+    EXPECT_STREQ("1", assigner->get()->object().find("one")->second->number().c_str());
+    EXPECT_STREQ("2", assigner->get()->object().find("two")->second->number().c_str());
+}
+
+struct ComposedObj
+{
+    int a;
+
+    REFLECT(() ComposedObj, () a)
+};
+
+struct VariousValues
+{
+    CustomizeTypeFullySpecialized customized;
+    
+    std::shared_ptr<Json::Value> genericNonNull;
+    std::shared_ptr<Json::Value> genericNull;
+
+    std::shared_ptr<int> sharedPointerNull;
+    std::unique_ptr<int> uniquePointerNull;
+    int* regularPointerNull;
+
+    int* regularPointerToBecomeNull;
+    int* regularPointerValue;
+
+    Json::Object genericValue;
+    std::vector<int> intVector;
+    ComposedObj composedObj;
+    int integerString;
+    EnumIntEnum enumInt;
+    bool boolean;
+    static constexpr const int constant = 0;
+    std::string str;
+
+    REFLECT(() VariousValues, (Reflected) customized, () genericNonNull, () genericNull, () sharedPointerNull, () uniquePointerNull,
+        () regularPointerNull, () regularPointerToBecomeNull, () regularPointerValue,
+        () genericValue, () intVector, (Reflected) composedObj, (Json::String) integerString, (Json::EnumInt) enumInt, () boolean, () constant, () str)
+};
+
+TEST(JsonInputRead, Value)
+{
+    char c = '\0';
+    int anInt = 0;
+
+    VariousValues v = {};
+    v.genericNonNull = Json::Bool::Make(false);
+    v.genericNull = nullptr;
+    v.sharedPointerNull = nullptr;
+    v.uniquePointerNull = nullptr;
+    v.regularPointerNull = nullptr;
+    v.regularPointerToBecomeNull = &anInt;
+    v.regularPointerValue = &anInt;
+
+    v.composedObj.a = 0;
+    v.integerString = 0;
+    v.enumInt = EnumIntEnum::none;
+    v.boolean = false;
+    v.str = "";
+
+    std::stringstream customizedStream("1234,");
+    Json::Read::Value<true, VariousValues::Class::customized_::Field, CustomizeTypeFullySpecialized, VariousValues>(
+        customizedStream, Json::context, c, v, v.customized);
+    EXPECT_EQ(1234, v.customized.firstField);
+
+    std::stringstream genericNonNullNull("null,");
+    Json::Read::Value<true, VariousValues::Class::genericNonNull_::Field, std::shared_ptr<Json::Value>, VariousValues>(
+        genericNonNullNull, Json::context, c, v, v.genericNonNull);
+    EXPECT_TRUE(v.genericNonNull == nullptr);
+
+    std::stringstream genericNullNonNull("true,");
+    Json::Read::Value<true, VariousValues::Class::genericNull_::Field, std::shared_ptr<Json::Value>, VariousValues>(
+        genericNullNonNull, Json::context, c, v, v.genericNull);
+    EXPECT_TRUE(v.genericNull != nullptr);
+    EXPECT_EQ(Json::Value::Type::Boolean, v.genericNull->type());
+
+    std::stringstream sharedPtrNullptr("111,");
+    Json::Read::Value<true, VariousValues::Class::sharedPointerNull_::Field, std::shared_ptr<int>, VariousValues>(
+        sharedPtrNullptr, Json::context, c, v, v.sharedPointerNull);
+    EXPECT_TRUE(v.sharedPointerNull != nullptr);
+    EXPECT_EQ(111, *v.sharedPointerNull);
+
+    std::stringstream uniquePtrNullptr("222,");
+    Json::Read::Value<true, VariousValues::Class::uniquePointerNull_::Field, std::unique_ptr<int>, VariousValues>(
+        uniquePtrNullptr, Json::context, c, v, v.uniquePointerNull);
+    EXPECT_TRUE(v.uniquePointerNull != nullptr);
+    EXPECT_EQ(222, *v.uniquePointerNull);
+
+    std::stringstream regularPtrNullptr("null,");
+    Json::Read::Value<true, VariousValues::Class::regularPointerNull_::Field, int*, VariousValues>(
+        regularPtrNullptr, Json::context, c, v, v.regularPointerNull);
+    EXPECT_TRUE(v.regularPointerNull == nullptr);
+
+    std::stringstream regularPtrToBecomeNull("null,");
+    Json::Read::Value<true, VariousValues::Class::regularPointerToBecomeNull_::Field, int*, VariousValues>(
+        regularPtrToBecomeNull, Json::context, c, v, v.regularPointerToBecomeNull);
+    EXPECT_TRUE(v.regularPointerToBecomeNull == nullptr);
+
+    std::stringstream regularPtrValue("999,");
+    Json::Read::Value<true, VariousValues::Class::regularPointerValue_::Field, int*, VariousValues>(
+        regularPtrValue, Json::context, c, v, v.regularPointerValue);
+    EXPECT_EQ(999, anInt);
+
+    std::stringstream composedObjStream("{\"a\": 1}");
+    Json::Read::Value<true, VariousValues::Class::composedObj_::Field, ComposedObj, VariousValues>(
+        composedObjStream, Json::context, c, v, v.composedObj);
+    EXPECT_EQ(1, v.composedObj.a);
+
+    std::stringstream integerStringStream("\"4567\"");
+    Json::Read::Value<true, VariousValues::Class::integerString_::Field, int, VariousValues>(
+        integerStringStream, Json::context, c, v, v.integerString);
+    EXPECT_EQ(4567, v.integerString);
+
+    std::stringstream enumIntStream("1337,");
+    Json::Read::Value<true, VariousValues::Class::enumInt_::Field, EnumIntEnum, VariousValues>(
+        enumIntStream, Json::context, c, v, v.enumInt);
+    EXPECT_EQ(EnumIntEnum::leet, v.enumInt);
+
+    std::stringstream booleanStream("true,");
+    Json::Read::Value<true, VariousValues::Class::boolean_::Field, bool, VariousValues>(
+        booleanStream, Json::context, c, v, v.boolean);
+    EXPECT_TRUE(v.boolean);
+    
+    std::stringstream constInt("9001,");
+    Json::Read::Value<true, VariousValues::Class::constant_::Field, const int, VariousValues>(
+        constInt, Json::context, c, v, v.constant);
+    EXPECT_EQ(0, v.constant);
+
+    std::stringstream strStream("\"asdf\",");
+    Json::Read::Value<true, VariousValues::Class::str_::Field, std::string, VariousValues>(
+        strStream, Json::context, c, v, v.str);
+    EXPECT_STREQ("asdf", v.str.c_str());
+}
+
+TEST(JsonInputRead, ValuePair)
+{
+    int placeholderObj = 0;
+    char c = '\0';
+    std::pair<std::string, bool> testPair = std::pair<std::string, bool>("", true);
+    EXPECT_TRUE(testPair.second);
+    std::stringstream testPairStream("\"aPair\":false ,");
+    Json::Read::Value<true, Fields::Field<>>(testPairStream, Json::context, c, placeholderObj, testPair);
+    EXPECT_FALSE(testPair.second);
+}
+
+TEST(JsonInputRead, Iterable)
+{
+    char c = '\0';
+    int placeholderObj = 0;
+
+    int staticArray[4] = { 0, 0, 0, 0 };
+    std::stringstream staticArrayStream("[1,2,3,4]");
+    using StaticArrayField = Fields::Field<decltype(staticArray)>;
+    Json::Read::Iterable<StaticArrayField>(staticArrayStream, Json::context, c, placeholderObj, staticArray);
+    EXPECT_EQ(1, staticArray[0]);
+    EXPECT_EQ(2, staticArray[1]);
+    EXPECT_EQ(3, staticArray[2]);
+    EXPECT_EQ(4, staticArray[3]);
+
+    std::vector<int> intVector;
+    std::stringstream vectorStream("[2,3,4,5]");
+    using VectorField = Fields::Field<decltype(intVector)>;
+    Json::Read::Iterable<VectorField>(vectorStream, Json::context, c, placeholderObj, intVector);
+    EXPECT_EQ(2, intVector[0]);
+    EXPECT_EQ(3, intVector[1]);
+    EXPECT_EQ(4, intVector[2]);
+    EXPECT_EQ(5, intVector[3]);
+}
+
+struct RegularField
+{
+    int a;
+
+    REFLECT(() RegularField, () a)
+};
+
+struct SuperClassField : RegularField
+{
+    REFLECT_EMPTY((RegularField) SuperClassField)
+};
+
+TEST(JsonInputRead, Field)
+{
+    RegularField regularField = {};
+    regularField.a = 444;
+    SuperClassField superClassField = {};
+    superClassField.a = 555;
+
+    char c = '\0';
+    std::stringstream regularFieldStream(":777,");
+    std::stringstream superClassFieldStream(":{\"a\":888}");
+
+    Json::Read::Field<RegularField>(regularFieldStream, Json::context, c, regularField, "a");
+    Json::Read::Field<SuperClassField>(superClassFieldStream, Json::context, c, superClassField, "__RegularField");
+
+    EXPECT_EQ(regularField.a, 777);
+    EXPECT_EQ(superClassField.a, 888);
+
+    std::stringstream unknownFieldStream(":222,");
+    EXPECT_NO_THROW(Json::Read::Field<RegularField>(unknownFieldStream, Json::context, c, regularField, "b"));
+}
+
+struct ReadableObject
+{
+    int a;
+
+    REFLECT(() ReadableObject, () a)
+};
+
+TEST(JsonInputRead, Object)
+{
+    char c = '\0';
+    std::stringstream objectStream("{\"a\":5}");
+    ReadableObject object;
+    object.a = 0;
+
+    Json::Read::Object<ReadableObject>(objectStream, Json::context, c, object);
+    EXPECT_EQ(5, object.a);
+}
+
+TEST(JsonInput, ReflectedObject)
+{
+    std::stringstream objectStream("{\"a\":5}");
+    ReadableObject object;
+    object.a = 0;
+
+    Json::Input::ReflectedObject<ReadableObject> reflectedObject(object, nullptr);
+    objectStream >> reflectedObject;
+
+    EXPECT_EQ(5, object.a);
+}
+
+struct EmptyIn
+{
+    REFLECT_EMPTY(() EmptyIn)
+};
+
+struct SingleFieldIn
+{
+    int a;
+
+    REFLECT(() SingleFieldIn, () a)
+};
+
+struct ComplexStruct : EmptyIn, SingleFieldIn
+{
+    int a;
+    std::string b;
+    std::shared_ptr<std::string> dynamicString;
+    SingleFieldIn singleFieldIn;
+    std::map<int, std::string> intStringMap;
+    std::vector<int> intVector;
+    Json::FieldCluster fieldCluster;
+    
+    using Parents = Inherit<EmptyIn, SingleFieldIn>;
+    REFLECT((Parents) ComplexStruct, () a, () b, () dynamicString, (Reflected) singleFieldIn, () intStringMap, () intVector, () fieldCluster)
+};
+
+TEST(JsonInput, In)
+{
+    EmptyIn emptyIn = {};
+    std::stringstream emptyObjStream("{}");
+    EXPECT_NO_THROW(emptyObjStream >> Json::in(emptyIn));
+
+    SingleFieldIn singleFieldIn = { 0 };
+    std::stringstream singleFieldEmptyObjStream("{}");
+    EXPECT_NO_THROW(singleFieldEmptyObjStream >> Json::in(singleFieldIn));
+    std::stringstream singleFieldObjStream("{\"a\":1234}");
+    singleFieldObjStream >> Json::in(singleFieldIn);
+    EXPECT_EQ(1234, singleFieldIn.a);
+
+    ComplexStruct complexStruct = {};
+    std::stringstream complexStructStream;
+    complexStructStream
+        << "{" << std::endl
+        << "  \"a\" : 1 , " << std::endl
+        << "  \"b\" : \"asdf\" , " << std::endl
+        << "  \"dynamicString\" : \"qwerty\" , " << std::endl
+        << "  \"singleFieldIn\" : {" << std::endl
+        << "    \"a\" : 3 " << std::endl
+        << "  } , " << std::endl
+        << "  \"intStringMap\" : {" << std::endl
+        << "    \"2\": \"ab\" , " << std::endl
+        << "    \"3\": \"c\"   " << std::endl
+        << "  } , " << std::endl
+        << "  \"intVector\" : [ 1 , 2, 3]," << std::endl
+        << "  \"someUnknown\": null," << std::endl
+        << "  \"someOtherUnknown\": [4, 5, 6]" << std::endl
+        << "}";
+
+    complexStructStream >> Json::in(complexStruct);
+    EXPECT_EQ(1, complexStruct.a);
+    EXPECT_STREQ("asdf", complexStruct.b.c_str());
+    EXPECT_STREQ("qwerty", complexStruct.dynamicString->c_str());
+    EXPECT_EQ(3, complexStruct.singleFieldIn.a);
+    EXPECT_STREQ("ab", complexStruct.intStringMap.find(2)->second.c_str());
+    EXPECT_STREQ("c", complexStruct.intStringMap.find(3)->second.c_str());
+    EXPECT_EQ(1, complexStruct.intVector[0]);
+    EXPECT_EQ(2, complexStruct.intVector[1]);
+    EXPECT_EQ(3, complexStruct.intVector[2]);
+    EXPECT_TRUE(complexStruct.fieldCluster.object().find("someUnknown")->second == nullptr);
+    EXPECT_EQ(3, complexStruct.fieldCluster.object().find("someOtherUnknown")->second->arraySize());
+    EXPECT_STREQ("4", complexStruct.fieldCluster.object().find("someOtherUnknown")->second->numberArray()[0].c_str());
+    EXPECT_STREQ("5", complexStruct.fieldCluster.object().find("someOtherUnknown")->second->numberArray()[1].c_str());
+    EXPECT_STREQ("6", complexStruct.fieldCluster.object().find("someOtherUnknown")->second->numberArray()[2].c_str());
 }

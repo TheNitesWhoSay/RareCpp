@@ -2844,6 +2844,7 @@ TEST(JsonOutputPut, Fields)
         putMultipleRegularFields, Json::context, regularFields);
     EXPECT_STREQ("\"regular\":1,\"unknown\":\"field\"", putMultipleRegularFields.str().c_str());
 }
+
 TEST(JsonOutputPut, SuperTest)
 {
     std::stringstream putNoSupers;

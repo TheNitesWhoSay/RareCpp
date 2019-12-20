@@ -4,6 +4,15 @@
 #include "../CppRandomAccessReflectionLib/Json.h"
 using namespace Reflect;
 
+struct CustomizeUnspecialized
+{
+    int firstField;
+    int secondField;
+    char unspecialized;
+
+    REFLECT(() CustomizeUnspecialized, () firstField, () secondField, () unspecialized)
+};
+
 struct CustomizeFullySpecialized
 {
     int firstField;
@@ -136,22 +145,26 @@ struct CustomizeTypeFullySpecialized
 template <typename OpAnnotations, typename Field>
 struct Json::Input::CustomizeType<CustomizeTypeFullySpecialized, OpAnnotations, Field>
 {
-    static bool As(std::istream & input, Context & context, const CustomizeTypeFullySpecialized & value) { return true; };
+    static bool As(std::istream & input, Context & context, CustomizeTypeFullySpecialized & value)
+    {
+        input >> value.firstField;
+        return true;
+    };
 };
 
-struct Customize3Args_OpAnnotationsDefaulted
+struct CustomizeType3Args_OpAnnotationsDefaulted
 {
     int firstField;
     int secondField;
     char unspecialized;
 
-    REFLECT(() Customize3Args_OpAnnotationsDefaulted, () firstField, () secondField, () unspecialized)
+    REFLECT(() CustomizeType3Args_OpAnnotationsDefaulted, () firstField, () secondField, () unspecialized)
 };
 
 template <typename Field>
-struct Json::Input::CustomizeType<Customize3Args_OpAnnotationsDefaulted, Annotate<>, Field>
+struct Json::Input::CustomizeType<CustomizeType3Args_OpAnnotationsDefaulted, Annotate<>, Field>
 {
-    static bool As(std::istream & input, Context & context, const Customize3Args_OpAnnotationsDefaulted & value) { return true; }
+    static bool As(std::istream & input, Context & context, CustomizeType3Args_OpAnnotationsDefaulted & value) { return true; }
 };
 
 struct CustomizeType2Args
@@ -166,7 +179,7 @@ struct CustomizeType2Args
 template <typename OpAnnotations>
 struct Json::Input::CustomizeType<CustomizeType2Args, OpAnnotations>
 {
-    static bool As(std::istream & input, Context & context, const CustomizeType2Args & value) { return true; }
+    static bool As(std::istream & input, Context & context, CustomizeType2Args & value) { return true; }
 };
 
 struct CustomizeType1Arg
@@ -181,7 +194,7 @@ struct CustomizeType1Arg
 template <>
 struct Json::Input::CustomizeType<CustomizeType1Arg>
 {
-    static bool As(std::istream & input, Context & context, const CustomizeType1Arg & value) { return true; }
+    static bool As(std::istream & input, Context & context, CustomizeType1Arg & value) { return true; }
 };
 
 #endif
