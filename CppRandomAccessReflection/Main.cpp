@@ -1,4 +1,5 @@
 #include "Main.h"
+#include "../CppRandomAccessReflectionLib/Reflect.h"
 #include <typeinfo>
 #include <memory>
 using Json::Statics;
@@ -69,6 +70,12 @@ public:
 
     REFLECT(() Wheel, () rim, () size, () pressure)
 };
+
+std::ostream & operator<<(std::ostream & os, Wheel::Rim & rim)
+{
+    os << (short)rim;
+    return os;
+}
 
 class CupHolder {
 public:

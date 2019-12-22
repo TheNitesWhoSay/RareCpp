@@ -50,7 +50,9 @@ namespace ExtractorsAndMacroLoops
 // If x takes the form "(LHS) RHS", then this macro returns RHS
 #define RHS(x) EO_B x
 
-#ifdef _MSC_VER // Visual studios
+#ifdef _MSC_VER // Visual studios or possibly clang
+
+#ifndef __clang__ // Not clang
 
 /// Extractor_First
 #define EO_F(x, y) x
@@ -64,6 +66,21 @@ namespace ExtractorsAndMacroLoops
 // If x takes the form "(LHS) RHS", then this macro returns LHS
 #define LHS(x) EO_G((EO_E EO_W x))
 
+#else // Clang via visual studios
+
+/// Extractor_First
+#define EO_F(x, ...) EO_E x
+
+/// Extractor_WrapAndAppendComma
+#define EO_W(x) (x),
+
+/// Extractor_GetFirst
+#define EO_G(x, y) EO_F(x, y)
+
+// If x takes the form "(LHS) RHS", then this macro returns LHS
+#define LHS(x) EO_G(EO_W x,)
+
+#endif
 #else // Not visual studios
 
 /// Extractor_First
@@ -466,17 +483,24 @@ namespace ExtendedTypeSupport
     {
         std::string_view view;
 #ifdef _MSC_VER
+#ifndef __clang__
         view = __FUNCSIG__;
         view.remove_prefix(view.find_first_of("<")+1);
         view.remove_suffix(view.size()-view.find_last_of(">"));
 #else
-#ifdef __GNUC__
+        view = __PRETTY_FUNCTION__;
+        view.remove_prefix(view.find_first_of("=")+1);
+        view.remove_prefix(view.find_first_not_of(" "));
+        view.remove_suffix(view.size()-view.find_last_of("]"));
+#endif
+#else
+#ifdef __clang__
         view = __PRETTY_FUNCTION__;
         view.remove_prefix(view.find_first_of("=")+1);
         view.remove_prefix(view.find_first_not_of(" "));
         view.remove_suffix(view.size()-view.find_last_of("]"));
 #else
-#ifdef __clang__
+#ifdef __GNUC__
         view = __PRETTY_FUNCTION__;
         view.remove_prefix(view.find_first_of("=")+1);
         view.remove_prefix(view.find_first_not_of(" "));
