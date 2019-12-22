@@ -45,37 +45,12 @@ TEST(ConstexprStrTest, ConstexprStrSubstr)
     EXPECT_STREQ("f", substr<1>("abcdef"+5).value);
 }
 
-TEST(ConstexprStrTest, ConstexprStrLengthBetween)
-{
-    EXPECT_EQ(0, length_between("<>", '<', '>'));
-    EXPECT_EQ(1, length_between("<1>", '<', '>'));
-    EXPECT_EQ(2, length_between("<12>", '<', '>'));
-    EXPECT_EQ(3, length_between("<123>", '<', '>'));
-    EXPECT_EQ(4, length_between("<1234>", '<', '>'));
-
-    EXPECT_EQ(2, length_between("<<>>", '<', '>'));
-    EXPECT_EQ(3, length_between("<<1>>", '<', '>'));
-    EXPECT_EQ(4, length_between("<<12>>", '<', '>'));
-    EXPECT_EQ(5, length_between("<<123>>", '<', '>'));
-    EXPECT_EQ(6, length_between("<<1234>>", '<', '>'));
-}
-
 TEST(ConstexprStrTest, ConstexprStrLengthAfterLast)
 {
     EXPECT_EQ(0, length_after_last("a b ", ' '));
     EXPECT_EQ(1, length_after_last("a b 1", ' '));
     EXPECT_EQ(2, length_after_last("a b 12", ' '));
     EXPECT_EQ(3, length_after_last("a b 123", ' '));
-}
-
-TEST(ConstexprStrTest, ConstexprStrFind)
-{
-    EXPECT_EQ(0, find("abcdefabcdef", 'a'));
-    EXPECT_EQ(1, find("abcdefabcdef", 'b'));
-    EXPECT_EQ(2, find("abcdefabcdef", 'c'));
-    EXPECT_EQ(3, find("abcdefabcdef", 'd'));
-    EXPECT_EQ(4, find("abcdefabcdef", 'e'));
-    EXPECT_EQ(5, find("abcdefabcdef", 'f'));
 }
 
 TEST(ConstexprStrTest, ConstexprStrFindLastOf)

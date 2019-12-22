@@ -1,6 +1,4 @@
 #include "Main.h"
-#include "../CppRandomAccessReflectionLib/Json.h"
-#include <iostream>
 #include <typeinfo>
 #include <memory>
 using Json::Statics;
@@ -250,8 +248,8 @@ Car outputExamples()
     });
 
     Car::Class::ForEachField(car, [&](auto & field, auto & value) {
-        using Field = std::remove_reference<decltype(field)>::type;
-        using Type = std::remove_reference<decltype(value)>::type;
+        using Field = typename std::remove_reference<decltype(field)>::type;
+        using Type = typename std::remove_reference<decltype(value)>::type;
         if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !Field::template HasAnnotation<Reflected> )
             std::cout << "(carPrimitive) " << field.name << ": " << value << std::endl;
         else if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !Field::template HasAnnotation<Reflected> )
@@ -265,7 +263,7 @@ Car outputExamples()
     });
 
     FuelTank::Class::ForEachField(fuelTank, [&](auto & field, auto & value) {
-        using Type = std::remove_reference<decltype(value)>::type;
+        using Type = typename std::remove_reference<decltype(value)>::type;
         if constexpr ( ExtendedTypeSupport::is_static_array<Type>::value )
             std::cout << field.name << ": " << value[0] << std::endl;
         else
@@ -273,8 +271,8 @@ Car outputExamples()
     });
 
     FuelTank::Class::ForEachField(fuelTank, [&](auto & field, auto & value) {
-        using Field = std::remove_reference<decltype(field)>::type;
-        using Type = std::remove_reference<decltype(value)>::type;
+        using Field = typename std::remove_reference<decltype(field)>::type;
+        using Type = typename std::remove_reference<decltype(value)>::type;
         if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !Field::template HasAnnotation<Reflected> )
             std::cout << "(fuelTankPrimitive) " << field.name << ": " << value << std::endl;
         else if constexpr ( ExtendedTypeSupport::is_static_array<decltype(value)>::value && !Field::template HasAnnotation<Reflected> )

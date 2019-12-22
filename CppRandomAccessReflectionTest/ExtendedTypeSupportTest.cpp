@@ -770,16 +770,16 @@ TEST(ExtendedTypeSupportTest, HasType)
 
 TEST(ExtendedTypeSupportTest, ConstexprTypeToStr)
 {
-    EXPECT_STREQ("int", type_to_str<int>::get().value);
+    EXPECT_STREQ("int", TypeName<int>().value);
 
     // Expecting some junk like how it's a struct or class, but it should still contain the pair text
-    auto pairStrStruct = type_to_str<std::pair<int,int>>::get();
+    auto pairStrStruct = TypeName<std::pair<int,int>>();
     std::string typeStr = pairStrStruct.value;
     typeStr.erase(std::remove(typeStr.begin(), typeStr.end(), ' '), typeStr.end());
     EXPECT_TRUE(typeStr.find("pair<int,int") != std::string::npos);
 
     // Expecting some junk like how it's a struct or class and what allocator it's using, but should contain the map text
-    auto mapStrStruct = type_to_str<std::map<int,int>>::get();
+    auto mapStrStruct = TypeName<std::map<int,int>>();
     std::string mapStr = mapStrStruct.value;
     mapStr.erase(std::remove(mapStr.begin(), mapStr.end(), ' '), mapStr.end());
     EXPECT_TRUE(mapStr.find("map<int,int") != std::string::npos);
