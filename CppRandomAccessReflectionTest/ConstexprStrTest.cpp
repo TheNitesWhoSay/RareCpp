@@ -24,25 +24,25 @@ TEST(ConstexprStrTest, ConstexprStrSubstr)
     EXPECT_STREQ("abcde", substr<5>("abcdef").value);
     EXPECT_STREQ("abcdef", substr<6>("abcdef").value);
     
-    EXPECT_STREQ("b", substr<1>("abcdef"+1).value);
-    EXPECT_STREQ("bc", substr<2>("abcdef"+1).value);
-    EXPECT_STREQ("bcd", substr<3>("abcdef"+1).value);
-    EXPECT_STREQ("bcde", substr<4>("abcdef"+1).value);
-    EXPECT_STREQ("bcdef", substr<5>("abcdef"+1).value);
+    EXPECT_STREQ("b", substr<1>(&"abcdef"[0]+1).value);
+    EXPECT_STREQ("bc", substr<2>(&"abcdef"[0]+1).value);
+    EXPECT_STREQ("bcd", substr<3>(&"abcdef"[0]+1).value);
+    EXPECT_STREQ("bcde", substr<4>(&"abcdef"[0]+1).value);
+    EXPECT_STREQ("bcdef", substr<5>(&"abcdef"[0]+1).value);
     
-    EXPECT_STREQ("c", substr<1>("abcdef"+2).value);
-    EXPECT_STREQ("cd", substr<2>("abcdef"+2).value);
-    EXPECT_STREQ("cde", substr<3>("abcdef"+2).value);
-    EXPECT_STREQ("cdef", substr<4>("abcdef"+2).value);
+    EXPECT_STREQ("c", substr<1>(&"abcdef"[0]+2).value);
+    EXPECT_STREQ("cd", substr<2>(&"abcdef"[0]+2).value);
+    EXPECT_STREQ("cde", substr<3>(&"abcdef"[0]+2).value);
+    EXPECT_STREQ("cdef", substr<4>(&"abcdef"[0]+2).value);
     
-    EXPECT_STREQ("d", substr<1>("abcdef"+3).value);
-    EXPECT_STREQ("de", substr<2>("abcdef"+3).value);
-    EXPECT_STREQ("def", substr<3>("abcdef"+3).value);
+    EXPECT_STREQ("d", substr<1>(&"abcdef"[0]+3).value);
+    EXPECT_STREQ("de", substr<2>(&"abcdef"[0]+3).value);
+    EXPECT_STREQ("def", substr<3>(&"abcdef"[0]+3).value);
 
-    EXPECT_STREQ("e", substr<1>("abcdef"+4).value);
-    EXPECT_STREQ("ef", substr<2>("abcdef"+4).value);
+    EXPECT_STREQ("e", substr<1>(&"abcdef"[0]+4).value);
+    EXPECT_STREQ("ef", substr<2>(&"abcdef"[0]+4).value);
 
-    EXPECT_STREQ("f", substr<1>("abcdef"+5).value);
+    EXPECT_STREQ("f", substr<1>(&"abcdef"[0]+5).value);
 }
 
 TEST(ConstexprStrTest, ConstexprStrLengthAfterLast)

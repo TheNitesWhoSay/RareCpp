@@ -792,7 +792,7 @@ namespace Reflect
 #define DESCRIBE_FIELD(x) struct RHS(x##_) { \
     using Member = decltype(&ClassType::RHS(x)); \
     using Field = Fields::Field<Class::RHS(x), Member, IndexOf::RHS(x), Annotate<LHS(x)>::Annotations>; \
-    static constexpr auto nameStr = ConstexprStr::substr<ConstexprStr::length_after_last(#x, ' ')>(#x+ConstexprStr::find_last_of(#x, ' ')+1); \
+    static constexpr auto nameStr = ConstexprStr::substr<ConstexprStr::length_after_last(#x, ' ')>(&#x[0]+ConstexprStr::find_last_of(#x, ' ')+1); \
     static constexpr auto typeStr = ExtendedTypeSupport::TypeName<RHS(x)>(); \
     static constexpr Field field = { \
         &nameStr.value[0], &typeStr.value[0], ExtendedTypeSupport::static_array_size<RHS(x)>::value, \

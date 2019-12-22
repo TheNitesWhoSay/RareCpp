@@ -1533,7 +1533,7 @@ namespace Json
                 else if constexpr ( std::is_base_of<Generic::Value, T>::value )
                 {
                     Put::GenericValue<Annotations, PrettyPrint, indent, IsFirst>(os, context, TotalParentIterables,
-                        IndentLevel+(Field::template HasAnnotation<IsRoot> ) ? 0 : 1, (const Generic::Value &)value);
+                        IndentLevel+((Field::template HasAnnotation<IsRoot> ) ? 0 : 1), (const Generic::Value &)value);
                 }
                 else if constexpr ( is_iterable<T>::value )
                     Put::Iterable<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object>(os, context, obj, value);
