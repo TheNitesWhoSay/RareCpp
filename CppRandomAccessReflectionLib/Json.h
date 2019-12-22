@@ -6,6 +6,7 @@
 #include <typeindex>
 #include <type_traits>
 #include <functional>
+#include <cstring>
 #include "Reflect.h"
 
 namespace Json
@@ -49,8 +50,8 @@ namespace Json
         {
             constexpr static bool value =
                 statics == Statics::Included ||
-                statics == Statics::Excluded && !IsStatic ||
-                statics == Statics::Only && IsStatic;
+                (statics == Statics::Excluded && !IsStatic) ||
+                (statics == Statics::Only && IsStatic);
         };
 
         template <Statics statics, typename Object>
@@ -134,7 +135,12 @@ namespace Json
         class Exception : public std::exception
         {
         public:
-            Exception(const char* what) : std::exception(what) {}
+            Exception(const char* what) : message(what) {}
+
+            virtual const char* what() const noexcept { return message.c_str(); }
+
+        private:
+            std::string message;
         };
 
         class NullUnassignable : public Exception
@@ -1337,15 +1343,26 @@ namespace Json
             }
 
             template <typename T>
-            static constexpr void String(std::ostream & os, const T & t)
+            static void String(std::ostream & os, const T & t)
             {
                 std::stringstream ss;
                 ss << t;
                 Put::String(os, ss.str());
             }
+
+            template <typename Annotations, bool PrettyPrint, const char* indent>
+            static void GenericIterable(std::ostream & os, Context & context,
+                size_t totalParentIterables, size_t indentLevel, const Generic::Value & iterable);
+
+            template <typename Annotations, typename Field, Statics statics,
+                bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, typename IterableValue = uint_least8_t>
+            static constexpr void Iterable(std::ostream & os, Context & context, const Object & obj, const IterableValue & iterable);
             
+            template <typename Annotations, Statics statics, bool PrettyPrint, size_t IndentLevel, const char* indent, typename T>
+            static constexpr void Object(std::ostream & os, Context & context, const T & obj);
+
             template <typename Annotations, bool PrettyPrint, const char* indent, bool IsFirst>
-            static constexpr void GenericValue(std::ostream & os, Context & context,
+            static void GenericValue(std::ostream & os, Context & context,
                 size_t totalParentIterables, size_t indentLevel, const Generic::Value & value)
             {
                 switch ( value.type() )
@@ -1390,7 +1407,7 @@ namespace Json
             }
             
             template <typename Annotations, bool PrettyPrint, const char* indent>
-            static constexpr void GenericIterable(std::ostream & os, Context & context,
+            static void GenericIterable(std::ostream & os, Context & context,
                 size_t totalParentIterables, size_t indentLevel, const Generic::Value & iterable)
             {
                 bool isObject = iterable.type() == Generic::Value::Type::Object;
@@ -1516,7 +1533,7 @@ namespace Json
                 else if constexpr ( std::is_base_of<Generic::Value, T>::value )
                 {
                     Put::GenericValue<Annotations, PrettyPrint, indent, IsFirst>(os, context, TotalParentIterables,
-                        IndentLevel+(Field::template HasAnnotation<IsRoot> ) ? 0 : 1, (const Generic::Value &)value);
+                        IndentLevel+((Field::template HasAnnotation<IsRoot> ) ? 0 : 1), (const Generic::Value &)value);
                 }
                 else if constexpr ( is_iterable<T>::value )
                     Put::Iterable<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object>(os, context, obj, value);
@@ -1532,6 +1549,8 @@ namespace Json
                     os << (value ? "true" : "false");
                 else if constexpr ( is_string<T>::value && !Field::template HasAnnotation<Json::Unstring> )
                     Put::String(os, value);
+                else if constexpr ( std::is_enum<T>::value )
+                    os << (typename promote_char<typename std::underlying_type<T>::type>::type)value;
                 else
                     os << (typename promote_char<T>::type)value;
             }
@@ -1546,7 +1565,7 @@ namespace Json
             }
 
             template <typename Annotations, typename Field, Statics statics,
-                bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, typename IterableValue = uint_least8_t>
+                bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, typename IterableValue>
             static constexpr void Iterable(std::ostream & os, Context & context, const Object & obj, const IterableValue & iterable)
             {
                 using Element = typename element_type<IterableValue>::type;
@@ -1573,9 +1592,9 @@ namespace Json
                         Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, false>(os, context, obj, *it);
                     }
                 }
-                else if constexpr ( std::is_array<IterableValue>::value && std::extent<Field::Type>::value > 0 )
+                else if constexpr ( std::is_array<IterableValue>::value && std::extent<typename Field::Type>::value > 0 )
                 {
-                    for ( ; i<std::extent<Field::Type>::value; i++ )
+                    for ( ; i<std::extent<typename Field::Type>::value; i++ )
                     {
                         Put::Separator<PrettyPrint, ContainsPairs, ContainsIterables, IndentLevel+TotalParentIterables+2, indent>(os, 0 == i);
                         Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, false>(os, context, obj, iterable[i]);
@@ -1590,11 +1609,11 @@ namespace Json
             {
                 if constexpr ( matches_statics<FieldClass::IsStatic, statics>::value )
                 {
-                    if constexpr ( std::is_base_of<Generic::FieldCluster, remove_pointer<FieldClass::Type>::type>::value )
+                    if constexpr ( std::is_base_of<Generic::FieldCluster, typename remove_pointer<typename FieldClass::Type>::type>::value )
                     {
                         if constexpr ( FieldClass::Index == FirstIndex<statics, Object>() )
                             throw Exception("Json::Generic::FieldCluster cannot be the first or the only field in an object");
-                        else if constexpr ( is_pointable<FieldClass::Type>::value )
+                        else if constexpr ( is_pointable<typename FieldClass::Type>::value )
                         {
                             if ( value != nullptr )
                                 Put::Value<Annotations, FieldClass, statics, PrettyPrint, 0, IndentLevel, indent, Object, false>(os, context, obj, *value);
@@ -1687,14 +1706,14 @@ namespace Json
 
         template <Statics statics = Statics::Excluded, typename Annotations = Annotate<>,
             size_t IndentLevel = 0, const char* indent = twoSpaces, typename T = uint_least8_t>
-        constexpr Output::ReflectedObject<Annotations, statics, false, IndentLevel, indent, T> out(const T & t, std::shared_ptr<Context> context = nullptr)
+        Output::ReflectedObject<Annotations, statics, false, IndentLevel, indent, T> out(const T & t, std::shared_ptr<Context> context = nullptr)
         {
             return Output::ReflectedObject<Annotations, statics, false, IndentLevel, indent, T>(t, context);
         }
     
         template <Statics statics = Statics::Excluded, typename Annotations = Annotate<>,
             size_t IndentLevel = 0, const char* indent = twoSpaces, typename T = uint_least8_t>
-        constexpr Output::ReflectedObject<Annotations, statics, true, IndentLevel, indent, T> pretty(const T & t, std::shared_ptr<Context> context = nullptr)
+        Output::ReflectedObject<Annotations, statics, true, IndentLevel, indent, T> pretty(const T & t, std::shared_ptr<Context> context = nullptr)
         {
             return Output::ReflectedObject<Annotations, statics, true, IndentLevel, indent, T>(t, context);
         }
@@ -1830,7 +1849,7 @@ namespace Json
                         {
                             Class::FieldAt(fieldIndex, [&](auto & field) {
                                 using Field = typename std::remove_reference<decltype(field)>::type;
-                                if constexpr ( std::is_base_of<Generic::FieldCluster, remove_pointer<Field::Type>::type>::value )
+                                if constexpr ( std::is_base_of<Generic::FieldCluster, typename remove_pointer<typename Field::Type>::type>::value )
                                 {
                                     std::string fieldName = fieldClusterToJsonFieldName();
                                     inserted.first->second.insert(std::pair<size_t, JsonField>(
@@ -2388,6 +2407,12 @@ namespace Json
                 } while ( c != '\"' );
             }
             
+            template <bool IsArray>
+            static constexpr void Iterable(std::istream & is, char & c);
+            
+            template <bool IsArray>
+            static constexpr void Iterable(std::istream & is, char & c, std::stringstream & ss);
+
             template <bool InArray>
             static constexpr void Value(std::istream & is, char & c)
             {
@@ -2613,7 +2638,7 @@ namespace Json
             }
 
             template <bool InArray>
-            static constexpr std::string Number(std::istream & is, char & c)
+            static std::string Number(std::istream & is, char & c)
             {
                 std::stringstream ss;
                 Consume::Value<InArray>(is, c, ss);
@@ -2686,7 +2711,7 @@ namespace Json
             }
 
             template <typename T>
-            static constexpr void String(std::istream & is, char & c, T & t)
+            static void String(std::istream & is, char & c, T & t)
             {
                 std::stringstream ss;
                 Read::String(is, c, ss);
@@ -2730,8 +2755,13 @@ namespace Json
                 return fieldName;
             }
 
+            static std::shared_ptr<Generic::Value::Assigner> GenericObject(std::istream & is, Context & context, char & c);
+
             template <bool InArray>
-            static constexpr std::shared_ptr<Generic::Value::Assigner> GenericValue(std::istream & is, Context & context, char & c)
+            static std::shared_ptr<Generic::Value::Assigner> GenericArray(std::istream & is, Context & context, char & c);
+
+            template <bool InArray>
+            static std::shared_ptr<Generic::Value::Assigner> GenericValue(std::istream & is, Context & context, char & c)
             {
                 Checked::consumeWhitespace(is, "completion of field value");
                 Checked::peek(is, c, "completion of field value");
@@ -2834,7 +2864,7 @@ namespace Json
                             break;
                             case Generic::Value::Type::Object:
                             {
-                                const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray = result->get()->objectArray();
+                                const std::vector<std::map<std::string, std::shared_ptr<Generic::Value>>> & objectArray = result->get()->objectArray();
                                 for ( size_t i=0; i<objectArray.size(); i++ )
                                     mixedArray.push_back(Generic::Object::Make(objectArray[i]));
                             }
@@ -2893,9 +2923,15 @@ namespace Json
                 }
                 return result;
             }
+            
+            template <typename Field, typename T, typename Object>
+            static constexpr void Iterable(std::istream & is, Context & context, char & c, Object & object, T & iterable);
+
+            template <typename T>
+            static void Object(std::istream & is, Context & context, char & c, T & t);
 
             template <bool InArray, typename Field, typename T, typename Object, bool AllowCustomization = true>
-            static constexpr void Value(std::istream & is, Context & context, char & c, Object & object, T & value)
+            static void Value(std::istream & is, Context & context, char & c, Object & object, T & value)
             {
                 if constexpr ( AllowCustomization && Customizers::HaveSpecialization<Object, T, Field::Index, Annotate<>, Field> ) // Input for this is specialized
                 {
@@ -3048,7 +3084,7 @@ namespace Json
                     {
                         Object::Class::FieldAt(object, jsonField->index, [&](auto & field, auto & value) {
                             using ValueType = typename std::remove_reference<decltype(value)>::type;
-                            if constexpr ( std::is_base_of<Generic::Object, remove_pointer<ValueType>::type>::value )
+                            if constexpr ( std::is_base_of<Generic::Object, typename remove_pointer<ValueType>::type>::value )
                             {
                                 if constexpr ( is_pointable<ValueType>::value )
                                 {
@@ -3075,7 +3111,7 @@ namespace Json
             }
 
             template <typename T>
-            static constexpr void Object(std::istream & is, Context & context, char & c, T & t)
+            static void Object(std::istream & is, Context & context, char & c, T & t)
             {
                 Read::ObjectPrefix(is, c);
                 if ( !Read::TryObjectSuffix(is) )
@@ -3117,7 +3153,7 @@ namespace Json
         }
 
         template <typename T>
-        constexpr Input::ReflectedObject<T> in(T & t, std::shared_ptr<Context> context = nullptr)
+        Input::ReflectedObject<T> in(T & t, std::shared_ptr<Context> context = nullptr)
         {
             return Input::ReflectedObject<T>(t, context);
         }

@@ -57,8 +57,9 @@ class GTEST_API_ TestPartResult {
   // C'tor.  TestPartResult does NOT have a default constructor.
   // Always use this constructor (with parameters) to create a
   // TestPartResult object.
-  
+#ifdef _MSC_VER
   #pragma warning(suppress: 26812) // Suppress warnings from used library
+#endif
   TestPartResult(Type a_type,
                  const char* a_file_name,
                  int a_line_number,
