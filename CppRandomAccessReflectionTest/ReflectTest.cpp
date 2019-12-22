@@ -41,7 +41,7 @@ TEST(ReflectTest, InheritedType)
     Inherit<>::ForEach(val, [&](auto index, auto superObj) { visited = true; });
     EXPECT_FALSE(visited);
     visited = false;
-    Inherit<>::ForEach([&](auto index, auto superType) { visited = true });
+    Inherit<>::ForEach([&](auto index, auto superType) { visited = true; });
     EXPECT_FALSE(visited);
     visited = false;
     Inherit<>::At(val, 0, [&](auto superObj) { visited = true; });
@@ -60,7 +60,7 @@ TEST(ReflectTest, InheritedType)
     Inherit<Inherit<>>::At(val, 0, [&](auto superObj) { visited = true; });
     EXPECT_FALSE(visited);
     visited = false;
-    Inherit<Inherit<>>::At(0, [&](auto superType) { visited = true });
+    Inherit<Inherit<>>::At(0, [&](auto superType) { visited = true; });
     EXPECT_FALSE(visited);
     
     size_t visitCount = 0;
@@ -571,7 +571,7 @@ TEST(ReflectTest, RfMacroUseField)
     size_t index = 0;
     UseFieldTest::Class::ForEachField(useFieldTest, [&](auto & field, auto & value) {
 
-        using Field = std::remove_reference<decltype(field)>::type;
+        using Field = typename std::remove_reference<decltype(field)>::type;
 
         EXPECT_EQ(index, Field::Index);
         switch ( index ) {
@@ -939,8 +939,8 @@ TEST(ReflectTest, RfMacroReflect)
     size_t index = 0;
     ReflectObj::Class::ForEachField(reflectObj, [&](auto & field, auto & value) {
         
-        using Field = std::remove_reference<decltype(field)>::type;
-        using Value = std::remove_reference<decltype(value)>::type;
+        using Field = typename std::remove_reference<decltype(field)>::type;
+        using Value = typename std::remove_reference<decltype(value)>::type;
 
         EXPECT_EQ(index, Field::Index);
         bool visited = false;
@@ -973,7 +973,7 @@ TEST(ReflectTest, RfMacroReflect)
                 EXPECT_TRUE(visited);
                 break;
             case 3:
-                if constexpr ( !Field::template HasAnnotation<Reflect::Reflected> && is_iterable<Value>::value && is_pair<element_type<Value>::type>::value ) {
+                if constexpr ( !Field::template HasAnnotation<Reflect::Reflected> && is_iterable<Value>::value && is_pair<typename element_type<Value>::type>::value ) {
                     EXPECT_EQ(reflectObj.map.begin()->first, value.begin()->first);
                     EXPECT_EQ((++reflectObj.map.begin())->first, (++value.begin())->first);
                     visited = true;
@@ -1012,7 +1012,7 @@ TEST(ReflectTest, RfMacroReflect)
     bool visited = false;
     ReflectObj::Class::ForEachField([&](auto & field) {
         
-        using Field = std::remove_reference<decltype(field)>::type;
+        using Field = typename std::remove_reference<decltype(field)>::type;
 
         EXPECT_EQ(index, Field::Index);
         if constexpr ( Field::IsStatic && Field::Index == 6 )

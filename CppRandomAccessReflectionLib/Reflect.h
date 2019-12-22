@@ -13,6 +13,8 @@
 #include <unordered_map>
 #include <utility>
 #include <type_traits>
+#include <memory>
+#include <string_view>
 
 #ifndef enum_t
 /// enum_t "enum type (scoped)" assumes the property of enum classes that encloses the enum values within a particular scope
@@ -45,6 +47,13 @@ namespace ExtractorsAndMacroLoops
 /// Extractor_Blank (when you append "EO_BLANK" with an expression of the form "(LHS) RHS", the "(LHS)" gets blanked out and you're left with just RHS
 #define EO_B(...)
 
+// If x takes the form "(LHS) RHS", then this macro returns RHS
+#define RHS(x) EO_B x
+
+#ifdef _MSC_VER // Visual studios or possibly clang
+
+#ifndef __clang__ // Not clang
+
 /// Extractor_First
 #define EO_F(x, y) x
 
@@ -53,6 +62,40 @@ namespace ExtractorsAndMacroLoops
 
 /// Extractor_GetFirst
 #define EO_G(x) EO_C(EO_F, x)
+
+// If x takes the form "(LHS) RHS", then this macro returns LHS
+#define LHS(x) EO_G((EO_E EO_W x))
+
+#else // Clang via visual studios
+
+/// Extractor_First
+#define EO_F(x, ...) EO_E x
+
+/// Extractor_WrapAndAppendComma
+#define EO_W(x) (x),
+
+/// Extractor_GetFirst
+#define EO_G(x, y) EO_F(x, y)
+
+// If x takes the form "(LHS) RHS", then this macro returns LHS
+#define LHS(x) EO_G(EO_W x,)
+
+#endif
+#else // Not visual studios
+
+/// Extractor_First
+#define EO_F(x, ...) EO_E x
+
+/// Extractor_WrapAndAppendComma
+#define EO_W(x) (x),
+
+/// Extractor_GetFirst
+#define EO_G(x, y) EO_F(x, y)
+
+// If x takes the form "(LHS) RHS", then this macro returns LHS
+#define LHS(x) EO_G(EO_W x,)
+
+#endif
 
 /// MacroLoop_ForEach[1, ..., ArgMax]
 #define ML_1(f,a,...) f(a)
@@ -203,12 +246,6 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
 /// Call "f" for each argument
 #define FOR_EACH(f,...) ML_N(COUNT_ARGUMENTS(__VA_ARGS__),f,__VA_ARGS__)
 
-// If x takes the form "(LHS) RHS", then this macro returns LHS
-#define LHS(x) EO_G((EO_E EO_W x))
-
-// If x takes the form "(LHS) RHS", then this macro returns RHS
-#define RHS(x) EO_B x
-
 };
 
 /// Contains methods required for manipulating strings at compile time
@@ -224,26 +261,11 @@ namespace ConstexprStr
         char value[N + 1];
     };
 
-    template <size_t N> constexpr size_t length_between(const char(&s)[N], const char openChar, const char closeChar)
-    {
-        size_t openPos = 0, closePos = 0;
-        for ( ; openPos < N && s[openPos] != openChar ; openPos++ );
-        for ( closePos = N-1; closePos > openPos && s[closePos] != closeChar; closePos-- );
-        return openPos == N || closePos == openPos ? 0 : closePos - openPos - 1;
-    }
-
     template <size_t N> constexpr size_t length_after_last(const char(&s)[N], const char character)
     {
         size_t pos = N-1;
         for ( ; pos < N && s[pos] != character; pos-- );
         return pos > N ? 0 : N-pos-2;
-    }
-
-    template <size_t N> constexpr size_t find(const char(&s)[N], const char character)
-    {
-        size_t pos = 0;
-        for ( ; pos < N && s[pos] != character; pos++ );
-        return pos;
     }
 
     template <size_t N> constexpr size_t find_last_of(const char(&s)[N], const char character)
@@ -256,7 +278,7 @@ namespace ConstexprStr
 
 namespace ExtendedTypeSupport
 {
-    template <typename T> struct promote_char { using type = typename T; };
+    template <typename T> struct promote_char { using type = T; };
     template <> struct promote_char<char> { using type = int; };
     template <> struct promote_char<signed char> { using type = int; };
     template <> struct promote_char<unsigned char> { using type = int; };
@@ -265,25 +287,25 @@ namespace ExtendedTypeSupport
     template <> struct promote_char<const unsigned char> { using type = const int; };
 
     template <typename T> struct pair_rhs { using type = T; };
-    template <typename L, typename R> struct pair_rhs<std::pair<L, R>> { using type = typename R; };
-    template <typename L, typename R> struct pair_rhs<const std::pair<L, R>> { using type = typename R; };
+    template <typename L, typename R> struct pair_rhs<std::pair<L, R>> { using type = R; };
+    template <typename L, typename R> struct pair_rhs<const std::pair<L, R>> { using type = R; };
 
     template <typename T> struct element_type { using type = void; };
     template <typename T> struct element_type<const T> { using type = typename element_type<T>::type; };
-    template <typename T, size_t N> struct element_type<T[N]> { using type = typename T; };
-    template <typename T, size_t N> struct element_type<const T[N]> { using type = typename T; };
-    template <typename T, size_t N> struct element_type<std::array<T, N>> { using type = typename T; };
-    template <typename T, typename A> struct element_type<std::vector<T, A>> { using type = typename T; };
-    template <typename T, typename A> struct element_type<std::deque<T, A>> { using type = typename T; };
-    template <typename T, typename A> struct element_type<std::list<T, A>> { using type = typename T; };
-    template <typename T, typename A> struct element_type<std::forward_list<T, A>> { using type = typename T; };
-    template <typename T, typename C> struct element_type<std::stack<T, C>> { using type = typename T; };
-    template <typename T, typename C> struct element_type<std::queue<T, C>> { using type = typename T; };
-    template <typename T, typename C, typename P> struct element_type<std::priority_queue<T, C, P>> { using type = typename T; };
-    template <typename K, typename C, typename A> struct element_type<std::set<K, C, A>> { using type = typename K; };
-    template <typename K, typename C, typename A> struct element_type<std::multiset<K, C, A>> { using type = typename K; };
-    template <typename K, typename H, typename E, typename A> struct element_type<std::unordered_set<K, H, E, A>> { using type = typename K; };
-    template <typename K, typename H, typename E, typename A> struct element_type<std::unordered_multiset<K, H, E, A>> { using type = typename K; };
+    template <typename T, size_t N> struct element_type<T[N]> { using type = T; };
+    template <typename T, size_t N> struct element_type<const T[N]> { using type = T; };
+    template <typename T, size_t N> struct element_type<std::array<T, N>> { using type = T; };
+    template <typename T, typename A> struct element_type<std::vector<T, A>> { using type = T; };
+    template <typename T, typename A> struct element_type<std::deque<T, A>> { using type = T; };
+    template <typename T, typename A> struct element_type<std::list<T, A>> { using type = T; };
+    template <typename T, typename A> struct element_type<std::forward_list<T, A>> { using type = T; };
+    template <typename T, typename C> struct element_type<std::stack<T, C>> { using type = T; };
+    template <typename T, typename C> struct element_type<std::queue<T, C>> { using type = T; };
+    template <typename T, typename C, typename P> struct element_type<std::priority_queue<T, C, P>> { using type = T; };
+    template <typename K, typename C, typename A> struct element_type<std::set<K, C, A>> { using type = K; };
+    template <typename K, typename C, typename A> struct element_type<std::multiset<K, C, A>> { using type = K; };
+    template <typename K, typename H, typename E, typename A> struct element_type<std::unordered_set<K, H, E, A>> { using type = K; };
+    template <typename K, typename H, typename E, typename A> struct element_type<std::unordered_multiset<K, H, E, A>> { using type = K; };
     template <typename K, typename T, typename C, typename A> struct element_type<std::map<K, T, C, A>> { using type = typename std::pair<K, T>; };
     template <typename K, typename T, typename C, typename A> struct element_type<std::multimap<K, T, C, A>> { using type = typename std::pair<K, T>; };
     template <typename K, typename T, typename H, typename E, typename A> struct element_type<std::unordered_map<K, T, H, E, A>>
@@ -292,9 +314,9 @@ namespace ExtendedTypeSupport
     { using type = typename std::pair<K, T>; };
     
     template <typename T> struct remove_pointer { using type = typename std::remove_pointer<T>::type; };
-    template <typename T> struct remove_pointer<const T> { using type = typename const remove_pointer<T>::type; };
-    template <typename T> struct remove_pointer<std::unique_ptr<T>> { using type = typename T; };
-    template <typename T> struct remove_pointer<std::shared_ptr<T>> { using type = typename T; };
+    template <typename T> struct remove_pointer<const T> { using type = const typename remove_pointer<T>::type; };
+    template <typename T> struct remove_pointer<std::unique_ptr<T>> { using type = T; };
+    template <typename T> struct remove_pointer<std::shared_ptr<T>> { using type = T; };
     
     template <typename T> struct is_pointable { static constexpr bool value = std::is_pointer<T>::value; };
     template <typename T> struct is_pointable<const T> { static constexpr bool value = is_pointable<T>::value; };
@@ -313,7 +335,7 @@ namespace ExtendedTypeSupport
     template <typename T, size_t N> struct is_static_array<std::array<T, N>> { static constexpr bool value = true; };
     template <typename T, size_t N> struct is_static_array<const std::array<T, N>> { static constexpr bool value = true; };
 
-    template <typename T> struct is_iterable { static constexpr bool value = !std::is_same<void, element_type<T>::type>::value; };
+    template <typename T> struct is_iterable { static constexpr bool value = !std::is_same<void, typename element_type<T>::type>::value; };
 
     template <typename T> struct is_stl_iterable { static constexpr bool value = false; };
     template <typename T> struct is_stl_iterable<const T> { static constexpr bool value = is_stl_iterable<T>::value; };
@@ -350,9 +372,9 @@ namespace ExtendedTypeSupport
     template <typename L, typename R> struct is_pair<std::pair<L, R>> { static constexpr bool value = true; };
     template <typename L, typename R> struct is_pair<const std::pair<L, R>> { static constexpr bool value = true; };
 
-    template <typename T> struct is_bool { static constexpr bool value = std::is_same<bool, std::remove_const<T>::type>::value; };
+    template <typename T> struct is_bool { static constexpr bool value = std::is_same<bool, typename std::remove_const<T>::type>::value; };
     
-    template <typename T> struct is_string { static constexpr bool value = std::is_same<std::string, std::remove_const<T>::type>::value; };
+    template <typename T> struct is_string { static constexpr bool value = std::is_same<std::string, typename std::remove_const<T>::type>::value; };
 
     template <typename T> struct has_push_back { static constexpr bool value = false; };
     template <typename T> struct has_push_back<const T> { static constexpr bool value = has_push_back<T>::value; };
@@ -457,15 +479,56 @@ namespace ExtendedTypeSupport
     struct HasType { static constexpr bool value = HasTypeRecursion<T, Ts...>(); };
 
     template <typename T>
-    struct type_to_str {
-        static constexpr auto get() {
-            return ConstexprStr::substr<ConstexprStr::length_between(__FUNCTION__, '<', '>')>(__FUNCTION__ + ConstexprStr::find(__FUNCTION__, '<') + 1);
+    constexpr auto getTypeView()
+    {
+        std::string_view view;
+#ifdef _MSC_VER
+#ifndef __clang__
+        view = __FUNCSIG__;
+        view.remove_prefix(view.find_first_of("<")+1);
+        view.remove_suffix(view.size()-view.find_last_of(">"));
+#else
+        view = __PRETTY_FUNCTION__;
+        view.remove_prefix(view.find_first_of("=")+1);
+        view.remove_prefix(view.find_first_not_of(" "));
+        view.remove_suffix(view.size()-view.find_last_of("]"));
+#endif
+#else
+#ifdef __clang__
+        view = __PRETTY_FUNCTION__;
+        view.remove_prefix(view.find_first_of("=")+1);
+        view.remove_prefix(view.find_first_not_of(" "));
+        view.remove_suffix(view.size()-view.find_last_of("]"));
+#else
+#ifdef __GNUC__
+        view = __PRETTY_FUNCTION__;
+        view.remove_prefix(view.find_first_of("=")+1);
+        view.remove_prefix(view.find_first_not_of(" "));
+        view.remove_suffix(view.size()-view.find_last_of("]"));
+#else
+        view = "unknown";
+#endif
+#endif
+#endif
+        return view;
+    }
+
+    template <typename T>
+    struct TypeName
+    {
+        constexpr TypeName() : value() {
+            auto view = getTypeView<T>();
+            for ( size_t i=0; i<view.size(); i++ )
+                value[i] = view[i];
+
+            value[view.size()] = '\0';
         }
+        char value[getTypeView<T>().size()+1];
     };
     
     template <typename T>
     std::string TypeToStr() {
-        return std::string(type_to_str<T>::get().value);
+        return std::string(TypeName<T>().value);
     }
 
     template <class Adaptor>
@@ -726,25 +789,25 @@ namespace Reflect
 
 #define ALIAS_TYPE(x) using RHS(x) = decltype(RHS(x));
 #define GET_FIELD_NAME(x) RHS(x),
-#define DESCRIBE_FIELD(x) struct RHS(x)_ { \
+#define DESCRIBE_FIELD(x) struct RHS(x##_) { \
     using Member = decltype(&ClassType::RHS(x)); \
     using Field = Fields::Field<Class::RHS(x), Member, IndexOf::RHS(x), Annotate<LHS(x)>::Annotations>; \
-    static constexpr auto nameStr = ConstexprStr::substr<ConstexprStr::length_after_last(#x, ' ')>(#x+ConstexprStr::find_last_of(#x, ' ')+1); \
-    static constexpr auto typeStr = ExtendedTypeSupport::type_to_str<RHS(x)>::get(); \
-    static constexpr Field field = \
-        { &nameStr.value[0], &typeStr.value[0], ExtendedTypeSupport::static_array_size<RHS(x)>::value, \
+    static constexpr auto nameStr = ConstexprStr::substr<ConstexprStr::length_after_last(#x, ' ')>(&#x[0]+ConstexprStr::find_last_of(#x, ' ')+1); \
+    static constexpr auto typeStr = ExtendedTypeSupport::TypeName<RHS(x)>(); \
+    static constexpr Field field = { \
+        &nameStr.value[0], &typeStr.value[0], ExtendedTypeSupport::static_array_size<RHS(x)>::value, \
         ExtendedTypeSupport::is_stl_iterable<ExtendedTypeSupport::remove_pointer<RHS(x)>::type>::value || \
             ExtendedTypeSupport::is_adaptor<ExtendedTypeSupport::remove_pointer<RHS(x)>::type>::value || \
             std::is_array<ExtendedTypeSupport::remove_pointer<RHS(x)>::type>::value, \
         Annotate<LHS(x)>::template Has<Reflected>, &ClassType::RHS(x) }; \
 };
-#define GET_FIELD(x) { Class::RHS(x)_::field.name, Class::RHS(x)_::field.typeStr, Class::RHS(x)_::field.arraySize, \
-    Class::RHS(x)_::field.isIterable, Class::RHS(x)_::field.isReflected },
-#define USE_FIELD(x) function(RHS(x)_::field);
-#define USE_FIELD_VALUE(x) function(RHS(x)_::field, object.RHS(x));
-#define USE_FIELD_AT(x) case IndexOf::RHS(x): function(RHS(x)_::field); break;
-#define USE_FIELD_VALUE_AT(x) case IndexOf::RHS(x): function(RHS(x)_::field, object.RHS(x)); break;
-#define ADD_IF_STATIC(x) + ( RHS(x)_::Field::IsStatic ? 1 : 0 )
+#define GET_FIELD(x) { Class::RHS(x##_)::field.name, Class::RHS(x##_)::field.typeStr, Class::RHS(x##_)::field.arraySize, \
+    Class::RHS(x##_)::field.isIterable, Class::RHS(x##_)::field.isReflected },
+#define USE_FIELD(x) function(RHS(x##_)::field);
+#define USE_FIELD_VALUE(x) function(RHS(x##_)::field, object.RHS(x));
+#define USE_FIELD_AT(x) case IndexOf::RHS(x): function(RHS(x##_)::field); break;
+#define USE_FIELD_VALUE_AT(x) case IndexOf::RHS(x): function(RHS(x##_)::field, object.RHS(x)); break;
+#define ADD_IF_STATIC(x) + ( RHS(x##_)::Field::IsStatic ? 1 : 0 )
 
 
 #pragma warning(disable: 4003) // Not enough arguments warning generated despite macros working perfectly
