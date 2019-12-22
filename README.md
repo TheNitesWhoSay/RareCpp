@@ -251,3 +251,8 @@ The REFLECT macro takes in the name of the class you're adding reflection to, fo
 7. The FieldAt method is generated, calling the given function with the enhanced flavor of the Field and a reference to the field at the given fieldIndex
 
 See [Reflect.h](https://github.com/jjf28/CppRandomAccessReflection/blob/master/CppRandomAccessReflectionLib/Reflect.h) for the full implementation of macro loops and the REFLECT macro.
+
+
+## Compatibility
+
+Works with Visual Studios, Clang, and gcc/g++ , you may need to manually set your compiler to be using at least C++17.
