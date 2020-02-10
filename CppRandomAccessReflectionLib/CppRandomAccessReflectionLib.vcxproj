@@ -19,8 +19,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ByteBuffer.h" />
     <ClInclude Include="Json.h" />
     <ClInclude Include="Reflect.h" />
+    <ClInclude Include="StringBuffer.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
