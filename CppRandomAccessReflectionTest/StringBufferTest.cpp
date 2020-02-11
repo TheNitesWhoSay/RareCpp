@@ -495,3 +495,28 @@ TEST(StringBufferTest, Performance_1000000_StringBuffer)
     for ( size_t i=0; i<1000000; i++ )
         sb << "asdf" << i << "qwer" << i*5 << sb.endl;
 }
+
+size_t getSizeDoubled(StringBufferPtr stringBufferPtr)
+{
+    return stringBufferPtr->size() + (*stringBufferPtr).size();
+}
+
+TEST(StringBufferTest, StringBufferPtrCall)
+{
+    std::stringstream ss;
+    EXPECT_EQ(0, getSizeDoubled(ss));
+    EXPECT_EQ(0, getSizeDoubled((std::ostream &)ss));
+    EXPECT_EQ(0, getSizeDoubled((std::istream &)ss));
+    EXPECT_EQ(0, getSizeDoubled((std::iostream &)ss));
+
+    StringBuffer sb;
+    EXPECT_EQ(0, getSizeDoubled(sb));
+
+    StringBufferPtr ssPtr(ss);
+    EXPECT_EQ(0, getSizeDoubled(ssPtr));
+
+    StringBufferPtr sbPtr(sb);
+    EXPECT_EQ(0, getSizeDoubled(sbPtr));
+}
+
+

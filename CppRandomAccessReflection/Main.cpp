@@ -1,5 +1,6 @@
 #include "Main.h"
 #include "../CppRandomAccessReflectionLib/Reflect.h"
+#include "../CppRandomAccessReflectionLib/StringBuffer.h"
 #include <typeinfo>
 #include <memory>
 using Json::Statics;
@@ -321,6 +322,12 @@ struct FieldClusterPointer
     REFLECT(() FieldClusterPointer, () regular, () fieldClusterPointer, () otherRegular)
 };
 
+void bufferMethod(StringBufferPtr sb)
+{
+    *sb << "asdf";
+    sb->appendNumber(5);
+}
+
 int main()
 {
     Car car = outputExamples();
@@ -328,6 +335,10 @@ int main()
 
     StaticCluster s;
     std::cout << std::endl << Json::pretty<Statics::Included>(s) << std::endl << std::endl;
+
+    std::stringstream test;
+    bufferMethod(test);
+    std::cout << "stringstream: " << test.str() << std::endl;
 
     Json::Object obj;
     try {
