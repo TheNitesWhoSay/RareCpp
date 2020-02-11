@@ -77,8 +77,6 @@ class StringBuffer : public std::vector<char>, public std::streambuf, public std
             ((std::istream*)this)->clear();
         }
 
-        inline size_t size() { return std::vector<char>::size(); }
-
         /// Warning: unless addNulTerminator is false, this will add a nul terminator to the end of the buffer if not already present
         /// This must be manually removed (perhaps by calling unterminate) before adding additional character data to avoid having
         /// a NUL terminator in the middle of string
