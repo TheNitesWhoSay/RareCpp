@@ -23,9 +23,13 @@ class BasicStringBuffer : public std::vector<char>, public std::streambuf, publi
         struct Os {};
         static constexpr EndL endl = {}; // Use StringBuffer::endl instead of std::endl to improve performance
         static constexpr Os os = {}; // Use this stream manipulator to start streaming as if to std::ostream, avoid this to improve performance
-
-        BasicStringBuffer() : StreamType(this), num() {}
-        BasicStringBuffer(const std::string & str) : std::vector<char>(str.begin(), str.end()), StreamType(this), num() {}
+        
+        BasicStringBuffer() : StreamType((std::streambuf*)this), source(nullptr), num(), inputInitialized(false) {}
+        BasicStringBuffer(std::istream & source) : StreamType((std::streambuf*)this), source(&source), num(), inputInitialized(false) {}
+        BasicStringBuffer(const std::string & str) : std::vector<char>(str.begin(), str.end()),
+            StreamType((std::streambuf*)this), source(nullptr), num(), inputInitialized(false) {}
+        BasicStringBuffer(const std::string & str, std::istream & source) : std::vector<char>(str.begin(), str.end()),
+            StreamType((std::streambuf*)this), source(source), num(), inputInitialized(false) {}
         virtual ~BasicStringBuffer() {}
 
         /// Append text as-is using the += operator
@@ -88,16 +92,62 @@ class BasicStringBuffer : public std::vector<char>, public std::streambuf, publi
 
         /// Setup the read for std::istream
         virtual int underflow() {
-            if ( gptr() == egptr() )
+            auto eback = std::streambuf::eback(); // Input start
+            auto gptr = std::streambuf::gptr(); // Input curr
+            auto egptr = std::streambuf::egptr(); // Input end
+
+            auto size = std::vector<char>::size()*sizeof(char);
+            if ( size == 0 )
             {
-                char* start = &((*this)[0]);
-                char* end = start + size();
-                setg(start, start, end);
+                setg(nullptr, nullptr, nullptr);
+                inputInitialized = false;
+                return std::streambuf::traits_type::eof(); // Return EOF
             }
-            return gptr() == egptr() ? std::char_traits<char>::eof() : std::char_traits<char>::to_int_type(*gptr());
+            else if ( char* start = &((std::vector<char> &)(*this))[0];
+                gptr == nullptr || gptr == egptr || (start != eback || start+size > egptr) ) // Changes are required
+            {
+                if ( inputInitialized && eback != nullptr && gptr != nullptr && egptr != nullptr && gptr >= eback && gptr <= egptr )
+                {
+                    auto offset = gptr-eback; // Calculate the offset, apply offset to the current data set
+                    if ( offset >= (decltype(offset))size || (source != nullptr && source->good()) ) // Input offset was at end of vector or further
+                    {
+                        *this << source->rdbuf(); // Try reading from source stream
+                        start = &((std::vector<char> &)(*this))[0];
+                        size = std::vector<char>::size()*sizeof(char);
+                    }
+
+                    if ( offset == size ) // Input position is at the end of the vector
+                    {
+                        setg(start, start+size, start+size); // Set gptr same as egptr
+                        return std::streambuf::traits_type::eof(); // Return EOF
+                    }
+                    else if ( offset > (decltype(offset))size ) // Input position is now out of bounds due to a size reduction of the vector
+                    {
+                        setg(start, nullptr, start+size); // Set gptr to nullptr as is proper for an underflow failures
+                        throw std::out_of_range("Input position: " + std::to_string(offset/sizeof(char))
+                            + " is out of range for StringBuffer of size: " + std::to_string(size/sizeof(char)));
+                    }
+                    else // Offset somewhere within the vector
+                    {
+                        char* next = start+offset; // Point to the character at offset
+                        setg(start, next, start+size); // Set the new input pointers
+                        return std::streambuf::traits_type::to_int_type(*next); // Return next character
+                    }
+                }
+                else // Input not initialized or pointers are in an invalid state
+                {
+                    setg(start, start, start+size); // Set input pointers to vector contents
+                    inputInitialized = true;
+                    return std::streambuf::traits_type::to_int_type(start[0]); // Return first character
+                }
+            }
+            else // Can perform the read without making any changes to the StringBuffer
+                return std::streambuf::traits_type::to_int_type(*gptr); // Return next character
         }
 
     private:
+        bool inputInitialized;
+        std::istream* source;
         std::array<char, 256> num;
 };
 
@@ -124,9 +174,9 @@ class BasicStringBufferPtr<std::iostream>
 {
     public:
         BasicStringBufferPtr(StringBuffer & sb) : sb(&sb), os(nullptr) {}
-        BasicStringBufferPtr(std::istream & is) : sb(new StringBuffer()), os(nullptr) { *sb >> is.rdbuf(); }
+        BasicStringBufferPtr(std::istream & is) : sb(new StringBuffer(is)), os(nullptr) { *sb << is.rdbuf(); }
         BasicStringBufferPtr(std::ostream & os) : sb(new StringBuffer()), os(&os) {}
-        BasicStringBufferPtr(std::iostream & ios) : sb(new StringBuffer()), os(&ios) { *sb >> ios.rdbuf(); }
+        BasicStringBufferPtr(std::iostream & ios) : sb(new StringBuffer(ios)), os(&ios) { *sb << ios.rdbuf(); ((std::ostream*)sb)->clear(); }
         virtual ~BasicStringBufferPtr() {
             if ( os != nullptr )
             {
@@ -136,10 +186,11 @@ class BasicStringBufferPtr<std::iostream>
         }
         inline StringBuffer & operator*() const { return *sb; }
         inline StringBuffer* operator->() const { return sb; }
+        inline void flush() const { if ( os != nullptr ) { *os << *sb; os = nullptr; } }
 
     private:
         mutable StringBuffer* sb;
-        std::ostream* os;
+        mutable std::ostream* os;
 };
 
 template <>
@@ -159,10 +210,11 @@ class BasicStringBufferPtr<std::ostream>
         }
         inline OStringBuffer & operator*() const { return *sb; }
         inline OStringBuffer* operator->() const { return sb; }
+        inline void flush() const { if ( os != nullptr ) { *os << *sb; os = nullptr; } }
 
     private:
         mutable OStringBuffer* sb;
-        std::ostream* os;
+        mutable std::ostream* os;
 };
 
 template <>
@@ -171,8 +223,8 @@ class BasicStringBufferPtr<std::istream>
     public:
         BasicStringBufferPtr(IStringBuffer & sb) : sb(&sb) {}
         BasicStringBufferPtr(StringBuffer & sb) : sb((IStringBuffer*)&sb) {}
-        BasicStringBufferPtr(std::istream & is) : sb(new IStringBuffer()) { *sb >> is.rdbuf(); }
-        BasicStringBufferPtr(std::iostream & ios) : sb(new IStringBuffer()) { *sb >> ios.rdbuf(); }
+        BasicStringBufferPtr(std::istream & is) : sb(new IStringBuffer(is)) { *sb >> is.rdbuf(); }
+        BasicStringBufferPtr(std::iostream & ios) : sb(new IStringBuffer(ios)) { *sb >> ios.rdbuf(); }
         virtual ~BasicStringBufferPtr() {}
         inline IStringBuffer & operator*() const { return *sb; }
         inline IStringBuffer* operator->() const { return sb; }

@@ -37,7 +37,7 @@ public:
     static const std::unordered_map<std::string, TestEnum> TestEnumCache;
     static const std::unordered_map<std::string, TestEnum> TestEnumCacheCustom;
 
-    A() : testEnum(TestEnum::first), first(0), ptr(nullptr), composed(), boolean(false), putCache(false), str("") { ray[0] = 0; ray[1] = 0; }
+    A() : testEnum(TestEnum::first), first(0), ptr(nullptr), composed(), boolean(false), putCache(false), customInt(0), str("") { ray[0] = 0; ray[1] = 0; }
 
     TestEnum testEnum;
     int first;

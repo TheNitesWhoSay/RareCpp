@@ -339,6 +339,11 @@ int main()
     std::stringstream test;
     bufferMethod(test);
     std::cout << "stringstream: " << test.str() << std::endl;
+    
+    std::stringstream ss;
+    bufferMethod((std::ostream &)ss);
+    bufferMethod((std::istream &)ss);
+    bufferMethod((std::iostream &)ss);
 
     Json::Object obj;
     try {

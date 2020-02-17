@@ -454,7 +454,7 @@ TEST(StringBufferTest, Performance_1000_StringBuffer)
         sb << "asdf" << i << "qwer" << i*5 << sb.endl;
 }
 
-TEST(StringBufferTest, Performance_10000_StringStream)
+/*TEST(StringBufferTest, Performance_10000_StringStream)
 {
     std::stringstream ss;
     for ( size_t i=0; i<10000; i++ )
@@ -494,7 +494,7 @@ TEST(StringBufferTest, Performance_1000000_StringBuffer)
     StringBuffer sb;
     for ( size_t i=0; i<1000000; i++ )
         sb << "asdf" << i << "qwer" << i*5 << sb.endl;
-}
+}*/
 
 size_t getSizeDoubled(StringBufferPtr stringBufferPtr)
 {
@@ -519,4 +519,36 @@ TEST(StringBufferTest, StringBufferPtrCall)
     EXPECT_EQ(0, getSizeDoubled(sbPtr));
 }
 
+TEST(StringBufferTest, StringBufferPtrIos)
+{
+    std::stringstream ss;
+    StringBufferPtr osPtr(ss);
+    osPtr->put('c');
+    EXPECT_EQ(1, osPtr->size());
+    EXPECT_EQ((*osPtr)[0], 'c');
+    osPtr.flush();
+    EXPECT_STREQ("c", ss.str().c_str());
+    
+    char characters[] = { '\0', '\0' };
+    osPtr->read(characters, 1);
+    EXPECT_EQ('c', characters[0]);
 
+    ss.clear();
+    ss.str("asdf");
+    StringBufferPtr otherOsPtr(ss);
+    EXPECT_EQ(4, otherOsPtr->size());
+    EXPECT_STREQ("asdf", otherOsPtr->str().c_str());
+    std::string str;
+    *otherOsPtr >> str;
+    EXPECT_STREQ("asdf", str.c_str());
+    ss.putback('q');
+    char next = '\0';
+    ((std::istream &)*otherOsPtr).clear();
+    otherOsPtr->get(next);
+    EXPECT_EQ('q', next);
+}
+
+TEST(StringBufferTest, StringBufferPtrOs)
+{
+
+}

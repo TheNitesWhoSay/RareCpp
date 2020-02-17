@@ -29,13 +29,15 @@ class ByteBuffer : public std::vector<uint8_t>, public std::streambuf, public st
 
         // Setup the read for std::istream
         virtual int underflow() {
-            if ( gptr() == egptr() )
+            if ( gptr() == nullptr || gptr() == egptr() )
             {
                 uint8_t* start = &((*this)[0]);
                 uint8_t* end = start + std::vector<uint8_t>::size();
                 setg((char*)start, (char*)start, (char*)end);
             }
-            return gptr() == egptr() ? std::char_traits<char>::eof() : std::char_traits<char>::to_int_type(*gptr());
+            return gptr() == nullptr || gptr() == egptr() ?
+                std::char_traits<char>::eof() :
+                std::char_traits<char>::to_int_type(*gptr());
         }
 };
 
