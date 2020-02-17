@@ -542,8 +542,8 @@ TEST(StringBufferTest, StringBufferPtrIos)
     *otherOsPtr >> str;
     EXPECT_STREQ("asdf", str.c_str());
     ss.putback('q');
+    otherOsPtr->syncInput();
     char next = '\0';
-    ((std::istream &)*otherOsPtr).clear();
     otherOsPtr->get(next);
     EXPECT_EQ('q', next);
 }

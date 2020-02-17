@@ -15,6 +15,8 @@
 /// and less enhanced performance, cast to a ostream reference or use the "os" stream manipulator;
 /// you can stream objects that overload ostream/istream with StringBuffer as usual, stream flags will apply,
 /// though overloading streaming to StringBuffer can improve object streaming speed
+///
+/// syncInput() must be called prior to input operations that occur after changes to StringBuffer contents
 template <typename StreamType>
 class BasicStringBuffer : public std::vector<char>, public std::streambuf, public StreamType
 {
@@ -85,6 +87,8 @@ class BasicStringBuffer : public std::vector<char>, public std::streambuf, publi
         /// a NUL terminator in the middle of string
         inline const char* c_str(bool addNulTerminator = true) { if ( addNulTerminator ) { nullTerminate(); } return &(*this)[0]; }
         inline std::string str() { return std::string(begin(), std::vector<char>::end()); }
+
+        inline void syncInput() { ((std::istream*)this)->clear(); underflow(); }
 
     protected:
         /// Appends the character that came through std::ostream
