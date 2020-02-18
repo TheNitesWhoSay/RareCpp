@@ -1,8 +1,10 @@
 #include <gtest/gtest.h>
 #include <regex>
 #include "../CppRandomAccessReflectionLib/Json.h"
+#include "../CppRandomAccessReflectionLib/StringBuffer.h"
 #include "JsonTest.h"
 using namespace Reflect;
+using namespace BufferedStream;
 using Json::Statics;
 
 ENABLE_JSON;
@@ -2799,7 +2801,7 @@ TEST(JsonOutputPut, Field)
     EXPECT_TRUE(visited);
 
     std::stringstream putClusterFirst;
-    FieldClusterFirst fieldClusterFirst;
+    FieldClusterFirst fieldClusterFirst = {};
     visited = false;
     try {
         Json::Put::Field<Annotate<>, FieldClusterFirst::Class::firstFieldCluster_::Field, Json::Statics::Excluded, false, 0, Json::twoSpaces, FieldClusterFirst>(
@@ -2810,7 +2812,7 @@ TEST(JsonOutputPut, Field)
     EXPECT_TRUE(visited);
 
     std::stringstream putClusterNullPointer;
-    FieldClusterPointer fieldClusterPointer;
+    FieldClusterPointer fieldClusterPointer = {};
     fieldClusterPointer.fieldClusterPointer = nullptr;
     Json::Put::Field<Annotate<>, FieldClusterPointer::Class::fieldClusterPointer_::Field, Json::Statics::Excluded, false, 0, Json::twoSpaces, FieldClusterPointer>(
         putClusterNullPointer, Json::context, fieldClusterPointer, "fieldClusterPointer", fieldClusterPointer.fieldClusterPointer);
@@ -2968,4 +2970,84 @@ TEST(JsonOutputTest, JsonPretty)
     std::stringstream finalObjStream;
     finalObjStream << Json::pretty(anObject);
     EXPECT_STREQ(objStreamCompare.str().c_str(), finalObjStream.str().c_str());
+}
+
+TEST(JsonOutputTest, Performance_1000_StringStream)
+{
+    NestedObj nestedObj = { false, { 1, 2, 3 } };
+    AnObjectTest anObject = { 4, "aString", nestedObj };
+
+    std::stringstream ss;
+    for ( size_t i=0; i<1000; i++ )
+        ss << Json::out(anObject);
+}
+
+TEST(JsonOutputTest, Performance_1000_StringBuffer)
+{
+    NestedObj nestedObj = { false, { 1, 2, 3 } };
+    AnObjectTest anObject = { 4, "aString", nestedObj };
+
+    StringBuffer sb;
+    for ( size_t i=0; i<1000; i++ )
+        sb << Json::out(anObject);
+}
+
+TEST(JsonOutputTest, Performance_10000_StringStream)
+{
+    NestedObj nestedObj = { false, { 1, 2, 3 } };
+    AnObjectTest anObject = { 4, "aString", nestedObj };
+
+    std::stringstream ss;
+    for ( size_t i=0; i<10000; i++ )
+        ss << Json::out(anObject);
+}
+
+TEST(JsonOutputTest, Performance_10000_StringBuffer)
+{
+    NestedObj nestedObj = { false, { 1, 2, 3 } };
+    AnObjectTest anObject = { 4, "aString", nestedObj };
+
+    StringBuffer sb;
+    for ( size_t i=0; i<10000; i++ )
+        sb << Json::out(anObject);
+}
+
+TEST(JsonOutputTest, Performance_100000_StringStream)
+{
+    NestedObj nestedObj = { false, { 1, 2, 3 } };
+    AnObjectTest anObject = { 4, "aString", nestedObj };
+
+    std::stringstream ss;
+    for ( size_t i=0; i<100000; i++ )
+        ss << Json::out(anObject);
+}
+
+TEST(JsonOutputTest, Performance_100000_StringBuffer)
+{
+    NestedObj nestedObj = { false, { 1, 2, 3 } };
+    AnObjectTest anObject = { 4, "aString", nestedObj };
+
+    StringBuffer sb;
+    for ( size_t i=0; i<100000; i++ )
+        sb << Json::out(anObject);
+}
+
+TEST(JsonOutputTest, Performance_1000000_StringStream)
+{
+    NestedObj nestedObj = { false, { 1, 2, 3 } };
+    AnObjectTest anObject = { 4, "aString", nestedObj };
+
+    std::stringstream ss;
+    for ( size_t i=0; i<1000000; i++ )
+        ss << Json::out(anObject);
+}
+
+TEST(JsonOutputTest, Performance_1000000_StringBuffer)
+{
+    NestedObj nestedObj = { false, { 1, 2, 3 } };
+    AnObjectTest anObject = { 4, "aString", nestedObj };
+
+    StringBuffer sb;
+    for ( size_t i=0; i<1000000; i++ )
+        sb << Json::out(anObject);
 }
