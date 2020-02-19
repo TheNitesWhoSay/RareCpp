@@ -339,3 +339,8 @@ struct Json::Output::Customize<A, A::TestEnum, A::Class::IndexOf::testEnum>
     }
 }
 ```
+
+
+## StringBuffer Performance Enhancements
+
+Depending on your system and compiler, using StringBuffers instead of std::stringstream can result in a massive performance boost - with MSVC runtime is consistently halved or more. To use, StringBuffer.h needs to be included in your project along with Json.h, then you need to have USE_BUFFERED_STREAMS within your pre-defined macros; any output customizers will need to ensure they're using Json::OutStreamType rather than std::ostream, no other changes should be required.
