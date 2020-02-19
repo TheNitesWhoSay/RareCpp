@@ -132,7 +132,7 @@ If you had a ```class A``` with a field ```uint16_t customInt;``` you might writ
 ```template <>
 struct Json::Output::Customize<A, uint16_t, A::Class::IndexOf::customInt>
 {
-    static bool As(std::ostream & os, Context & context, const A & object, const uint16_t & value)
+    static bool As(Json::OutStreamType & os, Context & context, const A & object, const uint16_t & value)
     {
         if ( value > 9000 )
             Json::Put::String(os, "Over 9000!");
@@ -161,7 +161,7 @@ struct EnhancedContext : public Json::Context
 template <>
 struct Json::Output::Customize<A, A::TestEnum>
 {
-    static bool As(std::ostream & os, Context & context, const A & object, const A::TestEnum & value)
+    static bool As(Json::OutStreamType & os, Context & context, const A & object, const A::TestEnum & value)
     {
         try {
             EnhancedContext & enhanced = dynamic_cast<EnhancedContext &>(context);
@@ -317,7 +317,7 @@ struct Json::Input::Customize<A, A::TestEnum, A::Class::IndexOf::testEnum>
 template <>
 struct Json::Output::Customize<A, A::TestEnum, A::Class::IndexOf::testEnum>
 {
-    static bool As(std::ostream & os, Context & context, const A & object, const A::TestEnum & value)
+    static bool As(Json::OutStreamType & os, Context & context, const A & object, const A::TestEnum & value)
     {
         if ( object.alternate )
         {
