@@ -1,5 +1,5 @@
-#ifndef JSON_INPUT_TEST
-#define JSON_INPUT_TEST
+#ifndef JSONINPUTTEST_H
+#define JSONINPUTTEST_H
 #include "../CppRandomAccessReflectionLib/Reflect.h"
 #include "../CppRandomAccessReflectionLib/Json.h"
 using namespace Reflect;

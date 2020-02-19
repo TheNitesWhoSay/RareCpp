@@ -37,7 +37,7 @@ public:
     static const std::unordered_map<std::string, TestEnum> TestEnumCache;
     static const std::unordered_map<std::string, TestEnum> TestEnumCacheCustom;
 
-    A() : testEnum(TestEnum::first), first(0), ptr(nullptr), composed(), boolean(false), putCache(false), str("") { ray[0] = 0; ray[1] = 0; }
+    A() : testEnum(TestEnum::first), first(0), ptr(nullptr), composed(), boolean(false), putCache(false), customInt(0), str("") { ray[0] = 0; ray[1] = 0; }
 
     TestEnum testEnum;
     int first;
@@ -60,10 +60,12 @@ public:
         () ptr, (Json::Ignore) boolean, () putCache, () customInt, () str, () map, () vecVec, () ray, () runtime, () autoAllocate, () unknownFields)
 };
 
+std::istream & operator>>(std::istream & is, A::TestEnum & testEnum);
+
 template <>
 struct Json::Output::Customize<A, uint16_t, A::Class::IndexOf::customInt>
 {
-    static bool As(std::ostream & os, Context & context, const A & object, const uint16_t & value)
+    static bool As(OutStreamType & os, Context & context, const A & object, const uint16_t & value)
     {
         if ( value > 9000 )
             Json::Put::String(os, "Over 9000!");
@@ -125,7 +127,7 @@ struct Json::Input::CustomizeType<A>
 template <>
 struct Json::Output::Customize<A, A::TestEnum>
 {
-    static bool As(std::ostream & os, Context & context, const A & object, const A::TestEnum & value)
+    static bool As(Json::OutStreamType & os, Context & context, const A & object, const A::TestEnum & value)
     {
         try {
             EnhancedContext & enhanced = dynamic_cast<EnhancedContext &>(context);

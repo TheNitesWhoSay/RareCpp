@@ -18,7 +18,7 @@ const std::unordered_map<std::string, A::TestEnum> A::TestEnumCacheCustom = {
     { "secondCustom", A::TestEnum::second }
 };
 
-std::ostream & operator<<(std::ostream & os, const A::TestEnum & testEnum)
+Json::OutStreamType & operator<<(Json::OutStreamType & os, const A::TestEnum & testEnum)
 {
     switch ( testEnum )
     {
