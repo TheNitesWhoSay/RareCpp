@@ -12,6 +12,12 @@
 
 namespace BufferedStream
 {
+    struct EndL
+    {
+        static constexpr char value = '\n';
+    };
+    struct Os {};
+
     /// A faster alternative to std::stringstream; can similarly be used as both an ostream or istream,
     /// streaming to a StringBuffer with the << operator will occur much faster than to the ostream,
     /// although all stream flags will be ignored; to stream to ostream as regular with stream flags applied
@@ -22,14 +28,9 @@ namespace BufferedStream
     class BasicStringBuffer : public std::streambuf, public StreamType
     {
         public:
-            struct EndL
-            {
-                static constexpr char value = '\n';
-            };
-            struct Os {};
             static constexpr EndL endl = {}; // Use StringBuffer::endl instead of std::endl to improve performance
             static constexpr Os os = {}; // Use this stream manipulator to start streaming as if to std::ostream, avoid this to improve performance
-        
+
             BasicStringBuffer() : StreamType((std::streambuf*)this), src(nullptr), num(), inputInitialized(false) {}
             BasicStringBuffer(std::istream & source) : StreamType((std::streambuf*)this), src(&source), num(), inputInitialized(false) {}
             BasicStringBuffer(const std::string & str) : StreamType((std::streambuf*)this),
@@ -48,6 +49,10 @@ namespace BufferedStream
             {
                 data.insert(data.end(), &str[0], &str[N-1]);
             }
+            inline void operator+=(const char* str)
+            {
+                data.insert(data.end(), str, str+strlen(str)*sizeof(char));
+            }
             inline void operator+=(const std::string & str)
             {
                 data.insert(data.end(), str.begin(), str.end());
@@ -62,6 +67,11 @@ namespace BufferedStream
             template <size_t N> inline BasicStringBuffer & operator<<(const char (& str)[N])
             {
                 data.insert(data.end(), &str[0], &str[N-1]);
+                return *this;
+            }
+            inline BasicStringBuffer & operator<<(const char* str)
+            {
+                data.insert(data.end(), str, str+strlen(str)*sizeof(char));
                 return *this;
             }
             inline BasicStringBuffer & operator<<(const std::string & str)

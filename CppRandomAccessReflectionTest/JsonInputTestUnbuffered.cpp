@@ -1,0 +1,12 @@
+#undef USE_BUFFERED_STREAMS
+
+#define GET_RUNJSONINPUTTESTSRC_INCLUDES
+#include "JsonInputTest.cpp"
+#undef GET_RUNJSONINPUTTESTSRC_INCLUDES
+
+namespace Unbuffered
+{
+#define GET_RUNJSONINPUTTESTSRC_CPP
+#include "JsonInputTest.cpp"
+#undef GET_RUNJSONINPUTTESTSRC_CPP
+}

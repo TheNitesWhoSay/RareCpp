@@ -8,9 +8,21 @@
 #include <functional>
 #include <cstring>
 #include "Reflect.h"
+#ifdef USE_BUFFERED_STREAMS
+#include "StringBuffer.h"
+#endif
 
 namespace Json
 {
+#ifdef USE_BUFFERED_STREAMS
+    using namespace BufferedStream;
+    using OutStreamType = StringBuffer;
+    static constexpr EndL osEndl = {};
+#else
+    using OutStreamType = std::ostream;
+    #define osEndl std::endl
+#endif
+
     using namespace ExtendedTypeSupport;
     using namespace Reflect;
     
@@ -872,7 +884,7 @@ namespace Json
             struct Customize : public Unspecialized
             {
                 /// Should return true if you put any output, else you should leave output unchanged
-                static bool As(std::ostream & output, Context & context, const Object & object, const Value & value) { return false; }
+                static bool As(OutStreamType & output, Context & context, const Object & object, const Value & value) { return false; }
             };
 
             template <typename Value, typename OpAnnotations = Annotate<>, typename Field = NoField, Statics statics = Statics::Excluded,
@@ -880,7 +892,7 @@ namespace Json
             struct CustomizeType : public Unspecialized
             {
                 /// Should return true if you put any output, else you should leave output unchanged
-                static bool As(std::ostream & output, Context & context, const Value & value) { return false; }
+                static bool As(OutStreamType & output, Context & context, const Value & value) { return false; }
             };
 
             template <typename Object, typename Value,
@@ -914,7 +926,7 @@ namespace Json
             IndentType<PrettyPrint, IndentLevel, indent> Indent;
 
             template <bool PrettyPrint, size_t IndentLevel, const char* indent = twoSpaces>
-            std::ostream & operator<<(std::ostream & os, const IndentType<PrettyPrint, IndentLevel, indent> &)
+            OutStreamType & operator<<(OutStreamType & os, const IndentType<PrettyPrint, IndentLevel, indent> &)
             {
                 if constexpr ( IndentLevel > 0 && PrettyPrint )
                 {
@@ -932,14 +944,14 @@ namespace Json
             ArrayPrefixType<PrettyPrint, ContainsPrimitives, IndentLevel, indent> ArrayPrefix;
 
             template <bool PrettyPrint, bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
-            std::ostream & operator<<(std::ostream & os, const ArrayPrefixType<PrettyPrint, ContainsPrimitives, IndentLevel, indent> &)
+            OutStreamType & operator<<(OutStreamType & os, const ArrayPrefixType<PrettyPrint, ContainsPrimitives, IndentLevel, indent> &)
             {
                 if constexpr ( !PrettyPrint )
                     os << "[";
                 else if constexpr ( ContainsPrimitives )
                     os << "[ ";
                 else
-                    os << "[" << std::endl << Indent<PrettyPrint, IndentLevel, indent>;
+                    os << "[" << osEndl << Indent<PrettyPrint, IndentLevel, indent>;
 
                 return os;
             }
@@ -951,14 +963,14 @@ namespace Json
             ArraySuffixType<PrettyPrint, ContainsPrimitives, IndentLevel, indent> ArraySuffix;
 
             template <bool PrettyPrint, bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
-            std::ostream & operator<<(std::ostream & os, const ArraySuffixType<PrettyPrint, ContainsPrimitives, IndentLevel, indent> &)
+            OutStreamType & operator<<(OutStreamType & os, const ArraySuffixType<PrettyPrint, ContainsPrimitives, IndentLevel, indent> &)
             {
                 if constexpr ( !PrettyPrint )
                     os << "]";
                 else if constexpr ( ContainsPrimitives )
                     os << " ]";
                 else
-                    os << std::endl << Indent<PrettyPrint, IndentLevel, indent> << "]";
+                    os << osEndl << Indent<PrettyPrint, IndentLevel, indent> << "]";
 
                 return os;
             }
@@ -970,7 +982,7 @@ namespace Json
             ObjectPrefixType<PrettyPrint, IndentLevel, indent> ObjectPrefix;
                 
             template <bool PrettyPrint, size_t IndentLevel, const char* indent, Statics statics, typename Object>
-            std::ostream & operator<<(std::ostream & os, const ObjectPrefixType<PrettyPrint, IndentLevel, indent, statics, Object> &)
+            OutStreamType & operator<<(OutStreamType & os, const ObjectPrefixType<PrettyPrint, IndentLevel, indent, statics, Object> &)
             {
                 os << "{";
                 return os;
@@ -983,12 +995,12 @@ namespace Json
             ObjectSuffixType<PrettyPrint, IndentLevel, indent, statics, Object> ObjectSuffix;
                 
             template <bool PrettyPrint, size_t IndentLevel, const char* indent = twoSpaces, Statics statics = Statics::Excluded, typename Object = void>
-            std::ostream & operator<<(std::ostream & os, const ObjectSuffixType<PrettyPrint, IndentLevel, indent, statics, Object> &)
+            OutStreamType & operator<<(OutStreamType & os, const ObjectSuffixType<PrettyPrint, IndentLevel, indent, statics, Object> &)
             {
                 if constexpr ( std::is_same<void, Object>::value )
                 {
                     if constexpr ( PrettyPrint )
-                        os << std::endl << Indent<PrettyPrint, IndentLevel, indent> << "}";
+                        os << osEndl << Indent<PrettyPrint, IndentLevel, indent> << "}";
                     else
                         os << "}";
                 }
@@ -996,7 +1008,7 @@ namespace Json
                 {
                     constexpr bool NotEmpty = HasFields<statics, Object>();
                     if constexpr ( PrettyPrint && NotEmpty )
-                        os << std::endl << Indent<PrettyPrint, IndentLevel, indent> << "}";
+                        os << osEndl << Indent<PrettyPrint, IndentLevel, indent> << "}";
                     else
                         os << "}";
                 }
@@ -1010,14 +1022,14 @@ namespace Json
             FieldPrefixType<IsFirst, PrettyPrint, IndentLevel, indent> FieldPrefix;
                 
             template <bool IsFirst, bool PrettyPrint, size_t IndentLevel, const char* indent = twoSpaces>
-            std::ostream & operator<<(std::ostream & os, const FieldPrefixType<IsFirst, PrettyPrint, IndentLevel, indent> &)
+            OutStreamType & operator<<(OutStreamType & os, const FieldPrefixType<IsFirst, PrettyPrint, IndentLevel, indent> &)
             {
                 if constexpr ( PrettyPrint )
                 {
                     if constexpr ( IsFirst )
-                        os << std::endl << Indent<PrettyPrint, IndentLevel, indent>;
+                        os << osEndl << Indent<PrettyPrint, IndentLevel, indent>;
                     else 
-                        os << "," << std::endl << Indent<PrettyPrint, IndentLevel, indent>;
+                        os << "," << osEndl << Indent<PrettyPrint, IndentLevel, indent>;
                 }
                 else if constexpr ( !IsFirst )
                     os << ",";
@@ -1032,7 +1044,7 @@ namespace Json
             FieldNameValueSeparatorType<PrettyPrint> FieldNameValueSeparator;
                 
             template <bool PrettyPrint>
-            std::ostream & operator<<(std::ostream & os, const FieldNameValueSeparatorType<PrettyPrint> &)
+            OutStreamType & operator<<(OutStreamType & os, const FieldNameValueSeparatorType<PrettyPrint> &)
             {
                 if constexpr ( PrettyPrint )
                     os << ": ";
@@ -1048,7 +1060,7 @@ namespace Json
             inline namespace Affix
             {
                 template <bool PrettyPrint, const char* indent = twoSpaces>
-                void Indent(std::ostream & os, size_t indentLevel)
+                void Indent(OutStreamType & os, size_t indentLevel)
                 {
                     if constexpr ( PrettyPrint )
                     {
@@ -1058,7 +1070,7 @@ namespace Json
                 }
                 
                 template <bool PrettyPrint, bool ContainsPrimitives, const char* indent = twoSpaces>
-                void ArrayPrefix(std::ostream & os, size_t indentLevel)
+                void ArrayPrefix(OutStreamType & os, size_t indentLevel)
                 {
                     if constexpr ( !PrettyPrint )
                         os << "[";
@@ -1066,13 +1078,13 @@ namespace Json
                         os << "[ ";
                     else
                     {
-                        os << "[" << std::endl;
+                        os << "[" << osEndl;
                         Put::Indent<PrettyPrint, indent>(os, indentLevel);
                     }
                 }
 
                 template <bool PrettyPrint, bool ContainsPrimitives, const char* indent = twoSpaces>
-                void ArraySuffix(std::ostream & os, size_t indentLevel)
+                void ArraySuffix(OutStreamType & os, size_t indentLevel)
                 {
                     if constexpr ( !PrettyPrint )
                         os << "]";
@@ -1080,24 +1092,24 @@ namespace Json
                         os << " ]";
                     else
                     {
-                        os << std::endl;
+                        os << osEndl;
                         Put::Indent<PrettyPrint, indent>(os, indentLevel);
                         os << "]";
                     }
                 }
                 
                 template <bool PrettyPrint, const char* indent>
-                void ObjectPrefix(std::ostream & os, size_t indentLevel)
+                void ObjectPrefix(OutStreamType & os, size_t indentLevel)
                 {
                     os << "{";
                 }
                 
                 template <bool PrettyPrint, const char* indent = twoSpaces>
-                void ObjectSuffix(std::ostream & os, bool isEmpty, size_t indentLevel)
+                void ObjectSuffix(OutStreamType & os, bool isEmpty, size_t indentLevel)
                 {
                     if ( PrettyPrint && !isEmpty )
                     {
-                        os << std::endl;
+                        os << osEndl;
                         Put::Indent<PrettyPrint, indent>(os, indentLevel);
                         os << "}";
                     }
@@ -1106,18 +1118,18 @@ namespace Json
                 }
                 
                 template <bool PrettyPrint, const char* indent = twoSpaces>
-                void FieldPrefix(std::ostream & os, bool isFirst, size_t indentLevel)
+                void FieldPrefix(OutStreamType & os, bool isFirst, size_t indentLevel)
                 {
                     if constexpr ( PrettyPrint )
                     {
                         if ( isFirst )
                         {
-                            os << std::endl;
+                            os << osEndl;
                             Put::Indent<PrettyPrint, indent>(os, indentLevel);
                         }
                         else
                         {
-                            os << "," << std::endl;
+                            os << "," << osEndl;
                             Put::Indent<PrettyPrint, indent>(os, indentLevel);
                         }
                     }
@@ -1126,7 +1138,7 @@ namespace Json
                 }
 
                 template <bool PrettyPrint, bool IsArray, bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
-                void NestedPrefix(std::ostream & os, bool isEmpty)
+                void NestedPrefix(OutStreamType & os, bool isEmpty)
                 {
                     if constexpr ( IsArray )
                     {
@@ -1145,7 +1157,7 @@ namespace Json
                 }
 
                 template <bool PrettyPrint, const char* indent = twoSpaces>
-                void NestedPrefix(std::ostream & os, bool isArray, bool containsPrimitives, bool isEmpty, size_t indentLevel)
+                void NestedPrefix(OutStreamType & os, bool isArray, bool containsPrimitives, bool isEmpty, size_t indentLevel)
                 {
                     if ( isArray )
                     {
@@ -1174,7 +1186,7 @@ namespace Json
                 }
                 
                 template <bool PrettyPrint, bool IsArray, bool ContainsPrimitives, size_t IndentLevel, const char* indent = twoSpaces>
-                void NestedSuffix(std::ostream & os, bool isEmpty)
+                void NestedSuffix(OutStreamType & os, bool isEmpty)
                 {
                     if constexpr ( IsArray )
                     {
@@ -1193,7 +1205,7 @@ namespace Json
                 }
                 
                 template <bool PrettyPrint, const char* indent = twoSpaces>
-                void NestedSuffix(std::ostream & os, bool isArray, bool containsPrimitives, bool isEmpty, size_t indentLevel)
+                void NestedSuffix(OutStreamType & os, bool isArray, bool containsPrimitives, bool isEmpty, size_t indentLevel)
                 {
                     if ( isArray )
                     {
@@ -1222,21 +1234,21 @@ namespace Json
                 }
                 
                 template <bool PrettyPrint, bool IsJsonField, bool NestedSeparator, size_t IndentLevel, const char* indent = twoSpaces>
-                void Separator(std::ostream & os, bool isFirst)
+                void Separator(OutStreamType & os, bool isFirst)
                 {
                     if constexpr ( IsJsonField )
                     {
                         if ( isFirst && PrettyPrint )
-                            os << std::endl << StaticAffix::Indent<PrettyPrint, IndentLevel, indent>;
+                            os << osEndl << StaticAffix::Indent<PrettyPrint, IndentLevel, indent>;
                         else if constexpr ( PrettyPrint )
-                            os << "," << std::endl << StaticAffix::Indent<PrettyPrint, IndentLevel, indent>;
+                            os << "," << osEndl << StaticAffix::Indent<PrettyPrint, IndentLevel, indent>;
                         else if ( !isFirst )
                             os << ",";
                     }
                     else if ( !isFirst )
                     {
                         if constexpr ( NestedSeparator && PrettyPrint )
-                            os << "," << std::endl << StaticAffix::Indent<PrettyPrint, IndentLevel, indent>;
+                            os << "," << osEndl << StaticAffix::Indent<PrettyPrint, IndentLevel, indent>;
                         else if constexpr ( PrettyPrint )
                             os << ", ";
                         else
@@ -1245,18 +1257,18 @@ namespace Json
                 }
                 
                 template <bool PrettyPrint, bool IsJsonField, bool NestedSeparator, const char* indent = twoSpaces>
-                void Separator(std::ostream & os, bool isFirst, size_t indentLevel)
+                void Separator(OutStreamType & os, bool isFirst, size_t indentLevel)
                 {
                     if constexpr ( IsJsonField )
                     {
                         if ( isFirst && PrettyPrint )
                         {
-                            os << std::endl;
+                            os << osEndl;
                             Put::Indent<PrettyPrint, indent>(os, indentLevel);
                         }
                         else if constexpr ( PrettyPrint )
                         {
-                            os << "," << std::endl;
+                            os << "," << osEndl;
                             Put::Indent<PrettyPrint, indent>(os, indentLevel);
                         }
                         else if ( !isFirst )
@@ -1266,7 +1278,7 @@ namespace Json
                     {
                         if constexpr ( NestedSeparator && PrettyPrint )
                         {
-                            os << "," << std::endl;
+                            os << "," << osEndl;
                             Put::Indent<PrettyPrint, indent>(os, indentLevel);
                         }
                         else if constexpr ( PrettyPrint )
@@ -1279,7 +1291,7 @@ namespace Json
 
             template <typename Annotations, typename Field, Statics statics,
                 bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, typename Value>
-            static constexpr inline bool Customization(std::ostream & os, Context & context, const Object & obj, const Value & value)
+            static constexpr inline bool Customization(OutStreamType & os, Context & context, const Object & obj, const Value & value)
             {
                 if constexpr ( is_specialized<Customize<Object, Value, Field::Index, Annotations, Field, statics,
                     PrettyPrint, TotalParentIterables, IndentLevel, indent>>::value )
@@ -1321,7 +1333,7 @@ namespace Json
                     return false;
             }
 
-            static void String(std::ostream & os, const std::string & str)
+            static void String(OutStreamType & os, const std::string & str)
             {
                 os << "\"";
                 for ( size_t i=0; i<str.size(); i++ )
@@ -1343,26 +1355,30 @@ namespace Json
             }
 
             template <typename T>
-            static void String(std::ostream & os, const T & t)
+            static void String(OutStreamType & os, const T & t)
             {
+#ifdef USE_BUFFERED_STREAMS
+                StringBuffer ss;
+#else
                 std::stringstream ss;
+#endif
                 ss << t;
                 Put::String(os, ss.str());
             }
 
             template <typename Annotations, bool PrettyPrint, const char* indent>
-            static void GenericIterable(std::ostream & os, Context & context,
+            static void GenericIterable(OutStreamType & os, Context & context,
                 size_t totalParentIterables, size_t indentLevel, const Generic::Value & iterable);
 
             template <typename Annotations, typename Field, Statics statics,
                 bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, typename IterableValue = uint_least8_t>
-            static constexpr void Iterable(std::ostream & os, Context & context, const Object & obj, const IterableValue & iterable);
+            static constexpr void Iterable(OutStreamType & os, Context & context, const Object & obj, const IterableValue & iterable);
             
             template <typename Annotations, Statics statics, bool PrettyPrint, size_t IndentLevel, const char* indent, typename T>
-            static constexpr void Object(std::ostream & os, Context & context, const T & obj);
+            static constexpr void Object(OutStreamType & os, Context & context, const T & obj);
 
             template <typename Annotations, bool PrettyPrint, const char* indent, bool IsFirst>
-            static void GenericValue(std::ostream & os, Context & context,
+            static void GenericValue(OutStreamType & os, Context & context,
                 size_t totalParentIterables, size_t indentLevel, const Generic::Value & value)
             {
                 switch ( value.type() )
@@ -1407,7 +1423,7 @@ namespace Json
             }
             
             template <typename Annotations, bool PrettyPrint, const char* indent>
-            static void GenericIterable(std::ostream & os, Context & context,
+            static void GenericIterable(OutStreamType & os, Context & context,
                 size_t totalParentIterables, size_t indentLevel, const Generic::Value & iterable)
             {
                 bool isObject = iterable.type() == Generic::Value::Type::Object;
@@ -1511,7 +1527,7 @@ namespace Json
 
             template <typename Annotations, typename Field, Statics statics,
                 bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, bool IsFirst, typename T>
-            static constexpr void Value(std::ostream & os, Context & context, const Object & obj, const T & value)
+            static constexpr void Value(OutStreamType & os, Context & context, const Object & obj, const T & value)
             {
                 if constexpr ( Customizers::HaveSpecialization<Object, T, Field::Index, Annotations, Field, statics,
                     PrettyPrint, TotalParentIterables, IndentLevel, indent> )
@@ -1557,7 +1573,7 @@ namespace Json
             
             template <typename Annotations, typename Field, Statics statics,
                 bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, bool IsFirst, typename T, typename Key>
-            static constexpr void Value(std::ostream & os, Context & context, const Object & obj, const std::pair<Key, T> & pair)
+            static constexpr void Value(OutStreamType & os, Context & context, const Object & obj, const std::pair<Key, T> & pair)
             {
                 Put::String(os, pair.first);
                 os << FieldNameValueSeparator<PrettyPrint>;
@@ -1566,7 +1582,7 @@ namespace Json
 
             template <typename Annotations, typename Field, Statics statics,
                 bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, typename IterableValue>
-            static constexpr void Iterable(std::ostream & os, Context & context, const Object & obj, const IterableValue & iterable)
+            static constexpr void Iterable(OutStreamType & os, Context & context, const Object & obj, const IterableValue & iterable)
             {
                 using Element = typename element_type<IterableValue>::type;
                 constexpr bool ContainsIterables = is_iterable<typename pair_rhs<Element>::type>::value;
@@ -1605,7 +1621,7 @@ namespace Json
 
             template <typename Annotations, typename FieldClass, Statics statics,
                 bool PrettyPrint, size_t IndentLevel, const char* indent, typename Object>
-            static constexpr void Field(std::ostream & os, Context & context, const Object & obj, const char* fieldName, const typename FieldClass::Type & value)
+            static constexpr void Field(OutStreamType & os, Context & context, const Object & obj, const char* fieldName, const typename FieldClass::Type & value)
             {
                 if constexpr ( matches_statics<FieldClass::IsStatic, statics>::value )
                 {
@@ -1633,7 +1649,7 @@ namespace Json
             }
             
             template <typename Annotations, Statics statics, bool PrettyPrint, size_t IndentLevel, const char* indent, typename Object>
-            static constexpr void Fields(std::ostream & os, Context & context, const Object & obj)
+            static constexpr void Fields(OutStreamType & os, Context & context, const Object & obj)
             {
                 Object::Class::ForEachField(obj, [&](auto & field, auto & value)
                 {
@@ -1644,7 +1660,7 @@ namespace Json
 
             template <typename Annotations, size_t SuperIndex, typename T, Statics statics,
                 bool PrettyPrint, size_t IndentLevel, const char* indent, typename Object>
-            static constexpr void Super(std::ostream & os, Context & context, const Object & obj, const std::string & superFieldName)
+            static constexpr void Super(OutStreamType & os, Context & context, const Object & obj, const std::string & superFieldName)
             {
                 if constexpr ( HasFields<statics, T>() )
                 {
@@ -1657,7 +1673,7 @@ namespace Json
             }
             
             template <typename Annotations, Statics statics, bool PrettyPrint, size_t IndentLevel, const char* indent, typename Object>
-            static constexpr void Supers(std::ostream & os, Context & context, const Object & obj)
+            static constexpr void Supers(OutStreamType & os, Context & context, const Object & obj)
             {
                 Object::Supers::ForEach(obj, [&](auto index, auto & superObj)
                 {
@@ -1668,7 +1684,7 @@ namespace Json
             }
 
             template <typename Annotations, Statics statics, bool PrettyPrint, size_t IndentLevel, const char* indent, typename T>
-            static constexpr void Object(std::ostream & os, Context & context, const T & obj)
+            static constexpr void Object(OutStreamType & os, Context & context, const T & obj)
             {
                 os << StaticAffix::ObjectPrefix<PrettyPrint, IndentLevel, indent, statics, T>;
                 Put::Fields<Annotations, statics, PrettyPrint, IndentLevel, indent, T>(os, context, obj);
@@ -1687,7 +1703,7 @@ namespace Json
             const Object & obj;
             std::shared_ptr<Context> context;
             
-            constexpr std::ostream & put(std::ostream & os)
+            constexpr OutStreamType & put(OutStreamType & os)
             {
                 if ( context == nullptr )
                     context = std::shared_ptr<Context>(new Context());
@@ -1697,12 +1713,28 @@ namespace Json
             }
         };
         
+#ifdef USE_BUFFERED_STREAMS
+        template <Statics statics = Statics::Excluded, typename Annotations = Annotate<>, bool PrettyPrint = false,
+            size_t IndentLevel = 0, const char* indent = twoSpaces, typename T = uint_least8_t>
+        StringBuffer & operator<<(StringBuffer & os, Output::ReflectedObject<Annotations, statics, PrettyPrint, IndentLevel, indent, T> object)
+        {
+            return object.put(os);
+        }
+
+        template <Statics statics = Statics::Excluded, typename Annotations = Annotate<>, bool PrettyPrint = false,
+            size_t IndentLevel = 0, const char* indent = twoSpaces, typename T = uint_least8_t>
+        std::ostream & operator<<(StringBufferPtr os, Output::ReflectedObject<Annotations, statics, PrettyPrint, IndentLevel, indent, T> object)
+        {
+            return object.put(*os);
+        }
+#else
         template <Statics statics = Statics::Excluded, typename Annotations = Annotate<>, bool PrettyPrint = false,
             size_t IndentLevel = 0, const char* indent = twoSpaces, typename T = uint_least8_t>
         std::ostream & operator<<(std::ostream & os, Output::ReflectedObject<Annotations, statics, PrettyPrint, IndentLevel, indent, T> object)
         {
             return object.put(os);
         }
+#endif
 
         template <Statics statics = Statics::Excluded, typename Annotations = Annotate<>,
             size_t IndentLevel = 0, const char* indent = twoSpaces, typename T = uint_least8_t>
@@ -3182,7 +3214,7 @@ namespace Json
         } \
         return simpleTypeStr; \
     } \
-    std::ostream & operator<<(std::ostream & os, const Json::Generic::Value & value) { \
+    Json::OutStreamType & operator<<(Json::OutStreamType & os, const Json::Generic::Value & value) { \
         Json::Put::GenericValue<Annotate<>, true, Json::twoSpaces, true>(os, Json::context, 0, 0, value); \
         return os; \
     } \
@@ -3191,5 +3223,7 @@ namespace Json
     }
     }
 };
+
+#undef osEndl
 
 #endif

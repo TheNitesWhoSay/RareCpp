@@ -1,8 +1,11 @@
 #ifndef JSONTEST_H
 #define JSONTEST_H
 #include "../CppRandomAccessReflectionLib/Reflect.h"
+#include "../CppRandomAccessReflectionLib/StringBuffer.h"
 #include "../CppRandomAccessReflectionLib/Json.h"
 using namespace Reflect;
+using namespace BufferedStream;
+using Json::Statics;
 
 struct CustomizeNoSpecialization
 {
@@ -26,7 +29,7 @@ template <size_t FieldIndex, typename OpAnnotations, typename Field, Json::Stati
 struct Json::Output::Customize<CustomizeFullySpecialized, int, FieldIndex, OpAnnotations, Field, statics,
     PrettyPrint, TotalParentIterables, IndentLevel, indent>
 {
-    static bool As(std::ostream & output, Json::Context & context, const CustomizeFullySpecialized & object, const int & value)
+    static bool As(Json::OutStreamType & output, Json::Context & context, const CustomizeFullySpecialized & object, const int & value)
     {
         Json::Put::String(output, "Customized" + std::to_string(value));
         return true;
@@ -45,7 +48,7 @@ struct Customize5ArgSpecialized
 template <size_t FieldIndex, typename OpAnnotations, typename Field>
 struct Json::Output::Customize<Customize5ArgSpecialized, int, FieldIndex, OpAnnotations, Field>
 {
-    static bool As(std::ostream & output, Json::Context & context, const Customize5ArgSpecialized & object, const int & value)
+    static bool As(Json::OutStreamType & output, Json::Context & context, const Customize5ArgSpecialized & object, const int & value)
     {
         return true;
     }
@@ -63,7 +66,7 @@ struct Customize4ArgSpecialized
 template <size_t FieldIndex, typename OpAnnotations>
 struct Json::Output::Customize<Customize4ArgSpecialized, int, FieldIndex, OpAnnotations>
 {
-    static bool As(std::ostream & output, Json::Context & context, const Customize4ArgSpecialized & object, const int & value)
+    static bool As(Json::OutStreamType & output, Json::Context & context, const Customize4ArgSpecialized & object, const int & value)
     {
         return true;
     }
@@ -81,7 +84,7 @@ struct Customize3ArgSpecialized
 template <size_t FieldIndex>
 struct Json::Output::Customize<Customize3ArgSpecialized, int, FieldIndex>
 {
-    static bool As(std::ostream & output, Json::Context & context, const Customize3ArgSpecialized & object, const int & value)
+    static bool As(Json::OutStreamType & output, Json::Context & context, const Customize3ArgSpecialized & object, const int & value)
     {
         return true;
     }
@@ -99,7 +102,7 @@ struct Customize2ArgSpecialized
 template <>
 struct Json::Output::Customize<Customize2ArgSpecialized, int>
 {
-    static bool As(std::ostream & output, Json::Context & context, const Customize2ArgSpecialized & object, const int & value)
+    static bool As(Json::OutStreamType & output, Json::Context & context, const Customize2ArgSpecialized & object, const int & value)
     {
         return true;
     }
@@ -117,7 +120,7 @@ struct Customize5ArgSpecialized_OpAnnotationsDefaulted
 template <size_t FieldIndex, typename Field>
 struct Json::Output::Customize<Customize5ArgSpecialized_OpAnnotationsDefaulted, int, FieldIndex, Annotate<>, Field>
 {
-    static bool As(std::ostream & output, Json::Context & context, const Customize5ArgSpecialized_OpAnnotationsDefaulted & object, const int & value)
+    static bool As(Json::OutStreamType & output, Json::Context & context, const Customize5ArgSpecialized_OpAnnotationsDefaulted & object, const int & value)
     {
         return true;
     }
@@ -135,7 +138,7 @@ struct Customize5ArgSpecialized_FieldIndexDefaulted
 template <typename OpAnnotations, typename Field>
 struct Json::Output::Customize<Customize5ArgSpecialized_FieldIndexDefaulted, int, Json::NoFieldIndex, OpAnnotations, Field>
 {
-    static bool As(std::ostream & output, Json::Context & context, const Customize5ArgSpecialized_FieldIndexDefaulted & object, const int & value)
+    static bool As(Json::OutStreamType & output, Json::Context & context, const Customize5ArgSpecialized_FieldIndexDefaulted & object, const int & value)
     {
         return true;
     }
@@ -153,7 +156,7 @@ struct Customize5ArgSpecialized_BothDefaulted
 template <typename Field>
 struct Json::Output::Customize<Customize5ArgSpecialized_BothDefaulted, int, Json::NoFieldIndex, Annotate<>, Field>
 {
-    static bool As(std::ostream & output, Json::Context & context, const Customize5ArgSpecialized_BothDefaulted & object, const int & value)
+    static bool As(Json::OutStreamType & output, Json::Context & context, const Customize5ArgSpecialized_BothDefaulted & object, const int & value)
     {
         return true;
     }
@@ -171,7 +174,7 @@ struct Customize4ArgSpecialized_FieldIndexDefaulted
 template <typename OpAnnotations>
 struct Json::Output::Customize<Customize4ArgSpecialized_FieldIndexDefaulted, int, Json::NoFieldIndex, OpAnnotations>
 {
-    static bool As(std::ostream & output, Json::Context & context, const Customize4ArgSpecialized_FieldIndexDefaulted & object, const int & value)
+    static bool As(Json::OutStreamType & output, Json::Context & context, const Customize4ArgSpecialized_FieldIndexDefaulted & object, const int & value)
     {
         return true;
     }
@@ -205,7 +208,7 @@ template <typename OpAnnotations, typename Field, Json::Statics statics,
     bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent>
 struct Json::Output::CustomizeType<FullySpecializedType, OpAnnotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent>
 {
-    static bool As(std::ostream & output, Json::Context & context, const FullySpecializedType & value)
+    static bool As(Json::OutStreamType & output, Json::Context & context, const FullySpecializedType & value)
     {
         return true;
     }
@@ -226,7 +229,7 @@ struct ContainsThreeArgSpecialized
 template <typename OpAnnotations, typename Field>
 struct Json::Output::CustomizeType<ThreeArgSpecializedType, OpAnnotations, Field>
 {
-    static bool As(std::ostream & output, Json::Context & context, const ThreeArgSpecializedType & value)
+    static bool As(Json::OutStreamType & output, Json::Context & context, const ThreeArgSpecializedType & value)
     {
         return true;
     }
@@ -247,7 +250,7 @@ struct ContainsTwoArgSpecialized
 template<typename OpAnnotations>
 struct Json::Output::CustomizeType<TwoArgSpecializedType, OpAnnotations>
 {
-    static bool As(std::ostream & output, Json::Context & context, const TwoArgSpecializedType & value)
+    static bool As(Json::OutStreamType & output, Json::Context & context, const TwoArgSpecializedType & value)
     {
         return true;
     }
@@ -268,7 +271,7 @@ struct ContainsOneArgSpecialized
 template <>
 struct Json::Output::CustomizeType<OneArgSpecializedType>
 {
-    static bool As(std::ostream & output, Json::Context & context, const OneArgSpecializedType & value)
+    static bool As(Json::OutStreamType & output, Json::Context & context, const OneArgSpecializedType & value)
     {
         return true;
     }
@@ -289,7 +292,7 @@ struct ContainsThreeArgSpecializedType_OpAnnotationsDefaulted
 template <typename OpAnnotations, typename Field>
 struct Json::Output::CustomizeType<ThreeArgSpecializedType_OpAnnotationsDefaulted, OpAnnotations, Field>
 {
-    static bool As(std::ostream & output, Json::Context & context, const ThreeArgSpecializedType_OpAnnotationsDefaulted & value)
+    static bool As(Json::OutStreamType & output, Json::Context & context, const ThreeArgSpecializedType_OpAnnotationsDefaulted & value)
     {
         return true;
     }
