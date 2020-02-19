@@ -1,9 +1,21 @@
+#ifdef GET_RUNJSONINPUTTESTSRC_INCLUDES
 #include <gtest/gtest.h>
 #include <regex>
 #include "JsonInputTest.h"
+#endif
+#ifdef GET_RUNJSONINPUTTESTSRC_CPP
+
 using namespace Reflect;
 
-TEST(JsonInputCustomizersTest, CustomizeUnspecialized)
+#ifdef USE_BUFFERED_STREAMS
+#undef TEST_HEADER
+#define TEST_HEADER(group, name) TEST(group##Buffered, name)
+#else
+#undef TEST_HEADER
+#define TEST_HEADER(group, name) TEST(group##Unbuffered, name)
+#endif
+
+TEST_HEADER(JsonInputCustomizersTest, CustomizeUnspecialized)
 {
     CustomizeUnspecialized customizeUnspecialized = { 1, 2, 'a' };
     bool isSpecialized = Json::Input::Customize<CustomizeUnspecialized, int, CustomizeUnspecialized::Class::IndexOf::firstField, Annotate<>, CustomizeUnspecialized::Class::firstField_::Field>
@@ -14,7 +26,7 @@ TEST(JsonInputCustomizersTest, CustomizeUnspecialized)
     EXPECT_FALSE(isSpecialized);
 }
 
-TEST(JsonInputCustomizersTest, CustomizeFullySpecialized)
+TEST_HEADER(JsonInputCustomizersTest, CustomizeFullySpecialized)
 {
     CustomizeFullySpecialized customizeFullySpecialized = { 1, 2, 'a' };
     bool isSpecialized = Json::Input::Customize<CustomizeFullySpecialized, int, CustomizeFullySpecialized::Class::IndexOf::firstField, Annotate<>, CustomizeFullySpecialized::Class::firstField_::Field>
@@ -25,7 +37,7 @@ TEST(JsonInputCustomizersTest, CustomizeFullySpecialized)
     EXPECT_TRUE(isSpecialized);
 }
 
-TEST(JsonInputCustomizersTest, Customize5Args_OpAnnotationsDefaulted)
+TEST_HEADER(JsonInputCustomizersTest, Customize5Args_OpAnnotationsDefaulted)
 {
     Customize5Args_OpAnnotationsDefaulted customize5Args_OpAnnotationsDefaulted;
     bool isSpecialized = Json::Input::Customize<Customize5Args_OpAnnotationsDefaulted, int, Customize5Args_OpAnnotationsDefaulted::Class::IndexOf::firstField, Annotate<>, Customize5Args_OpAnnotationsDefaulted::Class::firstField_::Field>
@@ -36,7 +48,7 @@ TEST(JsonInputCustomizersTest, Customize5Args_OpAnnotationsDefaulted)
     EXPECT_TRUE(isSpecialized);
 }
 
-TEST(JsonInputCustomizersTest, Customize5Args_FieldIndexDefaulted)
+TEST_HEADER(JsonInputCustomizersTest, Customize5Args_FieldIndexDefaulted)
 {
     Customize5Args_FieldIndexDefaulted customize5Args_FieldIndexDefaulted;
     bool isSpecialized = Json::Input::Customize<Customize5Args_FieldIndexDefaulted, int, Json::NoFieldIndex, Annotate<>, Customize5Args_FieldIndexDefaulted::Class::firstField_::Field>
@@ -47,7 +59,7 @@ TEST(JsonInputCustomizersTest, Customize5Args_FieldIndexDefaulted)
     EXPECT_TRUE(isSpecialized);
 }
 
-TEST(JsonInputCustomizersTest, Customize5Args_BothDefaulted)
+TEST_HEADER(JsonInputCustomizersTest, Customize5Args_BothDefaulted)
 {
     Customize5Args_BothDefaulted customize5Args_BothDefaulted;
     bool isSpecialized = Json::Input::Customize<Customize5Args_BothDefaulted, int, Json::NoFieldIndex, Annotate<>, Customize5Args_BothDefaulted::Class::firstField_::Field>
@@ -58,7 +70,7 @@ TEST(JsonInputCustomizersTest, Customize5Args_BothDefaulted)
     EXPECT_TRUE(isSpecialized);
 }
 
-TEST(JsonInputCustomizersTest, Customize4Args)
+TEST_HEADER(JsonInputCustomizersTest, Customize4Args)
 {
     Customize4Args customize4Args;
     bool isSpecialized = Json::Input::Customize<Customize4Args, int, Customize4Args::Class::IndexOf::firstField, Annotate<>>
@@ -69,7 +81,7 @@ TEST(JsonInputCustomizersTest, Customize4Args)
     EXPECT_TRUE(isSpecialized);
 }
 
-TEST(JsonInputCustomizersTest, Customize4Args_FieldIndexDefaulted)
+TEST_HEADER(JsonInputCustomizersTest, Customize4Args_FieldIndexDefaulted)
 {
     Customize4Args_FieldIndexDefaulted customize4Args_FieldIndexDefaulted;
     bool isSpecialized = Json::Input::Customize<Customize4Args_FieldIndexDefaulted, int, Json::NoFieldIndex, Annotate<>>
@@ -80,7 +92,7 @@ TEST(JsonInputCustomizersTest, Customize4Args_FieldIndexDefaulted)
     EXPECT_TRUE(isSpecialized);
 }
 
-TEST(JsonInputCustomizersTest, Customize3Args)
+TEST_HEADER(JsonInputCustomizersTest, Customize3Args)
 {
     Customize3Args customize3Args;
     bool isSpecialized = Json::Input::Customize<Customize3Args, int, Customize3Args::Class::IndexOf::firstField>
@@ -91,7 +103,7 @@ TEST(JsonInputCustomizersTest, Customize3Args)
     EXPECT_TRUE(isSpecialized);
 }
 
-TEST(JsonInputCustomizersTest, Customize2Args)
+TEST_HEADER(JsonInputCustomizersTest, Customize2Args)
 {
     Customize2Args customize2Args;
     bool isSpecialized = Json::Input::Customize<Customize2Args, int>
@@ -102,7 +114,7 @@ TEST(JsonInputCustomizersTest, Customize2Args)
     EXPECT_TRUE(isSpecialized);
 }
 
-TEST(JsonInputCustomizersTest, CustomizeTypeFullySpecialized)
+TEST_HEADER(JsonInputCustomizersTest, CustomizeTypeFullySpecialized)
 {
     std::stringstream input("0");
     CustomizeTypeFullySpecialized customizeTypeFullySpecialized;
@@ -114,7 +126,7 @@ TEST(JsonInputCustomizersTest, CustomizeTypeFullySpecialized)
     EXPECT_TRUE(isSpecialized);
 }
 
-TEST(JsonInputCustomizersTest, CustomizeType3Args_OpAnnotationsDefaulted)
+TEST_HEADER(JsonInputCustomizersTest, CustomizeType3Args_OpAnnotationsDefaulted)
 {
     CustomizeType3Args_OpAnnotationsDefaulted customizeType3Args_OpAnnotationsDefaulted;
     bool isSpecialized = Json::Input::CustomizeType<CustomizeType3Args_OpAnnotationsDefaulted, Annotate<>, CustomizeType3Args_OpAnnotationsDefaulted::Class::firstField_::Field>
@@ -125,7 +137,7 @@ TEST(JsonInputCustomizersTest, CustomizeType3Args_OpAnnotationsDefaulted)
     EXPECT_TRUE(isSpecialized);
 }
 
-TEST(JsonInputCustomizersTest, CustomizeType2Args)
+TEST_HEADER(JsonInputCustomizersTest, CustomizeType2Args)
 {
     CustomizeType2Args customizeType2Args;
     bool isSpecialized = Json::Input::CustomizeType<CustomizeType2Args, Annotate<>>
@@ -136,7 +148,7 @@ TEST(JsonInputCustomizersTest, CustomizeType2Args)
     EXPECT_TRUE(isSpecialized);
 }
 
-TEST(JsonInputCustomizersTest, CustomizeType1Arg)
+TEST_HEADER(JsonInputCustomizersTest, CustomizeType1Arg)
 {
     CustomizeType1Arg customizeType1Arg;
     bool isSpecialized = Json::Input::CustomizeType<CustomizeType1Arg>
@@ -155,7 +167,7 @@ struct Cacheable
     REFLECT(() Cacheable, () a, () b)
 };
 
-TEST(JsonInputCacheTest, GetClassFieldCache)
+TEST_HEADER(JsonInputCacheTest, GetClassFieldCache)
 {
     Cacheable cacheable;
     std::multimap<size_t, Json::JsonField> & fieldNameToJsonField =
@@ -188,7 +200,7 @@ TEST(JsonInputCacheTest, GetClassFieldCache)
     EXPECT_TRUE(foundField);
 }
 
-TEST(JsonInputCacheTest, GetJsonField)
+TEST_HEADER(JsonInputCacheTest, GetJsonField)
 {
     Cacheable cacheable;
     Json::JsonField* jsonField = Json::Input::getJsonField(cacheable, "b");
@@ -198,12 +210,12 @@ TEST(JsonInputCacheTest, GetJsonField)
     EXPECT_EQ(Json::JsonField::Type::Regular, jsonField->type);
 }
 
-TEST(JsonInputCacheTest, PutClassFieldCache)
+TEST_HEADER(JsonInputCacheTest, PutClassFieldCache)
 {
     EXPECT_NO_THROW(Json::putClassFieldCache(std::cout));
 }
 
-TEST(JsonInputCheckedTest, Peek)
+TEST_HEADER(JsonInputCheckedTest, Peek)
 {
     char c = '\0';
     std::stringstream empty("");
@@ -220,7 +232,7 @@ TEST(JsonInputCheckedTest, Peek)
     EXPECT_EQ('a', c);
 }
 
-TEST(JsonInputCheckedTest, TryGet)
+TEST_HEADER(JsonInputCheckedTest, TryGet)
 {
     std::stringstream empty("");
     bool visited = false;
@@ -237,7 +249,7 @@ TEST(JsonInputCheckedTest, TryGet)
     EXPECT_FALSE(Json::Checked::tryGet(nonEmptyNonMatch, 'a', "a"));
 }
 
-TEST(JsonInputCheckedTest, TryGetPrimarySecondary)
+TEST_HEADER(JsonInputCheckedTest, TryGetPrimarySecondary)
 {
     std::stringstream primaryMatch("a");
     EXPECT_TRUE(Json::Checked::tryGet<true>(primaryMatch, 'a', 'b', "a", "b"));
@@ -252,7 +264,7 @@ TEST(JsonInputCheckedTest, TryGetPrimarySecondary)
     EXPECT_FALSE(Json::Checked::tryGet<false>(secondaryNonMatch, 'a', 'b', "a", "b"));
 }
 
-TEST(JsonInputCheckedTest, GetTrueFalse)
+TEST_HEADER(JsonInputCheckedTest, GetTrueFalse)
 {
     std::stringstream ssTrueMatch("t");
     EXPECT_TRUE(Json::Checked::getTrueFalse(ssTrueMatch, 't', 'f', "t"));
@@ -262,7 +274,7 @@ TEST(JsonInputCheckedTest, GetTrueFalse)
     EXPECT_THROW(Json::Checked::getTrueFalse(ssNoMatch, 't', 'f', "t"), Json::Exception);
 }
 
-TEST(JsonInputCheckedTest, GetTrueFalseSecondaryFalseChar)
+TEST_HEADER(JsonInputCheckedTest, GetTrueFalseSecondaryFalseChar)
 {
     std::stringstream primary("b");
     EXPECT_FALSE(Json::Checked::getTrueFalse<true>(primary, 'a', 'b', 'c', "b", "c"));
@@ -271,7 +283,7 @@ TEST(JsonInputCheckedTest, GetTrueFalseSecondaryFalseChar)
     EXPECT_FALSE(Json::Checked::getTrueFalse<false>(secondary, 'a', 'b', 'c', "b", "c"));
 }
 
-TEST(JsonInputCheckedTest, GetExpectedChar)
+TEST_HEADER(JsonInputCheckedTest, GetExpectedChar)
 {
     char c = '\0';
     std::stringstream expected("a");
@@ -281,7 +293,7 @@ TEST(JsonInputCheckedTest, GetExpectedChar)
     EXPECT_THROW(Json::Checked::get(expected, c, 'c', "c"), Json::Exception);
 }
 
-TEST(JsonInputCheckedTest, GetChar)
+TEST_HEADER(JsonInputCheckedTest, GetChar)
 {
     char c = '\0';
 
@@ -300,7 +312,7 @@ TEST(JsonInputCheckedTest, GetChar)
     EXPECT_EQ('b', c);
 }
 
-TEST(JsonInputCheckedTest, GetSecondaryDescription)
+TEST_HEADER(JsonInputCheckedTest, GetSecondaryDescription)
 {
     char c = '\0';
     std::stringstream primary;
@@ -310,7 +322,7 @@ TEST(JsonInputCheckedTest, GetSecondaryDescription)
     EXPECT_THROW(Json::Checked::get<false>(primary, c, "expected", "secondary expected"), Json::UnexpectedInputEnd);
 }
 
-TEST(JsonInputCheckedTest, GetSecondary)
+TEST_HEADER(JsonInputCheckedTest, GetSecondary)
 {
     char c = '\0';
     std::stringstream primaryExpected("a");
@@ -326,7 +338,7 @@ TEST(JsonInputCheckedTest, GetSecondary)
     EXPECT_THROW(Json::Checked::get<false>(secondaryExpected, c, 'c', 'd', "c", "d"), Json::Exception);
 }
 
-TEST(JsonInputCheckedTest, Unget)
+TEST_HEADER(JsonInputCheckedTest, Unget)
 {
     char c = '\0';
     std::stringstream unget("asdf");
@@ -340,7 +352,7 @@ TEST(JsonInputCheckedTest, Unget)
     EXPECT_EQ('s', c);
 }
 
-TEST(JsonInputCheckedTest, EscapeSequenceGet)
+TEST_HEADER(JsonInputCheckedTest, EscapeSequenceGet)
 {
     char c = '\0';
     std::stringstream goodSequence("0");
@@ -351,7 +363,7 @@ TEST(JsonInputCheckedTest, EscapeSequenceGet)
     EXPECT_THROW(Json::Checked::escapeSequenceGet(badSequence, c, "u003"), Json::InvalidEscapeSequence);
 }
 
-TEST(JsonInputCheckedTest, ConsumeWhitespace)
+TEST_HEADER(JsonInputCheckedTest, ConsumeWhitespace)
 {
     std::stringstream empty("");
     EXPECT_THROW(Json::Checked::consumeWhitespace(empty, "exception"), Json::UnexpectedInputEnd);
@@ -363,7 +375,7 @@ TEST(JsonInputCheckedTest, ConsumeWhitespace)
     EXPECT_NO_THROW(Json::Checked::consumeWhitespace(prefixWhitespace, "noThrow"));
 }
 
-TEST(JsonInputCheckedTest, ConsumeWhitespacePrimarySecondary)
+TEST_HEADER(JsonInputCheckedTest, ConsumeWhitespacePrimarySecondary)
 {
     std::stringstream primary("  a");
     EXPECT_NO_THROW(Json::Checked::consumeWhitespace<true>(primary, "primary", "secondary"));
@@ -372,7 +384,7 @@ TEST(JsonInputCheckedTest, ConsumeWhitespacePrimarySecondary)
     EXPECT_NO_THROW(Json::Checked::consumeWhitespace<false>(secondary, "secondary", "secondary"));
 }
 
-TEST(JsonInputConsumeTest, Null)
+TEST_HEADER(JsonInputConsumeTest, Null)
 {
     char c = '\0';
     std::stringstream validNull("\n null,");
@@ -382,7 +394,7 @@ TEST(JsonInputConsumeTest, Null)
     EXPECT_THROW(Json::Consume::Null<true>(incompleteNull, c), Json::UnexpectedInputEnd);
 }
 
-TEST(JsonInputConsumeTest, NullToStream)
+TEST_HEADER(JsonInputConsumeTest, NullToStream)
 {
     char c = '\0';
     std::stringstream source("null,");
@@ -391,7 +403,7 @@ TEST(JsonInputConsumeTest, NullToStream)
     EXPECT_STREQ("null", receiver.str().c_str());
 }
 
-TEST(JsonInputConsumeTest, TryNull)
+TEST_HEADER(JsonInputConsumeTest, TryNull)
 {
     char c = '\0';
     std::stringstream nonNull("true,");
@@ -403,7 +415,7 @@ TEST(JsonInputConsumeTest, TryNull)
     EXPECT_TRUE(Json::Consume::TryNull<true>(fullNull, c));
 }
 
-TEST(JsonInputConsume, True)
+TEST_HEADER(JsonInputConsume, True)
 {
     char c = '\0';
     std::stringstream nonTrue("false,");
@@ -415,7 +427,7 @@ TEST(JsonInputConsume, True)
     EXPECT_NO_THROW(Json::Consume::True<true>(fullTrue, c));
 }
 
-TEST(JsonInputConsume, TrueToStream)
+TEST_HEADER(JsonInputConsume, TrueToStream)
 {
     char c = '\0';
     std::stringstream fullTrue("true,");
@@ -427,7 +439,7 @@ TEST(JsonInputConsume, TrueToStream)
 }
 
 
-TEST(JsonInputConsume, False)
+TEST_HEADER(JsonInputConsume, False)
 {
     char c = '\0';
     std::stringstream nonFalse("true,");
@@ -439,7 +451,7 @@ TEST(JsonInputConsume, False)
     EXPECT_NO_THROW(Json::Consume::False<true>(fullFalse, c));
 }
 
-TEST(JsonInputConsume, FalseToStream)
+TEST_HEADER(JsonInputConsume, FalseToStream)
 {
     char c = '\0';
     std::stringstream fullFalse("false,");
@@ -450,7 +462,7 @@ TEST(JsonInputConsume, FalseToStream)
     EXPECT_STREQ("false", receiver.str().c_str());
 }
 
-TEST(JsonInputConsume, Number)
+TEST_HEADER(JsonInputConsume, Number)
 {
     char c = '\0';
 
@@ -470,7 +482,7 @@ TEST(JsonInputConsume, Number)
 }
 
 
-TEST(JsonInputConsume, NumberToStream)
+TEST_HEADER(JsonInputConsume, NumberToStream)
 {
     char c = '\0';
 
@@ -496,14 +508,14 @@ TEST(JsonInputConsume, NumberToStream)
     EXPECT_STREQ("123.456", validFloatReceiver.str().c_str());
 }
 
-TEST(JsonInputConsume, String)
+TEST_HEADER(JsonInputConsume, String)
 {
     char c = '\0';
     std::stringstream input("\"asdf\\\"\\r\\n\\fqwer\"");
     EXPECT_NO_THROW(Json::Consume::String(input, c));
 }
 
-TEST(JsonInputConsume, StringToStream)
+TEST_HEADER(JsonInputConsume, StringToStream)
 {
     char c = '\0';
     std::stringstream input("\"asdf\\\"\\r\\n\\fqwer\"");
@@ -512,7 +524,7 @@ TEST(JsonInputConsume, StringToStream)
     EXPECT_STREQ("\"asdf\\\"\\r\\n\\fqwer\"", receiver.str().c_str());
 }
 
-TEST(JsonInputConsume, Value)
+TEST_HEADER(JsonInputConsume, Value)
 {
     char c = '\0';
     std::stringstream stringStream("\"asdf\"");
@@ -534,7 +546,7 @@ TEST(JsonInputConsume, Value)
     EXPECT_THROW(Json::Consume::Value<true>(invalidStream, c), Json::InvalidUnknownFieldValue);
 }
 
-TEST(JsonInputConsume, ValueToStream)
+TEST_HEADER(JsonInputConsume, ValueToStream)
 {
     char c = '\0';
     std::stringstream stringStream("\"asdf\"");
@@ -573,7 +585,7 @@ TEST(JsonInputConsume, ValueToStream)
     EXPECT_STREQ("null", nullReceiver.str().c_str());
 }
 
-TEST(JsonInputConsume, Iterable)
+TEST_HEADER(JsonInputConsume, Iterable)
 {
     char c = '\0';
     std::stringstream stringArray("[\"asdf\",\"qwer\"]");
@@ -593,7 +605,7 @@ TEST(JsonInputConsume, Iterable)
     EXPECT_NO_THROW(Json::Consume::Iterable<true>(mixedArray, c));
 }
 
-TEST(JsonInputConsume, IterableToStream)
+TEST_HEADER(JsonInputConsume, IterableToStream)
 {
     char c = '\0';
     std::stringstream emptyArray("[]");
@@ -641,7 +653,7 @@ TEST(JsonInputConsume, IterableToStream)
     EXPECT_STREQ("{\"one\":\"str\",\"two\":2,\"three\":{},\"four\":[],\"five\":true,\"six\":null}", objReceiver.str().c_str());
 }
 
-TEST(JsonInputReadAffix, ObjectPrefix)
+TEST_HEADER(JsonInputReadAffix, ObjectPrefix)
 {
     char c = '\0';
     std::stringstream objPrefix("{");
@@ -653,7 +665,7 @@ TEST(JsonInputReadAffix, ObjectPrefix)
     EXPECT_THROW(Json::Read::ObjectPrefix(letter, c), Json::Exception);
 }
 
-TEST(JsonInputReadAffix, TryObjectSuffix)
+TEST_HEADER(JsonInputReadAffix, TryObjectSuffix)
 {
     std::stringstream objSuffix("}");
     std::stringstream arraySuffix("]");
@@ -664,7 +676,7 @@ TEST(JsonInputReadAffix, TryObjectSuffix)
     EXPECT_FALSE(Json::Read::TryObjectSuffix(letter));
 }
 
-TEST(JsonInputReadAffix, FieldSeparator)
+TEST_HEADER(JsonInputReadAffix, FieldSeparator)
 {
     std::stringstream fieldSeparator(",");
     std::stringstream objSuffix("}");
@@ -677,7 +689,7 @@ TEST(JsonInputReadAffix, FieldSeparator)
     EXPECT_THROW(Json::Read::FieldSeparator(letter), Json::Exception);
 }
 
-TEST(JsonInputReadAffix, FieldNameValueSeparator)
+TEST_HEADER(JsonInputReadAffix, FieldNameValueSeparator)
 {
     char c = '\0';
     std::stringstream fieldNameValueSeparator(":");
@@ -686,7 +698,7 @@ TEST(JsonInputReadAffix, FieldNameValueSeparator)
     EXPECT_THROW(Json::Read::FieldNameValueSeparator(letter, c), Json::Exception);
 }
 
-TEST(JsonInputReadAffix, ArrayPrefix)
+TEST_HEADER(JsonInputReadAffix, ArrayPrefix)
 {
     char c = '\0';
     std::stringstream arrayPrefix("[");
@@ -697,7 +709,7 @@ TEST(JsonInputReadAffix, ArrayPrefix)
     EXPECT_THROW(Json::Read::ArrayPrefix(letter, c), Json::Exception);
 }
 
-TEST(JsonInputReadAffix, TryArraySuffix)
+TEST_HEADER(JsonInputReadAffix, TryArraySuffix)
 {
     std::stringstream arraySuffix("]");
     std::stringstream objectSuffix("}");
@@ -708,7 +720,7 @@ TEST(JsonInputReadAffix, TryArraySuffix)
     EXPECT_FALSE(Json::Read::TryArraySuffix(letter));
 }
 
-TEST(JsonInputReadAffix, IterablePrefix)
+TEST_HEADER(JsonInputReadAffix, IterablePrefix)
 {
     char c = '\0';
     std::stringstream objectPrefixExpected("{");
@@ -722,7 +734,7 @@ TEST(JsonInputReadAffix, IterablePrefix)
     EXPECT_THROW(Json::Read::IterablePrefix<true>(arrayPrefixUnexpected, c), Json::Exception);
 }
 
-TEST(JsonInputReadAffix, TryIterableSuffix)
+TEST_HEADER(JsonInputReadAffix, TryIterableSuffix)
 {
     std::stringstream objectSuffixExpected("}");
     std::stringstream objectSuffixUnexpected("}");
@@ -735,7 +747,7 @@ TEST(JsonInputReadAffix, TryIterableSuffix)
     EXPECT_FALSE(Json::Read::TryIterableSuffix<true>(arraySuffixUnexpected));
 }
 
-TEST(JsonInputReadAffix, IterableElementSeparator)
+TEST_HEADER(JsonInputReadAffix, IterableElementSeparator)
 {
     std::stringstream iterableElementSeparator(",");
     std::stringstream objectTerminator("}");
@@ -750,7 +762,7 @@ TEST(JsonInputReadAffix, IterableElementSeparator)
     EXPECT_THROW(Json::Read::IterableElementSeparator<true>(arrayTerminatorUnexpected), Json::Exception);
 }
 
-TEST(JsonInputRead, Customization)
+TEST_HEADER(JsonInputRead, Customization)
 {
     CustomizeUnspecialized customizeUnspecialized;
     CustomizeFullySpecialized customizeFullySpecialized;
@@ -797,7 +809,7 @@ TEST(JsonInputRead, Customization)
     EXPECT_TRUE(customized);
 }
 
-TEST(JsonInputRead, True)
+TEST_HEADER(JsonInputRead, True)
 {
     char c = '\0';
     std::stringstream trueStream("true,");
@@ -806,7 +818,7 @@ TEST(JsonInputRead, True)
     EXPECT_THROW(Json::Read::True<true>(falseStream, c), Json::Exception);
 }
 
-TEST(JsonInputRead, False)
+TEST_HEADER(JsonInputRead, False)
 {
     char c = '\0';
     std::stringstream falseStream("false,");
@@ -815,7 +827,7 @@ TEST(JsonInputRead, False)
     EXPECT_THROW(Json::Read::False<true>(trueStream, c), Json::Exception);
 }
 
-TEST(JsonInputRead, BoolReference)
+TEST_HEADER(JsonInputRead, BoolReference)
 {
     char c = '\0';
     bool value = false;
@@ -832,7 +844,7 @@ TEST(JsonInputRead, BoolReference)
     EXPECT_THROW(Json::Read::Bool<true>(invalidStream, c, value), Json::Exception);
 }
 
-TEST(JsonInputRead, BoolReturn)
+TEST_HEADER(JsonInputRead, BoolReturn)
 {
     char c = '\0';
     
@@ -846,7 +858,7 @@ TEST(JsonInputRead, BoolReturn)
     EXPECT_THROW(Json::Read::Bool<true>(invalidStream, c), Json::Exception);
 }
 
-TEST(JsonInputRead, Number)
+TEST_HEADER(JsonInputRead, Number)
 {
     char c = '\0';
     std::stringstream validNumber("1234,");
@@ -857,7 +869,7 @@ TEST(JsonInputRead, Number)
     EXPECT_THROW(Json::Input::Read::Number<true>(invalidNumber, c), Json::Exception);
 }
 
-TEST(JsonInputRead, StringToStream)
+TEST_HEADER(JsonInputRead, StringToStream)
 {
     char c = '\0';
     std::stringstream emptyStr("\"\"\"");
@@ -913,7 +925,7 @@ TEST(JsonInputRead, StringToStream)
     EXPECT_STREQ(" asdf \"\\/\b\f\n\r\t0 ", everythingReceiver.str().c_str());
 }
 
-TEST(JsonInputRead, StringReference)
+TEST_HEADER(JsonInputRead, StringReference)
 {
     char c = '\0';
     std::stringstream everything("\" asdf \\\"\\\\\\/\\b\\f\\n\\r\\t\\u0030 \"");
@@ -922,7 +934,7 @@ TEST(JsonInputRead, StringReference)
     EXPECT_STREQ(" asdf \"\\/\b\f\n\r\t0 ", result.c_str());
 }
 
-TEST(JsonInputRead, StringTemplate)
+TEST_HEADER(JsonInputRead, StringTemplate)
 {
     char c = '\0';
     std::stringstream integerStream("\"1234\"");
@@ -931,7 +943,7 @@ TEST(JsonInputRead, StringTemplate)
     EXPECT_EQ(1234, result);
 }
 
-TEST(JsonInputRead, StringCharReturned)
+TEST_HEADER(JsonInputRead, StringCharReturned)
 {
     char c = '\0';
     std::stringstream everything("\" asdf \\\"\\\\\\/\\b\\f\\n\\r\\t\\u0030 \"");
@@ -939,7 +951,7 @@ TEST(JsonInputRead, StringCharReturned)
     EXPECT_STREQ(" asdf \"\\/\b\f\n\r\t0 ", result.c_str());
 }
 
-TEST(JsonInputRead, StringReturned)
+TEST_HEADER(JsonInputRead, StringReturned)
 {
     std::stringstream everything("\" asdf \\\"\\\\\\/\\b\\f\\n\\r\\t\\u0030 \"");
     std::string result = Json::Read::String(everything);
@@ -952,7 +964,7 @@ enum_t(EnumIntEnum, uint32_t, {
     overNineThousand = 9001
 });
 
-TEST(JsonInputRead, EnumInt)
+TEST_HEADER(JsonInputRead, EnumInt)
 {
     std::stringstream leet("1337");
     std::stringstream overNineThousand("9001");
@@ -963,7 +975,7 @@ TEST(JsonInputRead, EnumInt)
     EXPECT_EQ(EnumIntEnum::overNineThousand, result);
 }
 
-TEST(JsonInputRead, FieldName)
+TEST_HEADER(JsonInputRead, FieldName)
 {
     char c = '\0';
     std::stringstream fieldNameStream("\"asdf\"");
@@ -971,7 +983,7 @@ TEST(JsonInputRead, FieldName)
     EXPECT_STREQ("asdf", fieldName.c_str());
 }
 
-TEST(JsonInputRead, GenericValue)
+TEST_HEADER(JsonInputRead, GenericValue)
 {
     char c = '\0';
     std::shared_ptr<Json::Value::Assigner> assigner;
@@ -1000,7 +1012,7 @@ TEST(JsonInputRead, GenericValue)
     EXPECT_THROW(Json::Read::GenericValue<true>(invalidStream, Json::context, c), Json::InvalidUnknownFieldValue);
 }
 
-TEST(JsonInputRead, ValueType)
+TEST_HEADER(JsonInputRead, ValueType)
 {
     char c = '\"';
     EXPECT_EQ(Json::Value::Type::String, Json::Read::ValueType(c));
@@ -1046,7 +1058,7 @@ TEST(JsonInputRead, ValueType)
     EXPECT_THROW(Json::Read::ValueType(c), Json::InvalidUnknownFieldValue);
 }
 
-TEST(JsonInputRead, GenericArray)
+TEST_HEADER(JsonInputRead, GenericArray)
 {
     char c = '\0';
     std::stringstream emptyArray("[]");
@@ -1115,7 +1127,7 @@ TEST(JsonInputRead, GenericArray)
     EXPECT_STREQ("qw", assigner->get()->mixedArray()[1]->mixedArray()[1]->objectArray()[0].find("df")->second->string().c_str());
 }
 
-TEST(JsonInputRead, GenericObject)
+TEST_HEADER(JsonInputRead, GenericObject)
 {
     char c = '\0';
     std::shared_ptr<Json::Value::Assigner> assigner = nullptr;
@@ -1166,7 +1178,7 @@ struct VariousValues
         () genericValue, () intVector, (Reflected) composedObj, (Json::String) integerString, (Json::EnumInt) enumInt, () boolean, () constant, () str)
 };
 
-TEST(JsonInputRead, Value)
+TEST_HEADER(JsonInputRead, Value)
 {
     char c = '\0';
     int anInt = 0;
@@ -1260,7 +1272,7 @@ TEST(JsonInputRead, Value)
     EXPECT_STREQ("asdf", v.str.c_str());
 }
 
-TEST(JsonInputRead, ValuePair)
+TEST_HEADER(JsonInputRead, ValuePair)
 {
     int placeholderObj = 0;
     char c = '\0';
@@ -1271,7 +1283,7 @@ TEST(JsonInputRead, ValuePair)
     EXPECT_FALSE(testPair.second);
 }
 
-TEST(JsonInputRead, Iterable)
+TEST_HEADER(JsonInputRead, Iterable)
 {
     char c = '\0';
     int placeholderObj = 0;
@@ -1307,7 +1319,7 @@ struct SuperClassField : RegularField
     REFLECT_EMPTY((RegularField) SuperClassField)
 };
 
-TEST(JsonInputRead, Field)
+TEST_HEADER(JsonInputRead, Field)
 {
     RegularField regularField = {};
     regularField.a = 444;
@@ -1319,7 +1331,7 @@ TEST(JsonInputRead, Field)
     std::stringstream superClassFieldStream(":{\"a\":888}");
 
     Json::Read::Field<RegularField>(regularFieldStream, Json::context, c, regularField, "a");
-    Json::Read::Field<SuperClassField>(superClassFieldStream, Json::context, c, superClassField, "__RegularField");
+    Json::Read::Field<SuperClassField>(superClassFieldStream, Json::context, c, superClassField, Json::Shared::superTypeToJsonFieldName<RegularField>().c_str());
 
     EXPECT_EQ(regularField.a, 777);
     EXPECT_EQ(superClassField.a, 888);
@@ -1335,7 +1347,7 @@ struct ReadableObject
     REFLECT(() ReadableObject, () a)
 };
 
-TEST(JsonInputRead, Object)
+TEST_HEADER(JsonInputRead, Object)
 {
     char c = '\0';
     std::stringstream objectStream("{\"a\":5}");
@@ -1346,7 +1358,7 @@ TEST(JsonInputRead, Object)
     EXPECT_EQ(5, object.a);
 }
 
-TEST(JsonInput, ReflectedObject)
+TEST_HEADER(JsonInput, ReflectedObject)
 {
     std::stringstream objectStream("{\"a\":5}");
     ReadableObject object;
@@ -1384,7 +1396,7 @@ struct ComplexStruct : EmptyIn, SingleFieldIn
     REFLECT((Parents) ComplexStruct, () a, () b, () dynamicString, (Reflected) singleFieldIn, () intStringMap, () intVector, () fieldCluster)
 };
 
-TEST(JsonInput, In)
+TEST_HEADER(JsonInput, In)
 {
     EmptyIn emptyIn = {};
     std::stringstream emptyObjStream("{}");
@@ -1432,3 +1444,5 @@ TEST(JsonInput, In)
     EXPECT_STREQ("5", complexStruct.fieldCluster.object().find("someOtherUnknown")->second->numberArray()[1].c_str());
     EXPECT_STREQ("6", complexStruct.fieldCluster.object().find("someOtherUnknown")->second->numberArray()[2].c_str());
 }
+
+#endif

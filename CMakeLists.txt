@@ -11,6 +11,8 @@ if ( "${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU" )
 add_compile_options(
   -Wno-error
 )
+# The following definitions were required for MinGW, they may not be appropriate on every system
+add_definitions(-DEOVERFLOW=132 -D_GLIBCXX_HAVE_EOVERFLOW=1)
 endif ()
 
 if ( "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" )

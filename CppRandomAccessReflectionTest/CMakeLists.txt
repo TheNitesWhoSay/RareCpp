@@ -11,9 +11,15 @@ set(Sources
   ExtendedTypeSupportTest.cpp
   FieldTest.cpp
   GenericMacroTest.cpp
+  JsonDefinition.cpp
   JsonInputTest.cpp
+  JsonInputTestBuffered.cpp
+  JsonInputTestUnbuffered.cpp
   JsonTest.cpp
+  JsonTestRunBuffered.cpp
+  JsonTestRunUnbuffered.cpp
   ReflectTest.cpp
+  StringBufferTest.cpp
   TestMain.cpp
 )
 
