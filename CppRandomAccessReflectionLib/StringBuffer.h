@@ -57,7 +57,7 @@ namespace BufferedStream
             {
                 data.insert(data.end(), str.begin(), str.end());
             }
-
+            
             /// Append text as-is using ostream operators
             inline BasicStringBuffer & operator<<(const char & c)
             {
@@ -83,11 +83,30 @@ namespace BufferedStream
             /// Append regular base-10 numbers
             template <typename T>
             inline BasicStringBuffer & appendNumber(const T & value) {
-                if ( auto [p, ec] = std::to_chars(num.data(), num.data() + num.size(), value); ec == std::errc() )
+                if ( auto [p, ec] = std::to_chars((char*)num.data(), (char*)num.data() + num.size(), value); ec == std::errc() )
                     data.insert(data.end(), num.data(), p);
 
                 return *this;
             }
+            
+#ifdef __GNUC__
+            inline BasicStringBuffer & appendNumber(const float & value) {
+                (*this) += std::to_string(value);
+                return *this;
+            }
+            inline BasicStringBuffer & appendNumber(const double & value) {
+                (*this) += std::to_string(value);
+                return *this;
+            }
+            inline BasicStringBuffer & appendNumber(const long double & value) {
+                (*this) += std::to_string(value);
+                return *this;
+            }
+            inline BasicStringBuffer & appendNumber(const bool & value) {
+                (*this) += std::to_string(value);
+                return *this;
+            }
+#endif
         
             /// Append regular base-10 numbers using ostream operators
             inline BasicStringBuffer & operator<<(const short & value) { return appendNumber(value); }

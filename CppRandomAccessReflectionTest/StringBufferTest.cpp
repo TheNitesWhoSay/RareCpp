@@ -298,9 +298,9 @@ TEST(StringBufferTest, AppendNumber)
     EXPECT_STREQ("3735928559", sbLongLong.c_str());
     EXPECT_STREQ("3735928559", sbUnsignedLongLong.c_str());
     EXPECT_STREQ("0", sbBool.c_str());
-    EXPECT_STREQ("6.022", sbFloat.c_str());
-    EXPECT_STREQ("6.62607", sbDouble.c_str());
-    EXPECT_STREQ("3.1415926", sbLongDouble.c_str());
+    EXPECT_TRUE(sbFloat.str().find_first_of("6.022") == 0);
+    EXPECT_TRUE(sbDouble.str().find_first_of("6.62607") == 0);
+    EXPECT_TRUE(sbLongDouble.str().find_first_of("3.1415926") == 0);
 }
 
 TEST(StringBufferTest, StreamNumber)
@@ -353,9 +353,9 @@ TEST(StringBufferTest, StreamNumber)
     EXPECT_STREQ("3735928559", sbLongLong.c_str());
     EXPECT_STREQ("3735928559", sbUnsignedLongLong.c_str());
     EXPECT_STREQ("0", sbBool.c_str());
-    EXPECT_STREQ("6.022", sbFloat.c_str());
-    EXPECT_STREQ("6.62607", sbDouble.c_str());
-    EXPECT_STREQ("3.1415926", sbLongDouble.c_str());
+    EXPECT_TRUE(sbFloat.str().find_first_of("6.022") == 0);
+    EXPECT_TRUE(sbDouble.str().find_first_of("6.62607") == 0);
+    EXPECT_TRUE(sbLongDouble.str().find_first_of("3.1415926") == 0);
 }
 
 TEST(StringBufferTest, StreamEndLine)
