@@ -197,6 +197,13 @@ namespace BufferedStream
                 sync();
             }
 
+            inline void swap(BasicStringBuffer<StreamType> & other)
+            {
+                data.swap(other.data);
+                sync();
+                other.sync();
+            }
+
             virtual int sync()
             {
                 syncInput();
