@@ -491,7 +491,7 @@ TEST(StringBufferTest, Vec)
     EXPECT_EQ('f', vec[3]);
 }
 
-TEST(StringBufferTest, Swap)
+TEST(StringBufferTest, SwapVec)
 {
     StringBuffer sb("asdf");
     EXPECT_EQ(4, sb.size());
@@ -510,6 +510,35 @@ TEST(StringBufferTest, Swap)
     EXPECT_EQ('s', vec[1]);
     EXPECT_EQ('d', vec[2]);
     EXPECT_EQ('f', vec[3]);
+}
+
+TEST(StringBufferTest, SwapBuffer)
+{
+    StringBuffer sb("asdf");
+    EXPECT_EQ(4, sb.size());
+    EXPECT_EQ('a', sb[0]);
+    EXPECT_EQ('s', sb[1]);
+    EXPECT_EQ('d', sb[2]);
+    EXPECT_EQ('f', sb[3]);
+
+    StringBuffer sb2("qwe");
+    EXPECT_EQ(3, sb2.size());
+    EXPECT_EQ('q', sb2[0]);
+    EXPECT_EQ('w', sb2[1]);
+    EXPECT_EQ('e', sb2[2]);
+
+    sb.swap(sb2);
+
+    EXPECT_EQ(3, sb.size());
+    EXPECT_EQ('q', sb[0]);
+    EXPECT_EQ('w', sb[1]);
+    EXPECT_EQ('e', sb[2]);
+
+    EXPECT_EQ(4, sb2.size());
+    EXPECT_EQ('a', sb2[0]);
+    EXPECT_EQ('s', sb2[1]);
+    EXPECT_EQ('d', sb2[2]);
+    EXPECT_EQ('f', sb2[3]);
 }
 
 TEST(StringBufferTest, OstreamPosition)
