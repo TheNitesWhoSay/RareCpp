@@ -812,8 +812,8 @@ namespace Reflect
 
 #pragma warning(disable: 4003) // Not enough arguments warning generated despite macros working perfectly
 
-/// After the objectType there needs to be at least 1 and at most 123 fields, in the form "(B) fieldName" or "(R) fieldName"
-/// e.g. REFLECT(() myObj, () myInt, () myString)
+/// After the objectType there needs to be at least 1 and at most 123 fields, in the form "() fieldName" or "(Annotation) fieldName"
+/// e.g. REFLECT(() myObj, () myInt, () myString, (Reflected) myOtherObj)
 #define REFLECT(objectType, ...) \
 struct Class { \
     using ClassType = RHS(objectType); \
