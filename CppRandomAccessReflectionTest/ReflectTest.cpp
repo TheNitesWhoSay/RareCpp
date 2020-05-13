@@ -461,9 +461,9 @@ public:
 
 TEST(ReflectTest, RfMacroDescribeField)
 {
-    bool isEqual = std::is_same<decltype(&DescribeFieldTest::first), DescribeFieldTest::Class::first_::Member>::value;
+    bool isEqual = std::is_same<decltype(&DescribeFieldTest::first), DescribeFieldTest::Class::first_::Pointer>::value;
     EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<Fields::Field<int, DescribeFieldTest::Class::first_::Member, 0, Annotate<>>,
+    isEqual = std::is_same<Fields::Field<int, DescribeFieldTest::Class::first_::Pointer, 0, Annotate<>>,
         DescribeFieldTest::Class::first_::Field>::value;
 
     EXPECT_STREQ("first", DescribeFieldTest::Class::first_::nameStr.value);
@@ -490,9 +490,9 @@ TEST(ReflectTest, RfMacroDescribeField)
     EXPECT_FALSE(DescribeFieldTest::Class::first_::Field::HasAnnotation<Reflected>);
 
     
-    isEqual = std::is_same<decltype(&DescribeFieldTest::second), DescribeFieldTest::Class::second_::Member>::value;
+    isEqual = std::is_same<decltype(&DescribeFieldTest::second), DescribeFieldTest::Class::second_::Pointer>::value;
     EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<Fields::Field<float, DescribeFieldTest::Class::second_::Member, 0, Annotate<>>,
+    isEqual = std::is_same<Fields::Field<float, DescribeFieldTest::Class::second_::Pointer, 0, Annotate<>>,
         DescribeFieldTest::Class::second_::Field>::value;
 
     EXPECT_STREQ("second", DescribeFieldTest::Class::second_::nameStr.value);

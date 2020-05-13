@@ -7,6 +7,7 @@ using Json::Statics;
 ENABLE_JSON;
 
 int A::second = 0;
+int & A::secondReference = A::second;
 
 const std::unordered_map<std::string, A::TestEnum> A::TestEnumCache = {
     { "first", A::TestEnum::first },
@@ -355,7 +356,7 @@ int main()
             Json::putClassFieldCache(std::cout);
             std::cout << "..." << std::endl;
         }
-        std::cout << "Read in: " << Json::pretty(a, EnhancedContext::Make(1337)) << std::endl;
+        std::cout << "Read in: " << Json::pretty<Statics::Included>(a, EnhancedContext::Make(1337)) << std::endl;
         std::cout << "..." << std::endl;
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');

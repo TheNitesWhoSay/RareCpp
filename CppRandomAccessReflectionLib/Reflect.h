@@ -777,7 +777,7 @@ namespace Reflect
             Pointer p;
         
             static constexpr size_t Index = FieldIndex;
-            static constexpr bool IsStatic = !std::is_member_pointer<Pointer>::value;
+            static constexpr bool IsStatic = !std::is_member_pointer<FieldPointer>::value && !std::is_same<void*, FieldPointer>::value;
 
             template <typename Annotation>
             static constexpr bool HasAnnotation = Annotate<Annotations>::template Has<Annotation>;
@@ -790,16 +790,20 @@ namespace Reflect
 #define ALIAS_TYPE(x) using RHS(x) = decltype(RHS(x));
 #define GET_FIELD_NAME(x) RHS(x),
 #define DESCRIBE_FIELD(x) struct RHS(x##_) { \
-    using Member = decltype(&ClassType::RHS(x)); \
-    using Field = Fields::Field<Class::RHS(x), Member, IndexOf::RHS(x), Annotate<LHS(x)>::Annotations>; \
     static constexpr auto nameStr = ConstexprStr::substr<ConstexprStr::length_after_last(#x, ' ')>(&#x[0]+ConstexprStr::find_last_of(#x, ' ')+1); \
     static constexpr auto typeStr = ExtendedTypeSupport::TypeName<RHS(x)>(); \
+    template <typename T> static constexpr decltype(&T::RHS(x)) GetPointerType(int); \
+    template <typename T> static constexpr void* GetPointerType(...); \
+    using Pointer = decltype(GetPointerType<ClassType>(0)); \
+    template <typename T, bool IsReference> struct GetPointer { static constexpr Pointer value = &T::RHS(x); }; \
+    template <typename T> struct GetPointer<T, true> { static constexpr Pointer value = nullptr; }; \
+    using Field = Fields::Field<Class::RHS(x), Pointer, IndexOf::RHS(x), Annotate<LHS(x)>::Annotations>; \
     static constexpr Field field = { \
         &nameStr.value[0], &typeStr.value[0], ExtendedTypeSupport::static_array_size<RHS(x)>::value, \
         ExtendedTypeSupport::is_stl_iterable<ExtendedTypeSupport::remove_pointer<RHS(x)>::type>::value || \
             ExtendedTypeSupport::is_adaptor<ExtendedTypeSupport::remove_pointer<RHS(x)>::type>::value || \
             std::is_array<ExtendedTypeSupport::remove_pointer<RHS(x)>::type>::value, \
-        Annotate<LHS(x)>::template Has<Reflected>, &ClassType::RHS(x) }; \
+        Annotate<LHS(x)>::template Has<Reflected>, GetPointer<ClassType, std::is_reference<Class::RHS(x)>::value>::value }; \
 };
 #define GET_FIELD(x) { Class::RHS(x##_)::field.name, Class::RHS(x##_)::field.typeStr, Class::RHS(x##_)::field.arraySize, \
     Class::RHS(x##_)::field.isIterable, Class::RHS(x##_)::field.isReflected },
