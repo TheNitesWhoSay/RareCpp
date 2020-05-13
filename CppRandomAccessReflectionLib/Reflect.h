@@ -772,7 +772,7 @@ namespace Reflect
             bool isReflected;
 
             using Type = T;
-            using Pointer = FieldPointer;
+            using Pointer = std::conditional_t<std::is_reference_v<T>, void*, FieldPointer>;
 
             Pointer p;
         
@@ -803,7 +803,7 @@ namespace Reflect
         ExtendedTypeSupport::is_stl_iterable<ExtendedTypeSupport::remove_pointer<RHS(x)>::type>::value || \
             ExtendedTypeSupport::is_adaptor<ExtendedTypeSupport::remove_pointer<RHS(x)>::type>::value || \
             std::is_array<ExtendedTypeSupport::remove_pointer<RHS(x)>::type>::value, \
-        Annotate<LHS(x)>::template Has<Reflected>, GetPointer<ClassType, std::is_reference<Class::RHS(x)>::value>::value }; \
+        Annotate<LHS(x)>::template Has<Reflected>, GetPointer<ClassType, std::is_reference_v<Class::RHS(x)>>::value }; \
 };
 #define GET_FIELD(x) { Class::RHS(x##_)::field.name, Class::RHS(x##_)::field.typeStr, Class::RHS(x##_)::field.arraySize, \
     Class::RHS(x##_)::field.isIterable, Class::RHS(x##_)::field.isReflected },
