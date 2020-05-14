@@ -37,11 +37,13 @@ public:
     static const std::unordered_map<std::string, TestEnum> TestEnumCache;
     static const std::unordered_map<std::string, TestEnum> TestEnumCacheCustom;
 
-    A() : testEnum(TestEnum::first), first(0), ptr(nullptr), composed(), boolean(false), putCache(false), customInt(0), str("") { ray[0] = 0; ray[1] = 0; }
+    A() : testEnum(TestEnum::first), first(0), firstReference(first), ptr(nullptr), composed(), boolean(false), putCache(false), customInt(0), str("") { ray[0] = 0; ray[1] = 0; }
 
     TestEnum testEnum;
     int first;
+    int & firstReference;
     static int second;
+    static int & secondReference;
     int* ptr;
     Composed composed;
     bool boolean;
@@ -56,7 +58,7 @@ public:
     std::shared_ptr<Json::Generic::FieldCluster> unknownFields;
 
     using Parents = Inherit<SuperA, OtherSuperA>;
-    REFLECT((Parents) A, () testEnum, (Reflected) composed, () first, () second,
+    REFLECT((Parents) A, () testEnum, (Reflected) composed, () first, () firstReference, () second, () secondReference,
         () ptr, (Json::Ignore) boolean, () putCache, () customInt, () str, () map, () vecVec, () ray, () runtime, () autoAllocate, () unknownFields)
 };
 
