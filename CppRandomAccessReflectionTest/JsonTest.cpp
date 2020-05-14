@@ -23,6 +23,8 @@ std::ostream & os = std::cout;
 #define TEST_HEADER(group, name) TEST(group##Unbuffered, name)
 #endif
 
+#define RUN_PERFORMANCE_TESTS
+
 namespace TestDefinitions
 {
 Json::OutStreamType & operator <<(Json::OutStreamType & os, const CustomizeFullySpecialized &)
@@ -2973,6 +2975,29 @@ TEST_HEADER(JsonOutputTest, JsonOut)
     EXPECT_STREQ("{\"integer\":4,\"str\":\"aString\",\"nestedObj\":{\"boolean\":false,\"ray\":[1,2,3]}}", finalObjStream.str().c_str());
 }
 
+struct JsonReferences
+{
+    JsonReferences() : primitive(11), primitiveReference(primitive) {}
+
+    int primitive;
+    int & primitiveReference;
+    static int staticPrimitive;
+    static int & staticPrimitiveReference;
+
+    REFLECT(() JsonReferences, () primitive, () primitiveReference, () staticPrimitive, () staticPrimitiveReference)
+};
+
+int JsonReferences::staticPrimitive = 33;
+int & JsonReferences::staticPrimitiveReference = JsonReferences::staticPrimitive;
+
+TEST_HEADER(JsonOutputTest, JsonOutReferences)
+{
+    JsonReferences jsonReferences;
+    TestStreamType objStream;
+    objStream << Json::out<Statics::Included>(jsonReferences);
+    EXPECT_STREQ("{\"primitive\":11,\"primitiveReference\":11,\"staticPrimitive\":33,\"staticPrimitiveReference\":33}", objStream.str().c_str());
+}
+
 TEST_HEADER(JsonOutputTest, JsonPretty)
 {
     NestedObj nestedObj = { false, { 1, 2, 3 } };
@@ -3000,82 +3025,98 @@ TEST_HEADER(JsonOutputTest, JsonPretty)
 
 TEST_HEADER(JsonOutputTest, Performance_1000_StringStream)
 {
+#ifdef RUN_PERFORMANCE_TESTS
     NestedObj nestedObj = { false, { 1, 2, 3 } };
     AnObjectTest anObject = { 4, "aString", nestedObj };
 
     TestStreamType ss;
     for ( size_t i=0; i<1000; i++ )
         ss << Json::out(anObject);
+#endif
 }
 
 TEST_HEADER(JsonOutputTest, Performance_1000_StringBuffer)
 {
+#ifdef RUN_PERFORMANCE_TESTS
     NestedObj nestedObj = { false, { 1, 2, 3 } };
     AnObjectTest anObject = { 4, "aString", nestedObj };
 
     StringBuffer sb;
     for ( size_t i=0; i<1000; i++ )
         sb << Json::out(anObject);
+#endif
 }
 
 TEST_HEADER(JsonOutputTest, Performance_10000_StringStream)
 {
+#ifdef RUN_PERFORMANCE_TESTS
     NestedObj nestedObj = { false, { 1, 2, 3 } };
     AnObjectTest anObject = { 4, "aString", nestedObj };
 
     TestStreamType ss;
     for ( size_t i=0; i<10000; i++ )
         ss << Json::out(anObject);
+#endif
 }
 
 TEST_HEADER(JsonOutputTest, Performance_10000_StringBuffer)
 {
+#ifdef RUN_PERFORMANCE_TESTS
     NestedObj nestedObj = { false, { 1, 2, 3 } };
     AnObjectTest anObject = { 4, "aString", nestedObj };
 
     StringBuffer sb;
     for ( size_t i=0; i<10000; i++ )
         sb << Json::out(anObject);
+#endif
 }
 
 TEST_HEADER(JsonOutputTest, Performance_100000_StringStream)
 {
+#ifdef RUN_PERFORMANCE_TESTS
     NestedObj nestedObj = { false, { 1, 2, 3 } };
     AnObjectTest anObject = { 4, "aString", nestedObj };
 
     TestStreamType ss;
     for ( size_t i=0; i<100000; i++ )
         ss << Json::out(anObject);
+#endif
 }
 
 TEST_HEADER(JsonOutputTest, Performance_100000_StringBuffer)
 {
+#ifdef RUN_PERFORMANCE_TESTS
     NestedObj nestedObj = { false, { 1, 2, 3 } };
     AnObjectTest anObject = { 4, "aString", nestedObj };
 
     StringBuffer sb;
     for ( size_t i=0; i<100000; i++ )
         sb << Json::out(anObject);
+#endif
 }
 
 TEST_HEADER(JsonOutputTest, Performance_1000000_StringStream)
 {
+#ifdef RUN_PERFORMANCE_TESTS
     NestedObj nestedObj = { false, { 1, 2, 3 } };
     AnObjectTest anObject = { 4, "aString", nestedObj };
 
     TestStreamType ss;
     for ( size_t i=0; i<1000000; i++ )
         ss << Json::out(anObject);
+#endif
 }
 
 TEST_HEADER(JsonOutputTest, Performance_1000000_StringBuffer)
 {
+#ifdef RUN_PERFORMANCE_TESTS
     NestedObj nestedObj = { false, { 1, 2, 3 } };
     AnObjectTest anObject = { 4, "aString", nestedObj };
 
     StringBuffer sb;
     for ( size_t i=0; i<1000000; i++ )
         sb << Json::out(anObject);
+#endif
 }
 }
 

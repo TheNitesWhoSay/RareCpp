@@ -3,6 +3,8 @@
 #include "../CppRandomAccessReflectionLib/StringBuffer.h"
 using namespace BufferedStream;
 
+#define RUN_PERFORMANCE_TESTS
+
 TEST(StringBufferTest, ConstructDefault)
 {
     StringBuffer sb;
@@ -657,58 +659,74 @@ TEST(StringBufferTest, Example)
 
 TEST(StringBufferTest, Performance_1000_StringStream)
 {
+#ifdef RUN_PERFORMANCE_TESTS
     std::stringstream ss;
     for ( size_t i=0; i<1000; i++ )
         ss << "asdf" << i << "qwer" << i*5 << '\n';
+#endif
 }
 
 TEST(StringBufferTest, Performance_1000_StringBuffer)
 {
+#ifdef RUN_PERFORMANCE_TESTS
     StringBuffer sb;
     for ( size_t i=0; i<1000; i++ )
         sb << "asdf" << i << "qwer" << i*5 << sb.endl;
+#endif
 }
 
 TEST(StringBufferTest, Performance_10000_StringStream)
 {
+#ifdef RUN_PERFORMANCE_TESTS
     std::stringstream ss;
     for ( size_t i=0; i<10000; i++ )
         ss << "asdf" << i << "qwer" << i*5 << '\n';
+#endif
 }
 
 TEST(StringBufferTest, Performance_10000_StringBuffer)
 {
+#ifdef RUN_PERFORMANCE_TESTS
     StringBuffer sb;
     for ( size_t i=0; i<10000; i++ )
         sb << "asdf" << i << "qwer" << i*5 << sb.endl;
+#endif
 }
 
 TEST(StringBufferTest, Performance_100000_StringStream)
 {
+#ifdef RUN_PERFORMANCE_TESTS
     std::stringstream ss;
     for ( size_t i=0; i<100000; i++ )
         ss << "asdf" << i << "qwer" << i*5 << '\n';
+#endif
 }
 
 TEST(StringBufferTest, Performance_100000_StringBuffer)
 {
+#ifdef RUN_PERFORMANCE_TESTS
     StringBuffer sb;
     for ( size_t i=0; i<100000; i++ )
         sb << "asdf" << i << "qwer" << i*5 << sb.endl;
+#endif
 }
 
 TEST(StringBufferTest, Performance_1000000_StringStream)
 {
+#ifdef RUN_PERFORMANCE_TESTS
     std::stringstream ss;
     for ( size_t i=0; i<1000000; i++ )
         ss << "asdf" << i << "qwer" << i*5 << '\n';
+#endif
 }
 
 TEST(StringBufferTest, Performance_1000000_StringBuffer)
 {
+#ifdef RUN_PERFORMANCE_TESTS
     StringBuffer sb;
     for ( size_t i=0; i<1000000; i++ )
         sb << "asdf" << i << "qwer" << i*5 << sb.endl;
+#endif
 }
 
 size_t getSizeDoubled(StringBufferPtr stringBufferPtr)

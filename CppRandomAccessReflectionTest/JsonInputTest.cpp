@@ -1370,6 +1370,46 @@ TEST_HEADER(JsonInput, ReflectedObject)
     EXPECT_EQ(5, object.a);
 }
 
+struct JsonReferences
+{
+    JsonReferences() : primitive(1), primitiveReference(primitive) {}
+
+    int primitive;
+    int & primitiveReference;
+    static int staticPrimitive;
+    static int & staticPrimitiveReference;
+
+    REFLECT(() JsonReferences, () primitive, () primitiveReference, () staticPrimitive, () staticPrimitiveReference)
+};
+
+int JsonReferences::staticPrimitive = 2;
+int & JsonReferences::staticPrimitiveReference = JsonReferences::staticPrimitive;
+
+TEST_HEADER(JsonInput, InReferences)
+{
+    JsonReferences jsonReferences;
+    EXPECT_EQ(1, jsonReferences.primitive);
+    EXPECT_EQ(1, jsonReferences.primitiveReference);
+    EXPECT_EQ(2, jsonReferences.staticPrimitive);
+    EXPECT_EQ(2, jsonReferences.staticPrimitiveReference);
+
+    std::stringstream inputPrimitivesStream(
+        "{\"primitive\":11,\"staticPrimitive\":22}");
+    inputPrimitivesStream >> Json::in(jsonReferences);
+    EXPECT_EQ(11, jsonReferences.primitive);
+    EXPECT_EQ(11, jsonReferences.primitiveReference);
+    EXPECT_EQ(22, jsonReferences.staticPrimitive);
+    EXPECT_EQ(22, jsonReferences.staticPrimitiveReference);
+
+    std::stringstream inputReferencesStream(
+        "{\"primitiveReference\":111,\"staticPrimitiveReference\":222}");
+    inputReferencesStream >> Json::in(jsonReferences);
+    EXPECT_EQ(111, jsonReferences.primitive);
+    EXPECT_EQ(111, jsonReferences.primitiveReference);
+    EXPECT_EQ(222, jsonReferences.staticPrimitive);
+    EXPECT_EQ(222, jsonReferences.staticPrimitiveReference);
+}
+
 struct EmptyIn
 {
     REFLECT_EMPTY(() EmptyIn)
