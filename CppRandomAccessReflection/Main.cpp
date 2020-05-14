@@ -304,11 +304,11 @@ const int* ptr = nullptr;
 
 struct StaticCluster
 {
-    constexpr static decltype(StructWithStatics::StaticValue)* staticVal = &StructWithStatics::StaticValue;
-    constexpr static decltype(value)* globalValue = &value;
-    constexpr static decltype(str)* globalStr = &str;
-    constexpr static decltype(boolean)* globalBool = &boolean;
-    constexpr static decltype(ptr)* globalPtr = &ptr;
+    constexpr static decltype(StructWithStatics::StaticValue) & staticVal = StructWithStatics::StaticValue;
+    constexpr static decltype(value) & globalValue = value;
+    constexpr static decltype(str) & globalStr = str;
+    constexpr static decltype(boolean) & globalBool = boolean;
+    constexpr static decltype(ptr) & globalPtr = ptr;
 
     REFLECT(() StaticCluster, () staticVal, () globalValue, () globalStr, () globalBool, () globalPtr)
 };

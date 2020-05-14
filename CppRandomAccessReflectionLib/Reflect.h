@@ -795,9 +795,9 @@ namespace Reflect
     template <typename T> static constexpr decltype(&T::RHS(x)) GetPointerType(int); \
     template <typename T> static constexpr void* GetPointerType(...); \
     using Pointer = decltype(GetPointerType<ClassType>(0)); \
-    template <typename T, bool IsReference> struct GetPointer { static constexpr Pointer value = &T::RHS(x); }; \
-    template <typename T> struct GetPointer<T, true> { static constexpr Pointer value = nullptr; }; \
     using Field = Fields::Field<Class::RHS(x), Pointer, IndexOf::RHS(x), Annotate<LHS(x)>::Annotations>; \
+    template <typename T, bool IsReference> struct GetPointer { static constexpr Field::Pointer value = &T::RHS(x); }; \
+    template <typename T> struct GetPointer<T, true> { static constexpr Field::Pointer value = nullptr; }; \
     static constexpr Field field = { \
         &nameStr.value[0], &typeStr.value[0], ExtendedTypeSupport::static_array_size<RHS(x)>::value, \
         ExtendedTypeSupport::is_stl_iterable<ExtendedTypeSupport::remove_pointer<RHS(x)>::type>::value || \
