@@ -786,6 +786,8 @@ public:
 
 class ReflectObj : public ReflectSuperObj {
 public:
+    ReflectObj() : primitive(0), object({}), primitiveReference(primitive) { primitiveArray[0] = 0; primitiveArray[1] = 1; }
+
     int primitive;
     ReflectSubObj object;
     int primitiveArray[2];
@@ -793,16 +795,19 @@ public:
     std::vector<ReflectSubObj> objCollection;
     std::stack<int> stack;
     static int staticPrimitive;
+    int & primitiveReference;
+    static int & staticPrimitiveReference;
 
-    REFLECT((ReflectSuperObj) ReflectObj, () primitive, (Reflected) object, () primitiveArray, () map, (Reflected) objCollection, () stack, () staticPrimitive)
+    REFLECT((ReflectSuperObj) ReflectObj, () primitive, (Reflected) object, () primitiveArray, () map, (Reflected) objCollection, () stack, () staticPrimitive, () primitiveReference, () staticPrimitiveReference)
 };
 
 int ReflectObj::staticPrimitive = 0;
+int & ReflectObj::staticPrimitiveReference = ReflectObj::staticPrimitive;
 
 TEST(ReflectTest, RfMacroReflect)
 {
-    EXPECT_EQ(7, ReflectObj::Class::TotalFields);
-    EXPECT_EQ(1, ReflectObj::Class::TotalStaticFields);
+    EXPECT_EQ(9, ReflectObj::Class::TotalFields);
+    EXPECT_EQ(2, ReflectObj::Class::TotalStaticFields);
 
     EXPECT_EQ(0, ReflectObj::Class::IndexOf::primitive);
     EXPECT_EQ(1, ReflectObj::Class::IndexOf::object);
@@ -811,6 +816,8 @@ TEST(ReflectTest, RfMacroReflect)
     EXPECT_EQ(4, ReflectObj::Class::IndexOf::objCollection);
     EXPECT_EQ(5, ReflectObj::Class::IndexOf::stack);
     EXPECT_EQ(6, ReflectObj::Class::IndexOf::staticPrimitive);
+    EXPECT_EQ(7, ReflectObj::Class::IndexOf::primitiveReference);
+    EXPECT_EQ(8, ReflectObj::Class::IndexOf::staticPrimitiveReference);
     
     bool isSame = std::is_same<int, ReflectObj::Class::primitive>::value;
     EXPECT_TRUE(isSame);
@@ -824,6 +831,12 @@ TEST(ReflectTest, RfMacroReflect)
     EXPECT_TRUE(isSame);
     isSame = std::is_same<std::stack<int>, ReflectObj::Class::stack>::value;
     EXPECT_TRUE(isSame);
+    isSame = std::is_same<int, ReflectObj::Class::staticPrimitive>::value;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same<int&, ReflectObj::Class::primitiveReference>::value;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same<int&, ReflectObj::Class::staticPrimitiveReference>::value;
+    EXPECT_TRUE(isSame);
     
     EXPECT_STREQ("primitive", ReflectObj::Class::primitive_::nameStr.value);
     EXPECT_STREQ("object", ReflectObj::Class::object_::nameStr.value);
@@ -831,6 +844,9 @@ TEST(ReflectTest, RfMacroReflect)
     EXPECT_STREQ("map", ReflectObj::Class::map_::nameStr.value);
     EXPECT_STREQ("objCollection", ReflectObj::Class::objCollection_::nameStr.value);
     EXPECT_STREQ("stack", ReflectObj::Class::stack_::nameStr.value);
+    EXPECT_STREQ("staticPrimitive", ReflectObj::Class::staticPrimitive_::nameStr.value);
+    EXPECT_STREQ("primitiveReference", ReflectObj::Class::primitiveReference_::nameStr.value);
+    EXPECT_STREQ("staticPrimitiveReference", ReflectObj::Class::staticPrimitiveReference_::nameStr.value);
 
     std::string typeStr = ReflectObj::Class::primitive_::typeStr.value;
     typeStr.erase(std::remove(typeStr.begin(), typeStr.end(), ' '), typeStr.end());
@@ -850,6 +866,15 @@ TEST(ReflectTest, RfMacroReflect)
     typeStr = ReflectObj::Class::stack_::typeStr.value;
     typeStr.erase(std::remove(typeStr.begin(), typeStr.end(), ' '), typeStr.end());
     EXPECT_TRUE(typeStr.find("stack<int") != std::string::npos);
+    typeStr = ReflectObj::Class::staticPrimitive_::typeStr.value;
+    typeStr.erase(std::remove(typeStr.begin(), typeStr.end(), ' '), typeStr.end());
+    EXPECT_TRUE(typeStr.find("int") != std::string::npos);
+    typeStr = ReflectObj::Class::primitiveReference_::typeStr.value;
+    typeStr.erase(std::remove(typeStr.begin(), typeStr.end(), ' '), typeStr.end());
+    EXPECT_TRUE(typeStr.find("int&") != std::string::npos);
+    typeStr = ReflectObj::Class::staticPrimitiveReference_::typeStr.value;
+    typeStr.erase(std::remove(typeStr.begin(), typeStr.end(), ' '), typeStr.end());
+    EXPECT_TRUE(typeStr.find("int&") != std::string::npos);
     
     EXPECT_STREQ("primitive", ReflectObj::Class::primitive_::field.name);
     EXPECT_STREQ("object", ReflectObj::Class::object_::field.name);
@@ -857,6 +882,9 @@ TEST(ReflectTest, RfMacroReflect)
     EXPECT_STREQ("map", ReflectObj::Class::map_::field.name);
     EXPECT_STREQ("objCollection", ReflectObj::Class::objCollection_::field.name);
     EXPECT_STREQ("stack", ReflectObj::Class::stack_::field.name);
+    EXPECT_STREQ("staticPrimitive", ReflectObj::Class::staticPrimitive_::field.name);
+    EXPECT_STREQ("primitiveReference", ReflectObj::Class::primitiveReference_::field.name);
+    EXPECT_STREQ("staticPrimitiveReference", ReflectObj::Class::staticPrimitiveReference_::field.name);
 
     EXPECT_STREQ(ReflectObj::Class::primitive_::typeStr.value, ReflectObj::Class::primitive_::field.typeStr);
     EXPECT_STREQ(ReflectObj::Class::object_::typeStr.value, ReflectObj::Class::object_::field.typeStr);
@@ -864,6 +892,9 @@ TEST(ReflectTest, RfMacroReflect)
     EXPECT_STREQ(ReflectObj::Class::map_::typeStr.value, ReflectObj::Class::map_::field.typeStr);
     EXPECT_STREQ(ReflectObj::Class::objCollection_::typeStr.value, ReflectObj::Class::objCollection_::field.typeStr);
     EXPECT_STREQ(ReflectObj::Class::stack_::typeStr.value, ReflectObj::Class::stack_::field.typeStr);
+    EXPECT_STREQ(ReflectObj::Class::staticPrimitive_::typeStr.value, ReflectObj::Class::staticPrimitive_::field.typeStr);
+    EXPECT_STREQ(ReflectObj::Class::primitiveReference_::typeStr.value, ReflectObj::Class::primitiveReference_::field.typeStr);
+    EXPECT_STREQ(ReflectObj::Class::staticPrimitiveReference_::typeStr.value, ReflectObj::Class::staticPrimitiveReference_::field.typeStr);
     
     EXPECT_EQ(0, ReflectObj::Class::primitive_::field.arraySize);
     EXPECT_EQ(0, ReflectObj::Class::object_::field.arraySize);
@@ -871,6 +902,9 @@ TEST(ReflectTest, RfMacroReflect)
     EXPECT_EQ(0, ReflectObj::Class::map_::field.arraySize);
     EXPECT_EQ(0, ReflectObj::Class::objCollection_::field.arraySize);
     EXPECT_EQ(0, ReflectObj::Class::stack_::field.arraySize);
+    EXPECT_EQ(0, ReflectObj::Class::staticPrimitive_::field.arraySize);
+    EXPECT_EQ(0, ReflectObj::Class::primitiveReference_::field.arraySize);
+    EXPECT_EQ(0, ReflectObj::Class::staticPrimitiveReference_::field.arraySize);
     
     EXPECT_EQ(false, ReflectObj::Class::primitive_::field.isIterable);
     EXPECT_EQ(false, ReflectObj::Class::object_::field.isIterable);
@@ -878,6 +912,9 @@ TEST(ReflectTest, RfMacroReflect)
     EXPECT_EQ(true, ReflectObj::Class::map_::field.isIterable);
     EXPECT_EQ(true, ReflectObj::Class::objCollection_::field.isIterable);
     EXPECT_EQ(true, ReflectObj::Class::stack_::field.isIterable);
+    EXPECT_EQ(false, ReflectObj::Class::staticPrimitive_::field.isIterable);
+    EXPECT_EQ(false, ReflectObj::Class::primitiveReference_::field.isIterable);
+    EXPECT_EQ(false, ReflectObj::Class::staticPrimitiveReference_::field.isIterable);
     
     EXPECT_EQ(false, ReflectObj::Class::primitive_::field.isReflected);
     EXPECT_EQ(true, ReflectObj::Class::object_::field.isReflected);
@@ -885,6 +922,9 @@ TEST(ReflectTest, RfMacroReflect)
     EXPECT_EQ(false, ReflectObj::Class::map_::field.isReflected);
     EXPECT_EQ(true, ReflectObj::Class::objCollection_::field.isReflected);
     EXPECT_EQ(false, ReflectObj::Class::stack_::field.isReflected);
+    EXPECT_EQ(false, ReflectObj::Class::staticPrimitive_::field.isReflected);
+    EXPECT_EQ(false, ReflectObj::Class::primitiveReference_::field.isReflected);
+    EXPECT_EQ(false, ReflectObj::Class::staticPrimitiveReference_::field.isReflected);
     
     EXPECT_STREQ(ReflectObj::Class::primitive_::field.name, ReflectObj::Class::Fields[0].name);
     EXPECT_STREQ(ReflectObj::Class::object_::field.name, ReflectObj::Class::Fields[1].name);
@@ -892,6 +932,9 @@ TEST(ReflectTest, RfMacroReflect)
     EXPECT_STREQ(ReflectObj::Class::map_::field.name, ReflectObj::Class::Fields[3].name);
     EXPECT_STREQ(ReflectObj::Class::objCollection_::field.name, ReflectObj::Class::Fields[4].name);
     EXPECT_STREQ(ReflectObj::Class::stack_::field.name, ReflectObj::Class::Fields[5].name);
+    EXPECT_STREQ(ReflectObj::Class::staticPrimitive_::field.name, ReflectObj::Class::Fields[6].name);
+    EXPECT_STREQ(ReflectObj::Class::primitiveReference_::field.name, ReflectObj::Class::Fields[7].name);
+    EXPECT_STREQ(ReflectObj::Class::staticPrimitiveReference_::field.name, ReflectObj::Class::Fields[8].name);
     
     EXPECT_STREQ(ReflectObj::Class::primitive_::field.typeStr, ReflectObj::Class::Fields[0].typeStr);
     EXPECT_STREQ(ReflectObj::Class::object_::field.typeStr, ReflectObj::Class::Fields[1].typeStr);
@@ -899,6 +942,9 @@ TEST(ReflectTest, RfMacroReflect)
     EXPECT_STREQ(ReflectObj::Class::map_::field.typeStr, ReflectObj::Class::Fields[3].typeStr);
     EXPECT_STREQ(ReflectObj::Class::objCollection_::field.typeStr, ReflectObj::Class::Fields[4].typeStr);
     EXPECT_STREQ(ReflectObj::Class::stack_::field.typeStr, ReflectObj::Class::Fields[5].typeStr);
+    EXPECT_STREQ(ReflectObj::Class::staticPrimitive_::field.typeStr, ReflectObj::Class::Fields[6].typeStr);
+    EXPECT_STREQ(ReflectObj::Class::primitiveReference_::field.typeStr, ReflectObj::Class::Fields[7].typeStr);
+    EXPECT_STREQ(ReflectObj::Class::staticPrimitiveReference_::field.typeStr, ReflectObj::Class::Fields[8].typeStr);
     
     EXPECT_EQ(ReflectObj::Class::primitive_::field.arraySize, ReflectObj::Class::Fields[0].arraySize);
     EXPECT_EQ(ReflectObj::Class::object_::field.arraySize, ReflectObj::Class::Fields[1].arraySize);
@@ -906,6 +952,9 @@ TEST(ReflectTest, RfMacroReflect)
     EXPECT_EQ(ReflectObj::Class::map_::field.arraySize, ReflectObj::Class::Fields[3].arraySize);
     EXPECT_EQ(ReflectObj::Class::objCollection_::field.arraySize, ReflectObj::Class::Fields[4].arraySize);
     EXPECT_EQ(ReflectObj::Class::stack_::field.arraySize, ReflectObj::Class::Fields[5].arraySize);
+    EXPECT_EQ(ReflectObj::Class::staticPrimitive_::field.arraySize, ReflectObj::Class::Fields[6].arraySize);
+    EXPECT_EQ(ReflectObj::Class::primitiveReference_::field.arraySize, ReflectObj::Class::Fields[7].arraySize);
+    EXPECT_EQ(ReflectObj::Class::staticPrimitiveReference_::field.arraySize, ReflectObj::Class::Fields[8].arraySize);
     
     EXPECT_EQ(ReflectObj::Class::primitive_::field.isIterable, ReflectObj::Class::Fields[0].isIterable);
     EXPECT_EQ(ReflectObj::Class::object_::field.isIterable, ReflectObj::Class::Fields[1].isIterable);
@@ -913,6 +962,9 @@ TEST(ReflectTest, RfMacroReflect)
     EXPECT_EQ(ReflectObj::Class::map_::field.isIterable, ReflectObj::Class::Fields[3].isIterable);
     EXPECT_EQ(ReflectObj::Class::objCollection_::field.isIterable, ReflectObj::Class::Fields[4].isIterable);
     EXPECT_EQ(ReflectObj::Class::stack_::field.isIterable, ReflectObj::Class::Fields[5].isIterable);
+    EXPECT_EQ(ReflectObj::Class::staticPrimitive_::field.isIterable, ReflectObj::Class::Fields[6].isIterable);
+    EXPECT_EQ(ReflectObj::Class::primitiveReference_::field.isIterable, ReflectObj::Class::Fields[7].isIterable);
+    EXPECT_EQ(ReflectObj::Class::staticPrimitiveReference_::field.isIterable, ReflectObj::Class::Fields[8].isIterable);
     
     EXPECT_EQ(ReflectObj::Class::primitive_::field.isReflected, ReflectObj::Class::Fields[0].isReflected);
     EXPECT_EQ(ReflectObj::Class::object_::field.isReflected, ReflectObj::Class::Fields[1].isReflected);
@@ -920,6 +972,9 @@ TEST(ReflectTest, RfMacroReflect)
     EXPECT_EQ(ReflectObj::Class::map_::field.isReflected, ReflectObj::Class::Fields[3].isReflected);
     EXPECT_EQ(ReflectObj::Class::objCollection_::field.isReflected, ReflectObj::Class::Fields[4].isReflected);
     EXPECT_EQ(ReflectObj::Class::stack_::field.isReflected, ReflectObj::Class::Fields[5].isReflected);
+    EXPECT_EQ(ReflectObj::Class::staticPrimitive_::field.isReflected, ReflectObj::Class::Fields[6].isReflected);
+    EXPECT_EQ(ReflectObj::Class::primitiveReference_::field.isReflected, ReflectObj::Class::Fields[7].isReflected);
+    EXPECT_EQ(ReflectObj::Class::staticPrimitiveReference_::field.isReflected, ReflectObj::Class::Fields[8].isReflected);
     
     ReflectSubObj reflectSubObj = { 20 };
     ReflectSubObj reflectSubObjZero = { 90 };
@@ -936,6 +991,7 @@ TEST(ReflectTest, RfMacroReflect)
     reflectObj.objCollection.push_back(reflectSubObjOne);
     reflectObj.stack.push(2);
     reflectObj.stack.push(3);
+
     size_t index = 0;
     ReflectObj::Class::ForEachField(reflectObj, [&](auto & field, auto & value) {
         
@@ -946,14 +1002,14 @@ TEST(ReflectTest, RfMacroReflect)
         bool visited = false;
         switch ( index ) {
             case 0:
-                if constexpr ( !Field::template HasAnnotation<Reflect::Reflected> && !is_iterable<Value>::value ) {
+                if constexpr ( !Field::template HasAnnotation<Reflect::Reflected> && !is_iterable<Value>::value && !Field::IsStatic ) {
                     EXPECT_EQ(reflectObj.primitive, value);
                     visited = true;
                 }
                 EXPECT_TRUE(visited);
                 break;
             case 1:
-                if constexpr ( Field::template HasAnnotation<Reflect::Reflected> && !is_iterable<Value>::value ) {
+                if constexpr ( Field::template HasAnnotation<Reflect::Reflected> && !is_iterable<Value>::value && !Field::IsStatic ) {
                     using ObjClass = typename Value::Class;
                     ObjClass::FieldAt(value, 0, [&](auto & field, auto & value) {
                         EXPECT_EQ(reflectObj.object.val, value);
@@ -965,7 +1021,7 @@ TEST(ReflectTest, RfMacroReflect)
                 EXPECT_TRUE(visited);
                 break;
             case 2:
-                if constexpr ( !Field::template HasAnnotation<Reflect::Reflected> && is_static_array<Value>::value ) {
+                if constexpr ( !Field::template HasAnnotation<Reflect::Reflected> && is_static_array<Value>::value && !Field::IsStatic ) {
                     EXPECT_EQ(reflectObj.primitiveArray[0], value[0]);
                     EXPECT_EQ(reflectObj.primitiveArray[1], value[1]);
                     visited = true;
@@ -973,7 +1029,7 @@ TEST(ReflectTest, RfMacroReflect)
                 EXPECT_TRUE(visited);
                 break;
             case 3:
-                if constexpr ( !Field::template HasAnnotation<Reflect::Reflected> && is_iterable<Value>::value && is_pair<typename element_type<Value>::type>::value ) {
+                if constexpr ( !Field::template HasAnnotation<Reflect::Reflected> && is_iterable<Value>::value && is_pair<typename element_type<Value>::type>::value && !Field::IsStatic ) {
                     EXPECT_EQ(reflectObj.map.begin()->first, value.begin()->first);
                     EXPECT_EQ((++reflectObj.map.begin())->first, (++value.begin())->first);
                     visited = true;
@@ -981,7 +1037,7 @@ TEST(ReflectTest, RfMacroReflect)
                 EXPECT_TRUE(visited);
                 break;
             case 4:
-                if constexpr ( Field::template HasAnnotation<Reflect::Reflected> && is_iterable<Value>::value ) {
+                if constexpr ( Field::template HasAnnotation<Reflect::Reflected> && is_iterable<Value>::value && !Field::IsStatic ) {
                     EXPECT_EQ(reflectObj.objCollection[0].val, value[0].val);
                     EXPECT_EQ(reflectObj.objCollection[1].val, value[1].val);
                     visited = true;
@@ -989,15 +1045,37 @@ TEST(ReflectTest, RfMacroReflect)
                 EXPECT_TRUE(visited);
                 break;
             case 5:
-                if constexpr ( !Field::template HasAnnotation<Reflect::Reflected> && is_adaptor<Value>::value )
+                if constexpr ( !Field::template HasAnnotation<Reflect::Reflected> && is_adaptor<Value>::value && !Field::IsStatic )
+                {
+                    EXPECT_EQ(reflectObj.stack.top(), value.top());
+                    reflectObj.stack.pop();
+                    EXPECT_EQ(reflectObj.stack.top(), value.top());
                     visited = true;
-
+                }
                 EXPECT_TRUE(visited);
                 break;
             case 6:
-                if constexpr ( Field::IsStatic )
+                if constexpr ( !Field::template HasAnnotation<Reflect::Reflected> && Field::IsStatic )
+                {
+                    EXPECT_EQ(reflectObj.staticPrimitive, value);
                     visited = true;
-
+                }
+                EXPECT_TRUE(visited);
+                break;
+            case 7:
+                if constexpr ( !Field::template HasAnnotation<Reflect::Reflected> && !is_iterable<Value>::value && !Field::IsStatic )
+                {
+                    EXPECT_EQ(reflectObj.primitiveReference, value);
+                    visited = true;
+                }
+                EXPECT_TRUE(visited);
+                break;
+            case 8:
+                if constexpr ( !Field::template HasAnnotation<Reflect::Reflected> && !is_iterable<Value>::value && Field::IsStatic )
+                {
+                    EXPECT_EQ(reflectObj.staticPrimitiveReference, value);
+                    visited = true;
+                }
                 EXPECT_TRUE(visited);
                 break;
             default:
@@ -1006,10 +1084,10 @@ TEST(ReflectTest, RfMacroReflect)
         }
         index ++;
     });
-    EXPECT_EQ(7, index);
+    EXPECT_EQ(9, index);
 
     index = 0;
-    bool visited = false;
+    bool visited = true;
     ReflectObj::Class::ForEachField([&](auto & field) {
         
         using Field = typename std::remove_reference<decltype(field)>::type;
@@ -1019,9 +1097,57 @@ TEST(ReflectTest, RfMacroReflect)
         {
             EXPECT_EQ(ReflectObj::staticPrimitive, *field.p);
             visited = true;
-        }        
+        }
         index ++;
     });
     EXPECT_TRUE(visited);
-    EXPECT_EQ(7, index);
+    EXPECT_EQ(9, index);
+}
+
+struct ReflectReferences
+{
+    ReflectReferences() : primitive(11), primitiveReference(primitive) {}
+
+    int primitive;
+    int & primitiveReference;
+    static int staticPrimitive;
+    static int & staticPrimitiveReference;
+
+    REFLECT(() ReflectReferences, () primitive, () primitiveReference, () staticPrimitive, () staticPrimitiveReference)
+};
+
+int ReflectReferences::staticPrimitive = 33;
+int & ReflectReferences::staticPrimitiveReference = ReflectReferences::staticPrimitive;
+
+TEST(ReflectTest, RfMacroReflectReferences)
+{
+    ReflectReferences reflectReferences;
+    EXPECT_EQ(11, reflectReferences.primitive);
+    EXPECT_EQ(11, reflectReferences.primitiveReference);
+    EXPECT_EQ(33, ReflectReferences::staticPrimitive);
+    EXPECT_EQ(33, ReflectReferences::staticPrimitiveReference);
+
+    bool visited = false;
+    ReflectReferences::Class::FieldAt(reflectReferences, 1, [&](auto & field, auto & value) {
+        EXPECT_EQ(11, value);
+        bool isEqual = std::is_same<decltype(value), decltype(reflectReferences.primitiveReference)>::value;
+        EXPECT_TRUE(isEqual);
+        value = 22;
+        EXPECT_EQ(22, reflectReferences.primitive);
+        EXPECT_EQ(22, reflectReferences.primitiveReference);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+
+    visited = false;
+    ReflectReferences::Class::FieldAt(reflectReferences, 3, [&](auto & field, auto & value) {
+        EXPECT_EQ(33, value);
+        bool isEqual = std::is_same<decltype(value), decltype(ReflectReferences::staticPrimitiveReference)>::value;
+        EXPECT_TRUE(isEqual);
+        value = 44;
+        EXPECT_EQ(44, reflectReferences.staticPrimitive);
+        EXPECT_EQ(44, reflectReferences.staticPrimitiveReference);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
 }
