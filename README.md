@@ -1,4 +1,4 @@
-# RareCpp - Random Access Reflection & Extensions in C++
+# RareCpp - C++ Random Access Reflection & Extensions
 Adding a simple, intuitive means of reflection to C++ and leveraging it to create powerful extensions.
 
 To include reflection in your project you simply need to copy the [Reflect.h](https://github.com/jjf28/CppRandomAccessReflection/blob/master/CppRandomAccessReflectionLib/Reflect.h) file into your project, then within the class(es) you're looking to reflect you place the REFLECT macro.
