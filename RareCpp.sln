@@ -15,7 +15,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RareCppTest", "RareCppTest\
 		{58027BAE-5B43-4B71-A34A-16491CD466CE} = {58027BAE-5B43-4B71-A34A-16491CD466CE}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GoogleTestLib", "..\CppRandomAccessReflection\GoogleTestLib\GoogleTestLib.vcxproj", "{58027BAE-5B43-4B71-A34A-16491CD466CE}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GoogleTestLib", "GoogleTestLib\GoogleTestLib.vcxproj", "{58027BAE-5B43-4B71-A34A-16491CD466CE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
