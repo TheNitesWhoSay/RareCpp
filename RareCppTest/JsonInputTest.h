@@ -1,7 +1,7 @@
 #ifndef JSONINPUTTEST_H
 #define JSONINPUTTEST_H
-#include "../CppRandomAccessReflectionLib/Reflect.h"
-#include "../CppRandomAccessReflectionLib/Json.h"
+#include "../RareCppLib/Reflect.h"
+#include "../RareCppLib/Json.h"
 using namespace Reflect;
 
 struct CustomizeUnspecialized
