@@ -1,4 +1,4 @@
-# JSON Automation Library
+# Rare JSON
 
 A library for reading and writing complex objects with minimal effort.
 
