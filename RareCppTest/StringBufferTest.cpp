@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include <regex>
-#include "../CppRandomAccessReflectionLib/StringBuffer.h"
+#include "../RareCppLib/StringBuffer.h"
 using namespace BufferedStream;
 
 #define RUN_PERFORMANCE_TESTS

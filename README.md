@@ -1,5 +1,5 @@
-# CppRandomAccessReflection
-Creating a simpler, more intuitive means of C++ reflection.
+# RareCpp - Random Access Reflection & Extensions in C++
+Adding a simple, intuitive means of reflection to C++ and leveraging it to create powerful extensions.
 
 To include reflection in your project you simply need to copy the [Reflect.h](https://github.com/jjf28/CppRandomAccessReflection/blob/master/CppRandomAccessReflectionLib/Reflect.h) file into your project, then within the class(es) you're looking to reflect you place the REFLECT macro.
 
@@ -181,7 +181,7 @@ public:
 
 Annotations are a way of giving additional information about a field that cannot be determined only using the field name and type information, for instance, whether the object stored in a field is also reflected, or whether the field should be treated as a string when streaming to JSON.
 
-At present the only annotation specific to the RandomAccessReflection library is the "Reflected" annotation, which simply tells any code examining the field that the Class in that field is in turn, reflected using the REFLECT macro.
+At present the only annotation specific to the RareCpp reflection library is the "Reflected" annotation, which simply tells any code examining the field that the Class in that field is in turn, reflected using the REFLECT macro.
 
 ```C++
 class A : public SuperA {

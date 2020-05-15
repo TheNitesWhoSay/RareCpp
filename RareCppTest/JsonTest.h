@@ -1,8 +1,8 @@
 #ifndef JSONTEST_H
 #define JSONTEST_H
-#include "../CppRandomAccessReflectionLib/Reflect.h"
-#include "../CppRandomAccessReflectionLib/StringBuffer.h"
-#include "../CppRandomAccessReflectionLib/Json.h"
+#include "../RareCppLib/Reflect.h"
+#include "../RareCppLib/StringBuffer.h"
+#include "../RareCppLib/Json.h"
 using namespace Reflect;
 using namespace BufferedStream;
 using Json::Statics;
