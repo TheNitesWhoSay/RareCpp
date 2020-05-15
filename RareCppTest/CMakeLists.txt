@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-set(This CppRandomAccessReflectionTest)
+set(This RareCppTest)
 
 set(Headers
   JsonInputTest.h

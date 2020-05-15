@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include "../CppRandomAccessReflectionLib/Reflect.h"
+#include "../RareCppLib/Reflect.h"
 using namespace Reflect::Fields;
 
 TEST(ReflectionSupportTest, FieldSimple)

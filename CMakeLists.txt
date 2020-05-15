@@ -29,9 +29,9 @@ endif ( MSVC )
 
 enable_testing()
 
-add_subdirectory(CppRandomAccessReflection)
+add_subdirectory(RareCpp)
 add_subdirectory(GoogleTestLib/googletest)
-add_subdirectory(CppRandomAccessReflectionTest)
+add_subdirectory(RareCppTest)
 
 # Default Commands:
 # mkdir build
