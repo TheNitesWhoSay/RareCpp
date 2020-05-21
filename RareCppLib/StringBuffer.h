@@ -83,7 +83,12 @@ namespace BufferedStream
             /// Append regular base-10 numbers
             template <typename T>
             inline BasicStringBuffer & appendNumber(const T & value) {
-                if ( auto [p, ec] = std::to_chars((char*)num.data(), (char*)num.data() + num.size(), value); ec == std::errc() )
+                if constexpr ( std::is_same_v<bool, T> )
+                {
+                    if ( auto [p, ec] = std::to_chars((char*)num.data(), (char*)num.data() + num.size(), (int)value); ec == std::errc() )
+                        data.insert(data.end(), num.data(), p);
+                }
+                else if ( auto [p, ec] = std::to_chars((char*)num.data(), (char*)num.data() + num.size(), value); ec == std::errc() )
                     data.insert(data.end(), num.data(), p);
 
                 return *this;
@@ -99,10 +104,6 @@ namespace BufferedStream
                 return *this;
             }
             inline BasicStringBuffer & appendNumber(const long double & value) {
-                (*this) += std::to_string(value);
-                return *this;
-            }
-            inline BasicStringBuffer & appendNumber(const bool & value) {
                 (*this) += std::to_string(value);
                 return *this;
             }
