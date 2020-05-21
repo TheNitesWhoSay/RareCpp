@@ -88,6 +88,14 @@ namespace BufferedStream
 
                 return *this;
             }
+
+            template <>
+            inline BasicStringBuffer & appendNumber<bool>(const bool & value) {
+                if ( auto [p, ec] = std::to_chars((char*)num.data(), (char*)num.data() + num.size(), (int)value); ec == std::errc() )
+                    data.insert(data.end(), num.data(), p);
+
+                return *this;
+            }
             
 #ifdef __GNUC__
             inline BasicStringBuffer & appendNumber(const float & value) {
