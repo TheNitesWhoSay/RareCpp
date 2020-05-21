@@ -107,10 +107,6 @@ namespace BufferedStream
                 (*this) += std::to_string(value);
                 return *this;
             }
-            inline BasicStringBuffer & appendNumber(const bool & value) {
-                (*this) += std::to_string(value);
-                return *this;
-            }
 #endif
         
             /// Append regular base-10 numbers using ostream operators
