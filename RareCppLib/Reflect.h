@@ -751,11 +751,11 @@ namespace Reflect
 
     namespace Fields
     {
-        template <typename T = void, typename FieldPointer = void*, size_t FieldIndex = 0, typename Annotations = Annotate<>>
+        template <typename T = void, typename FieldPointer = nullptr_t, size_t FieldIndex = 0, typename Annotations = Annotate<>>
         struct Field;
     
         template <>
-        struct Field<void, void*, 0, void> {
+        struct Field<void, nullptr_t, 0, Annotate<>> {
             const char* name;
             const char* typeStr;
             size_t arraySize;
@@ -772,12 +772,12 @@ namespace Reflect
             bool isReflected;
 
             using Type = T;
-            using Pointer = std::conditional_t<std::is_reference_v<T>, void*, FieldPointer>;
+            using Pointer = std::conditional_t<std::is_reference_v<T>, nullptr_t, FieldPointer>;
 
             Pointer p;
         
             static constexpr size_t Index = FieldIndex;
-            static constexpr bool IsStatic = !std::is_member_pointer<FieldPointer>::value && !std::is_same<void*, FieldPointer>::value;
+            static constexpr bool IsStatic = !std::is_member_pointer<FieldPointer>::value && !std::is_same<nullptr_t, FieldPointer>::value;
 
             template <typename Annotation>
             static constexpr bool HasAnnotation = Annotate<Annotations>::template Has<Annotation>;
@@ -793,7 +793,7 @@ namespace Reflect
     static constexpr auto nameStr = ConstexprStr::substr<ConstexprStr::length_after_last(#x, ' ')>(&#x[0]+ConstexprStr::find_last_of(#x, ' ')+1); \
     static constexpr auto typeStr = ExtendedTypeSupport::TypeName<RHS(x)>(); \
     template <typename T> static constexpr decltype(&T::RHS(x)) GetPointerType(int); \
-    template <typename T> static constexpr void* GetPointerType(...); \
+    template <typename T> static constexpr nullptr_t GetPointerType(...); \
     using Pointer = decltype(GetPointerType<ClassType>(0)); \
     using Field = Fields::Field<Class::RHS(x), Pointer, IndexOf::RHS(x), Annotate<LHS(x)>::Annotations>; \
     template <typename T, bool IsReference> struct GetPointer { static constexpr Field::Pointer value = &T::RHS(x); }; \
