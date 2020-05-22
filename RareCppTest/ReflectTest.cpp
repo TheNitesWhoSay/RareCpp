@@ -525,8 +525,8 @@ public:
     float second;
 
     struct Class {
-        struct first_ { static constexpr Fields::Field<int> field = { "first", "int", 0, false, false }; };
-        struct second_ { static constexpr Fields::Field<float> field = { "second", "float", 0, false, false }; };
+        struct first_ { static constexpr Fields::Field<decltype(first), decltype(&first), 0, Annotate<>> field = { "first", "int", 0, false, false }; };
+        struct second_ { static constexpr Fields::Field<decltype(second), decltype(&second), 1, Annotate<>> field = { "second", "float", 0, false, false }; };
         static constexpr Fields::Field<> Fields[2] = {
             GET_FIELD(() first)
             GET_FIELD(() second)

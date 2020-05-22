@@ -80,7 +80,7 @@ TEST(ReflectionSupportTest, ReferencesFieldTemplated)
     bool fieldIsIterable = false;
     bool fieldIsReflected = false;
 
-    Field<decltype(ReferencesTestStruct::testVal), void*, fieldIndex> field =
+    Field<decltype(ReferencesTestStruct::testVal), nullptr_t, fieldIndex> field =
     { fieldName, fieldTypeStr, fieldArraySize, fieldIsIterable, fieldIsReflected, nullptr };
     using IntField = decltype(field);
 
@@ -93,7 +93,7 @@ TEST(ReflectionSupportTest, ReferencesFieldTemplated)
     bool isEqual = std::is_same<int&, IntField::Type>::value;
     EXPECT_TRUE(isEqual);
 
-    isEqual = std::is_same<IntField::Pointer, void*>::value;
+    isEqual = std::is_same<IntField::Pointer, nullptr_t>::value;
     EXPECT_TRUE(isEqual);
 
     EXPECT_TRUE(field.p == nullptr);
@@ -105,7 +105,7 @@ TEST(ReflectionSupportTest, ReferencesFieldTemplated)
     { fieldName, fieldTypeStr, fieldArraySize, fieldIsIterable, fieldIsReflected, nullptr };
     using StaticIntField = decltype(staticField);
 
-    isEqual = std::is_same<StaticIntField::Pointer, void*>::value;
+    isEqual = std::is_same<StaticIntField::Pointer, nullptr_t>::value;
     EXPECT_TRUE(isEqual);
 
     EXPECT_TRUE(staticField.p == nullptr);

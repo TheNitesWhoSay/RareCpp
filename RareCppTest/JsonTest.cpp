@@ -2657,7 +2657,7 @@ TEST_HEADER(JsonOutputPut, Value)
         booleanStream,
         shortIntStream;
 
-    using AField = Fields::Field<>;
+    using AField = Fields::Field<int>;
 
     int placeholderObj = 0;
     CustomizeFullySpecialized customized;
@@ -2720,7 +2720,7 @@ TEST_HEADER(JsonOutputPut, PairValue)
     TestStreamType pairValueStream;
     std::pair<std::string, int> pair = std::pair("integer", 555);
     int placeholderObj = 0;
-    Json::Put::Value<Annotate<>, Fields::Field<>, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(pairValueStream, Json::context, placeholderObj, pair);
+    Json::Put::Value<Annotate<>, Fields::Field<decltype(pair)>, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(pairValueStream, Json::context, placeholderObj, pair);
     EXPECT_STREQ("\"integer\":555", pairValueStream.str().c_str());
 }
 

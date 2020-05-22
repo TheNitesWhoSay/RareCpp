@@ -136,7 +136,7 @@ namespace Json
         using NoField = Fields::Field<>;
 
         template <typename T>
-        using ReflectedField = Fields::Field<T, void*, 0, IsRoot>;
+        using ReflectedField = Fields::Field<T, nullptr_t, 0, IsRoot>;
 
         struct Context
         {
@@ -899,13 +899,13 @@ namespace Json
                 size_t FieldIndex = NoFieldIndex, typename OpAnnotations = Annotate<>, typename Field = NoField, Statics statics = Statics::Excluded,
                 bool PrettyPrint = false, size_t TotalParentIterables = 0, size_t IndentLevel = 0, const char* indent = twoSpaces>
             static constexpr bool HaveSpecialization =
-                is_specialized<Customize<Object, Value, Field::Index, OpAnnotations, Field, statics,
+                is_specialized<Customize<Object, Value, FieldIndex, OpAnnotations, Field, statics,
                     PrettyPrint, TotalParentIterables, IndentLevel, indent>>::value || // Fully specialized
-                is_specialized<Customize<Object, Value, Field::Index, OpAnnotations, Field>>::value || // Customize<5args> specialized
-                is_specialized<Customize<Object, Value, Field::Index, OpAnnotations>>::value || // Customize<4args> specialized
-                is_specialized<Customize<Object, Value, Field::Index>>::value || // Customize<3args> specialized
+                is_specialized<Customize<Object, Value, FieldIndex, OpAnnotations, Field>>::value || // Customize<5args> specialized
+                is_specialized<Customize<Object, Value, FieldIndex, OpAnnotations>>::value || // Customize<4args> specialized
+                is_specialized<Customize<Object, Value, FieldIndex>>::value || // Customize<3args> specialized
                 is_specialized<Customize<Object, Value>>::value || // Customize<2args> specialized
-                is_specialized<Customize<Object, Value, Field::Index, Annotate<>, Field>>::value || // Customize<5args>, OpAnnotations defaulted
+                is_specialized<Customize<Object, Value, FieldIndex, Annotate<>, Field>>::value || // Customize<5args>, OpAnnotations defaulted
                 is_specialized<Customize<Object, Value, NoFieldIndex, OpAnnotations, Field>>::value || // Customize<5args>, FieldIndex defaulted
                 is_specialized<Customize<Object, Value, NoFieldIndex, Annotate<>, Field>>::value || // Customize<5args>, both defaulted
                 is_specialized<Customize<Object, Value, NoFieldIndex, OpAnnotations>>::value || // Customize<4args>, FieldIndex defaulted
