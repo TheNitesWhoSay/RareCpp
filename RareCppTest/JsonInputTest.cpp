@@ -1173,9 +1173,9 @@ struct VariousValues
     static constexpr const int constant = 0;
     std::string str;
 
-    REFLECT(() VariousValues, (Reflected) customized, () genericNonNull, () genericNull, () sharedPointerNull, () uniquePointerNull,
+    REFLECT(() VariousValues, () customized, () genericNonNull, () genericNull, () sharedPointerNull, () uniquePointerNull,
         () regularPointerNull, () regularPointerToBecomeNull, () regularPointerValue,
-        () genericValue, () intVector, (Reflected) composedObj, (Json::String) integerString, (Json::EnumInt) enumInt, () boolean, () constant, () str)
+        () genericValue, () intVector, () composedObj, (Json::String) integerString, (Json::EnumInt) enumInt, () boolean, () constant, () str)
 };
 
 TEST_HEADER(JsonInputRead, Value)
@@ -1433,7 +1433,7 @@ struct ComplexStruct : EmptyIn, SingleFieldIn
     Json::FieldCluster fieldCluster;
     
     using Parents = Inherit<EmptyIn, SingleFieldIn>;
-    REFLECT((Parents) ComplexStruct, () a, () b, () dynamicString, (Reflected) singleFieldIn, () intStringMap, () intVector, () fieldCluster)
+    REFLECT((Parents) ComplexStruct, () a, () b, () dynamicString, () singleFieldIn, () intStringMap, () intVector, () fieldCluster)
 };
 
 TEST_HEADER(JsonInput, In)

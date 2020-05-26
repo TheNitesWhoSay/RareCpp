@@ -30,8 +30,8 @@ endif ( MSVC )
 enable_testing()
 
 add_subdirectory(RareCpp)
-add_subdirectory(GoogleTestLib/googletest)
-add_subdirectory(RareCppTest)
+# add_subdirectory(GoogleTestLib/googletest)
+# add_subdirectory(RareCppTest)
 
 # Default Commands:
 # mkdir build

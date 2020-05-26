@@ -402,31 +402,6 @@ TEST(ReflectTest, Annotation)
     EXPECT_FALSE(has);
 }
 
-TEST(ReflectTest, ReflectedAnnotation)
-{
-    bool hasReflectionAnnotation = Fields::Field<void, void*, 0>::HasAnnotation<Reflected>;
-    EXPECT_FALSE(hasReflectionAnnotation);
-    hasReflectionAnnotation = Fields::Field<void, void*, 0, Annotate<>>::HasAnnotation<Reflected>;
-    EXPECT_FALSE(hasReflectionAnnotation);
-    hasReflectionAnnotation = Fields::Field<void, void*, 0, Reflected>::HasAnnotation<Reflected>;
-    EXPECT_TRUE(hasReflectionAnnotation);
-}
-
-TEST(ReflectTest, RfMacroAliasType)
-{
-    class Obj {
-    public:
-        int myField;
-
-        struct Class {
-            ALIAS_TYPE(() myField);
-        };
-    };
-
-    bool isSame = std::is_same<int, Obj::Class::myField>::value;
-    EXPECT_TRUE(isSame);
-}
-
 TEST(ReflectTest, RfMacroGetFieldName)
 {
     class Obj {
@@ -487,7 +462,7 @@ TEST(ReflectTest, RfMacroDescribeField)
     EXPECT_EQ(&DescribeFieldTest::first, DescribeFieldTest::Class::first_::field.p);
     EXPECT_EQ(0, DescribeFieldTest::Class::first_::Field::Index);
     EXPECT_FALSE(DescribeFieldTest::Class::first_::Field::IsStatic);
-    EXPECT_FALSE(DescribeFieldTest::Class::first_::Field::HasAnnotation<Reflected>);
+    EXPECT_FALSE(DescribeFieldTest::Class::first_::Field::IsReflected);
 
     
     isEqual = std::is_same<decltype(&DescribeFieldTest::second), DescribeFieldTest::Class::second_::Pointer>::value;
@@ -516,7 +491,7 @@ TEST(ReflectTest, RfMacroDescribeField)
     EXPECT_EQ(&DescribeFieldTest::second, DescribeFieldTest::Class::second_::field.p);
     EXPECT_EQ(1, DescribeFieldTest::Class::second_::Field::Index);
     EXPECT_FALSE(DescribeFieldTest::Class::second_::Field::IsStatic);
-    EXPECT_FALSE(DescribeFieldTest::Class::second_::Field::HasAnnotation<Reflected>);
+    EXPECT_FALSE(DescribeFieldTest::Class::second_::Field::IsReflected);
 }
 
 class GetFieldTest {
@@ -525,8 +500,8 @@ public:
     float second;
 
     struct Class {
-        struct first_ { static constexpr Fields::Field<decltype(first), decltype(&first), 0, Annotate<>> field = { "first", "int", 0, false, false }; };
-        struct second_ { static constexpr Fields::Field<decltype(second), decltype(&second), 1, Annotate<>> field = { "second", "float", 0, false, false }; };
+        struct first_ { static constexpr Fields::Field<decltype(first), decltype(&first), 0, Annotate<>> field = { "first", "int", 0, false, false, false }; };
+        struct second_ { static constexpr Fields::Field<decltype(second), decltype(&second), 1, Annotate<>> field = { "second", "float", 0, false, false, false }; };
         static constexpr Fields::Field<> Fields[2] = {
             GET_FIELD(() first)
             GET_FIELD(() second)
@@ -555,8 +530,17 @@ class UseFieldTest {
         float second;
 
         struct Class {
-            struct first_ { static constexpr Fields::Field<int, decltype(&UseFieldTest::first), 0> field = { "first", "int", 0, false, false, &UseFieldTest::first }; };
-            struct second_ { static constexpr Fields::Field<float, decltype(&UseFieldTest::second), 1> field = { "second", "float", 0, false, false, &UseFieldTest::second }; };
+            using ClassType = UseFieldTest;
+            struct first_ {
+                using Field = Fields::Field<int, decltype(&UseFieldTest::first), 0>;
+                static constexpr Field field = { "first", "int", 0, false, false, &UseFieldTest::first };
+                CLANG_ONLY(() first)
+            };
+            struct second_ {
+                using Field = Fields::Field<float, decltype(&UseFieldTest::second), 1>;
+                static constexpr Field field = { "second", "float", 0, false, false, &UseFieldTest::second };
+                CLANG_ONLY(() second)
+            };
             template <typename Function>
             static void ForEachField(UseFieldTest & object, Function function) {
                 USE_FIELD_VALUE(() first)
@@ -651,9 +635,18 @@ class UseFieldValueAtTest {
         float second;
 
         struct Class {
+            using ClassType = UseFieldValueAtTest;
             enum_t(IndexOf, size_t, { first, second });
-            struct first_ { static constexpr Fields::Field<int, decltype(&UseFieldValueAtTest::first), 0> field = { "first", "int", 0, false, false, &UseFieldValueAtTest::first }; };
-            struct second_ { static constexpr Fields::Field<float, decltype(&UseFieldValueAtTest::second), 1> field = { "second", "float", 0, false, false, &UseFieldValueAtTest::second }; };
+            struct first_ {
+                using Field = Fields::Field<int, decltype(&UseFieldValueAtTest::first), 0>;
+                static constexpr Field field = { "first", "int", 0, false, false, &UseFieldValueAtTest::first };
+                CLANG_ONLY(() first)
+            };
+            struct second_ {
+                using Field = Fields::Field<float, decltype(&UseFieldValueAtTest::second), 1>;
+                static constexpr Field field = { "second", "float", 0, false, false, &UseFieldValueAtTest::second };
+                CLANG_ONLY(() second)
+            };
             template <typename Function>
             static void FieldAt(UseFieldValueAtTest & object, size_t fieldIndex, Function function) {
                 switch ( fieldIndex ) {
@@ -734,7 +727,6 @@ public:
         enum_t(IndexOf, size_t, {
             FOR_EACH(GET_FIELD_NAME, () first, () second)
         });
-        FOR_EACH(ALIAS_TYPE, () first, () second)
         FOR_EACH(DESCRIBE_FIELD, () first, () second)
         static constexpr size_t TotalFields = COUNT_ARGUMENTS(() first, () second);
         static constexpr size_t TotalStaticFields = 0 FOR_EACH(ADD_IF_STATIC, () first, () second);
@@ -798,7 +790,7 @@ public:
     int & primitiveReference;
     static int & staticPrimitiveReference;
 
-    REFLECT((ReflectSuperObj) ReflectObj, () primitive, (Reflected) object, () primitiveArray, () map, (Reflected) objCollection, () stack, () staticPrimitive, () primitiveReference, () staticPrimitiveReference)
+    REFLECT((ReflectSuperObj) ReflectObj, () primitive, () object, () primitiveArray, () map, () objCollection, () stack, () staticPrimitive, () primitiveReference, () staticPrimitiveReference)
 };
 
 int ReflectObj::staticPrimitive = 0;
@@ -818,25 +810,6 @@ TEST(ReflectTest, RfMacroReflect)
     EXPECT_EQ(6, ReflectObj::Class::IndexOf::staticPrimitive);
     EXPECT_EQ(7, ReflectObj::Class::IndexOf::primitiveReference);
     EXPECT_EQ(8, ReflectObj::Class::IndexOf::staticPrimitiveReference);
-    
-    bool isSame = std::is_same<int, ReflectObj::Class::primitive>::value;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same<ReflectSubObj, ReflectObj::Class::object>::value;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same<int[2], ReflectObj::Class::primitiveArray>::value;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same<std::map<int,float>, ReflectObj::Class::map>::value;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same<std::vector<ReflectSubObj>, ReflectObj::Class::objCollection>::value;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same<std::stack<int>, ReflectObj::Class::stack>::value;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same<int, ReflectObj::Class::staticPrimitive>::value;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same<int&, ReflectObj::Class::primitiveReference>::value;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same<int&, ReflectObj::Class::staticPrimitiveReference>::value;
-    EXPECT_TRUE(isSame);
     
     EXPECT_STREQ("primitive", ReflectObj::Class::primitive_::nameStr.value);
     EXPECT_STREQ("object", ReflectObj::Class::object_::nameStr.value);
@@ -1002,14 +975,14 @@ TEST(ReflectTest, RfMacroReflect)
         bool visited = false;
         switch ( index ) {
             case 0:
-                if constexpr ( !Field::template HasAnnotation<Reflect::Reflected> && !is_iterable<Value>::value && !Field::IsStatic ) {
+                if constexpr ( !Field::IsReflected && !is_iterable<Value>::value && !Field::IsStatic ) {
                     EXPECT_EQ(reflectObj.primitive, value);
                     visited = true;
                 }
                 EXPECT_TRUE(visited);
                 break;
             case 1:
-                if constexpr ( Field::template HasAnnotation<Reflect::Reflected> && !is_iterable<Value>::value && !Field::IsStatic ) {
+                if constexpr ( Field::IsReflected && !is_iterable<Value>::value && !Field::IsStatic ) {
                     using ObjClass = typename Value::Class;
                     ObjClass::FieldAt(value, 0, [&](auto & field, auto & value) {
                         EXPECT_EQ(reflectObj.object.val, value);
@@ -1021,7 +994,7 @@ TEST(ReflectTest, RfMacroReflect)
                 EXPECT_TRUE(visited);
                 break;
             case 2:
-                if constexpr ( !Field::template HasAnnotation<Reflect::Reflected> && is_static_array<Value>::value && !Field::IsStatic ) {
+                if constexpr ( !Field::IsReflected && is_static_array<Value>::value && !Field::IsStatic ) {
                     EXPECT_EQ(reflectObj.primitiveArray[0], value[0]);
                     EXPECT_EQ(reflectObj.primitiveArray[1], value[1]);
                     visited = true;
@@ -1029,7 +1002,7 @@ TEST(ReflectTest, RfMacroReflect)
                 EXPECT_TRUE(visited);
                 break;
             case 3:
-                if constexpr ( !Field::template HasAnnotation<Reflect::Reflected> && is_iterable<Value>::value && is_pair<typename element_type<Value>::type>::value && !Field::IsStatic ) {
+                if constexpr ( !Field::IsReflected && is_iterable<Value>::value && is_pair<typename element_type<Value>::type>::value && !Field::IsStatic ) {
                     EXPECT_EQ(reflectObj.map.begin()->first, value.begin()->first);
                     EXPECT_EQ((++reflectObj.map.begin())->first, (++value.begin())->first);
                     visited = true;
@@ -1037,7 +1010,7 @@ TEST(ReflectTest, RfMacroReflect)
                 EXPECT_TRUE(visited);
                 break;
             case 4:
-                if constexpr ( Field::template HasAnnotation<Reflect::Reflected> && is_iterable<Value>::value && !Field::IsStatic ) {
+                if constexpr ( Field::IsReflected && is_iterable<Value>::value && !Field::IsStatic ) {
                     EXPECT_EQ(reflectObj.objCollection[0].val, value[0].val);
                     EXPECT_EQ(reflectObj.objCollection[1].val, value[1].val);
                     visited = true;
@@ -1045,7 +1018,7 @@ TEST(ReflectTest, RfMacroReflect)
                 EXPECT_TRUE(visited);
                 break;
             case 5:
-                if constexpr ( !Field::template HasAnnotation<Reflect::Reflected> && is_adaptor<Value>::value && !Field::IsStatic )
+                if constexpr ( !Field::IsReflected && is_adaptor<Value>::value && !Field::IsStatic )
                 {
                     EXPECT_EQ(reflectObj.stack.top(), value.top());
                     reflectObj.stack.pop();
@@ -1055,7 +1028,7 @@ TEST(ReflectTest, RfMacroReflect)
                 EXPECT_TRUE(visited);
                 break;
             case 6:
-                if constexpr ( !Field::template HasAnnotation<Reflect::Reflected> && Field::IsStatic )
+                if constexpr ( !Field::IsReflected && Field::IsStatic )
                 {
                     EXPECT_EQ(reflectObj.staticPrimitive, value);
                     visited = true;
@@ -1063,7 +1036,7 @@ TEST(ReflectTest, RfMacroReflect)
                 EXPECT_TRUE(visited);
                 break;
             case 7:
-                if constexpr ( !Field::template HasAnnotation<Reflect::Reflected> && !is_iterable<Value>::value && !Field::IsStatic )
+                if constexpr ( !Field::IsReflected && !is_iterable<Value>::value && !Field::IsStatic )
                 {
                     EXPECT_EQ(reflectObj.primitiveReference, value);
                     visited = true;
@@ -1071,7 +1044,7 @@ TEST(ReflectTest, RfMacroReflect)
                 EXPECT_TRUE(visited);
                 break;
             case 8:
-                if constexpr ( !Field::template HasAnnotation<Reflect::Reflected> && !is_iterable<Value>::value && Field::IsStatic )
+                if constexpr ( !Field::IsReflected && !is_iterable<Value>::value && Field::IsStatic )
                 {
                     EXPECT_EQ(reflectObj.staticPrimitiveReference, value);
                     visited = true;

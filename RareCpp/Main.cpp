@@ -52,7 +52,7 @@ public:
     float currentLevel;
     float tickMarks[2];
 
-    REFLECT(() FuelTank, () capacity, () currentLevel, () tickMarks)
+    REFLECT(FuelTank, capacity, currentLevel, tickMarks)
 };
 
 class Wheel {
@@ -60,7 +60,7 @@ public:
     enum_t(Rim, short, {
         Regular = 0,
         Spinner = 1
-    })
+    });
 
     Wheel() : rim(Rim::Regular), size(0), pressure(0.0f) {}
     Wheel(Rim rim, int size, float pressure) : rim(rim), size(size), pressure(pressure) {}
@@ -69,10 +69,10 @@ public:
     int size;
     float pressure;
 
-    REFLECT(() Wheel, () rim, () size, () pressure)
+    REFLECT(Wheel, rim, size, pressure)
 };
 
-std::ostream & operator<<(std::ostream & os, Wheel::Rim & rim)
+std::ostream & operator<<(std::ostream & os, const Wheel::Rim & rim)
 {
     os << (short)rim;
     return os;
@@ -87,7 +87,7 @@ public:
     int height;
     bool occupied;
 
-    REFLECT(() CupHolder, () width, () height, () occupied)
+    REFLECT(CupHolder, width, height, occupied)
 };
 using CupHolderPtr = std::shared_ptr<CupHolder>;
 
@@ -119,16 +119,16 @@ public:
     FuelTank fuelTank;
     float milesPerGallon;
     
-    REFLECT(() Car,
-        (Reflected) wheels,
-        () occupants,
-        () testNest,
-        () testMapNest,
-        () occupantId,
-        (Reflected) occupantCupHolderUsage,
-        (Reflected) cupHolders,
-        (Reflected) fuelTank,
-        () milesPerGallon
+    REFLECT(Car,
+        wheels,
+        occupants,
+        testNest,
+        testMapNest,
+        occupantId,
+        occupantCupHolderUsage,
+        cupHolders,
+        fuelTank,
+        milesPerGallon
     )
 };
 
@@ -143,33 +143,33 @@ public:
     u8 f097; u8 f098; u8 f099; u8 f100; u8 f101; u8 f102; u8 f103; u8 f104; u8 f105; u8 f106; u8 f107; u8 f108; u8 f109; u8 f110; u8 f111; u8 f112;
     u8 f113; u8 f114; u8 f115; u8 f116; u8 f117; u8 f118; u8 f119; u8 f120; u8 f121; u8 f122; u8 f123; u8 f124;
 
-    REFLECT(() MassiveObject,
-        () f001, () f002, () f003, () f004, () f005, () f006, () f007, () f008,
-        () f009, () f010, () f011, () f012, () f013, () f014, () f015, () f016,
-        () f017, () f018, () f019, () f020, () f021, () f022, () f023, () f024,
-        () f025, () f026, () f027, () f028, () f029, () f030, () f031, () f032,
-        () f033, () f034, () f035, () f036, () f037, () f038, () f039, () f040,
-        () f041, () f042, () f043, () f044, () f045, () f046, () f047, () f048,
-        () f049, () f050, () f051, () f052, () f053, () f054, () f055, () f056,
-        () f057, () f058, () f059, () f060, () f061, () f062, () f063, () f064,
-        () f065, () f066, () f067, () f068, () f069, () f070, () f071, () f072,
-        () f073, () f074, () f075, () f076, () f077, () f078, () f079, () f080,
-        () f081, () f082, () f083, () f084, () f085, () f086, () f087, () f088,
-        () f089, () f090, () f091, () f092, () f093, () f094, () f095, () f096,
-        () f097, () f098, () f099, () f100, () f101, () f102, () f103, () f104,
-        () f105, () f106, () f107, () f108, () f109, () f110, () f111, () f112,
-        () f113, () f114, () f115, () f116, () f117, () f118, () f119, () f120,
-        () f121, () f122, () f123
-        //,() f124 // This will cause an error "C1009 - compiler limit: macros nested too deeply"
+    REFLECT(MassiveObject,
+        f001, f002, f003, f004, f005, f006, f007, f008,
+        f009, f010, f011, f012, f013, f014, f015, f016,
+        f017, f018, f019, f020, f021, f022, f023, f024,
+        f025, f026, f027, f028, f029, f030, f031, f032,
+        f033, f034, f035, f036, f037, f038, f039, f040,
+        f041, f042, f043, f044, f045, f046, f047, f048,
+        f049, f050, f051, f052, f053, f054, f055, f056,
+        f057, f058, f059, f060, f061, f062, f063, f064,
+        f065, f066, f067, f068, f069, f070, f071, f072,
+        f073, f074, f075, f076, f077, f078, f079, f080,
+        f081, f082, f083, f084, f085, f086, f087, f088,
+        f089, f090, f091, f092, f093, f094, f095, f096,
+        f097, f098, f099, f100, f101, f102, f103, f104,
+        f105, f106, f107, f108, f109, f110, f111, f112,
+        f113, f114, f115, f116, f117, f118, f119, f120,
+        f121, f122, f123
+        //, f124 // This will cause an error "C1009 - compiler limit: macros nested too deeply"
     )
 };
 
-class Super
+class Superish
 {
 public:
     int val;
 
-    REFLECT(() Super, () val)
+    REFLECT(Superish, val)
 };
 
 class OtherSuper
@@ -177,16 +177,16 @@ class OtherSuper
 public:
     int otherVal;
     
-    REFLECT(() OtherSuper, () otherVal)
+    REFLECT(OtherSuper, otherVal)
 };
 
-class SubTest : public Super, public OtherSuper
+NOTE(SubTest, Super<Superish>(Json::Name{"asdfjk"}, Json::Name{"anotherName"}, Json::Ignore), Rest::Controller, Super<OtherSuper>)
+class SubTest : public Superish, public OtherSuper
 {
 public:
     int subVal;
     
-    using Parents = Inherit<Super, OtherSuper>;
-    REFLECT((Parents) SubTest, () otherVal)
+    REFLECT_NOTED(SubTest, subVal)
 };
 
 Car outputExamples()
@@ -205,9 +205,27 @@ Car outputExamples()
     sub.otherVal = 2;
     sub.subVal = 3;
     
-    SubTest::Supers::ForEach(sub, [&](auto index, auto & superObj) {
-        using Super = typename std::remove_reference<decltype(superObj)>::type;
-        std::cout << decltype(index)::Index << ": " << ExtendedTypeSupport::TypeToStr<Super>() << " {" << std::endl;
+    SubTest::Supers::ForEach(sub, [&](auto superInfo, auto & superObj) {
+        using SuperInfo = decltype(superInfo);
+        auto & annotations = superInfo.annotations;
+        using Annotations = typename std::remove_const_t<typename std::remove_reference_t<decltype(annotations)>>;
+        std::cout << TypeToStr<Annotations>() << std::endl;
+        std::cout << SuperInfo::template HasAnnotation<Json::IgnoreType> << std::endl;
+        
+        superInfo.template forEach<Json::Name>([&](auto & jsonName) {
+            std::cout << "jsonName: " <<  jsonName.value << std::endl;
+        });
+
+        superInfo.forEachAnnotation([&](auto & annotation) {
+            using Annotation = decltype(annotation);
+            std::cout << "annotation: " << TypeToStr<Annotation>() << std::endl;
+        });
+
+        if constexpr ( SuperInfo::template HasAnnotation<Json::Name> )
+            std::cout << superInfo.template getAnnotation<Json::Name>().value << std::endl;
+
+        using Super = typename decltype(superInfo)::Type;
+        std::cout << decltype(superInfo)::Index << ": " << TypeToStr<Super>() << " {" << std::endl;
         Super::Class::ForEachField(superObj, [&](auto & field, auto & value) {
             std::cout << "  " << field.name << ": " << value << std::endl;
         });
@@ -258,16 +276,16 @@ Car outputExamples()
     Car::Class::ForEachField(car, [&](auto & field, auto & value) {
         using Field = typename std::remove_reference<decltype(field)>::type;
         using Type = typename std::remove_reference<decltype(value)>::type;
-        if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !Field::template HasAnnotation<Reflected> )
+        if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !Field::IsReflected )
             std::cout << "(carPrimitive) " << field.name << ": " << value << std::endl;
-        else if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !Field::template HasAnnotation<Reflected> )
+        else if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && Field::IsReflected )
             std::cout << "(carObject) " << field.name << ": " << "[Skipped, this would be a good place for recursion!]" << std::endl;
-        else if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !Field::template HasAnnotation<Reflected> )
-            std::cout << "(carObjectArray) " << field.name << ": " << "[Skipped, this would be a good place for recursion!]" << std::endl;
+        else if constexpr ( ExtendedTypeSupport::is_iterable<Type>::value && !Field::IsReflected )
+            std::cout << "(carObjectIterable) " << field.name << ": " << "[Skipped, this would be a good place for recursion!]" << std::endl;
     });
 
     FuelTank::Class::ForEachField(fuelTank, [&](auto & field, auto & value) {
-        //std::cout << field.name << ": " << value << std::endl; // This will print out a pointer, not the array values!
+        std::cout << field.name << ": " << value << std::endl; // This will print out a pointer, not the array values!
     });
 
     FuelTank::Class::ForEachField(fuelTank, [&](auto & field, auto & value) {
@@ -281,9 +299,9 @@ Car outputExamples()
     FuelTank::Class::ForEachField(fuelTank, [&](auto & field, auto & value) {
         using Field = typename std::remove_reference<decltype(field)>::type;
         using Type = typename std::remove_reference<decltype(value)>::type;
-        if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !Field::template HasAnnotation<Reflected> )
+        if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !Field::IsReflected )
             std::cout << "(fuelTankPrimitive) " << field.name << ": " << value << std::endl;
-        else if constexpr ( ExtendedTypeSupport::is_static_array<decltype(value)>::value && !Field::template HasAnnotation<Reflected> )
+        else if constexpr ( ExtendedTypeSupport::is_static_array<Type>::value && !Field::IsReflected )
             std::cout << "(fuelTankPrimitiveArray) " << field.name << ": " << value << std::endl;
     });
 
@@ -310,7 +328,7 @@ struct StaticCluster
     constexpr static decltype(boolean) & globalBool = boolean;
     constexpr static decltype(ptr) & globalPtr = ptr;
 
-    REFLECT(() StaticCluster, () staticVal, () globalValue, () globalStr, () globalBool, () globalPtr)
+    REFLECT(StaticCluster, staticVal, globalValue, globalStr, globalBool, globalPtr)
 };
 
 struct FieldClusterPointer
@@ -319,8 +337,102 @@ struct FieldClusterPointer
     std::unique_ptr<Json::FieldCluster> fieldClusterPointer;
     int otherRegular;
 
-    REFLECT(() FieldClusterPointer, () regular, () fieldClusterPointer, () otherRegular)
+    REFLECT(FieldClusterPointer, regular, fieldClusterPointer, otherRegular)
 };
+
+enum class Status
+{
+    Initial,
+    Cached,
+    Finished
+};
+
+struct Point
+{
+    NOTE(latitude, Json::Name{"lat"})
+    double latitude;
+
+    NOTE(longitude, Json::Name{"long"})
+    double longitude;
+
+    REFLECT(Point, latitude, longitude)
+};
+
+struct Another
+{
+    constexpr static int anything = 0;
+
+    REFLECT(Another, anything)
+};
+
+auto gg = Super<Point>(Json::Name{"point"}, Json::SuperFormat::Nested);
+
+struct State;
+
+template <typename T> struct State_;
+
+template <> struct State_<State> { using type = std::true_type; };
+
+NOTE(State,
+    Rest::Controller,
+    Super<Point>(Json::Name{"point"}, Json::SuperFormat::Nested),
+    Super<Another>)
+struct State : public Point, public Another
+{
+    NOTE(value, Json::Name{"val"})
+    int value;
+
+    long otherValue;
+
+    NOTE(status,
+        Json::Name{"code"},
+        Json::EnumInt)
+    static Status status;
+    
+    NOTE(memberUpdate,
+        Rest::Method::PATCH,
+        Rest::Url{"/memberUpdate/{value}/{otherValue}"},
+        Rest::PathParam<int>{"value"},
+        Rest::PathParam<long>{"otherValue"})
+    std::string memberUpdate(int value, long otherValue) {
+        this->value = value;
+        this->otherValue = otherValue;
+        this->status = Status::Cached;
+        return "";//return Json::ToString(*this);
+    }
+    
+    NOTE(update,
+        Rest::Method::PATCH,
+        Rest::Url{"/update/{value}/{otherValue}"},
+        Rest::PathParam<int>{"value"},
+        Rest::PathParam<long>{"otherValue"})
+    static std::string update(int value, long otherValue) {
+        return "";//return Json::ToString(*this);
+    }
+
+    REFLECT_NOTED(State, value, otherValue, status, memberUpdate, update)
+
+    struct NewClass {
+        using ClassType = State;
+        enum_t(IndexOf, size_t, {
+            update
+        });
+        static constexpr std::tuple<> NoNote {};
+        
+        struct value_ {
+            template <typename T> static constexpr decltype(T::value_note) & getNote(int) { return T::value_note; }
+            template <typename T> static constexpr decltype(NoNote) & getNote(...) { return NoNote; }
+        };
+
+        struct otherValue_ {
+            template <typename T> static constexpr decltype(T::otherValue_note) & getNote(int) { return T::otherValue_note; }
+            template <typename T> static constexpr decltype(NoNote) & getNote(...) { return NoNote; }
+        };
+
+    };
+};
+
+Status State::status;
 
 int main()
 {
@@ -330,9 +442,17 @@ int main()
     StaticCluster s;
     std::cout << std::endl << Json::pretty<Statics::Included>(s) << std::endl << std::endl;
 
+    State state {1, 2};
+    std::cout << Json::out(state) << std::endl;
+    State::Class::FieldAt(state, 0, [&](auto & field, auto & value)
+    {
+        using Field = typename std::remove_reference<decltype(field)>::type;
+        std::cout << "Field 0: " << field.template getAnnotation<Json::Name>().value << std::endl;
+    });
+
     Json::Object obj;
     try {
-        std::cout << "Enter Any JSON:" << std::endl;
+        std::cout << std::endl << std::endl << "Enter Any JSON:" << std::endl;
         std::cin >> Json::in(obj);
     } catch ( Json::Exception & e ) {
         std::cout << std::endl << "Exception: " << e.what() << std::endl;

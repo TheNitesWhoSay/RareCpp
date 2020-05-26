@@ -2690,12 +2690,12 @@ TEST_HEADER(JsonOutputPut, Value)
 
     InstanceField rootObj;
     rootObj.a = 5;
-    Json::Put::Value<Annotate<>, Fields::Field<InstanceField, void*, 0, Reflected>, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(rootObjStream, Json::context, placeholderObj, rootObj);
+    Json::Put::Value<Annotate<>, Fields::Field<InstanceField, void*, 0, Annotate<>>, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(rootObjStream, Json::context, placeholderObj, rootObj);
     EXPECT_STREQ("{\"a\":5}", rootObjStream.str().c_str());
 
     InstanceField obj;
     obj.a = 6;
-    Json::Put::Value<Annotate<>, Fields::Field<InstanceField, void*, 0, Reflected>, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(reflectedObjStream, Json::context, placeholderObj, obj);
+    Json::Put::Value<Annotate<>, Fields::Field<InstanceField, void*, 0, Annotate<>>, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(reflectedObjStream, Json::context, placeholderObj, obj);
     EXPECT_STREQ("{\"a\":6}", reflectedObjStream.str().c_str());
 
     std::string str = "asdf";
@@ -2937,7 +2937,7 @@ struct AnObjectTest
     std::string str;
     NestedObj nestedObj;
 
-    REFLECT(() AnObjectTest, () integer, () str, (Reflected) nestedObj)
+    REFLECT(() AnObjectTest, () integer, () str, () nestedObj)
 };
 
 TEST_HEADER(JsonOutputPut, Object)
