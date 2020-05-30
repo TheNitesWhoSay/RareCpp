@@ -121,7 +121,7 @@ TEST(ReflectTest, SuperIndex)
 
     timesVisited = 0;
     otherAnnotated.forEachAnnotation([&](auto & annotation) {
-        using AnnotationType = std::remove_const<std::remove_reference<decltype(annotation)>::type>::type;
+        using AnnotationType = typename std::remove_const<typename std::remove_reference<decltype(annotation)>::type>::type;
         constexpr bool isTestAnnotation = std::is_same_v<TestAnnotation, AnnotationType>;
         constexpr bool isTestOtherAnnotation = std::is_same_v<TestOtherAnnotation, AnnotationType>;
         EXPECT_TRUE(isTestAnnotation || isTestOtherAnnotation);
