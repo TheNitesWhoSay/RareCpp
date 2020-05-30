@@ -839,7 +839,7 @@ namespace Reflect
             using Annotations = FieldAnnotations;
 
             Pointer p;
-            Annotations & annotations;
+            const Annotations & annotations;
         
             static constexpr size_t Index = FieldIndex;
             static constexpr bool IsStatic = !std::is_member_pointer<FieldPointer>::value && !std::is_same<nullptr_t, FieldPointer>::value;
@@ -965,9 +965,8 @@ using Supers = Inherit<Class::ClassType, Class::Annotations>;
 #define REFLECT_EMPTY(objectType) \
 struct Class { \
     using ClassType = objectType; \
-    static constexpr NoAnnotation NoNote {}; \
-    using Annotations = decltype(NoNote); \
-    static constexpr Annotations & annotations = NoNote; \
+    using Annotations = decltype(objectType##_note); \
+    static constexpr Annotations & annotations = objectType##_note; \
     static constexpr size_t TotalFields = 0; \
     static constexpr size_t TotalStaticFields = 0; \
     static constexpr Fields::Field<> Fields[1] = { { "", "", 0, false, false } }; \

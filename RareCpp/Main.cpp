@@ -365,8 +365,6 @@ struct Another
     REFLECT(Another, anything)
 };
 
-auto gg = Super<Point>(Json::Name{"point"}, Json::SuperFormat::Nested);
-
 struct State;
 
 template <typename T> struct State_;

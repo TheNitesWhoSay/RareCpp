@@ -49,6 +49,7 @@ public:
     REFLECT(SuperA, superVal)
 };
 
+NOTE(OtherSuperA)
 class OtherSuperA {
 public:
     REFLECT_EMPTY(OtherSuperA)

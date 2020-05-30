@@ -40,6 +40,9 @@ namespace Json
         struct UnstringType {};
         static constexpr UnstringType Unstring{};
 
+        struct StringifyType {};
+        static constexpr StringifyType Stringify{};
+
         /// Field annotation telling JSON to use a different name for the field
         struct Name
         {
@@ -104,8 +107,8 @@ namespace Json
             else
             {
                 bool hasFields = false;
-                Object::Supers::ForEach([&](auto index, auto superType) {
-                    using Super = typename decltype(superType)::type;
+                Object::Supers::ForEach([&](auto superInfo) {
+                    using Super = typename decltype(superInfo)::Type;
                     if constexpr ( HasFields<statics, Super>() )
                         hasFields = true;
                 });
@@ -1566,7 +1569,7 @@ namespace Json
                     Put::Object<Annotations, statics, PrettyPrint, IndentLevel+TotalParentIterables, indent, T>(os, context, value);
                 else if constexpr ( Field::IsReflected )
                     Put::Object<Annotations, statics, PrettyPrint, IndentLevel+TotalParentIterables+1, indent, T>(os, context, value);
-                else if constexpr ( Field::template HasAnnotation<Json::String> )
+                else if constexpr ( Field::template HasAnnotation<Json::StringifyType> )
                     Put::String(os, value);
                 else if constexpr ( Field::template HasAnnotation<Json::EnumIntType> )
                     os << (typename promote_char<typename std::underlying_type<T>::type>::type)value;
@@ -3043,7 +3046,7 @@ namespace Json
                     Read::Object<T>(is, context, c, value);
                 else if constexpr ( Field::IsReflected )
                     Read::Object(is, context, c, value);
-                else if constexpr ( Field::template HasAnnotation<Json::String> )
+                else if constexpr ( Field::template HasAnnotation<Json::StringifyType> )
                     Read::String(is, c, value);
                 else if constexpr ( Field::template HasAnnotation<Json::EnumIntType> )
                     Read::EnumInt<T>(is, value);
