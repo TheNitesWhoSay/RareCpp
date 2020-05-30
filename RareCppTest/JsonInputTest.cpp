@@ -18,7 +18,7 @@ using namespace Reflect;
 TEST_HEADER(JsonInputCustomizersTest, CustomizeUnspecialized)
 {
     CustomizeUnspecialized customizeUnspecialized = { 1, 2, 'a' };
-    bool isSpecialized = Json::Input::Customize<CustomizeUnspecialized, int, CustomizeUnspecialized::Class::IndexOf::firstField, Annotate<>, CustomizeUnspecialized::Class::firstField_::Field>
+    bool isSpecialized = Json::Input::Customize<CustomizeUnspecialized, int, CustomizeUnspecialized::Class::IndexOf::firstField, NoAnnotation, CustomizeUnspecialized::Class::firstField_::Field>
         ::As(std::cin, Json::context, customizeUnspecialized, customizeUnspecialized.firstField);
     EXPECT_FALSE(isSpecialized);
 
@@ -29,66 +29,66 @@ TEST_HEADER(JsonInputCustomizersTest, CustomizeUnspecialized)
 TEST_HEADER(JsonInputCustomizersTest, CustomizeFullySpecialized)
 {
     CustomizeFullySpecialized customizeFullySpecialized = { 1, 2, 'a' };
-    bool isSpecialized = Json::Input::Customize<CustomizeFullySpecialized, int, CustomizeFullySpecialized::Class::IndexOf::firstField, Annotate<>, CustomizeFullySpecialized::Class::firstField_::Field>
+    bool isSpecialized = Json::Input::Customize<CustomizeFullySpecialized, int, CustomizeFullySpecialized::Class::IndexOf::firstField, NoAnnotation, CustomizeFullySpecialized::Class::firstField_::Field>
         ::As(std::cin, Json::context, customizeFullySpecialized, customizeFullySpecialized.firstField);
     EXPECT_TRUE(isSpecialized);
 
-    isSpecialized = Json::Input::HaveSpecialization<CustomizeFullySpecialized, int, CustomizeFullySpecialized::Class::IndexOf::firstField, Annotate<>, CustomizeFullySpecialized::Class::firstField_::Field>;
+    isSpecialized = Json::Input::HaveSpecialization<CustomizeFullySpecialized, int, CustomizeFullySpecialized::Class::IndexOf::firstField, NoAnnotation, CustomizeFullySpecialized::Class::firstField_::Field>;
     EXPECT_TRUE(isSpecialized);
 }
 
 TEST_HEADER(JsonInputCustomizersTest, Customize5Args_OpAnnotationsDefaulted)
 {
     Customize5Args_OpAnnotationsDefaulted customize5Args_OpAnnotationsDefaulted;
-    bool isSpecialized = Json::Input::Customize<Customize5Args_OpAnnotationsDefaulted, int, Customize5Args_OpAnnotationsDefaulted::Class::IndexOf::firstField, Annotate<>, Customize5Args_OpAnnotationsDefaulted::Class::firstField_::Field>
+    bool isSpecialized = Json::Input::Customize<Customize5Args_OpAnnotationsDefaulted, int, Customize5Args_OpAnnotationsDefaulted::Class::IndexOf::firstField, NoAnnotation, Customize5Args_OpAnnotationsDefaulted::Class::firstField_::Field>
         ::As(std::cin, Json::context, customize5Args_OpAnnotationsDefaulted, customize5Args_OpAnnotationsDefaulted.firstField);
     EXPECT_TRUE(isSpecialized);
     
-    isSpecialized = Json::Input::HaveSpecialization<Customize5Args_OpAnnotationsDefaulted, int, Customize5Args_OpAnnotationsDefaulted::Class::IndexOf::firstField, Annotate<>, Customize5Args_OpAnnotationsDefaulted::Class::firstField_::Field>;
+    isSpecialized = Json::Input::HaveSpecialization<Customize5Args_OpAnnotationsDefaulted, int, Customize5Args_OpAnnotationsDefaulted::Class::IndexOf::firstField, NoAnnotation, Customize5Args_OpAnnotationsDefaulted::Class::firstField_::Field>;
     EXPECT_TRUE(isSpecialized);
 }
 
 TEST_HEADER(JsonInputCustomizersTest, Customize5Args_FieldIndexDefaulted)
 {
     Customize5Args_FieldIndexDefaulted customize5Args_FieldIndexDefaulted;
-    bool isSpecialized = Json::Input::Customize<Customize5Args_FieldIndexDefaulted, int, Json::NoFieldIndex, Annotate<>, Customize5Args_FieldIndexDefaulted::Class::firstField_::Field>
+    bool isSpecialized = Json::Input::Customize<Customize5Args_FieldIndexDefaulted, int, Json::NoFieldIndex, NoAnnotation, Customize5Args_FieldIndexDefaulted::Class::firstField_::Field>
         ::As(std::cin, Json::context, customize5Args_FieldIndexDefaulted, customize5Args_FieldIndexDefaulted.firstField);
     EXPECT_TRUE(isSpecialized);
     
-    isSpecialized = Json::Input::HaveSpecialization<Customize5Args_FieldIndexDefaulted, int, Customize5Args_FieldIndexDefaulted::Class::IndexOf::firstField, Annotate<>, Customize5Args_FieldIndexDefaulted::Class::firstField_::Field>;
+    isSpecialized = Json::Input::HaveSpecialization<Customize5Args_FieldIndexDefaulted, int, Customize5Args_FieldIndexDefaulted::Class::IndexOf::firstField, NoAnnotation, Customize5Args_FieldIndexDefaulted::Class::firstField_::Field>;
     EXPECT_TRUE(isSpecialized);
 }
 
 TEST_HEADER(JsonInputCustomizersTest, Customize5Args_BothDefaulted)
 {
     Customize5Args_BothDefaulted customize5Args_BothDefaulted;
-    bool isSpecialized = Json::Input::Customize<Customize5Args_BothDefaulted, int, Json::NoFieldIndex, Annotate<>, Customize5Args_BothDefaulted::Class::firstField_::Field>
+    bool isSpecialized = Json::Input::Customize<Customize5Args_BothDefaulted, int, Json::NoFieldIndex, NoAnnotation, Customize5Args_BothDefaulted::Class::firstField_::Field>
         ::As(std::cin, Json::context, customize5Args_BothDefaulted, customize5Args_BothDefaulted.firstField);
     EXPECT_TRUE(isSpecialized);
     
-    isSpecialized = Json::Input::HaveSpecialization<Customize5Args_BothDefaulted, int, Customize5Args_BothDefaulted::Class::IndexOf::firstField, Annotate<>, Customize5Args_BothDefaulted::Class::firstField_::Field>;
+    isSpecialized = Json::Input::HaveSpecialization<Customize5Args_BothDefaulted, int, Customize5Args_BothDefaulted::Class::IndexOf::firstField, NoAnnotation, Customize5Args_BothDefaulted::Class::firstField_::Field>;
     EXPECT_TRUE(isSpecialized);
 }
 
 TEST_HEADER(JsonInputCustomizersTest, Customize4Args)
 {
     Customize4Args customize4Args;
-    bool isSpecialized = Json::Input::Customize<Customize4Args, int, Customize4Args::Class::IndexOf::firstField, Annotate<>>
+    bool isSpecialized = Json::Input::Customize<Customize4Args, int, Customize4Args::Class::IndexOf::firstField, NoAnnotation>
         ::As(std::cin, Json::context, customize4Args, customize4Args.firstField);
     EXPECT_TRUE(isSpecialized);
     
-    isSpecialized = Json::Input::HaveSpecialization<Customize4Args, int, Customize4Args::Class::IndexOf::firstField, Annotate<>, Customize4Args::Class::firstField_::Field>;
+    isSpecialized = Json::Input::HaveSpecialization<Customize4Args, int, Customize4Args::Class::IndexOf::firstField, NoAnnotation, Customize4Args::Class::firstField_::Field>;
     EXPECT_TRUE(isSpecialized);
 }
 
 TEST_HEADER(JsonInputCustomizersTest, Customize4Args_FieldIndexDefaulted)
 {
     Customize4Args_FieldIndexDefaulted customize4Args_FieldIndexDefaulted;
-    bool isSpecialized = Json::Input::Customize<Customize4Args_FieldIndexDefaulted, int, Json::NoFieldIndex, Annotate<>>
+    bool isSpecialized = Json::Input::Customize<Customize4Args_FieldIndexDefaulted, int, Json::NoFieldIndex, NoAnnotation>
         ::As(std::cin, Json::context, customize4Args_FieldIndexDefaulted, customize4Args_FieldIndexDefaulted.firstField);
     EXPECT_TRUE(isSpecialized);
     
-    isSpecialized = Json::Input::HaveSpecialization<Customize4Args_FieldIndexDefaulted, int, Customize4Args_FieldIndexDefaulted::Class::IndexOf::firstField, Annotate<>, Customize4Args_FieldIndexDefaulted::Class::firstField_::Field>;
+    isSpecialized = Json::Input::HaveSpecialization<Customize4Args_FieldIndexDefaulted, int, Customize4Args_FieldIndexDefaulted::Class::IndexOf::firstField, NoAnnotation, Customize4Args_FieldIndexDefaulted::Class::firstField_::Field>;
     EXPECT_TRUE(isSpecialized);
 }
 
@@ -99,7 +99,7 @@ TEST_HEADER(JsonInputCustomizersTest, Customize3Args)
         ::As(std::cin, Json::context, customize3Args, customize3Args.firstField);
     EXPECT_TRUE(isSpecialized);
     
-    isSpecialized = Json::Input::HaveSpecialization<Customize3Args, int, Customize3Args::Class::IndexOf::firstField, Annotate<>, Customize3Args::Class::firstField_::Field>;
+    isSpecialized = Json::Input::HaveSpecialization<Customize3Args, int, Customize3Args::Class::IndexOf::firstField, NoAnnotation, Customize3Args::Class::firstField_::Field>;
     EXPECT_TRUE(isSpecialized);
 }
 
@@ -110,7 +110,7 @@ TEST_HEADER(JsonInputCustomizersTest, Customize2Args)
         ::As(std::cin, Json::context, customize2Args, customize2Args.firstField);
     EXPECT_TRUE(isSpecialized);
     
-    isSpecialized = Json::Input::HaveSpecialization<Customize2Args, int, Customize2Args::Class::IndexOf::firstField, Annotate<>, Customize2Args::Class::firstField_::Field>;
+    isSpecialized = Json::Input::HaveSpecialization<Customize2Args, int, Customize2Args::Class::IndexOf::firstField, NoAnnotation, Customize2Args::Class::firstField_::Field>;
     EXPECT_TRUE(isSpecialized);
 }
 
@@ -118,33 +118,33 @@ TEST_HEADER(JsonInputCustomizersTest, CustomizeTypeFullySpecialized)
 {
     std::stringstream input("0");
     CustomizeTypeFullySpecialized customizeTypeFullySpecialized;
-    bool isSpecialized = Json::Input::CustomizeType<CustomizeTypeFullySpecialized, Annotate<>, CustomizeTypeFullySpecialized::Class::firstField_::Field>
+    bool isSpecialized = Json::Input::CustomizeType<CustomizeTypeFullySpecialized, NoAnnotation, CustomizeTypeFullySpecialized::Class::firstField_::Field>
         ::As(input, Json::context, customizeTypeFullySpecialized);
     EXPECT_TRUE(isSpecialized);
 
-    isSpecialized = Json::Input::HaveSpecialization<CustomizeTypeFullySpecialized, CustomizeTypeFullySpecialized, CustomizeTypeFullySpecialized::Class::IndexOf::firstField, Annotate<>, CustomizeTypeFullySpecialized::Class::firstField_::Field>;
+    isSpecialized = Json::Input::HaveSpecialization<CustomizeTypeFullySpecialized, CustomizeTypeFullySpecialized, CustomizeTypeFullySpecialized::Class::IndexOf::firstField, NoAnnotation, CustomizeTypeFullySpecialized::Class::firstField_::Field>;
     EXPECT_TRUE(isSpecialized);
 }
 
 TEST_HEADER(JsonInputCustomizersTest, CustomizeType3Args_OpAnnotationsDefaulted)
 {
     CustomizeType3Args_OpAnnotationsDefaulted customizeType3Args_OpAnnotationsDefaulted;
-    bool isSpecialized = Json::Input::CustomizeType<CustomizeType3Args_OpAnnotationsDefaulted, Annotate<>, CustomizeType3Args_OpAnnotationsDefaulted::Class::firstField_::Field>
+    bool isSpecialized = Json::Input::CustomizeType<CustomizeType3Args_OpAnnotationsDefaulted, NoAnnotation, CustomizeType3Args_OpAnnotationsDefaulted::Class::firstField_::Field>
         ::As(std::cin, Json::context, customizeType3Args_OpAnnotationsDefaulted);
     EXPECT_TRUE(isSpecialized);
 
-    isSpecialized = Json::Input::HaveSpecialization<CustomizeType3Args_OpAnnotationsDefaulted, CustomizeType3Args_OpAnnotationsDefaulted, CustomizeType3Args_OpAnnotationsDefaulted::Class::IndexOf::firstField, Annotate<>, CustomizeType3Args_OpAnnotationsDefaulted::Class::firstField_::Field>;
+    isSpecialized = Json::Input::HaveSpecialization<CustomizeType3Args_OpAnnotationsDefaulted, CustomizeType3Args_OpAnnotationsDefaulted, CustomizeType3Args_OpAnnotationsDefaulted::Class::IndexOf::firstField, NoAnnotation, CustomizeType3Args_OpAnnotationsDefaulted::Class::firstField_::Field>;
     EXPECT_TRUE(isSpecialized);
 }
 
 TEST_HEADER(JsonInputCustomizersTest, CustomizeType2Args)
 {
     CustomizeType2Args customizeType2Args;
-    bool isSpecialized = Json::Input::CustomizeType<CustomizeType2Args, Annotate<>>
+    bool isSpecialized = Json::Input::CustomizeType<CustomizeType2Args, NoAnnotation>
         ::As(std::cin, Json::context, customizeType2Args);
     EXPECT_TRUE(isSpecialized);
 
-    isSpecialized = Json::Input::HaveSpecialization<CustomizeType2Args, CustomizeType2Args, CustomizeType2Args::Class::IndexOf::firstField, Annotate<>, CustomizeType2Args::Class::firstField_::Field>;
+    isSpecialized = Json::Input::HaveSpecialization<CustomizeType2Args, CustomizeType2Args, CustomizeType2Args::Class::IndexOf::firstField, NoAnnotation, CustomizeType2Args::Class::firstField_::Field>;
     EXPECT_TRUE(isSpecialized);
 }
 
@@ -155,7 +155,7 @@ TEST_HEADER(JsonInputCustomizersTest, CustomizeType1Arg)
         ::As(std::cin, Json::context, customizeType1Arg);
     EXPECT_TRUE(isSpecialized);
 
-    isSpecialized = Json::Input::HaveSpecialization<CustomizeType1Arg, CustomizeType1Arg, CustomizeType1Arg::Class::IndexOf::firstField, Annotate<>, CustomizeType1Arg::Class::firstField_::Field>;
+    isSpecialized = Json::Input::HaveSpecialization<CustomizeType1Arg, CustomizeType1Arg, CustomizeType1Arg::Class::IndexOf::firstField, NoAnnotation, CustomizeType1Arg::Class::firstField_::Field>;
     EXPECT_TRUE(isSpecialized);
 }
 
@@ -164,7 +164,7 @@ struct Cacheable
     int a;
     short b;
 
-    REFLECT(() Cacheable, () a, () b)
+    REFLECT(Cacheable, a, b)
 };
 
 TEST_HEADER(JsonInputCacheTest, GetClassFieldCache)
@@ -780,32 +780,32 @@ TEST_HEADER(JsonInputRead, Customization)
 
     using AField = Fields::Field<>;
 
-    bool customized = Json::Read::Customization<CustomizeUnspecialized, int, 0, Annotate<>, AField>(std::cin, Json::context, customizeUnspecialized, customizeUnspecialized.firstField);
+    bool customized = Json::Read::Customization<CustomizeUnspecialized, int, 0, NoAnnotation, AField>(std::cin, Json::context, customizeUnspecialized, customizeUnspecialized.firstField);
     EXPECT_FALSE(customized);
-    customized = Json::Read::Customization<CustomizeFullySpecialized, int, 0, Annotate<>, AField>(std::cin, Json::context, customizeFullySpecialized, customizeFullySpecialized.firstField);
+    customized = Json::Read::Customization<CustomizeFullySpecialized, int, 0, NoAnnotation, AField>(std::cin, Json::context, customizeFullySpecialized, customizeFullySpecialized.firstField);
     EXPECT_TRUE(customized);
-    customized = Json::Read::Customization<Customize5Args_OpAnnotationsDefaulted, int, 0, Annotate<>, AField>(std::cin, Json::context, customize5Args_OpAnnotationsDefaulted, customize5Args_OpAnnotationsDefaulted.firstField);
+    customized = Json::Read::Customization<Customize5Args_OpAnnotationsDefaulted, int, 0, NoAnnotation, AField>(std::cin, Json::context, customize5Args_OpAnnotationsDefaulted, customize5Args_OpAnnotationsDefaulted.firstField);
     EXPECT_TRUE(customized);
-    customized = Json::Read::Customization<Customize5Args_FieldIndexDefaulted, int, 0, Annotate<>, AField>(std::cin, Json::context, customize5Args_FieldIndexDefaulted, customize5Args_FieldIndexDefaulted.firstField);
+    customized = Json::Read::Customization<Customize5Args_FieldIndexDefaulted, int, 0, NoAnnotation, AField>(std::cin, Json::context, customize5Args_FieldIndexDefaulted, customize5Args_FieldIndexDefaulted.firstField);
     EXPECT_TRUE(customized);
-    customized = Json::Read::Customization<Customize5Args_BothDefaulted, int, 0, Annotate<>, AField>(std::cin, Json::context, customize5Args_BothDefaulted, customize5Args_BothDefaulted.firstField);
+    customized = Json::Read::Customization<Customize5Args_BothDefaulted, int, 0, NoAnnotation, AField>(std::cin, Json::context, customize5Args_BothDefaulted, customize5Args_BothDefaulted.firstField);
     EXPECT_TRUE(customized);
-    customized = Json::Read::Customization<Customize4Args, int, 0, Annotate<>, AField>(std::cin, Json::context, customize4Args, customize4Args.firstField);
+    customized = Json::Read::Customization<Customize4Args, int, 0, NoAnnotation, AField>(std::cin, Json::context, customize4Args, customize4Args.firstField);
     EXPECT_TRUE(customized);
-    customized = Json::Read::Customization<Customize4Args_FieldIndexDefaulted, int, 0, Annotate<>, AField>(std::cin, Json::context, customize4Args_FieldIndexDefaulted, customize4Args_FieldIndexDefaulted.firstField);
+    customized = Json::Read::Customization<Customize4Args_FieldIndexDefaulted, int, 0, NoAnnotation, AField>(std::cin, Json::context, customize4Args_FieldIndexDefaulted, customize4Args_FieldIndexDefaulted.firstField);
     EXPECT_TRUE(customized);
-    customized = Json::Read::Customization<Customize3Args, int, 0, Annotate<>, AField>(std::cin, Json::context, customize3Args, customize3Args.firstField);
+    customized = Json::Read::Customization<Customize3Args, int, 0, NoAnnotation, AField>(std::cin, Json::context, customize3Args, customize3Args.firstField);
     EXPECT_TRUE(customized);
-    customized = Json::Read::Customization<Customize2Args, int, 0, Annotate<>, AField>(std::cin, Json::context, customize2Args, customize2Args.firstField);
+    customized = Json::Read::Customization<Customize2Args, int, 0, NoAnnotation, AField>(std::cin, Json::context, customize2Args, customize2Args.firstField);
     EXPECT_TRUE(customized);
     std::stringstream input("0");
-    customized = Json::Read::Customization<CustomizeTypeFullySpecialized, CustomizeTypeFullySpecialized, 0, Annotate<>, AField>(input, Json::context, customizeTypeFullySpecialized, customizeTypeFullySpecialized);
+    customized = Json::Read::Customization<CustomizeTypeFullySpecialized, CustomizeTypeFullySpecialized, 0, NoAnnotation, AField>(input, Json::context, customizeTypeFullySpecialized, customizeTypeFullySpecialized);
     EXPECT_TRUE(customized);
-    customized = Json::Read::Customization<CustomizeType3Args_OpAnnotationsDefaulted, CustomizeType3Args_OpAnnotationsDefaulted, 0, Annotate<>, AField>(std::cin, Json::context, customizeType3Args_OpAnnotationsDefaulted, customizeType3Args_OpAnnotationsDefaulted);
+    customized = Json::Read::Customization<CustomizeType3Args_OpAnnotationsDefaulted, CustomizeType3Args_OpAnnotationsDefaulted, 0, NoAnnotation, AField>(std::cin, Json::context, customizeType3Args_OpAnnotationsDefaulted, customizeType3Args_OpAnnotationsDefaulted);
     EXPECT_TRUE(customized);
-    customized = Json::Read::Customization<CustomizeType2Args, CustomizeType2Args, 0, Annotate<>, AField>(std::cin, Json::context, customizeType2Args, customizeType2Args);
+    customized = Json::Read::Customization<CustomizeType2Args, CustomizeType2Args, 0, NoAnnotation, AField>(std::cin, Json::context, customizeType2Args, customizeType2Args);
     EXPECT_TRUE(customized);
-    customized = Json::Read::Customization<CustomizeType1Arg, CustomizeType1Arg, 0, Annotate<>, AField>(std::cin, Json::context, customizeType1Arg, customizeType1Arg);
+    customized = Json::Read::Customization<CustomizeType1Arg, CustomizeType1Arg, 0, NoAnnotation, AField>(std::cin, Json::context, customizeType1Arg, customizeType1Arg);
     EXPECT_TRUE(customized);
 }
 
@@ -1147,7 +1147,7 @@ struct ComposedObj
 {
     int a;
 
-    REFLECT(() ComposedObj, () a)
+    REFLECT(ComposedObj, a)
 };
 
 struct VariousValues
@@ -1167,15 +1167,17 @@ struct VariousValues
     Json::Object genericValue;
     std::vector<int> intVector;
     ComposedObj composedObj;
+    NOTE(integerString, Json::Stringify)
     int integerString;
+    NOTE(enumInt, Json::EnumInt)
     EnumIntEnum enumInt;
     bool boolean;
     static constexpr const int constant = 0;
     std::string str;
 
-    REFLECT(() VariousValues, () customized, () genericNonNull, () genericNull, () sharedPointerNull, () uniquePointerNull,
-        () regularPointerNull, () regularPointerToBecomeNull, () regularPointerValue,
-        () genericValue, () intVector, () composedObj, (Json::String) integerString, (Json::EnumInt) enumInt, () boolean, () constant, () str)
+    REFLECT(VariousValues, customized, genericNonNull, genericNull, sharedPointerNull, uniquePointerNull,
+        regularPointerNull, regularPointerToBecomeNull, regularPointerValue,
+        genericValue, intVector, composedObj, integerString, enumInt, boolean, constant, str)
 };
 
 TEST_HEADER(JsonInputRead, Value)
@@ -1311,12 +1313,13 @@ struct RegularField
 {
     int a;
 
-    REFLECT(() RegularField, () a)
+    REFLECT(RegularField, a)
 };
 
+NOTE(SuperClassField, Super<RegularField>)
 struct SuperClassField : RegularField
 {
-    REFLECT_EMPTY((RegularField) SuperClassField)
+    REFLECT_EMPTY(SuperClassField)
 };
 
 TEST_HEADER(JsonInputRead, Field)
@@ -1344,7 +1347,7 @@ struct ReadableObject
 {
     int a;
 
-    REFLECT(() ReadableObject, () a)
+    REFLECT(ReadableObject, a)
 };
 
 TEST_HEADER(JsonInputRead, Object)
@@ -1379,7 +1382,7 @@ struct JsonReferences
     static int staticPrimitive;
     static int & staticPrimitiveReference;
 
-    REFLECT(() JsonReferences, () primitive, () primitiveReference, () staticPrimitive, () staticPrimitiveReference)
+    REFLECT(JsonReferences, primitive, primitiveReference, staticPrimitive, staticPrimitiveReference)
 };
 
 int JsonReferences::staticPrimitive = 2;
@@ -1410,18 +1413,20 @@ TEST_HEADER(JsonInput, InReferences)
     EXPECT_EQ(222, jsonReferences.staticPrimitiveReference);
 }
 
+NOTE(EmptyIn)
 struct EmptyIn
 {
-    REFLECT_EMPTY(() EmptyIn)
+    REFLECT_EMPTY(EmptyIn)
 };
 
 struct SingleFieldIn
 {
     int a;
 
-    REFLECT(() SingleFieldIn, () a)
+    REFLECT(SingleFieldIn, a)
 };
 
+NOTE(ComplexStruct, Super<EmptyIn>, Super<SingleFieldIn>)
 struct ComplexStruct : EmptyIn, SingleFieldIn
 {
     int a;
@@ -1432,8 +1437,7 @@ struct ComplexStruct : EmptyIn, SingleFieldIn
     std::vector<int> intVector;
     Json::FieldCluster fieldCluster;
     
-    using Parents = Inherit<EmptyIn, SingleFieldIn>;
-    REFLECT((Parents) ComplexStruct, () a, () b, () dynamicString, () singleFieldIn, () intStringMap, () intVector, () fieldCluster)
+    REFLECT_NOTED(ComplexStruct, a, b, dynamicString, singleFieldIn, intStringMap, intVector, fieldCluster)
 };
 
 TEST_HEADER(JsonInput, In)

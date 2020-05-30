@@ -752,19 +752,37 @@ TEST(ExtendedTypeSupportTest, Clear)
 
 TEST(ExtendedTypeSupportTest, HasType)
 {
-    bool hasType = HasType<bool>::value;
+    bool hasType = has_type<bool>::value;
     EXPECT_FALSE(hasType);
-    hasType = HasType<bool, int>::value;
+    hasType = has_type<bool, int>::value;
     EXPECT_FALSE(hasType);
-    hasType = HasType<bool, bool>::value;
-    EXPECT_TRUE(hasType);
-    hasType = HasType<bool, int, int>::value;
+    hasType = has_type<bool, std::tuple<>>::value;
     EXPECT_FALSE(hasType);
-    hasType = HasType<bool, int, bool>::value;
+    hasType = has_type<bool, std::tuple<int>>::value;
+    EXPECT_FALSE(hasType);
+    hasType = has_type<bool, std::tuple<bool>>::value;
     EXPECT_TRUE(hasType);
-    hasType = HasType<bool, bool, int>::value;
+    hasType = has_type<bool, std::tuple<int, int>>::value;
+    EXPECT_FALSE(hasType);
+    hasType = has_type<bool, std::tuple<int, bool>>::value;
     EXPECT_TRUE(hasType);
-    hasType = HasType<bool, bool, bool>::value;
+    hasType = has_type<bool, std::tuple<bool, int>>::value;
+    EXPECT_TRUE(hasType);
+    hasType = has_type<bool, std::tuple<bool, bool>>::value;
+    EXPECT_TRUE(hasType);
+    hasType = has_type<bool, const std::tuple<>>::value;
+    EXPECT_FALSE(hasType);
+    hasType = has_type<bool, const std::tuple<int>>::value;
+    EXPECT_FALSE(hasType);
+    hasType = has_type<bool, const std::tuple<bool>>::value;
+    EXPECT_TRUE(hasType);
+    hasType = has_type<bool, const std::tuple<int, int>>::value;
+    EXPECT_FALSE(hasType);
+    hasType = has_type<bool, const std::tuple<int, bool>>::value;
+    EXPECT_TRUE(hasType);
+    hasType = has_type<bool, const std::tuple<bool, int>>::value;
+    EXPECT_TRUE(hasType);
+    hasType = has_type<bool, const std::tuple<bool, bool>>::value;
     EXPECT_TRUE(hasType);
 }
 

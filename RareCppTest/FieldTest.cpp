@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include "../RareCppLib/Reflect.h"
 using namespace Reflect::Fields;
+using Reflect::NoAnnotation;
 
 TEST(ReflectionSupportTest, FieldSimple)
 {
@@ -35,9 +36,10 @@ TEST(ReflectionSupportTest, FieldTemplated)
     bool fieldIsIterable = false;
     bool fieldIsReflected = false;
     bool fieldIsFunction = false;
+    NoAnnotation noAnnotation{};
 
     Field<int, decltype(&TestStruct::testVal), fieldIndex> field =
-    { fieldName, fieldTypeStr, fieldArraySize, fieldIsIterable, fieldIsReflected, fieldIsFunction, &TestStruct::testVal };
+    { fieldName, fieldTypeStr, fieldArraySize, fieldIsIterable, fieldIsReflected, fieldIsFunction, &TestStruct::testVal, noAnnotation };
     using IntField = decltype(field);
 
     EXPECT_STREQ(fieldName, field.name);
@@ -58,7 +60,7 @@ TEST(ReflectionSupportTest, FieldTemplated)
     EXPECT_FALSE(IntField::IsStatic);
 
     Field<int, decltype(&TestStruct::testStaticVal), fieldIndex> staticField =
-    { fieldName, fieldTypeStr, fieldArraySize, fieldIsIterable, fieldIsReflected, fieldIsFunction, &TestStruct::testStaticVal };
+    { fieldName, fieldTypeStr, fieldArraySize, fieldIsIterable, fieldIsReflected, fieldIsFunction, &TestStruct::testStaticVal, noAnnotation };
     using StaticIntField = decltype(staticField);
 
     EXPECT_EQ(staticField.p, &TestStruct::testStaticVal);
@@ -81,9 +83,10 @@ TEST(ReflectionSupportTest, ReferencesFieldTemplated)
     bool fieldIsIterable = false;
     bool fieldIsReflected = false;
     bool fieldIsFunction = false;
+    NoAnnotation noAnnotation{};
 
     Field<decltype(ReferencesTestStruct::testVal), nullptr_t, fieldIndex> field =
-    { fieldName, fieldTypeStr, fieldArraySize, fieldIsIterable, fieldIsReflected, false, nullptr };
+    { fieldName, fieldTypeStr, fieldArraySize, fieldIsIterable, fieldIsReflected, fieldIsFunction, nullptr, noAnnotation };
     using IntField = decltype(field);
 
     EXPECT_STREQ(fieldName, field.name);
@@ -104,7 +107,7 @@ TEST(ReflectionSupportTest, ReferencesFieldTemplated)
     EXPECT_FALSE(IntField::IsStatic);
 
     Field<decltype(ReferencesTestStruct::testStaticVal), decltype(&ReferencesTestStruct::testStaticVal), fieldIndex> staticField =
-    { fieldName, fieldTypeStr, fieldArraySize, fieldIsIterable, fieldIsReflected, fieldIsFunction, nullptr };
+    { fieldName, fieldTypeStr, fieldArraySize, fieldIsIterable, fieldIsReflected, fieldIsFunction, nullptr, noAnnotation };
     using StaticIntField = decltype(staticField);
 
     isEqual = std::is_same<StaticIntField::Pointer, nullptr_t>::value;
