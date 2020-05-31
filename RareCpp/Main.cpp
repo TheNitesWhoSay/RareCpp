@@ -141,7 +141,7 @@ public:
     u8 f065; u8 f066; u8 f067; u8 f068; u8 f069; u8 f070; u8 f071; u8 f072; u8 f073; u8 f074; u8 f075; u8 f076; u8 f077; u8 f078; u8 f079; u8 f080;
     u8 f081; u8 f082; u8 f083; u8 f084; u8 f085; u8 f086; u8 f087; u8 f088; u8 f089; u8 f090; u8 f091; u8 f092; u8 f093; u8 f094; u8 f095; u8 f096;
     u8 f097; u8 f098; u8 f099; u8 f100; u8 f101; u8 f102; u8 f103; u8 f104; u8 f105; u8 f106; u8 f107; u8 f108; u8 f109; u8 f110; u8 f111; u8 f112;
-    u8 f113; u8 f114; u8 f115; u8 f116; u8 f117; u8 f118; u8 f119; u8 f120; u8 f121; u8 f122; u8 f123; u8 f124;
+    u8 f113; u8 f114; u8 f115; u8 f116; u8 f117; u8 f118; u8 f119; u8 f120; u8 f121; u8 f122; u8 f123; u8 f124; u8 f125; u8 f126;
 
     REFLECT(MassiveObject,
         f001, f002, f003, f004, f005, f006, f007, f008,
@@ -159,8 +159,8 @@ public:
         f097, f098, f099, f100, f101, f102, f103, f104,
         f105, f106, f107, f108, f109, f110, f111, f112,
         f113, f114, f115, f116, f117, f118, f119, f120,
-        f121, f122, f123
-        //, f124 // This will cause an error "C1009 - compiler limit: macros nested too deeply"
+        f121, f122, f123, f124, f125
+        //, f126 // This will exceed the max capacity of macro loops and cause compilation errors
     )
 };
 
