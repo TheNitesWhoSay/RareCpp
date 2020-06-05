@@ -23,7 +23,7 @@ std::ostream & os = std::cout;
 #define TEST_HEADER(group, name) TEST(group##Unbuffered, name)
 #endif
 
-#define RUN_PERFORMANCE_TESTS
+//#define RUN_PERFORMANCE_TESTS
 
 namespace TestDefinitions
 {

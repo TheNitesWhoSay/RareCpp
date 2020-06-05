@@ -3,7 +3,7 @@
 #include "../RareCppLib/StringBuffer.h"
 using namespace BufferedStream;
 
-#define RUN_PERFORMANCE_TESTS
+//#define RUN_PERFORMANCE_TESTS
 
 TEST(StringBufferTest, ConstructDefault)
 {

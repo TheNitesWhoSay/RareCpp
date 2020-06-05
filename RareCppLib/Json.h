@@ -1587,9 +1587,16 @@ namespace Json
                 bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, bool IsFirst, typename T, typename Key>
             static constexpr void Value(OutStreamType & os, Context & context, const Object & obj, const std::pair<Key, T> & pair)
             {
-                Put::String(os, pair.first);
-                os << FieldNameValueSeparator<PrettyPrint>;
-                Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object, IsFirst>(os, context, obj, pair.second);
+                /*if constexpr ( is_reflected<Key>::value )
+                {
+
+                }
+                else*/
+                {
+                    Put::String(os, pair.first);
+                    os << FieldNameValueSeparator<PrettyPrint>;
+                    Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object, IsFirst>(os, context, obj, pair.second);
+                }
             }
 
             template <typename Annotations, typename Field, Statics statics,
@@ -1597,9 +1604,12 @@ namespace Json
             static constexpr void Iterable(OutStreamType & os, Context & context, const Object & obj, const IterableValue & iterable)
             {
                 using Element = typename element_type<IterableValue>::type;
+                using Key = typename pair_lhs<Element>::type;
                 constexpr bool ContainsIterables = is_iterable<typename pair_rhs<Element>::type>::value;
                 constexpr bool ContainsPrimitives = !Field::IsReflected && !ContainsIterables;
                 constexpr bool ContainsPairs = is_pair<Element>::value;
+                constexpr bool HasReflectedKey = is_reflected<Key>::value;
+                constexpr bool IsJsonArray = !ContainsPairs || HasReflectedKey;
                 
                 size_t i=0;
                 Put::NestedPrefix<PrettyPrint, !ContainsPairs, ContainsPrimitives, IndentLevel+TotalParentIterables+2, indent>(os, IsEmpty(iterable));

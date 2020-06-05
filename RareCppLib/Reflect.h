@@ -33,9 +33,8 @@
 #pragma warning(disable: 26812) // In the context of using enum_t, enum class is definitely not preferred, disable the warning in visual studios
 #endif
 
-/// Contains everything neccessary to extract "lhs" and "rhs" from partially parameterized arguments which have the form "(lhs) rhs"
-/// As well as everything neccessary to loop over varadic macro arguments
-namespace ExtractorsAndMacroLoops
+/// Contains everything neccessary to loop over varadic macro arguments
+namespace MacroLoops
 {
 /// ArgMax: 125 (derived from the C spec limiting macros to 126 arguments and the COUNT_ARGUMENTS helper macro "ML_M" requiring ArgMax+1 arguments)
 
@@ -227,7 +226,11 @@ namespace ExtendedTypeSupport
     template <> struct promote_char<const signed char> { using type = const int; };
     template <> struct promote_char<const unsigned char> { using type = const int; };
 
-    template <typename T> struct pair_rhs { using type = T; };
+    template <typename T> struct pair_lhs { using type = void; };
+    template <typename L, typename R> struct pair_lhs<std::pair<L, R>> { using type = L; };
+    template <typename L, typename R> struct pair_lhs<const std::pair<L, R>> { using type = L; };
+
+    template <typename T> struct pair_rhs { using type = void; };
     template <typename L, typename R> struct pair_rhs<std::pair<L, R>> { using type = R; };
     template <typename L, typename R> struct pair_rhs<const std::pair<L, R>> { using type = R; };
 

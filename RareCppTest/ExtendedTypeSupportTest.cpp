@@ -115,6 +115,31 @@ TEST(ExtendedTypeSupportTest, IsPointable)
     EXPECT_TRUE(is_pointable<std::unique_ptr<const int>>::value);
 }
 
+struct does_not_have_reflected_class {};
+struct does_not_quite_have_reflected_class {
+    struct Class {};
+};
+struct does_have_reflected_class {
+    struct Class {
+        static constexpr size_t TotalFields = 0;
+    };
+};
+
+TEST(ExtendedTypeSupportTest, BaseTypeHasClass)
+{
+    bool hasClass = decltype(baseTypeHasClass<does_not_have_reflected_class>(0))::value;
+    EXPECT_FALSE(hasClass);
+    hasClass = decltype(baseTypeHasClass<does_not_quite_have_reflected_class>(0))::value;
+    EXPECT_FALSE(hasClass);
+    hasClass = decltype(baseTypeHasClass<does_have_reflected_class>(0))::value;
+    EXPECT_TRUE(hasClass);
+}
+
+TEST(ExtendedTypeSupportTest, IsReflected)
+{
+
+}
+
 TEST(ExtendedTypeSupportTest, StaticArraySize)
 {
     EXPECT_EQ(2, static_array_size<int[2]>::value);
