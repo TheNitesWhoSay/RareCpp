@@ -276,11 +276,11 @@ Car outputExamples()
     Car::Class::ForEachField(car, [&](auto & field, auto & value) {
         using Field = typename std::remove_reference<decltype(field)>::type;
         using Type = typename std::remove_reference<decltype(value)>::type;
-        if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !Field::IsReflected )
+        if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !is_reflected<Type>::value )
             std::cout << "(carPrimitive) " << field.name << ": " << value << std::endl;
-        else if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && Field::IsReflected )
+        else if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && is_reflected<Type>::value )
             std::cout << "(carObject) " << field.name << ": " << "[Skipped, this would be a good place for recursion!]" << std::endl;
-        else if constexpr ( ExtendedTypeSupport::is_iterable<Type>::value && !Field::IsReflected )
+        else if constexpr ( ExtendedTypeSupport::is_iterable<Type>::value && is_reflected<typename ExtendedTypeSupport::element_type<Type>::type>::value )
             std::cout << "(carObjectIterable) " << field.name << ": " << "[Skipped, this would be a good place for recursion!]" << std::endl;
     });
 
@@ -299,9 +299,9 @@ Car outputExamples()
     FuelTank::Class::ForEachField(fuelTank, [&](auto & field, auto & value) {
         using Field = typename std::remove_reference<decltype(field)>::type;
         using Type = typename std::remove_reference<decltype(value)>::type;
-        if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !Field::IsReflected )
+        if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !is_reflected<Type>::value )
             std::cout << "(fuelTankPrimitive) " << field.name << ": " << value << std::endl;
-        else if constexpr ( ExtendedTypeSupport::is_static_array<Type>::value && !Field::IsReflected )
+        else if constexpr ( ExtendedTypeSupport::is_static_array<Type>::value && !is_reflected<typename ExtendedTypeSupport::element_type<Type>::type>::value )
             std::cout << "(fuelTankPrimitiveArray) " << field.name << ": " << value << std::endl;
     });
 

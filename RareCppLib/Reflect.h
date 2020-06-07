@@ -267,35 +267,6 @@ namespace ExtendedTypeSupport
     template <typename T> struct is_pointable<std::unique_ptr<T>> { static constexpr bool value = true; };
     template <typename T> struct is_pointable<std::shared_ptr<T>> { static constexpr bool value = true; };
 
-    template <typename T, typename = decltype(T::Class::TotalFields)> static constexpr std::true_type baseTypeHasClass(int);
-    template <typename T> static constexpr std::false_type baseTypeHasClass(unsigned int);
-    
-    template <typename T> struct is_reflected { static constexpr bool value = decltype(baseTypeHasClass<T>(0))::value; };
-    template <typename T> struct is_reflected<const T> { static constexpr bool value = is_reflected<T>::value; };
-    template <typename T> struct is_reflected<T*> { static constexpr bool value = is_reflected<T>::value; };
-    template <typename T> struct is_reflected<std::unique_ptr<T>> { static constexpr bool value = is_reflected<T>::value; };
-    template <typename T> struct is_reflected<std::shared_ptr<T>> { static constexpr bool value = is_reflected<T>::value; };
-    template <typename T, size_t N> struct is_reflected<T[N]> { static constexpr bool value = is_reflected<T>::value; };
-    template <typename T, size_t N> struct is_reflected<const T[N]> { static constexpr bool value = is_reflected<T>::value; };
-    template <typename T, size_t N> struct is_reflected<std::array<T, N>> { static constexpr bool value = is_reflected<T>::value; };
-    template <typename T, typename A> struct is_reflected<std::vector<T, A>> { static constexpr bool value = is_reflected<T>::value; };
-    template <typename T, typename A> struct is_reflected<std::deque<T, A>> { static constexpr bool value = is_reflected<T>::value; };
-    template <typename T, typename A> struct is_reflected<std::list<T, A>> { static constexpr bool value = is_reflected<T>::value; };
-    template <typename T, typename A> struct is_reflected<std::forward_list<T, A>> { static constexpr bool value = is_reflected<T>::value; };
-    template <typename T, typename C> struct is_reflected<std::stack<T, C>> { static constexpr bool value = is_reflected<T>::value; };
-    template <typename T, typename C> struct is_reflected<std::queue<T, C>> { static constexpr bool value = is_reflected<T>::value; };
-    template <typename T, typename C, typename P> struct is_reflected<std::priority_queue<T, C, P>> { static constexpr bool value = is_reflected<T>::value; };
-    template <typename K, typename C, typename A> struct is_reflected<std::set<K, C, A>> { static constexpr bool value = is_reflected<K>::value; };
-    template <typename K, typename C, typename A> struct is_reflected<std::multiset<K, C, A>> { static constexpr bool value = is_reflected<K>::value; };
-    template <typename K, typename H, typename E, typename A> struct is_reflected<std::unordered_set<K, H, E, A>> { static constexpr bool value = is_reflected<K>::value; };
-    template <typename K, typename H, typename E, typename A> struct is_reflected<std::unordered_multiset<K, H, E, A>> { static constexpr bool value = is_reflected<K>::value; };
-    template <typename K, typename T, typename C, typename A> struct is_reflected<std::map<K, T, C, A>> { static constexpr bool value = is_reflected<T>::value; };
-    template <typename K, typename T, typename C, typename A> struct is_reflected<std::multimap<K, T, C, A>> { static constexpr bool value = is_reflected<T>::value; };
-    template <typename K, typename T, typename H, typename E, typename A> struct is_reflected<std::unordered_map<K, T, H, E, A>>
-    { static constexpr bool value = is_reflected<T>::value; };
-    template <typename K, typename T, typename H, typename E, typename A> struct is_reflected<std::unordered_multimap<K, T, H, E, A>>
-    { static constexpr bool value = is_reflected<T>::value; };
-
     template <typename T> struct static_array_size { static constexpr size_t value = 0; };
     template <typename T, size_t N> struct static_array_size<T[N]> { static constexpr size_t value = N; };
     template <typename T, size_t N> struct static_array_size<const T[N]> { static constexpr size_t value = N; };
@@ -824,7 +795,6 @@ namespace Reflect
             const char* typeStr;
             size_t arraySize;
             bool isIterable;
-            bool isReflected;
             bool isFunction;
         };
 
@@ -834,7 +804,6 @@ namespace Reflect
             const char* typeStr;
             size_t arraySize;
             bool isIterable;
-            bool isReflected;
             bool isFunction;
 
             using Type = T;
@@ -846,7 +815,6 @@ namespace Reflect
         
             static constexpr size_t Index = FieldIndex;
             static constexpr bool IsStatic = !std::is_member_pointer<FieldPointer>::value && !std::is_same<nullptr_t, FieldPointer>::value;
-            static constexpr bool IsReflected = ExtendedTypeSupport::is_reflected<T>::value;
             static constexpr bool IsFunction = std::is_same_v<T, FieldPointer>;
 
             template <typename Annotation>
@@ -899,14 +867,13 @@ namespace Reflect
         ExtendedTypeSupport::is_stl_iterable<ExtendedTypeSupport::remove_pointer<Type>::type>::value || \
             ExtendedTypeSupport::is_adaptor<ExtendedTypeSupport::remove_pointer<Type>::type>::value || \
             std::is_array<ExtendedTypeSupport::remove_pointer<Type>::type>::value, \
-        ExtendedTypeSupport::is_reflected<Type>::value, std::is_same_v<Type, Pointer>, \
-        GetPointer<ClassType, std::is_reference_v<Type>>::value, \
+        std::is_same_v<Type, Pointer>, GetPointer<ClassType, std::is_reference_v<Type>>::value, \
         GetNote<ClassType, std::is_same_v<decltype(Class::NoNote), NoteType>>::value }; \
     CLANG_ONLY(x) \
 };
 
 #define GET_FIELD(x) { Class::x##_::field.name, Class::x##_::field.typeStr, Class::x##_::field.arraySize, \
-    Class::x##_::field.isIterable, Class::x##_::field.isReflected, Class::x##_::field.isFunction },
+    Class::x##_::field.isIterable, Class::x##_::field.isFunction },
 
 #define USE_FIELD(x) function(x##_::field);
 
@@ -981,6 +948,12 @@ struct Class { \
 }; \
 using Supers = Inherit<Class::ClassType, Class::Annotations>;
 
+
+    template <typename T, typename = decltype(T::Class::TotalFields)> static constexpr std::true_type typeHasReflection(int);
+    template <typename T> static constexpr std::false_type typeHasReflection(unsigned int);
+    
+    template <typename T> struct is_reflected { static constexpr bool value = decltype(typeHasReflection<T>(0))::value; };
+    template <typename T> struct is_reflected<const T> { static constexpr bool value = is_reflected<T>::value; };
 }
 
 #endif

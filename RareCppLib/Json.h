@@ -1563,11 +1563,13 @@ namespace Json
                     Put::GenericValue<Annotations, PrettyPrint, indent, IsFirst>(os, context, TotalParentIterables,
                         IndentLevel+((Field::template HasAnnotation<IsRoot> ) ? 0 : 1), (const Generic::Value &)value);
                 }
+                //else if constexpr ( true )
+                //    ;
                 else if constexpr ( is_iterable<T>::value )
                     Put::Iterable<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object>(os, context, obj, value);
                 else if constexpr ( Field::template HasAnnotation<IsRoot> )
                     Put::Object<Annotations, statics, PrettyPrint, IndentLevel+TotalParentIterables, indent, T>(os, context, value);
-                else if constexpr ( Field::IsReflected )
+                else if constexpr ( is_reflected<T>::value )
                     Put::Object<Annotations, statics, PrettyPrint, IndentLevel+TotalParentIterables+1, indent, T>(os, context, value);
                 else if constexpr ( Field::template HasAnnotation<Json::StringifyType> )
                     Put::String(os, value);
@@ -1587,11 +1589,11 @@ namespace Json
                 bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, bool IsFirst, typename T, typename Key>
             static constexpr void Value(OutStreamType & os, Context & context, const Object & obj, const std::pair<Key, T> & pair)
             {
-                /*if constexpr ( is_reflected<Key>::value )
-                {
-
-                }
-                else*/
+                //if constexpr ( is_reflected<Key>::value )
+                //{
+                //
+                //}
+                //else
                 {
                     Put::String(os, pair.first);
                     os << FieldNameValueSeparator<PrettyPrint>;
@@ -1604,12 +1606,12 @@ namespace Json
             static constexpr void Iterable(OutStreamType & os, Context & context, const Object & obj, const IterableValue & iterable)
             {
                 using Element = typename element_type<IterableValue>::type;
-                using Key = typename pair_lhs<Element>::type;
+                //using Key = typename pair_lhs<Element>::type;
                 constexpr bool ContainsIterables = is_iterable<typename pair_rhs<Element>::type>::value;
-                constexpr bool ContainsPrimitives = !Field::IsReflected && !ContainsIterables;
+                constexpr bool ContainsPrimitives = !is_reflected<Element>::value && !ContainsIterables;
                 constexpr bool ContainsPairs = is_pair<Element>::value;
-                constexpr bool HasReflectedKey = is_reflected<Key>::value;
-                constexpr bool IsJsonArray = !ContainsPairs || HasReflectedKey;
+                //constexpr bool HasReflectedKey = is_reflected<Key>::value;
+                //constexpr bool IsJsonArray = !ContainsPairs || HasReflectedKey;
                 
                 size_t i=0;
                 Put::NestedPrefix<PrettyPrint, !ContainsPairs, ContainsPrimitives, IndentLevel+TotalParentIterables+2, indent>(os, IsEmpty(iterable));
@@ -3050,11 +3052,35 @@ namespace Json
                     else
                         Read::GenericValue<InArray>(is, context, c)->into(value);
                 }
+                //else if constexpr ( is_empty_tuple<T>::value )
+                //    Consume::Null<InArray(is, c);
+                //else if constexpr ( is_singular_tuple<T>::value )
+                //{
+                //    if ( Checked::tryGet(is, '[', "\"[\" or field value opening\"") )
+                //    {
+                //        Read::Value<true, Field, singular_tuple_type<T>::value, Object>(is, context, c, object, value);
+                //        Checked::get(is, c, ']', "array closing \"]\"")
+                //    }
+                //    else
+                //        Read::Value<...
+                //}
+                //else if constexpr ( is_two_typed<T>::value )
+                //{
+                //    if ( Checked::getTrueFalse(is, '[', '{', "") )
+                //    {
+                //        // Array element 0: tuple left
+                //        // Array element 1: tuple right
+                //    }
+                //}
+                //else if constexpr ( is_large_tuple<T>::value )
+                //{
+                //    // Read array into tuple
+                //}
                 else if constexpr ( is_iterable<T>::value )
                     Read::Iterable<Field, T>(is, context, c, object, value);
                 else if constexpr ( Field::template HasAnnotation<IsRoot> )
                     Read::Object<T>(is, context, c, value);
-                else if constexpr ( Field::IsReflected )
+                else if constexpr ( is_reflected<T>::value )
                     Read::Object(is, context, c, value);
                 else if constexpr ( Field::template HasAnnotation<Json::StringifyType> )
                     Read::String(is, c, value);
@@ -3073,9 +3099,29 @@ namespace Json
             template <bool InArray, typename Field, typename Key, typename T, typename Object>
             static constexpr void Value(std::istream & is, Context & context, char & c, Object & object, std::pair<Key, T> & pair)
             {
-                Read::String(is, c, pair.first);
-                Read::FieldNameValueSeparator(is, c);
-                Read::Value<InArray, Field, T>(is, context, c, object, pair.second);
+                //if ( is_reflected<Key>::value || is_iterable<Key>::value )
+                //{
+                //
+                //}
+                //else
+                {
+                    //if ( Checked::tryGet(is, '[', "\"[\" or field value opening\"") )
+                    //{
+                    //
+                    //}
+                    Read::String(is, c, pair.first);
+                    Read::FieldNameValueSeparator(is, c);
+                    Read::Value<InArray, Field, T>(is, context, c, object, pair.second);
+                }
+            }
+
+            template <bool InArray, typename Field, typename T1, typename T2, typename Object>
+            static constexpr void Value(std::istream & is, Context & context, char & c, Object & object, std::tuple<T1, T2> & pair)
+            {
+                throw std::exception("Tuple pair input unimplemented");
+                //Read::String(is, c, pair.first);
+                //Read::FieldNameValueSeparator(is, c);
+                //Read::Value<InArray, Field, T>(is, context, c, object, pair.second);
             }
             
             template <typename Field, typename T, typename Object>
