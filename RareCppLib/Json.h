@@ -2778,6 +2778,11 @@ namespace Json
                     Checked::get(is, c, '[', "array opening \"[\"");
                 }
 
+                inline bool TrySingularTupleArrayPrefix(std::istream & is, char & c)
+                {
+                    return Checked::tryGet(is, '[', "array opening \"[\" or tuple value");
+                }
+
                 inline bool TryArraySuffix(std::istream & is)
                 {
                     return Checked::tryGet(is, ']', "array closing \"]\" or array element");
@@ -3175,6 +3180,12 @@ namespace Json
                 return result;
             }
             
+            template <typename Field, size_t TupleIndex = 0, typename Object, typename T1, typename T2, typename ...Ts>
+            static constexpr void Tuple(std::istream & is, Context & context, char & c, Object & object, std::tuple<T1, T2, Ts...> & value);
+
+            template <typename Field, typename Object, typename Key, typename T>
+            static constexpr void Pair(std::istream & is, Context & context, char & c, Object & object, std::pair<Key, T> & value);
+
             template <typename Field, typename T, typename Object>
             static constexpr void Iterable(std::istream & is, Context & context, char & c, Object & object, T & iterable);
 
@@ -3247,30 +3258,32 @@ namespace Json
                     else
                         Read::GenericValue<InArray>(is, context, c)->into(value);
                 }
-                //else if constexpr ( is_empty_tuple<T>::value )
-                //    Consume::Null<InArray(is, c);
-                //else if constexpr ( is_singular_tuple<T>::value )
-                //{
-                //    if ( Checked::tryGet(is, '[', "\"[\" or field value opening\"") )
-                //    {
-                //        Read::Value<true, Field, singular_tuple_type<T>::value, Object>(is, context, c, object, value);
-                //        Checked::get(is, c, ']', "array closing \"]\"")
-                //    }
-                //    else
-                //        Read::Value<...
-                //}
-                //else if constexpr ( is_two_typed<T>::value )
-                //{
-                //    if ( Checked::getTrueFalse(is, '[', '{', "") )
-                //    {
-                //        // Array element 0: tuple left
-                //        // Array element 1: tuple right
-                //    }
-                //}
-                //else if constexpr ( is_large_tuple<T>::value )
-                //{
-                //    // Read array into tuple
-                //}
+                else if constexpr ( is_tuple<T>::value )
+                {
+                    if constexpr ( std::tuple_size<T>::value == 0 )
+                    {
+                        if ( !Consume::TryNull<InArray>(is, c) )
+                            Consume::Iterable<true>(is, c);
+                    }
+                    else if constexpr ( std::tuple_size<T>::value == 1 )
+                    {
+                        if ( Read::TrySingularTupleArrayPrefix(is, c) )
+                        {
+                            if ( !Read::TryArraySuffix(is) )
+                            {
+                                Read::Value<true, Field>(is, context, c, object, std::get<0>(value));
+                                while ( Read::IterableElementSeparator<false>(is) )
+                                    Consume::Value<true>(is, c);
+                            }
+                        }
+                        else
+                            Read::Value<InArray, Field>(is, context, c, object, std::get<0>(value));
+                    }
+                    else if constexpr ( std::tuple_size<T>::value >= 2 )
+                        Read::Tuple<Field>(is, context, c, object, value);
+                }
+                else if constexpr ( is_pair<T>::value )
+                    Read::Pair<Field>(is, context, c, object, value);
                 else if constexpr ( is_iterable<T>::value )
                     Read::Iterable<Field, T>(is, context, c, object, value);
                 else if constexpr ( Field::template HasAnnotation<IsRoot> )
@@ -3310,13 +3323,69 @@ namespace Json
                 }
             }
 
-            template <bool InArray, typename Field, typename T1, typename T2, typename Object>
-            static constexpr void Value(std::istream & is, Context & context, char & c, Object & object, std::tuple<T1, T2> & pair)
+            template <typename Field, size_t TupleIndex, typename Object, typename T1, typename T2, typename ...Ts>
+            static constexpr void Tuple(std::istream & is, Context & context, char & c, Object & object, std::tuple<T1, T2, Ts...> & value)
             {
-                throw std::exception("Tuple pair input unimplemented");
-                //Read::String(is, c, pair.first);
-                //Read::FieldNameValueSeparator(is, c);
-                //Read::Value<InArray, Field, T>(is, context, c, object, pair.second);
+                constexpr size_t tupleSize = std::tuple_size<typename std::remove_reference_t<decltype(value)>>::value;
+                if constexpr ( TupleIndex == 0 )
+                    Read::ArrayPrefix(is, c);
+
+                if ( !Read::TryArraySuffix(is) )
+                {
+                    if constexpr ( TupleIndex < tupleSize )
+                    {
+                        Read::Value<true, Field>(is, context, c, object, std::get<TupleIndex>(value));
+                        if ( Read::IterableElementSeparator<false>(is) )
+                            Read::Tuple<Field, TupleIndex+1, Object, T1, T2, Ts...>(is, context, c, object, value);
+                    }
+                    else
+                    {
+                        do
+                        {
+                            Consume::Value<true>(is, c);
+                        }
+                        while ( Read::IterableElementSeparator<false>(is) );
+                    }
+                }
+            }
+
+            template <typename Field, typename Object, typename Key, typename T>
+            static constexpr void Pair(std::istream & is, Context & context, char & c, Object & object, std::pair<Key, T> & value)
+            {
+                Read::ArrayPrefix(is, c);
+                if ( !Read::TryArraySuffix(is) )
+                {
+                    Read::Value<true, Field>(is, context, c, object, value.first);
+                    if ( Read::IterableElementSeparator<false>(is) )
+                    {
+                        Read::Value<true, Field>(is, context, c, object, value.second);
+                        do
+                        {
+                            Consume::Value<true>(is, c);
+                        }
+                        while ( Read::IterableElementSeparator<false>(is) );
+                    }
+                }
+            }
+
+            template <typename Field, typename Object, typename Key, typename T>
+            static constexpr void KeyValueObject(std::istream & is, Context & context, char & c, Object & object, std::pair<Key, T> & value)
+            {
+                Read::ObjectPrefix(is, c);
+                if ( !Read::TryObjectSuffix(is) )
+                {
+                    do
+                    {
+                        std::string fieldName = Read::FieldName(is, c);
+                        if ( fieldName.compare("key") == 0 )
+                            Read::Value<false, Field>(is, context, c, object, value.first);
+                        else if ( fieldName.compare("value") == 0 )
+                            Read::Value<false, Field>(is, context, c, object, value.second);
+                        else
+                            Consume::Value<false>(is, c);
+                    }
+                    while ( Read::FieldSeparator(is) );
+                }
             }
             
             template <typename Field, typename T, typename Object>
@@ -3324,6 +3393,22 @@ namespace Json
             {
                 using Element = typename element_type<T>::type;
                 constexpr bool ContainsPairs = is_pair<Element>::value;
+                // TODO: switch on IsMap/HasComplexKey/else
+                // If !IsMap:
+                //     if array
+                //         read JsonArray into iterable
+                //     else
+                //         if iterable<pair> or iterable<tuple<T1,T2>>
+                //             read object into iterable containing pair-like elements
+                //         else
+                //             fail message expecting array
+                // Else if HasComplexKey:
+                //     Read in array of JsonObject{key,value}
+                // Else
+                //     if object
+                //         read JsonObject into map
+                //     else
+                //         read JsonArray into map, valid elements are sub-JsonArrays or JsonObject{key,value}
 
                 Read::IterablePrefix<ContainsPairs>(is, c);
                 if ( !Read::TryIterableSuffix<ContainsPairs>(is) )
