@@ -281,6 +281,15 @@ namespace ExtendedTypeSupport
 
     template <typename T> struct is_iterable { static constexpr bool value = !std::is_same<void, typename element_type<T>::type>::value; };
 
+    template <typename T> struct is_map { static constexpr bool value = false; };
+    template <typename K, typename T, typename C, typename A> struct is_map<std::map<K, T, C, A>> { static constexpr bool value = true; };
+    template <typename K, typename T, typename C, typename A> struct is_map<std::multimap<K, T, C, A>>
+    { static constexpr bool value = true; };
+    template <typename K, typename T, typename H, typename E, typename A> struct is_map<std::unordered_map<K, T, H, E, A>>
+    { static constexpr bool value = true; };
+    template <typename K, typename T, typename H, typename E, typename A> struct is_map<std::unordered_multimap<K, T, H, E, A>>
+    { static constexpr bool value = true; };
+
     template <typename T> struct is_stl_iterable { static constexpr bool value = false; };
     template <typename T> struct is_stl_iterable<const T> { static constexpr bool value = is_stl_iterable<T>::value; };
     template <typename T, size_t N> struct is_stl_iterable<std::array<T, N>> { static constexpr bool value = true; };
@@ -315,6 +324,10 @@ namespace ExtendedTypeSupport
     template <typename T> struct is_pair { static constexpr bool value = false; };
     template <typename L, typename R> struct is_pair<std::pair<L, R>> { static constexpr bool value = true; };
     template <typename L, typename R> struct is_pair<const std::pair<L, R>> { static constexpr bool value = true; };
+
+    template <typename T> struct is_tuple { static constexpr bool value = false; };
+    template <typename ...Ts> struct is_tuple<std::tuple<Ts...>> { static constexpr bool value = true; };
+    template <typename ...Ts> struct is_tuple<const std::tuple<Ts...>> { static constexpr bool value = true; };
 
     template <typename T> struct is_bool { static constexpr bool value = std::is_same<bool, typename std::remove_const<T>::type>::value; };
     

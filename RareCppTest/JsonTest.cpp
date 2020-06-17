@@ -2732,7 +2732,7 @@ TEST_HEADER(JsonOutputPut, PairValue)
     std::pair<std::string, int> pair = std::pair("integer", 555);
     int placeholderObj = 0;
     Json::Put::Value<NoAnnotation, Fields::Field<decltype(pair)>, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(pairValueStream, Json::context, placeholderObj, pair);
-    EXPECT_STREQ("\"integer\":555", pairValueStream.str().c_str());
+    EXPECT_STREQ("[\"integer\",555]", pairValueStream.str().c_str());
 }
 
 struct ContainsIterables
@@ -2856,7 +2856,7 @@ TEST_HEADER(JsonOutputPut, Field)
     fieldClusterPointer.fieldClusterPointer = nullptr;
     Json::Put::Field<NoAnnotation, FieldClusterPointer::Class::fieldClusterPointer_::Field, Json::Statics::Excluded, false, 0, Json::twoSpaces, FieldClusterPointer>(
         putClusterNullPointer, Json::context, fieldClusterPointer, "fieldClusterPointer", fieldClusterPointer.fieldClusterPointer);
-    EXPECT_STREQ("", putClusterNullPointer.str().c_str());
+    EXPECT_STREQ("null", putClusterNullPointer.str().c_str());
 
     TestStreamType putClusterPointerEmpty;
     fieldClusterPointer.fieldClusterPointer = std::unique_ptr<Json::FieldCluster>(new Json::FieldCluster());

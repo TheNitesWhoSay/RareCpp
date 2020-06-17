@@ -293,9 +293,9 @@ namespace Json
                             }
                             else if ( value->type() != allocatedValue->type() ) // value != nullptr
                                 throw TypeMismatch(value->type(), allocatedValue->type());
-                            else if constexpr ( std::is_same<std::shared_ptr<Dereferenced>, T>::value ) // value != nullptr && value->type() == allocatedValue->type()
+                            else if constexpr ( std::is_same<std::shared_ptr<Dereferenced>, T>::value ) // && value != nullptr && types match
                                 value = std::shared_ptr<Dereferenced>(dynamic_cast<Dereferenced*>(allocatedValue));
-                            else if constexpr ( std::is_same<std::unique_ptr<Dereferenced>, T>::value ) // value != nullptr && value->type() == allocatedValue->type()
+                            else if constexpr ( std::is_same<std::unique_ptr<Dereferenced>, T>::value ) // && value != nullptr && types match
                                 value = std::unique_ptr<Dereferenced>(dynamic_cast<Dereferenced*>(allocatedValue));
                             else // value != nullptr && value->type() == allocatedValue->type()
                             {
@@ -404,7 +404,9 @@ namespace Json
             virtual const bool & boolean() const { return value; }
             virtual const std::string & number() const { throw TypeMismatch(Value::Type::Boolean, Value::Type::Number, "number"); }
             virtual const std::string & string() const { throw TypeMismatch(Value::Type::Boolean, Value::Type::String, "string"); }
-            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::Boolean, Value::Type::Object, "object"); }
+            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const {
+                throw TypeMismatch(Value::Type::Boolean, Value::Type::Object, "object");
+            }
 
             virtual size_t arraySize() const { throw TypeMismatch(Value::Type::Boolean, Value::Type::Array, "arraySize"); }
             
@@ -424,7 +426,9 @@ namespace Json
 	        virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const {
                 throw TypeMismatch(Value::Type::Boolean, Value::Type::ObjectArray, "objectArray");
             }
-            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const { throw TypeMismatch(Value::Type::Boolean, Value::Type::MixedArray, "mixedArray"); }
+            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const {
+                throw TypeMismatch(Value::Type::Boolean, Value::Type::MixedArray, "mixedArray");
+            }
 
         private:
 	        bool value;
@@ -454,7 +458,9 @@ namespace Json
             virtual const bool & boolean() const { throw TypeMismatch(Value::Type::Number, Value::Type::Boolean, "bool"); }
             virtual const std::string & number() const { return value; }
             virtual const std::string & string() const { throw TypeMismatch(Value::Type::Number, Value::Type::String, "string"); }
-            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::Number, Value::Type::Object, "object"); }
+            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const {
+                throw TypeMismatch(Value::Type::Number, Value::Type::Object, "object");
+            }
 
             virtual size_t arraySize() const { throw TypeMismatch(Value::Type::Number, Value::Type::Array, "arraySize"); }
             
@@ -474,7 +480,9 @@ namespace Json
 	        virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const {
                 throw TypeMismatch(Value::Type::Number, Value::Type::ObjectArray, "objectArray");
             }
-            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const { throw TypeMismatch(Value::Type::Number, Value::Type::MixedArray, "mixedArray"); }
+            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const {
+                throw TypeMismatch(Value::Type::Number, Value::Type::MixedArray, "mixedArray");
+            }
             
         private:
 	        std::string value;
@@ -502,7 +510,9 @@ namespace Json
             virtual const bool & boolean() const { throw TypeMismatch(Value::Type::String, Value::Type::Boolean, "bool"); }
             virtual const std::string & number() const { throw TypeMismatch(Value::Type::String, Value::Type::Number, "number"); }
             virtual const std::string & string() const { return value; }
-            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::String, Value::Type::Object, "object"); }
+            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const {
+                throw TypeMismatch(Value::Type::String, Value::Type::Object, "object");
+            }
 
             virtual size_t arraySize() const { throw TypeMismatch(Value::Type::String, Value::Type::Array, "arraySize"); }
             
@@ -522,7 +532,9 @@ namespace Json
 	        virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const {
                 throw TypeMismatch(Value::Type::String, Value::Type::ObjectArray, "objectArray");
             }
-            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const { throw TypeMismatch(Value::Type::String, Value::Type::MixedArray, "mixedArray"); }
+            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const {
+                throw TypeMismatch(Value::Type::String, Value::Type::MixedArray, "mixedArray");
+            }
             
         private:
 	        std::string value;
@@ -535,7 +547,9 @@ namespace Json
             virtual ~Object() {}
             
             static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new Object()); }
-            static std::shared_ptr<Value> Make(const std::map<std::string, std::shared_ptr<Value>> & value) { return std::shared_ptr<Value>(new Object(value)); }
+            static std::shared_ptr<Value> Make(const std::map<std::string, std::shared_ptr<Value>> & value) {
+                return std::shared_ptr<Value>(new Object(value));
+            }
             static std::shared_ptr<Value> Make(const Object & other) { return std::shared_ptr<Value>(new Object(other)); }
             
             Object & operator=(const Value & other) { value = other.object(); return *this; }
@@ -570,7 +584,9 @@ namespace Json
 	        virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const {
                 throw TypeMismatch(Value::Type::Object, Value::Type::ObjectArray, "objectArray");
             }
-            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const { throw TypeMismatch(Value::Type::Object, Value::Type::MixedArray, "mixedArray"); }
+            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const {
+                throw TypeMismatch(Value::Type::Object, Value::Type::MixedArray, "mixedArray");
+            }
             
             virtual void put(std::string fieldName, std::shared_ptr<Value> value)
             {
@@ -604,7 +620,9 @@ namespace Json
             virtual const bool & boolean() const { throw TypeMismatch(Value::Type::NullArray, Value::Type::Boolean, "bool"); }
             virtual const std::string & number() const { throw TypeMismatch(Value::Type::NullArray, Value::Type::Number, "number"); }
             virtual const std::string & string() const { throw TypeMismatch(Value::Type::NullArray, Value::Type::String, "string"); }
-            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::NullArray, Value::Type::Object, "object"); }
+            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const {
+                throw TypeMismatch(Value::Type::NullArray, Value::Type::Object, "object");
+            }
 
             virtual size_t arraySize() const { return nullCount; }
             
@@ -619,12 +637,18 @@ namespace Json
             
             virtual const size_t & nullArray() const { return nullCount; }
             virtual const std::vector<bool> & boolArray() const { throw TypeMismatch(Value::Type::NullArray, Value::Type::BoolArray, "boolArray"); }
-            virtual const std::vector<std::string> & numberArray() const { throw TypeMismatch(Value::Type::NullArray, Value::Type::NumberArray, "numberArray"); }
-            virtual const std::vector<std::string> & stringArray() const { throw TypeMismatch(Value::Type::NullArray, Value::Type::StringArray, "stringArray"); }
+            virtual const std::vector<std::string> & numberArray() const {
+                throw TypeMismatch(Value::Type::NullArray, Value::Type::NumberArray, "numberArray");
+            }
+            virtual const std::vector<std::string> & stringArray() const {
+                throw TypeMismatch(Value::Type::NullArray, Value::Type::StringArray, "stringArray");
+            }
 	        virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const {
                 throw TypeMismatch(Value::Type::NullArray, Value::Type::ObjectArray, "objectArray");
             }
-            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const { throw TypeMismatch(Value::Type::NullArray, Value::Type::MixedArray, "mixedArray"); }
+            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const {
+                throw TypeMismatch(Value::Type::NullArray, Value::Type::MixedArray, "mixedArray");
+            }
 
         private:
 	        size_t nullCount;
@@ -652,7 +676,9 @@ namespace Json
             virtual const bool & boolean() const { throw TypeMismatch(Value::Type::BoolArray, Value::Type::Boolean, "bool"); }
             virtual const std::string & number() const { throw TypeMismatch(Value::Type::BoolArray, Value::Type::Number, "number"); }
             virtual const std::string & string() const { throw TypeMismatch(Value::Type::BoolArray, Value::Type::String, "string"); }
-            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::BoolArray, Value::Type::Object, "object"); }
+            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const {
+                throw TypeMismatch(Value::Type::BoolArray, Value::Type::Object, "object");
+            }
 
             virtual size_t arraySize() const { return values.size(); }
             
@@ -667,12 +693,18 @@ namespace Json
             
             virtual const size_t & nullArray() const { throw TypeMismatch(Value::Type::BoolArray, Value::Type::NullArray, "nullArray"); }
             virtual const std::vector<bool> & boolArray() const { return values; }
-            virtual const std::vector<std::string> & numberArray() const { throw TypeMismatch(Value::Type::BoolArray, Value::Type::NumberArray, "numberArray"); }
-            virtual const std::vector<std::string> & stringArray() const { throw TypeMismatch(Value::Type::BoolArray, Value::Type::StringArray, "stringArray"); }
+            virtual const std::vector<std::string> & numberArray() const {
+                throw TypeMismatch(Value::Type::BoolArray, Value::Type::NumberArray, "numberArray");
+            }
+            virtual const std::vector<std::string> & stringArray() const {
+                throw TypeMismatch(Value::Type::BoolArray, Value::Type::StringArray, "stringArray");
+            }
 	        virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const {
                 throw TypeMismatch(Value::Type::BoolArray, Value::Type::ObjectArray, "objectArray");
             }
-            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const { throw TypeMismatch(Value::Type::BoolArray, Value::Type::MixedArray, "mixedArray"); }
+            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const {
+                throw TypeMismatch(Value::Type::BoolArray, Value::Type::MixedArray, "mixedArray");
+            }
             
         private:
 	        std::vector<bool> values;
@@ -700,7 +732,9 @@ namespace Json
             virtual const bool & boolean() const { throw TypeMismatch(Value::Type::NumberArray, Value::Type::Boolean, "bool"); }
             virtual const std::string & number() const { throw TypeMismatch(Value::Type::NumberArray, Value::Type::Number, "number"); }
             virtual const std::string & string() const { throw TypeMismatch(Value::Type::NumberArray, Value::Type::String, "string"); }
-            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::NumberArray, Value::Type::Object, "object"); }
+            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const {
+                throw TypeMismatch(Value::Type::NumberArray, Value::Type::Object, "object");
+            }
 
             virtual size_t arraySize() const { return values.size(); }
             
@@ -716,11 +750,15 @@ namespace Json
             virtual const size_t & nullArray() const { throw TypeMismatch(Value::Type::NumberArray, Value::Type::NullArray, "nullArray"); }
             virtual const std::vector<bool> & boolArray() const { throw TypeMismatch(Value::Type::NumberArray, Value::Type::BoolArray, "boolArray"); }
             virtual const std::vector<std::string> & numberArray() const { return values; }
-            virtual const std::vector<std::string> & stringArray() const { throw TypeMismatch(Value::Type::NumberArray, Value::Type::StringArray, "stringArray"); }
+            virtual const std::vector<std::string> & stringArray() const {
+                throw TypeMismatch(Value::Type::NumberArray, Value::Type::StringArray, "stringArray");
+            }
 	        virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const {
                 throw TypeMismatch(Value::Type::NumberArray, Value::Type::ObjectArray, "objectArray");
             }
-            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const { throw TypeMismatch(Value::Type::NumberArray, Value::Type::MixedArray, "mixedArray"); }
+            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const {
+                throw TypeMismatch(Value::Type::NumberArray, Value::Type::MixedArray, "mixedArray");
+            }
             
         private:
 	        std::vector<std::string> values;
@@ -748,7 +786,9 @@ namespace Json
             virtual const bool & boolean() const { throw TypeMismatch(Value::Type::StringArray, Value::Type::Boolean, "bool"); }
             virtual const std::string & number() const { throw TypeMismatch(Value::Type::StringArray, Value::Type::Number, "number"); }
             virtual const std::string & string() const { throw TypeMismatch(Value::Type::StringArray, Value::Type::String, "string"); }
-            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::StringArray, Value::Type::Object, "object"); }
+            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const {
+                throw TypeMismatch(Value::Type::StringArray, Value::Type::Object, "object");
+            }
 
             virtual size_t arraySize() const { return values.size(); }
             
@@ -763,12 +803,16 @@ namespace Json
             
             virtual const size_t & nullArray() const { throw TypeMismatch(Value::Type::StringArray, Value::Type::NullArray, "nullArray"); }
             virtual const std::vector<bool> & boolArray() const { throw TypeMismatch(Value::Type::StringArray, Value::Type::BoolArray, "boolArray"); }
-            virtual const std::vector<std::string> & numberArray() const { throw TypeMismatch(Value::Type::StringArray, Value::Type::NumberArray, "numberArray"); }
+            virtual const std::vector<std::string> & numberArray() const {
+                throw TypeMismatch(Value::Type::StringArray, Value::Type::NumberArray, "numberArray");
+            }
             virtual const std::vector<std::string> & stringArray() const { return values; }
 	        virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const {
                 throw TypeMismatch(Value::Type::StringArray, Value::Type::ObjectArray, "objectArray");
             }
-            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const { throw TypeMismatch(Value::Type::StringArray, Value::Type::MixedArray, "mixedArray"); }
+            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const {
+                throw TypeMismatch(Value::Type::StringArray, Value::Type::MixedArray, "mixedArray");
+            }
 
         private:
 	        std::vector<std::string> values;
@@ -781,7 +825,9 @@ namespace Json
             virtual ~ObjectArray() {}
             
             static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new ObjectArray()); }
-            static std::shared_ptr<Value> Make(const std::vector<std::map<std::string, std::shared_ptr<Value>>> & values) { return std::shared_ptr<Value>(new ObjectArray(values)); }
+            static std::shared_ptr<Value> Make(const std::vector<std::map<std::string, std::shared_ptr<Value>>> & values) {
+                return std::shared_ptr<Value>(new ObjectArray(values));
+            }
             static std::shared_ptr<Value> Make(const ObjectArray & other) { return std::shared_ptr<Value>(new ObjectArray(other)); }
             
             ObjectArray & operator=(const Value & other) { values = other.objectArray(); return *this; }
@@ -796,7 +842,9 @@ namespace Json
             virtual const bool & boolean() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Boolean, "bool"); }
             virtual const std::string & number() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Number, "number"); }
             virtual const std::string & string() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::String, "string"); }
-            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Object, "object"); }
+            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const {
+                throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Object, "object");
+            }
 
             virtual size_t arraySize() const { return values.size(); }
             
@@ -809,10 +857,16 @@ namespace Json
             
             virtual const size_t & nullArray() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::NullArray, "nullArray"); }
             virtual const std::vector<bool> & boolArray() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::BoolArray, "boolArray"); }
-            virtual const std::vector<std::string> & numberArray() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::NumberArray, "numberArray"); }
-            virtual const std::vector<std::string> & stringArray() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::StringArray, "stringArray"); }
+            virtual const std::vector<std::string> & numberArray() const {
+                throw TypeMismatch(Value::Type::ObjectArray, Value::Type::NumberArray, "numberArray");
+            }
+            virtual const std::vector<std::string> & stringArray() const {
+                throw TypeMismatch(Value::Type::ObjectArray, Value::Type::StringArray, "stringArray");
+            }
             virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const { return values; }
-            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::MixedArray, "mixedArray"); }
+            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const {
+                throw TypeMismatch(Value::Type::ObjectArray, Value::Type::MixedArray, "mixedArray");
+            }
             
         private:
 	        std::vector<std::map<std::string, std::shared_ptr<Value>>> values;
@@ -840,7 +894,9 @@ namespace Json
             virtual const bool & boolean() const { throw TypeMismatch(Value::Type::MixedArray, Value::Type::Boolean, "bool"); }
             virtual const std::string & number() const { throw TypeMismatch(Value::Type::MixedArray, Value::Type::Number, "number"); }
             virtual const std::string & string() const { throw TypeMismatch(Value::Type::MixedArray, Value::Type::String, "string"); }
-            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::MixedArray, Value::Type::Object, "object"); }
+            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const {
+                throw TypeMismatch(Value::Type::MixedArray, Value::Type::Object, "object");
+            }
 
             virtual size_t arraySize() const { return values.size(); }
             
@@ -855,8 +911,12 @@ namespace Json
             
             virtual const size_t & nullArray() const { throw TypeMismatch(Value::Type::MixedArray, Value::Type::NullArray, "nullArray"); }
             virtual const std::vector<bool> & boolArray() const { throw TypeMismatch(Value::Type::MixedArray, Value::Type::BoolArray, "boolArray"); }
-            virtual const std::vector<std::string> & numberArray() const { throw TypeMismatch(Value::Type::MixedArray, Value::Type::NumberArray, "numberArray"); }
-            virtual const std::vector<std::string> & stringArray() const { throw TypeMismatch(Value::Type::MixedArray, Value::Type::StringArray, "stringArray"); }
+            virtual const std::vector<std::string> & numberArray() const {
+                throw TypeMismatch(Value::Type::MixedArray, Value::Type::NumberArray, "numberArray");
+            }
+            virtual const std::vector<std::string> & stringArray() const {
+                throw TypeMismatch(Value::Type::MixedArray, Value::Type::StringArray, "stringArray");
+            }
 	        virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const {
                 throw TypeMismatch(Value::Type::MixedArray, Value::Type::ObjectArray, "objectArray");
             }
@@ -875,7 +935,9 @@ namespace Json
             virtual ~FieldCluster() {}
             
             static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new FieldCluster()); }
-            static std::shared_ptr<Value> Make(const std::map<std::string, std::shared_ptr<Value>> & value) { return std::shared_ptr<Value>(new FieldCluster(value)); }
+            static std::shared_ptr<Value> Make(const std::map<std::string, std::shared_ptr<Value>> & value) {
+                return std::shared_ptr<Value>(new FieldCluster(value));
+            }
             static std::shared_ptr<Value> Make(const FieldCluster & other) { return std::shared_ptr<Value>(new FieldCluster(other)); }
             
             FieldCluster & operator=(const Value & other) { object() = other.object(); return *this; }
@@ -887,6 +949,39 @@ namespace Json
     inline namespace Output
     {
         constexpr const char twoSpaces[] = "  ";
+
+        inline namespace Identifiers
+        {
+            template <typename T> struct is_non_primitive {
+                static constexpr bool value = is_tuple<T>::value || is_pair<T>::value || is_iterable<T>::value || is_reflected<T>::value;
+            };
+            template <typename T> struct is_non_primitive<const T> { static constexpr bool value = is_non_primitive<T>::value; };
+            template <typename T> struct is_non_primitive<T*> { static constexpr bool value = is_non_primitive<T>::value; };
+            template <typename T> struct is_non_primitive<T &> { static constexpr bool value = is_non_primitive<T>::value; };
+            template <typename T> struct is_non_primitive<T &&> { static constexpr bool value = is_non_primitive<T>::value; };
+            template <typename T> struct is_non_primitive<std::unique_ptr<T>> { static constexpr bool value = is_non_primitive<T>::value; };
+            template <typename T> struct is_non_primitive<std::shared_ptr<T>> { static constexpr bool value = is_non_primitive<T>::value; };
+            template <> struct is_non_primitive<Json::Generic::Object> { static constexpr bool value = false; };
+            template <> struct is_non_primitive<Json::Generic::NullArray> { static constexpr bool value = false; };
+            template <> struct is_non_primitive<Json::Generic::BoolArray> { static constexpr bool value = false; };
+            template <> struct is_non_primitive<Json::Generic::NumberArray> { static constexpr bool value = false; };
+            template <> struct is_non_primitive<Json::Generic::StringArray> { static constexpr bool value = false; };
+            template <> struct is_non_primitive<Json::Generic::ObjectArray> { static constexpr bool value = false; };
+            template <> struct is_non_primitive<Json::Generic::MixedArray> { static constexpr bool value = false; };
+            template <> struct is_non_primitive<Json::Generic::FieldCluster> { static constexpr bool value = false; };
+
+            template <size_t Index, typename ...Ts> struct is_non_primitive_tuple_element;
+            template <typename ...Ts> struct is_non_primitive_tuple_element<0, std::tuple<Ts...>> { static constexpr bool value = false; };
+            template <size_t Index, typename ...Ts> struct is_non_primitive_tuple_element<Index, std::tuple<Ts...>> {
+                using T = typename std::tuple_element_t<Index-1, std::tuple<Ts...>>;
+                static constexpr bool value = is_non_primitive<T>::value || is_non_primitive_tuple_element<Index-1, std::tuple<Ts...>>::value;
+            };
+
+            template <typename T> struct is_non_primitive_tuple { static constexpr bool value = false; };
+            template <typename ...Ts> struct is_non_primitive_tuple<std::tuple<Ts...>> {
+                static constexpr bool value = is_non_primitive_tuple_element<sizeof...(Ts), std::tuple<Ts...>>::value;
+            };
+        }
         
         inline namespace Customizers
         {
@@ -1381,6 +1476,15 @@ namespace Json
             template <typename Annotations, bool PrettyPrint, const char* indent>
             static void GenericIterable(OutStreamType & os, Context & context,
                 size_t totalParentIterables, size_t indentLevel, const Generic::Value & iterable);
+            
+            template <typename Annotations, typename Field, Statics statics,
+                bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, bool IsFirst,
+                bool IsComplexTuple = false, size_t TupleIndex = 0, typename T1, typename T2, typename ...Ts>
+            static constexpr void Tuple(OutStreamType & os, Context & context, const Object & obj, const std::tuple<T1, T2, Ts...> & value);
+
+            template <typename Annotations, typename Field, Statics statics,
+                bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, bool IsFirst, typename Key, typename T>
+            static constexpr void Pair(OutStreamType & os, Context & context, const Object & obj, const std::pair<Key, T> & value);
 
             template <typename Annotations, typename Field, Statics statics,
                 bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, typename IterableValue = uint_least8_t>
@@ -1425,7 +1529,10 @@ namespace Json
                             if ( field.second == nullptr )
                                 os << "null";
                             else
-                                Put::GenericValue<Annotations, PrettyPrint, indent, false>(os, context, 0, indentLevel+totalParentIterables, (Generic::Value &)*field.second);
+                            {
+                                Put::GenericValue<Annotations, PrettyPrint, indent, false>(
+                                    os, context, 0, indentLevel+totalParentIterables, (Generic::Value &)*field.second);
+                            }
 
                             isFirst = false;
                         }
@@ -1456,7 +1563,8 @@ namespace Json
                             Put::FieldPrefix<PrettyPrint, indent>(os, isFirst, indentLevel+totalParentIterables+1);
                             Put::String(os, field.first);
                             os << FieldNameValueSeparator<PrettyPrint>;
-                            Put::GenericValue<Annotations, PrettyPrint, indent, false>(os, context, 0, indentLevel+totalParentIterables+1, (Generic::Value &)*field.second);
+                            Put::GenericValue<Annotations, PrettyPrint, indent, false>(
+                                os, context, 0, indentLevel+totalParentIterables+1, (Generic::Value &)*field.second);
                             isFirst = false;
                         }
                     }
@@ -1513,7 +1621,8 @@ namespace Json
                                 Put::FieldPrefix<PrettyPrint, indent>(os, isFirst, totalParentIterables+indentLevel+2);
                                 Put::String(os, field.first);
                                 os << FieldNameValueSeparator<PrettyPrint>;
-                                Put::GenericValue<Annotations, PrettyPrint, indent, false>(os, context, totalParentIterables+1, indentLevel, (Generic::Value &)*field.second);
+                                Put::GenericValue<Annotations, PrettyPrint, indent, false>(
+                                    os, context, totalParentIterables+1, indentLevel, (Generic::Value &)*field.second);
                                 isFirst = false;
                             }
                             Put::ObjectSuffix<PrettyPrint, indent>(os, obj.empty(), totalParentIterables+indentLevel+1);
@@ -1556,15 +1665,33 @@ namespace Json
                     if ( value == nullptr )
                         os << "null";
                     else
-                        Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object, IsFirst>(os, context, obj, *value);
+                    {
+                        Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object, IsFirst>(
+                            os, context, obj, *value);
+                    }
                 }
                 else if constexpr ( std::is_base_of<Generic::Value, T>::value )
                 {
                     Put::GenericValue<Annotations, PrettyPrint, indent, IsFirst>(os, context, TotalParentIterables,
                         IndentLevel+((Field::template HasAnnotation<IsRoot> ) ? 0 : 1), (const Generic::Value &)value);
                 }
-                //else if constexpr ( true )
-                //    ;
+                else if constexpr ( is_tuple<T>::value )
+                {
+                    if constexpr ( std::tuple_size<T>::value == 0 )
+                        os << "null";
+                    else if constexpr ( std::tuple_size<T>::value == 1 )
+                    {
+                        Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object, IsFirst>(
+                            os, context, obj, std::get<0>(value));
+                    }
+                    else if constexpr ( std::tuple_size<T>::value >= 2 )
+                    {
+                        Put::Tuple<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object, IsFirst>(
+                            os, context, obj, value);
+                    }
+                }
+                else if constexpr ( is_pair<T>::value )
+                    Put::Pair<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object, IsFirst>(os, context, obj, value);
                 else if constexpr ( is_iterable<T>::value )
                     Put::Iterable<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object>(os, context, obj, value);
                 else if constexpr ( Field::template HasAnnotation<IsRoot> )
@@ -1586,19 +1713,66 @@ namespace Json
             }
             
             template <typename Annotations, typename Field, Statics statics,
-                bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, bool IsFirst, typename T, typename Key>
-            static constexpr void Value(OutStreamType & os, Context & context, const Object & obj, const std::pair<Key, T> & pair)
+                bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, bool IsFirst,
+                bool IsComplexTuple, size_t TupleIndex, typename T1, typename T2, typename ...Ts>
+            static constexpr void Tuple(OutStreamType & os, Context & context, const Object & obj, const std::tuple<T1, T2, Ts...> & value)
             {
-                //if constexpr ( is_reflected<Key>::value )
-                //{
-                //
-                //}
-                //else
+                constexpr bool isComplexTuple = TupleIndex == 0 ? is_non_primitive_tuple<std::tuple<T1, T2, Ts...>>::value : IsComplexTuple;
+                constexpr size_t tupleSize = std::tuple_size<typename std::remove_reference_t<decltype(value)>>::value;
+                if constexpr ( TupleIndex == 0 )
+                    Put::ArrayPrefix<PrettyPrint, !isComplexTuple, indent>(os, IndentLevel+TotalParentIterables+2);
+                if constexpr ( TupleIndex < tupleSize )
                 {
-                    Put::String(os, pair.first);
-                    os << FieldNameValueSeparator<PrettyPrint>;
-                    Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object, IsFirst>(os, context, obj, pair.second);
+                    Put::Separator<PrettyPrint, false, isComplexTuple, IndentLevel+TotalParentIterables+2, indent>(os, TupleIndex == 0);
+                    Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, IsFirst>(
+                        os, context, obj, std::get<TupleIndex>(value));
+                    Put::Tuple<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object, IsFirst,
+                        isComplexTuple, TupleIndex+1>(os, context, obj, value);
                 }
+                else if constexpr ( TupleIndex == tupleSize )
+                    Put::ArraySuffix<PrettyPrint, !isComplexTuple, indent>(os, IndentLevel+TotalParentIterables+1);
+            }
+            
+            template <typename Annotations, typename Field, Statics statics,
+                bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, bool IsFirst, typename Key, typename T>
+            static constexpr void Pair(OutStreamType & os, Context & context, const Object & obj, const std::pair<Key, T> & value)
+            {
+                constexpr bool isComplexPair = is_non_primitive<Key>::value || is_non_primitive<T>::value;
+                Put::ArrayPrefix<PrettyPrint, !isComplexPair, indent>(os, IndentLevel+TotalParentIterables+2);
+                Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, IsFirst>(
+                    os, context, obj, value.first);
+                Put::Separator<PrettyPrint, false, isComplexPair, IndentLevel+TotalParentIterables+2, indent>(os, false);
+                Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, IsFirst>(
+                    os, context, obj, value.second);
+                Put::ArraySuffix<PrettyPrint, !isComplexPair, indent>(os, IndentLevel+TotalParentIterables+1);
+            }
+
+            template<typename Annotations, typename Field, Statics statics,
+                bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, bool IsFirst, typename Key, typename T>
+            static constexpr void KeyValueObject(OutStreamType & os, Context & context, const Object & obj, const std::pair<Key, T> & pair)
+            {
+                os << StaticAffix::ObjectPrefix<PrettyPrint, IndentLevel, indent, statics>;
+                os << StaticAffix::FieldPrefix<true, PrettyPrint, TotalParentIterables+IndentLevel+2, indent>;
+                Put::String(os, "key");
+                os << FieldNameValueSeparator<PrettyPrint>;
+                Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, true>(
+                    os, context, obj, pair.first);
+                os << StaticAffix::FieldPrefix<false, PrettyPrint, TotalParentIterables+IndentLevel+2, indent>;
+                Put::String(os, "value");
+                os << FieldNameValueSeparator<PrettyPrint>;
+                Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, false>(
+                    os, context, obj, pair.second);
+                os << StaticAffix::ObjectSuffix<PrettyPrint, TotalParentIterables+IndentLevel+1, indent, statics>;
+            }
+            
+            template <typename Annotations, typename Field, Statics statics,
+                bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, bool IsFirst, typename T, typename Key>
+            static constexpr void FieldPair(OutStreamType & os, Context & context, const Object & obj, const std::pair<Key, T> & pair)
+            {
+                Put::String(os, pair.first);
+                os << FieldNameValueSeparator<PrettyPrint>;
+                Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object, IsFirst>(
+                    os, context, obj, pair.second);
             }
 
             template <typename Annotations, typename Field, Statics statics,
@@ -1606,21 +1780,34 @@ namespace Json
             static constexpr void Iterable(OutStreamType & os, Context & context, const Object & obj, const IterableValue & iterable)
             {
                 using Element = typename element_type<IterableValue>::type;
-                //using Key = typename pair_lhs<Element>::type;
-                constexpr bool ContainsIterables = is_iterable<typename pair_rhs<Element>::type>::value;
+                constexpr bool IsMap = is_map<IterableValue>::value; // Simple maps are just json objects with keys as the field names, values as field values
+                constexpr bool HasComplexKey = IsMap && is_non_primitive<typename pair_lhs<Element>::type>::value;
+                constexpr bool IsArray = !IsMap || HasComplexKey; // Maps with complex keys are arrays consisting of objects with two fields: "key" and "value"
+                constexpr bool ContainsIterables = is_iterable<typename pair_rhs<Element>::type>::value || HasComplexKey;
                 constexpr bool ContainsPrimitives = !is_reflected<Element>::value && !ContainsIterables;
-                constexpr bool ContainsPairs = is_pair<Element>::value;
-                //constexpr bool HasReflectedKey = is_reflected<Key>::value;
-                //constexpr bool IsJsonArray = !ContainsPairs || HasReflectedKey;
-                
+
                 size_t i=0;
-                Put::NestedPrefix<PrettyPrint, !ContainsPairs, ContainsPrimitives, IndentLevel+TotalParentIterables+2, indent>(os, IsEmpty(iterable));
+                Put::NestedPrefix<PrettyPrint, IsArray, ContainsPrimitives, IndentLevel+TotalParentIterables+2, indent>(os, IsEmpty(iterable));
                 if constexpr ( is_stl_iterable<IterableValue>::value )
                 {
                     for ( auto & element : iterable )
                     {
-                        Put::Separator<PrettyPrint, ContainsPairs, ContainsIterables, IndentLevel+TotalParentIterables+2, indent>(os, 0 == i++);
-                        Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, false>(os, context, obj, element);
+                        Put::Separator<PrettyPrint, !IsArray, ContainsIterables, IndentLevel+TotalParentIterables+2, indent>(os, 0 == i++);
+                        if constexpr ( !IsMap )
+                        {
+                            Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, false>(
+                                os, context, obj, element);
+                        }
+                        else if constexpr ( HasComplexKey )
+                        {
+                            Put::KeyValueObject<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, false>(
+                                os, context, obj, element);
+                        }
+                        else
+                        {
+                            Put::FieldPair<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, false>(
+                                os, context, obj, element);
+                        }
                     }
                 }
                 else if constexpr ( is_adaptor<IterableValue>::value )
@@ -1628,24 +1815,27 @@ namespace Json
                     const auto & sequenceContainer = get_underlying_container(iterable);
                     for ( auto it = sequenceContainer.begin(); it != sequenceContainer.end(); ++it )
                     {
-                        Put::Separator<PrettyPrint, ContainsPairs, ContainsIterables, IndentLevel+TotalParentIterables+2, indent>(os, 0 == i++);
-                        Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, false>(os, context, obj, *it);
+                        Put::Separator<PrettyPrint, !IsArray, ContainsIterables, IndentLevel+TotalParentIterables+2, indent>(os, 0 == i++);
+                        Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, false>(
+                            os, context, obj, *it);
                     }
                 }
                 else if constexpr ( std::is_array<IterableValue>::value && std::extent<typename Field::Type>::value > 0 )
                 {
                     for ( ; i<std::extent<typename Field::Type>::value; i++ )
                     {
-                        Put::Separator<PrettyPrint, ContainsPairs, ContainsIterables, IndentLevel+TotalParentIterables+2, indent>(os, 0 == i);
-                        Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, false>(os, context, obj, iterable[i]);
+                        Put::Separator<PrettyPrint, !IsArray, ContainsIterables, IndentLevel+TotalParentIterables+2, indent>(os, 0 == i);
+                        Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, false>(
+                            os, context, obj, iterable[i]);
                     }
                 }
-                Put::NestedSuffix<PrettyPrint, !ContainsPairs, ContainsPrimitives, IndentLevel+TotalParentIterables+1, indent>(os, IsEmpty(iterable));
+                Put::NestedSuffix<PrettyPrint, IsArray, ContainsPrimitives, IndentLevel+TotalParentIterables+1, indent>(os, IsEmpty(iterable));
             }
 
             template <typename Annotations, typename FieldClass, Statics statics,
                 bool PrettyPrint, size_t IndentLevel, const char* indent, typename Object>
-            static constexpr void Field(OutStreamType & os, Context & context, const Object & obj, const char* fieldName, const typename FieldClass::Type & value)
+            static constexpr void Field(OutStreamType & os, Context & context, const Object & obj, const char* fieldName,
+                const typename FieldClass::Type & value)
             {
                 if constexpr ( matches_statics<FieldClass::IsStatic, statics>::value )
                 {
@@ -1657,6 +1847,8 @@ namespace Json
                         {
                             if ( value != nullptr )
                                 Put::Value<Annotations, FieldClass, statics, PrettyPrint, 0, IndentLevel, indent, Object, false>(os, context, obj, *value);
+                            else
+                                os << "null";
                         }
                         else
                             Put::Value<Annotations, FieldClass, statics, PrettyPrint, 0, IndentLevel, indent, Object, false>(os, context, obj, value);
@@ -1914,7 +2106,8 @@ namespace Json
                                 else if constexpr ( !Field::template HasAnnotation<Json::IgnoreType> )
                                 {
                                     inserted.first->second.insert(std::pair<size_t, JsonField>(
-                                        strHash(Class::Fields[fieldIndex].name), JsonField(fieldIndex, JsonField::Type::Regular, Class::Fields[fieldIndex].name)));
+                                        strHash(Class::Fields[fieldIndex].name),
+                                        JsonField(fieldIndex, JsonField::Type::Regular, Class::Fields[fieldIndex].name)));
                                 }
                             });
                         }
@@ -2116,7 +2309,8 @@ namespace Json
             }
 
             template <bool usePrimary>
-            static constexpr inline void get(std::istream & is, char & c, char expectation, char secondaryExpectation, const char* expectedDescription, const char* secondaryDescription)
+            static constexpr inline void get(std::istream & is, char & c, char expectation, char secondaryExpectation, const char* expectedDescription,
+                const char* secondaryDescription)
             {
                 is >> c;
                 if ( !is.good() )
@@ -2950,7 +3144,8 @@ namespace Json
                             case Generic::Value::Type::Boolean: result->get()->boolArray().push_back(Read::Bool<true>(is, c)); break;
                             case Generic::Value::Type::Number: result->get()->numberArray().push_back(Read::Number<true>(is, c)); break;
                             case Generic::Value::Type::String: result->get()->stringArray().push_back(Read::String(is, c)); break;
-                            case Generic::Value::Type::Object: result->get()->objectArray().push_back(Read::GenericObject(is, context, c)->out()->object()); break;
+                            case Generic::Value::Type::Object: result->get()->objectArray().push_back(Read::GenericObject(is, context, c)->out()->object());
+                                break;
                             case Generic::Value::Type::Array: result->get()->mixedArray().push_back(Read::GenericArray<true>(is, context, c)->out()); break;
                         }
                     }
@@ -2989,7 +3184,7 @@ namespace Json
             template <bool InArray, typename Field, typename T, typename Object, bool AllowCustomization = true>
             static void Value(std::istream & is, Context & context, char & c, Object & object, T & value)
             {
-                if constexpr ( AllowCustomization && Customizers::HaveSpecialization<Object, T, Field::Index, NoAnnotation, Field> ) // Input for this is specialized
+                if constexpr ( AllowCustomization && Customizers::HaveSpecialization<Object, T, Field::Index, NoAnnotation, Field> ) // Input is specialized
                 {
                     std::stringstream ss;
                     Json::Consume::Value<InArray>(is, c, ss);
@@ -3036,7 +3231,7 @@ namespace Json
                             Consume::Null<InArray>(is, c);
                     }
                     else if constexpr ( is_pointable<Dereferenced>::value && !std::is_const<Dereferenced>::value )
-                        Read::Value<InArray, Field>(is, context, c, object, *value);  // Only take the chance of assigning nullptr to that more deeply nested pointer
+                        Read::Value<InArray, Field>(is, context, c, object, *value);  // Only chance assigning nullptr to the more deeply nested pointer
                     else if ( Consume::TryNull<InArray>(is, c) ) // If value pointer is not nullptr, "null" is a possible value
                     {
                         if constexpr ( !std::is_const<T>::value )
@@ -3194,7 +3389,10 @@ namespace Json
                                     else if constexpr ( std::is_same<std::unique_ptr<Dereferenced>, ValueType>::value )
                                         value = std::unique_ptr<Dereferenced>(new Dereferenced());
                                     else
-                                        throw Exception("Cannot assign a non-null value to a null pointer unless the type is std::shared_ptr or std::unique_ptr");
+                                    {
+                                        throw Exception(
+                                            "Cannot assign a non-null value to a null pointer unless the type is std::shared_ptr or std::unique_ptr");
+                                    }
 
                                     value->put(fieldName, Read::GenericValue<false>(is, context, c)->out());
                                 }

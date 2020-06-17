@@ -432,6 +432,34 @@ struct State : public Point, public Another
 
 Status State::status;
 
+struct Keyable
+{
+    int a;
+
+    REFLECT(Keyable, a)
+};
+
+bool operator<(const Keyable & lhs, const Keyable & rhs)
+{
+    return lhs.a < rhs.a;
+}
+
+struct CompKey
+{
+    std::tuple<> shouldBeNull;
+    std::tuple<int> shouldBeInt;
+    std::tuple<int, int> shouldBe2Array;
+    std::tuple<int, int, int> shouldBe3Array;
+    std::pair<int, int> pair;
+    std::map<int, int> basicMap;
+    std::map<int, Keyable> primitiveObjMap;
+    std::map<Keyable, int> compKey;
+    std::map<Keyable, Keyable> compMap;
+    std::tuple<std::tuple<int, int>, int> tup;
+
+    REFLECT(CompKey, shouldBeNull, shouldBeInt, shouldBe2Array, shouldBe3Array, pair, basicMap, primitiveObjMap, compKey, compMap, tup)
+};
+
 int main()
 {
     Car car = outputExamples();
@@ -447,6 +475,18 @@ int main()
         using Field = typename std::remove_reference<decltype(field)>::type;
         std::cout << "Field 0: " << field.template getAnnotation<Json::Name>().value << std::endl;
     });
+
+    Keyable keyable { 0 };
+    Keyable otherKey { 1 };
+    CompKey compKey;
+    compKey.basicMap.insert(std::make_pair(0, 0));
+    compKey.basicMap.insert(std::make_pair(1, 1));
+    compKey.primitiveObjMap.insert(std::make_pair(1, keyable));
+    compKey.primitiveObjMap.insert(std::make_pair(1, otherKey));
+    compKey.compKey.insert(std::make_pair(keyable, 1));
+    compKey.compKey.insert(std::make_pair(otherKey, 2));
+
+    std::cout << Json::pretty(compKey) << std::endl;
 
     Json::Object obj;
     try {
