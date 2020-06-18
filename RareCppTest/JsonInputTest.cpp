@@ -1280,7 +1280,7 @@ TEST_HEADER(JsonInputRead, ValuePair)
     char c = '\0';
     std::pair<std::string, bool> testPair = std::pair<std::string, bool>("", true);
     EXPECT_TRUE(testPair.second);
-    std::stringstream testPairStream("\"aPair\":false ,");
+    std::stringstream testPairStream("[\"aPair\",false]");
     Json::Read::Value<true, Fields::Field<decltype(testPair)>>(testPairStream, Json::context, c, placeholderObj, testPair);
     EXPECT_FALSE(testPair.second);
 }

@@ -460,6 +460,19 @@ struct CompKey
     REFLECT(CompKey, shouldBeNull, shouldBeInt, shouldBe2Array, shouldBe3Array, pair, basicMap, primitiveObjMap, compKey, compMap, tup)
 };
 
+struct InputTest
+{
+    std::tuple<> emptyTuple;
+    std::tuple<int> singleTuple;
+    std::tuple<int, int> doubleTuple;
+    std::tuple<int, int, int> tripleTuple;
+    std::pair<int, int> pair;
+    std::map<int, Keyable> primitiveKey;
+    std::map<Keyable, int> complexKey;
+
+    REFLECT(InputTest, emptyTuple, singleTuple, doubleTuple, tripleTuple, pair, primitiveKey, complexKey)
+};
+
 int main()
 {
     Car car = outputExamples();
@@ -499,6 +512,15 @@ int main()
     std::cout << "..." << std::endl;
     std::cin.clear();
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
+    InputTest it;
+    std::cout << Json::pretty(it) << std::endl;
+    std::cin >> Json::in(it);
+    std::cout << Json::pretty(it) << std::endl;
+    std::cin >> Json::in(it);
+    std::cout << Json::pretty(it) << std::endl;
+    std::cin >> Json::in(it);
+    std::cout << Json::pretty(it) << std::endl;
 
     A a;
     do {

@@ -981,6 +981,9 @@ namespace Json
             template <typename ...Ts> struct is_non_primitive_tuple<std::tuple<Ts...>> {
                 static constexpr bool value = is_non_primitive_tuple_element<sizeof...(Ts), std::tuple<Ts...>>::value;
             };
+
+            template <typename T> struct is_tuple_pair { static constexpr bool value = false; };
+            template <typename T1, typename T2> struct is_tuple_pair<std::tuple<T1, T2>> { static constexpr bool value = true; };
         }
         
         inline namespace Customizers
@@ -2794,10 +2797,38 @@ namespace Json
                     Checked::get<IsObject>(is, c, '{', '[', "object opening \"{\"", "array opening \"[\"");
                 }
 
+                inline bool IterablePrefix(std::istream & is, char & c)
+                {
+                    if ( Checked::tryGet(is, '{', "object opening \"{\" or array opening \"[\"") )
+                        return true;
+
+                    Checked::get<true>(is, c, '[', "object opening \"{\" or array opening \"[\"");
+                    return false;
+                }
+
+                inline bool PeekIterablePrefix(std::istream & is, char & c)
+                {
+                    Checked::peek(is, c, "object opening \"{\" or array opening \"[\"");
+                    if ( c == '{' )
+                        return true;
+                    else if ( c == '[' )
+                        return false;
+                    else
+                        throw Exception(std::string("Expected: object opening \"{\" or array opening \"[\"").c_str());
+                }
+
                 template <bool IsObject>
                 inline bool TryIterableSuffix(std::istream & is)
                 {
                     return Checked::tryGet<IsObject>(is, '}', ']', "object closing \"}\" or field name opening \"", "array closing \"]\" or array element");
+                }
+
+                inline bool TryIterableSuffix(std::istream & is, bool isObject)
+                {
+                    if ( isObject )
+                        return Checked::tryGet(is, '}', "object closing \"}\" or field name opening \"");
+                    else
+                        return Checked::tryGet(is, ']', "array closing \"]\" or array element");
                 }
 
                 template <bool IsObject>
@@ -3304,25 +3335,6 @@ namespace Json
                     is >> value;
             }
 
-            template <bool InArray, typename Field, typename Key, typename T, typename Object>
-            static constexpr void Value(std::istream & is, Context & context, char & c, Object & object, std::pair<Key, T> & pair)
-            {
-                //if ( is_reflected<Key>::value || is_iterable<Key>::value )
-                //{
-                //
-                //}
-                //else
-                {
-                    //if ( Checked::tryGet(is, '[', "\"[\" or field value opening\"") )
-                    //{
-                    //
-                    //}
-                    Read::String(is, c, pair.first);
-                    Read::FieldNameValueSeparator(is, c);
-                    Read::Value<InArray, Field, T>(is, context, c, object, pair.second);
-                }
-            }
-
             template <typename Field, size_t TupleIndex, typename Object, typename T1, typename T2, typename ...Ts>
             static constexpr void Tuple(std::istream & is, Context & context, char & c, Object & object, std::tuple<T1, T2, Ts...> & value)
             {
@@ -3359,11 +3371,8 @@ namespace Json
                     if ( Read::IterableElementSeparator<false>(is) )
                     {
                         Read::Value<true, Field>(is, context, c, object, value.second);
-                        do
-                        {
+                        while ( Read::IterableElementSeparator<false>(is) )
                             Consume::Value<true>(is, c);
-                        }
-                        while ( Read::IterableElementSeparator<false>(is) );
                     }
                 }
             }
@@ -3377,6 +3386,7 @@ namespace Json
                     do
                     {
                         std::string fieldName = Read::FieldName(is, c);
+                        Read::FieldNameValueSeparator(is, c);
                         if ( fieldName.compare("key") == 0 )
                             Read::Value<false, Field>(is, context, c, object, value.first);
                         else if ( fieldName.compare("value") == 0 )
@@ -3388,33 +3398,59 @@ namespace Json
                 }
             }
             
+            template <typename Field, typename Object, typename Key, typename T>
+            static constexpr void FieldPair(std::istream & is, Context & context, char & c, Object & object, Key & key, T & value)
+            {
+                std::stringstream ss;
+                Read::String(is, c, ss);
+                Read::Value<false, Field>(ss, context, c, object, key);
+                Read::FieldNameValueSeparator(is, c);
+                Read::Value<false, Field>(is, context, c, object, value);
+            }
+
             template <typename Field, typename T, typename Object>
             static constexpr void Iterable(std::istream & is, Context & context, char & c, Object & object, T & iterable)
             {
                 using Element = typename element_type<T>::type;
-                constexpr bool ContainsPairs = is_pair<Element>::value;
-                // TODO: switch on IsMap/HasComplexKey/else
-                // If !IsMap:
-                //     if array
-                //         read JsonArray into iterable
-                //     else
-                //         if iterable<pair> or iterable<tuple<T1,T2>>
-                //             read object into iterable containing pair-like elements
-                //         else
-                //             fail message expecting array
-                // Else if HasComplexKey:
-                //     Read in array of JsonObject{key,value}
-                // Else
-                //     if object
-                //         read JsonObject into map
-                //     else
-                //         read JsonArray into map, valid elements are sub-JsonArrays or JsonObject{key,value}
+                constexpr bool IsMap = is_map<T>::value; // Simple maps are just json objects with keys as the field names, values as field values
+                constexpr bool HasComplexKey = IsMap && is_non_primitive<typename pair_lhs<Element>::type>::value;
+                constexpr bool JsonObjectCompatible = (IsMap && !HasComplexKey) || (!IsMap && (is_pair<Element>::value || is_tuple_pair<Element>::value));
 
-                Read::IterablePrefix<ContainsPairs>(is, c);
-                if ( !Read::TryIterableSuffix<ContainsPairs>(is) )
+                Clear(iterable);
+                size_t i=0;
+                if constexpr ( JsonObjectCompatible )
                 {
-                    Clear(iterable);
-                    size_t i=0;
+                    if ( Read::IterablePrefix(is, c) ) // Json Object
+                    {
+                        if ( !Read::TryObjectSuffix(is) )
+                        {
+                            do
+                            {
+                                if constexpr ( is_static_array<T>::value )
+                                {
+                                    if ( i >= static_array_size<T>::value )
+                                        throw ArraySizeExceeded();
+                                    else
+                                        Read::FieldPair<Field, Object>(is, context, c, object, std::get<0>(iterable[i]), std::get<1>(iterable[i]));
+                                    i++;
+                                }
+                                else // Appendable STL container
+                                {
+                                    typename element_type<T>::type value;
+                                    Read::FieldPair<Field, Object>(is, context, c, object, std::get<0>(value), std::get<1>(value));
+                                    Append<T, typename element_type<T>::type>(iterable, value);
+                                }
+                            }
+                            while ( Read::IterableElementSeparator<true>(is) );
+                        }
+                        return; // Object read finished
+                    }
+                }
+                else
+                    Read::ArrayPrefix(is, c); // Json Array
+
+                if ( !Read::TryArraySuffix(is) )
+                {
                     do
                     {
                         if constexpr ( is_static_array<T>::value )
@@ -3422,16 +3458,21 @@ namespace Json
                             if ( i >= static_array_size<T>::value )
                                 throw ArraySizeExceeded();
                             else
-                                Read::Value<!ContainsPairs, Field>(is, context, c, object, iterable[i++]);
+                                Read::Value<true, Field>(is, context, c, object, iterable[i++]);
                         }
                         else // Appendable STL container
                         {
                             typename element_type<T>::type value;
-                            Read::Value<!ContainsPairs, Field>(is, context, c, object, value);
+                            if constexpr ( !IsMap )
+                                Read::Value<true, Field>(is, context, c, object, value);
+                            else if ( Read::PeekIterablePrefix(is, c) ) // Json Object
+                                Read::KeyValueObject<Field, Object>(is, context, c, object, value);
+                            else // Json Array
+                                Read::Pair<Field, Object>(is, context, c, object, value);
                             Append<T, typename element_type<T>::type>(iterable, value);
                         }
                     }
-                    while ( Read::IterableElementSeparator<ContainsPairs>(is) );
+                    while ( Read::IterableElementSeparator<false>(is) );
                 }
             }
 
