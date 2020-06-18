@@ -3378,7 +3378,7 @@ namespace Json
             }
 
             template <typename Field, typename Object, typename Key, typename T>
-            static constexpr void KeyValueObject(std::istream & is, Context & context, char & c, Object & object, std::pair<Key, T> & value)
+            static void KeyValueObject(std::istream & is, Context & context, char & c, Object & object, std::pair<Key, T> & value)
             {
                 Read::ObjectPrefix(is, c);
                 if ( !Read::TryObjectSuffix(is) )
@@ -3399,7 +3399,7 @@ namespace Json
             }
             
             template <typename Field, typename Object, typename Key, typename T>
-            static constexpr void FieldPair(std::istream & is, Context & context, char & c, Object & object, Key & key, T & value)
+            static void FieldPair(std::istream & is, Context & context, char & c, Object & object, Key & key, T & value)
             {
                 std::stringstream ss;
                 Read::String(is, c, ss);
