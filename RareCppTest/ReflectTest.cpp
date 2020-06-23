@@ -16,129 +16,93 @@
 using namespace Reflect;
 using namespace ExtendedTypeSupport;
 
-struct TestSuper{};
-struct TestOtherSuper{};
-struct TestAnnotation { int value; };
-struct TestOtherAnnotation { int otherValue; };
-struct ThirdAnnotation {};
-
-TEST(ReflectTest, SuperIndex)
+NOTE(TriviallyNoted)
+struct TriviallyNoted
 {
-    constexpr size_t superIndex = 5;
-    constexpr size_t otherSuperIndex = 6;
+    NOTE(value)
+    int value;
+};
 
-    bool isEqual = std::is_same<TestSuper, SuperInfo<TestSuper, superIndex, NoAnnotation>::Type>::value;
-    EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<TestOtherSuper, SuperInfo<TestOtherSuper, otherSuperIndex, NoAnnotation>::Type>::value;
-    EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<NoAnnotation, SuperInfo<TestSuper, superIndex, NoAnnotation>::Annotations>::value;
-    EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<NoAnnotation, SuperInfo<TestOtherSuper, otherSuperIndex, NoAnnotation>::Annotations>::value;
-    EXPECT_TRUE(isEqual);
-    isEqual = superIndex == SuperInfo<TestSuper, superIndex, NoAnnotation>::Index;
-    EXPECT_TRUE(isEqual);
-    isEqual = otherSuperIndex == SuperInfo<TestOtherSuper, otherSuperIndex, NoAnnotation>::Index;
-    EXPECT_TRUE(isEqual);
+NOTE(SinglyNoted, 'a')
+struct SinglyNoted
+{
+    NOTE(value, 'b')
+    int value;
+};
+
+struct SerializedName
+{
+    std::string_view value;
+};
+
+NOTE(StructNoted, SerializedName { "noted" })
+struct StructNoted
+{
+    NOTE(multiple, '1', SerializedName{"renamedValue"})
+    int multiple;
+};
+
+NOTE(ComplexNoted, std::tuple{33, SerializedName{"test"}}, 'c', 'd', 'e')
+struct ComplexNoted
+{
+    NOTE(first, 'a', 'b', std::tuple{44, SerializedName{"1st"}, 'c'})
+    int first;
+
+    NOTE(second, 'x', 'y', 'z', std::pair{55, SerializedName{"2nd"}})
+    int second;
+};
+
+TEST(ReflectTest, NoteMacro)
+{
+    bool isSame = std::is_same<std::remove_const<decltype(TriviallyNoted_note)>::type, std::tuple<>>::value;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same<std::remove_const<decltype(TriviallyNoted::value_note)>::type, std::tuple<>>::value;
+    EXPECT_TRUE(isSame);
+
+    isSame = std::is_same<std::remove_const<decltype(SinglyNoted_note)>::type, std::tuple<char>>::value;
+    EXPECT_TRUE(isSame);
+    EXPECT_EQ('a', std::get<0>(SinglyNoted_note));
+    isSame = std::is_same<std::remove_const<decltype(SinglyNoted::value_note)>::type, std::tuple<char>>::value;
+    EXPECT_TRUE(isSame);
+    EXPECT_EQ('b', std::get<0>(SinglyNoted::value_note));
     
-    bool hasAnnotation = SuperInfo<TestSuper, superIndex, NoAnnotation>::template HasAnnotation<TestAnnotation>;
-    EXPECT_FALSE(hasAnnotation);
-    hasAnnotation = SuperInfo<TestSuper, superIndex, std::tuple<>>::template HasAnnotation<TestAnnotation>;
-    EXPECT_FALSE(hasAnnotation);
-    hasAnnotation = SuperInfo<TestSuper, superIndex, std::tuple<TestAnnotation>>::template HasAnnotation<TestAnnotation>;
-    EXPECT_TRUE(hasAnnotation);
-    hasAnnotation = SuperInfo<TestSuper, superIndex, std::tuple<TestOtherAnnotation>>::template HasAnnotation<TestAnnotation>;
-    EXPECT_FALSE(hasAnnotation);
-    hasAnnotation = SuperInfo<TestSuper, superIndex, std::tuple<TestAnnotation, TestOtherAnnotation>>::template HasAnnotation<TestAnnotation>;
-    EXPECT_TRUE(hasAnnotation);
-    hasAnnotation = SuperInfo<TestSuper, superIndex, std::tuple<TestAnnotation, TestOtherAnnotation>>::template HasAnnotation<TestOtherAnnotation>;
-    EXPECT_TRUE(hasAnnotation);
+    isSame = std::is_same<std::remove_const<decltype(StructNoted_note)>::type, std::tuple<SerializedName>>::value;
+    EXPECT_TRUE(isSame);
+    EXPECT_EQ("noted", std::get<0>(StructNoted_note).value);
+    isSame = std::is_same<std::remove_const<decltype(StructNoted::multiple_note)>::type, std::tuple<char, SerializedName>>::value;
+    EXPECT_TRUE(isSame);
+    EXPECT_EQ('1', std::get<0>(StructNoted::multiple_note));
+    EXPECT_STREQ("renamedValue", std::string(std::get<1>(StructNoted::multiple_note).value).c_str());
 
-    NoAnnotation noNote{};
-    SuperInfo<TestSuper, superIndex, NoAnnotation> testSuperNoAnnotations{noNote};
+    isSame = std::is_same<std::remove_const<decltype(ComplexNoted_note)>::type, std::tuple<std::tuple<int, SerializedName>, char, char, char>>::value;
+    EXPECT_TRUE(isSame);
+    EXPECT_EQ(33, std::get<0>(std::get<0>(ComplexNoted_note)));
+    EXPECT_STREQ("test", std::string(std::get<1>(std::get<0>(ComplexNoted_note)).value).c_str());
+    EXPECT_EQ('c', std::get<1>(ComplexNoted_note));
+    EXPECT_EQ('d', std::get<2>(ComplexNoted_note));
+    EXPECT_EQ('e', std::get<3>(ComplexNoted_note));
 
-    TestAnnotation testAnnotation { 33 };
-    SuperInfo<TestSuper, superIndex, std::tuple<TestAnnotation>> annotated{testAnnotation};
-    using Annotated = decltype(annotated);
-    hasAnnotation = Annotated::template HasAnnotation<TestAnnotation>;
-    EXPECT_TRUE(hasAnnotation);
+    isSame = std::is_same<std::remove_const<decltype(ComplexNoted::first_note)>::type, std::tuple<char, char, std::tuple<int, SerializedName, char>>>::value;
+    EXPECT_TRUE(isSame);
+    EXPECT_EQ('a', std::get<0>(ComplexNoted::first_note));
+    EXPECT_EQ('b', std::get<1>(ComplexNoted::first_note));
+    EXPECT_EQ(44, std::get<0>(std::get<2>(ComplexNoted::first_note)));
+    EXPECT_STREQ("1st", std::string(std::get<1>(std::get<2>(ComplexNoted::first_note)).value).c_str());
+    EXPECT_EQ('c', std::get<2>(std::get<2>(ComplexNoted::first_note)));
 
-    EXPECT_EQ(33, annotated.getAnnotation<TestAnnotation>().value);
+    isSame = std::is_same<std::remove_const<decltype(ComplexNoted::second_note)>::type, std::tuple<char, char, char, std::pair<int, SerializedName>>>::value;
+    EXPECT_TRUE(isSame);
+    EXPECT_EQ('x', std::get<0>(ComplexNoted::second_note));
+    EXPECT_EQ('y', std::get<1>(ComplexNoted::second_note));
+    EXPECT_EQ('z', std::get<2>(ComplexNoted::second_note));
+    EXPECT_EQ(55, std::get<3>(ComplexNoted::second_note).first);
+    EXPECT_STREQ("2nd", std::string(std::get<3>(ComplexNoted::second_note).second.value).c_str());
+}
 
-    int timesVisited = 0;
-    annotated.forEach<TestAnnotation>([&](auto & annotation) {
-        EXPECT_EQ(33, annotation.value);
-        timesVisited ++;
-    });
-    EXPECT_EQ(1, timesVisited);
-
-    timesVisited = 0;
-    annotated.forEachAnnotation([&](auto & annotation) {
-        EXPECT_EQ(33, annotation.value);
-        timesVisited ++;
-    });
-    EXPECT_EQ(1, timesVisited);
-
-    TestOtherAnnotation testOtherAnnotation { 44 };
-    TestOtherAnnotation testOtherAnnotation55 { 55 };
-    SuperInfo<TestOtherSuper, otherSuperIndex, std::tuple<TestAnnotation, TestOtherAnnotation, TestOtherAnnotation>> otherAnnotated
-        {std::tuple {testAnnotation, testOtherAnnotation, testOtherAnnotation55} };
-    using OtherAnnotated = decltype(otherAnnotated);
-    hasAnnotation = OtherAnnotated::template HasAnnotation<ThirdAnnotation>;
-    EXPECT_FALSE(hasAnnotation);
-    hasAnnotation = OtherAnnotated::template HasAnnotation<TestAnnotation>;
-    EXPECT_TRUE(hasAnnotation);
-    hasAnnotation = OtherAnnotated::template HasAnnotation<TestOtherAnnotation>;
-    EXPECT_TRUE(hasAnnotation);
-
-    auto otherAnnotatedTestAnnotation = otherAnnotated.getAnnotation<TestAnnotation>();
-    EXPECT_EQ(33, otherAnnotatedTestAnnotation.value);
-    auto otherAnnotatedTestOtherAnnotation = otherAnnotated.getAnnotation<TestOtherAnnotation>();
-    EXPECT_EQ(44, otherAnnotatedTestOtherAnnotation.otherValue);
-
-    timesVisited = 0;
-    otherAnnotated.forEach<TestAnnotation>([&](auto & annotation) {
-        EXPECT_EQ(33, annotation.value);
-        timesVisited ++;
-    });
-    EXPECT_EQ(1, timesVisited);
-
-    timesVisited = 0;
-    otherAnnotated.forEach<TestOtherAnnotation>([&](auto & annotation) {
-        if ( timesVisited == 0 )
-            EXPECT_EQ(44, annotation.otherValue);
-        else if ( timesVisited == 1 )
-            EXPECT_EQ(55, annotation.otherValue);
-
-        timesVisited++;
-    });
-    EXPECT_EQ(2, timesVisited);
-
-    timesVisited = 0;
-    otherAnnotated.forEach<ThirdAnnotation>([&](auto & annotation) {
-        timesVisited ++;
-    });
-    EXPECT_EQ(0, timesVisited);
-
-    timesVisited = 0;
-    otherAnnotated.forEachAnnotation([&](auto & annotation) {
-        using AnnotationType = typename std::remove_const<typename std::remove_reference<decltype(annotation)>::type>::type;
-        constexpr bool isTestAnnotation = std::is_same_v<TestAnnotation, AnnotationType>;
-        constexpr bool isTestOtherAnnotation = std::is_same_v<TestOtherAnnotation, AnnotationType>;
-        EXPECT_TRUE(isTestAnnotation || isTestOtherAnnotation);
-        if constexpr ( isTestAnnotation )
-        {
-            EXPECT_EQ(33, annotation.value);
-        }
-        else if constexpr ( isTestOtherAnnotation )
-        {
-            if ( timesVisited == 1 )
-                EXPECT_EQ(44, annotation.otherValue);
-            else if ( timesVisited == 2 )
-                EXPECT_EQ(55, annotation.otherValue);
-        }
-        timesVisited ++;
-    });
-    EXPECT_EQ(3, timesVisited);
+TEST(ReflectTest, NoAnnotationType)
+{
+    bool isSame = std::is_same<NoAnnotation, std::tuple<>>::value;
+    EXPECT_TRUE(isSame);
 }
 
 TEST(ReflectTest, RfMacroGetFieldName)

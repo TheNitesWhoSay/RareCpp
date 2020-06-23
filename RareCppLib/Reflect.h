@@ -280,8 +280,9 @@ namespace ExtendedTypeSupport
     template <typename T, size_t N> struct is_static_array<const std::array<T, N>> { static constexpr bool value = true; };
 
     template <typename T> struct is_iterable { static constexpr bool value = !std::is_same<void, typename element_type<T>::type>::value; };
-
+    
     template <typename T> struct is_map { static constexpr bool value = false; };
+    template <typename T> struct is_map<const T> { static constexpr bool value = is_map<T>::value; };
     template <typename K, typename T, typename C, typename A> struct is_map<std::map<K, T, C, A>> { static constexpr bool value = true; };
     template <typename K, typename T, typename C, typename A> struct is_map<std::multimap<K, T, C, A>>
     { static constexpr bool value = true; };
@@ -634,12 +635,14 @@ namespace Reflect
 
         template <typename T>
         static constexpr SuperClass<T> Super{};
-
+        
         template <typename T> struct is_super { static constexpr bool value = false; };
+        template <typename T> struct is_super<const T> { static constexpr bool value = is_super<T>::value; };
         template <typename T> struct is_super<SuperClass<T>> { static constexpr bool value = true; };
         template <typename T, typename ...Ts> struct is_super<NotedSuper<T, Ts...>> { static constexpr bool value = true; };
         
         template <typename T> struct super_type { using type = void; };
+        template <typename T> struct super_type<const T> { using type = typename super_type<T>::type; };
         template <typename T> struct super_type<SuperClass<T>> { using type = T; };
         template <typename T, typename ...Ts> struct super_type<NotedSuper<T, Ts...>> { using type = T; };
 

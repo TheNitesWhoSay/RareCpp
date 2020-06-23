@@ -3,20 +3,21 @@
 using namespace Reflect::Fields;
 using Reflect::NoAnnotation;
 
-TEST(ReflectionSupportTest, FieldSimple)
+TEST(ReflectionFieldTest, FieldSimple)
 {
     char fieldName[] = "fieldName";
     char fieldTypeStr[] = "int";
     size_t fieldArraySize = 0;
     bool fieldIsIterable = false;
-    bool fieldIsReflected = false;
+    bool fieldIsFunction = false;
 
-    Field<> field = { fieldName, fieldTypeStr, fieldArraySize, fieldIsIterable };
+    Field<> field = { fieldName, fieldTypeStr, fieldArraySize, fieldIsIterable, fieldIsFunction };
     
     EXPECT_STREQ(fieldName, field.name);
     EXPECT_STREQ(fieldTypeStr, field.typeStr);
     EXPECT_EQ(fieldArraySize, field.arraySize);
     EXPECT_EQ(fieldIsIterable, field.isIterable);
+    EXPECT_EQ(fieldIsFunction, field.isFunction);
 }
 
 struct TestStruct
@@ -26,7 +27,7 @@ struct TestStruct
 };
 int TestStruct::testStaticVal = 0;
 
-TEST(ReflectionSupportTest, FieldTemplated)
+TEST(ReflectionFieldTest, FieldTemplated)
 {
     constexpr size_t fieldIndex = 2;
     char fieldName[] = "fieldName";
@@ -44,6 +45,7 @@ TEST(ReflectionSupportTest, FieldTemplated)
     EXPECT_STREQ(fieldTypeStr, field.typeStr);
     EXPECT_EQ(fieldArraySize, field.arraySize);
     EXPECT_EQ(fieldIsIterable, field.isIterable);
+    EXPECT_EQ(fieldIsFunction, field.isFunction);
     
     bool isEqual = std::is_same<int, IntField::Type>::value;
     EXPECT_TRUE(isEqual);
@@ -51,10 +53,14 @@ TEST(ReflectionSupportTest, FieldTemplated)
     isEqual = std::is_same<decltype(&TestStruct::testVal), IntField::Pointer>::value;
     EXPECT_TRUE(isEqual);
 
+    isEqual = std::is_same<NoAnnotation, IntField::Annotations>::value;
+    EXPECT_TRUE(isEqual);
+
     EXPECT_EQ(field.p, &TestStruct::testVal);
 
     EXPECT_EQ(fieldIndex, IntField::Index);
     EXPECT_FALSE(IntField::IsStatic);
+    EXPECT_FALSE(IntField::IsFunction);
 
     Field<int, decltype(&TestStruct::testStaticVal), fieldIndex> staticField =
     { fieldName, fieldTypeStr, fieldArraySize, fieldIsIterable, fieldIsFunction, &TestStruct::testStaticVal, noAnnotation };
@@ -62,6 +68,7 @@ TEST(ReflectionSupportTest, FieldTemplated)
 
     EXPECT_EQ(staticField.p, &TestStruct::testStaticVal);
     EXPECT_TRUE(StaticIntField::IsStatic);
+    EXPECT_FALSE(StaticIntField::IsFunction);
 }
 
 struct ReferencesTestStruct
@@ -71,7 +78,7 @@ struct ReferencesTestStruct
 };
 int & ReferencesTestStruct::testStaticVal = TestStruct::testStaticVal;
 
-TEST(ReflectionSupportTest, ReferencesFieldTemplated)
+TEST(ReflectionFieldTest, ReferencesFieldTemplated)
 {
     constexpr size_t fieldIndex = 2;
     char fieldName[] = "fieldName";
@@ -89,17 +96,22 @@ TEST(ReflectionSupportTest, ReferencesFieldTemplated)
     EXPECT_STREQ(fieldTypeStr, field.typeStr);
     EXPECT_EQ(fieldArraySize, field.arraySize);
     EXPECT_EQ(fieldIsIterable, field.isIterable);
+    EXPECT_EQ(fieldIsFunction, field.isFunction);
     
     bool isEqual = std::is_same<int&, IntField::Type>::value;
     EXPECT_TRUE(isEqual);
 
-    isEqual = std::is_same<IntField::Pointer, nullptr_t>::value;
+    isEqual = std::is_same<nullptr_t, IntField::Pointer>::value;
+    EXPECT_TRUE(isEqual);
+
+    isEqual = std::is_same<NoAnnotation, IntField::Annotations>::value;
     EXPECT_TRUE(isEqual);
 
     EXPECT_TRUE(field.p == nullptr);
 
     EXPECT_EQ(fieldIndex, IntField::Index);
     EXPECT_FALSE(IntField::IsStatic);
+    EXPECT_FALSE(IntField::IsFunction);
 
     Field<decltype(ReferencesTestStruct::testStaticVal), decltype(&ReferencesTestStruct::testStaticVal), fieldIndex> staticField =
     { fieldName, fieldTypeStr, fieldArraySize, fieldIsIterable, fieldIsFunction, nullptr, noAnnotation };
