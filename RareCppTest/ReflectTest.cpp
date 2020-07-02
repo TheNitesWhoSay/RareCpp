@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <utility>
 #include <type_traits>
+#include <regex>
 using namespace Reflect;
 using namespace ExtendedTypeSupport;
 
@@ -123,20 +124,298 @@ TEST(ReflectTest, RfMacroGetFieldName)
     EXPECT_EQ(1, Obj::Class::IndexOf::second);
 }
 
+class UseFieldValueTest {
+    public:
+        int first;
+        const float second;
+
+        struct Class {
+            using ClassType = UseFieldValueTest;
+            static constexpr NoAnnotation NoNote {};
+            struct first_ {
+                using Field = Fields::Field<int, decltype(&UseFieldValueTest::first), 0>;
+                static constexpr Field field = { "first", "int", 0, false, false, &UseFieldValueTest::first, NoNote };
+                CLANG_ONLY(first)
+            };
+            struct second_ {
+                using Field = Fields::Field<const float, decltype(&UseFieldValueTest::second), 1>;
+                static constexpr Field field = { "second", "float", 0, false, false, &UseFieldValueTest::second, NoNote };
+                CLANG_ONLY(second)
+            };
+            template <typename Function>
+            static void ForEachField(UseFieldValueTest & object, Function function) {
+                USE_FIELD_VALUE(first)
+                USE_FIELD_VALUE(second)
+            }
+        };
+};
+
+TEST(ReflectTest, RfMacroUseFieldValue)
+{
+    UseFieldValueTest useFieldValueTest = { 1, 1.1f };
+    size_t index = 0;
+    UseFieldValueTest::Class::ForEachField(useFieldValueTest, [&](auto & field, auto & value) {
+
+        using Field = typename std::remove_reference<decltype(field)>::type;
+
+        EXPECT_EQ(index, Field::Index);
+        if constexpr ( Field::Index == 0 )
+        {
+            EXPECT_EQ(1, value);
+            EXPECT_EQ(useFieldValueTest.first, value);
+            bool isEqual = std::is_same_v<int, std::remove_reference_t<decltype(value)>>;
+            EXPECT_TRUE(isEqual);
+            value = 2;
+
+            EXPECT_STREQ("first", field.name);
+            EXPECT_STREQ("int", field.typeStr);
+            EXPECT_EQ(0, field.arraySize);
+            EXPECT_EQ(false, field.isIterable);
+            EXPECT_EQ(false, field.isFunction);
+            isEqual = std::is_same_v<int, typename Field::Type>;
+            EXPECT_TRUE(isEqual);
+            isEqual = std::is_same_v<decltype(&UseFieldValueTest::first), typename Field::Pointer>;
+            EXPECT_TRUE(isEqual);
+            isEqual = std::is_same_v<NoAnnotation, typename Field::Annotations>;
+            EXPECT_TRUE(isEqual);
+            EXPECT_EQ(field.p, &UseFieldValueTest::first);
+        }
+        else if constexpr ( Field::Index == 1 )
+        {
+            EXPECT_EQ(1.1f, value);
+            EXPECT_EQ(useFieldValueTest.second, value);
+            bool isEqual = std::is_same_v<const float, std::remove_reference_t<decltype(value)>>;
+            EXPECT_TRUE(isEqual);
+
+            EXPECT_STREQ("second", field.name);
+            EXPECT_STREQ("float", field.typeStr);
+            EXPECT_EQ(0, field.arraySize);
+            EXPECT_EQ(false, field.isIterable);
+            EXPECT_EQ(false, field.isFunction);
+            isEqual = std::is_same_v<const float, typename Field::Type>;
+            EXPECT_TRUE(isEqual);
+            isEqual = std::is_same_v<decltype(&UseFieldValueTest::second), typename Field::Pointer>;
+            EXPECT_TRUE(isEqual);
+            isEqual = std::is_same_v<NoAnnotation, typename Field::Annotations>;
+            EXPECT_TRUE(isEqual);
+            EXPECT_EQ(field.p, &UseFieldValueTest::second);
+        }
+        index ++;
+    });
+    EXPECT_EQ(2, index);
+    EXPECT_EQ(2, useFieldValueTest.first);
+}
+
+class UseFieldValueAtTest {
+    public:
+        int first;
+        const float second;
+
+        struct Class {
+            using ClassType = UseFieldValueAtTest;
+            enum_t(IndexOf, size_t, { first, second });
+            static constexpr NoAnnotation NoNote {};
+            struct first_ {
+                using Field = Fields::Field<int, decltype(&UseFieldValueAtTest::first), 0>;
+                static constexpr Field field = { "first", "int", 0, false, false, &UseFieldValueAtTest::first, NoNote };
+                CLANG_ONLY(first)
+            };
+            struct second_ {
+                using Field = Fields::Field<const float, decltype(&UseFieldValueAtTest::second), 1>;
+                static constexpr Field field = { "second", "float", 0, false, false, &UseFieldValueAtTest::second, NoNote };
+                CLANG_ONLY(second)
+            };
+            template <typename Function>
+            static void FieldAt(UseFieldValueAtTest & object, size_t fieldIndex, Function function) {
+                switch ( fieldIndex ) {
+                    USE_FIELD_VALUE_AT(first)
+                    USE_FIELD_VALUE_AT(second)
+                }
+            }
+        };
+};
+
+TEST(ReflectTest, RfMacroUseFieldValueAt)
+{
+    UseFieldValueAtTest useFieldValueAtTest = { 1, 1.1f };
+    size_t index = 0;
+
+    bool visited = false;
+    UseFieldValueAtTest::Class::FieldAt(useFieldValueAtTest, 0, [&](auto & field, auto & value) {
+
+        using Field = typename std::remove_reference<decltype(field)>::type;
+        if constexpr ( Field::Index == 0 )
+        {
+            EXPECT_EQ(1, value);
+            EXPECT_EQ(useFieldValueAtTest.first, value);
+            bool isEqual = std::is_same_v<int, std::remove_reference_t<decltype(value)>>;
+            EXPECT_TRUE(isEqual);
+            value = 2;
+
+            EXPECT_STREQ("first", field.name);
+            EXPECT_STREQ("int", field.typeStr);
+            EXPECT_EQ(0, field.arraySize);
+            EXPECT_EQ(false, field.isIterable);
+            EXPECT_EQ(false, field.isFunction);
+            isEqual = std::is_same_v<int, typename Field::Type>;
+            EXPECT_TRUE(isEqual);
+            isEqual = std::is_same_v<decltype(&UseFieldValueAtTest::first), typename Field::Pointer>;
+            EXPECT_TRUE(isEqual);
+            isEqual = std::is_same_v<NoAnnotation, typename Field::Annotations>;
+            EXPECT_TRUE(isEqual);
+            EXPECT_EQ(field.p, &UseFieldValueAtTest::first);
+            visited = true;
+        }
+    });
+    EXPECT_TRUE(visited);
+    
+    visited = false;
+    UseFieldValueAtTest::Class::FieldAt(useFieldValueAtTest, 1, [&](auto & field, auto & value) {
+
+        using Field = typename std::remove_reference<decltype(field)>::type;
+        if constexpr ( Field::Index == 1 )
+        {
+            EXPECT_EQ(1.1f, value);
+            EXPECT_EQ(useFieldValueAtTest.second, value);
+            bool isEqual = std::is_same_v<const float, std::remove_reference_t<decltype(value)>>;
+            EXPECT_TRUE(isEqual);
+
+            EXPECT_STREQ("second", field.name);
+            EXPECT_STREQ("float", field.typeStr);
+            EXPECT_EQ(0, field.arraySize);
+            EXPECT_EQ(false, field.isIterable);
+            EXPECT_EQ(false, field.isFunction);
+            isEqual = std::is_same_v<const float, typename Field::Type>;
+            EXPECT_TRUE(isEqual);
+            isEqual = std::is_same_v<decltype(&UseFieldValueAtTest::second), typename Field::Pointer>;
+            EXPECT_TRUE(isEqual);
+            isEqual = std::is_same_v<NoAnnotation, typename Field::Annotations>;
+            EXPECT_TRUE(isEqual);
+            EXPECT_EQ(field.p, &UseFieldValueAtTest::second);
+            visited = true;
+        }
+    });
+    EXPECT_TRUE(visited);
+    EXPECT_EQ(2, useFieldValueAtTest.first);
+}
+
 class DescribeFieldTest {
 public:
     int first;
     float second;
 
+    int memberValue;
+    static int staticValue;
+    int & memberValueReference;
+    static int & staticValueReference;
+    void memberMethod() {}
+    static void staticMethod() {}
+
     struct Class {
         using ClassType = DescribeFieldTest;
-        enum_t(IndexOf, size_t, { first, second });
-        using first = int;
-        using second = float;
+        enum_t(IndexOf, size_t, { first, second, memberValue, staticValue, memberValueReference, staticValueReference, memberMethod, staticMethod });
         static constexpr NoAnnotation NoNote {};
-        FOR_EACH(DESCRIBE_FIELD, first, second)
+        FOR_EACH(DESCRIBE_FIELD, first, second, memberValue, staticValue, memberValueReference, staticValueReference, memberMethod, staticMethod)
     };
 };
+
+int DescribeFieldTest::staticValue = 0;
+int & DescribeFieldTest::staticValueReference = DescribeFieldTest::staticValue;
+
+TEST(ReflectTest, RfMacroDescribeFieldId)
+{
+    using MemberValueId = decltype(DescribeFieldTest::Class::memberValue_::identify<DescribeFieldTest>(0));
+    using StaticValueId = decltype(DescribeFieldTest::Class::staticValue_::identify<DescribeFieldTest>(0));
+    using MemberValueReferenceId = decltype(DescribeFieldTest::Class::memberValueReference_::identify<DescribeFieldTest>(0));
+    using StaticValueReferenceId = decltype(DescribeFieldTest::Class::staticValueReference_::identify<DescribeFieldTest>(0));
+    using MemberMethodId = decltype(DescribeFieldTest::Class::memberMethod_::identify<DescribeFieldTest>(0));
+    using StaticMethodId = decltype(DescribeFieldTest::Class::staticMethod_::identify<DescribeFieldTest>(0));
+
+    using MemberValueType = decltype(DescribeFieldTest::memberValue);
+    using MemberValuePointer = decltype(&DescribeFieldTest::memberValue);
+    using ExpectedMemberValueId = std::pair<MemberValueType, MemberValuePointer>;
+
+    using StaticValueType = decltype(DescribeFieldTest::staticValue);
+    using StaticValuePointer = decltype(&DescribeFieldTest::staticValue);
+    using ExpectedStaticValueId = std::pair<StaticValueType, StaticValuePointer>;
+
+    using MemberValueReferenceType = decltype(DescribeFieldTest::memberValueReference);
+    using MemberValueReferencePointer = nullptr_t;
+    using ExpectedMemberValueReferenceId = std::pair<MemberValueReferenceType, MemberValueReferencePointer>;
+
+    using StaticValueReferenceType = decltype(DescribeFieldTest::staticValueReference);
+    using StaticValueReferencePointer = decltype(&DescribeFieldTest::staticValueReference);
+    using ExpectedStaticValueReferenceId = std::pair<StaticValueReferenceType, StaticValueReferencePointer>;
+
+    using MemberMethodType = decltype(&DescribeFieldTest::memberMethod);
+    using MemberMethodPointer = decltype(&DescribeFieldTest::memberMethod);
+    using ExpectedMemberMethodId = std::pair<MemberMethodType, MemberMethodPointer>;
+
+    using StaticMethodType = decltype(&DescribeFieldTest::staticMethod);
+    using StaticMethodPointer = decltype(&DescribeFieldTest::staticMethod);
+    using ExpectedStaticMethodId = std::pair<StaticMethodType, StaticMethodPointer>;
+    
+    bool isSame = std::is_same_v<MemberValueType, DescribeFieldTest::Class::memberValue_::Type>; EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<MemberValuePointer, DescribeFieldTest::Class::memberValue_::Pointer>; EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<ExpectedMemberValueId, MemberValueId>; EXPECT_TRUE(isSame);
+    
+    isSame = std::is_same_v<StaticValueType, DescribeFieldTest::Class::staticValue_::Type>; EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<StaticValuePointer, DescribeFieldTest::Class::staticValue_::Pointer>; EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<ExpectedStaticValueId, StaticValueId>; EXPECT_TRUE(isSame);
+
+    isSame = std::is_same_v<MemberValueReferenceType, DescribeFieldTest::Class::memberValueReference_::Type>; EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<MemberValueReferencePointer, DescribeFieldTest::Class::memberValueReference_::Pointer>; EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<ExpectedMemberValueReferenceId, MemberValueReferenceId>; EXPECT_TRUE(isSame);
+
+    isSame = std::is_same_v<StaticValueReferenceType, DescribeFieldTest::Class::staticValueReference_::Type>; EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<StaticValueReferencePointer, DescribeFieldTest::Class::staticValueReference_::Pointer>; EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<ExpectedStaticValueReferenceId, StaticValueReferenceId>; EXPECT_TRUE(isSame);
+
+    isSame = std::is_same_v<MemberMethodType, DescribeFieldTest::Class::memberMethod_::Type>; EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<MemberMethodPointer, DescribeFieldTest::Class::memberMethod_::Pointer>; EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<ExpectedMemberMethodId, MemberMethodId>; EXPECT_TRUE(isSame);
+
+    isSame = std::is_same_v<StaticMethodType, DescribeFieldTest::Class::staticMethod_::Type>; EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<StaticMethodPointer, DescribeFieldTest::Class::staticMethod_::Pointer>; EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<ExpectedStaticMethodId, StaticMethodId>; EXPECT_TRUE(isSame);
+    
+    MemberValuePointer memberValuePointer = DescribeFieldTest::Class::memberValue_::GetPointer<DescribeFieldTest, false>::value;
+    StaticValuePointer staticValuePointer = DescribeFieldTest::Class::staticValue_::GetPointer<DescribeFieldTest, false>::value;
+    MemberValueReferencePointer memberValueReferencePointer = DescribeFieldTest::Class::memberValueReference_::GetPointer<DescribeFieldTest, true>::value;
+    StaticValueReferencePointer staticValueReferencePointer = DescribeFieldTest::Class::staticValueReference_::GetPointer<DescribeFieldTest, true>::value;
+    MemberMethodPointer memberMethodPointer = DescribeFieldTest::Class::memberMethod_::GetPointer<DescribeFieldTest, false>::value;
+    StaticMethodPointer staticMethodPointer = DescribeFieldTest::Class::staticMethod_::GetPointer<DescribeFieldTest, false>::value;
+    
+    EXPECT_EQ(&DescribeFieldTest::memberValue, memberValuePointer);
+    EXPECT_EQ(&DescribeFieldTest::staticValue, staticValuePointer);
+    EXPECT_TRUE(nullptr == memberValueReferencePointer);
+    EXPECT_TRUE(nullptr == staticValueReferencePointer);
+    EXPECT_EQ(&DescribeFieldTest::memberMethod, memberMethodPointer);
+    EXPECT_EQ(&DescribeFieldTest::staticMethod, staticMethodPointer);
+
+    EXPECT_STREQ("memberValue", &DescribeFieldTest::Class::memberValue_::nameStr.value[0]);
+    EXPECT_STREQ("staticValue", &DescribeFieldTest::Class::staticValue_::nameStr.value[0]);
+    EXPECT_STREQ("memberValueReference", &DescribeFieldTest::Class::memberValueReference_::nameStr.value[0]);
+    EXPECT_STREQ("staticValueReference", &DescribeFieldTest::Class::staticValueReference_::nameStr.value[0]);
+    EXPECT_STREQ("memberMethod", &DescribeFieldTest::Class::memberMethod_::nameStr.value[0]);
+    EXPECT_STREQ("staticMethod", &DescribeFieldTest::Class::staticMethod_::nameStr.value[0]);
+    
+    std::string memberValueTypeStr(&DescribeFieldTest::Class::memberValue_::typeStr.value[0]);
+    std::string staticValueTypeStr(&DescribeFieldTest::Class::staticValue_::typeStr.value[0]);
+    std::string memberValueReferenceTypeStr(&DescribeFieldTest::Class::memberValueReference_::typeStr.value[0]);
+    std::string staticValueReferenceTypeStr(&DescribeFieldTest::Class::staticValueReference_::typeStr.value[0]);
+    std::string memberMethodTypeStr(&DescribeFieldTest::Class::memberMethod_::typeStr.value[0]);
+    std::string staticMethodTypeStr(&DescribeFieldTest::Class::staticMethod_::typeStr.value[0]);
+    
+    EXPECT_TRUE(std::regex_match(memberValueTypeStr.c_str(), std::regex("int")));
+    EXPECT_TRUE(std::regex_match(staticValueTypeStr.c_str(), std::regex("int")));
+    EXPECT_TRUE(std::regex_match(memberValueReferenceTypeStr.c_str(), std::regex("int\\s*&")));
+    EXPECT_TRUE(std::regex_match(staticValueReferenceTypeStr.c_str(), std::regex("int\\s*&")));
+    EXPECT_TRUE(std::regex_match(memberMethodTypeStr.c_str(), std::regex(".*void.*")));
+    EXPECT_TRUE(std::regex_match(staticMethodTypeStr.c_str(), std::regex(".*void.*")));
+
+    //EXPECT_TRUE(false); // TODO: Finish me
+}
 
 TEST(ReflectTest, RfMacroDescribeField)
 {
@@ -225,40 +504,29 @@ TEST(ReflectTest, RfMacroGetField)
     EXPECT_EQ(false, GetFieldTest::Class::Fields[1].isIterable);
 }
 
-class UseFieldTest {
-    public:
-        int first;
-        float second;
+struct UseFieldTest {
+    int first;
+    float second;
 
-        struct Class {
-            using ClassType = UseFieldTest;
-            static constexpr NoAnnotation NoNote {};
-            struct first_ {
-                using Field = Fields::Field<int, decltype(&UseFieldTest::first), 0>;
-                static constexpr Field field = { "first", "int", 0, false, false, &UseFieldTest::first, NoNote };
-                CLANG_ONLY(first)
-            };
-            struct second_ {
-                using Field = Fields::Field<float, decltype(&UseFieldTest::second), 1>;
-                static constexpr Field field = { "second", "float", 0, false, false, &UseFieldTest::second, NoNote };
-                CLANG_ONLY(second)
-            };
-            template <typename Function>
-            static void ForEachField(UseFieldTest & object, Function function) {
-                USE_FIELD_VALUE(first)
-                USE_FIELD_VALUE(second)
-            }
-        };
+    struct Class {
+        enum_t(IndexOf, size_t, { first, second });
+        static constexpr NoAnnotation NoNote {};
+        struct first_ { static constexpr Fields::Field<int, decltype(&UseFieldTest::first), 0> field = { "first", "int", 0, false, false, &UseFieldTest::first, NoNote }; };
+        struct second_ { static constexpr Fields::Field<float, decltype(&UseFieldTest::second), 1> field = { "second", "float", 0, false, false, &UseFieldTest::second, NoNote }; };
+        template <typename Function>
+        constexpr static void ForEachField(Function function) {
+            USE_FIELD(first)
+            USE_FIELD(second)
+        }
+    };
 };
 
 TEST(ReflectTest, RfMacroUseField)
 {
     UseFieldTest useFieldTest = { 1, 1.1f };
     size_t index = 0;
-    UseFieldTest::Class::ForEachField(useFieldTest, [&](auto & field, auto & value) {
-
+    UseFieldTest::Class::ForEachField([&](auto & field) {
         using Field = typename std::remove_reference<decltype(field)>::type;
-
         EXPECT_EQ(index, Field::Index);
         switch ( index ) {
         case 0:
@@ -266,14 +534,12 @@ TEST(ReflectTest, RfMacroUseField)
             EXPECT_STREQ("int", field.typeStr);
             EXPECT_EQ(0, field.arraySize);
             EXPECT_EQ(false, field.isIterable);
-            EXPECT_EQ(useFieldTest.first, value);
             break;
         case 1:
             EXPECT_STREQ("second", field.name);
             EXPECT_STREQ("float", field.typeStr);
             EXPECT_EQ(0, field.arraySize);
             EXPECT_EQ(false, field.isIterable);
-            EXPECT_EQ(useFieldTest.second, value);
             break;
         default: EXPECT_TRUE(false); break;
         }
@@ -323,63 +589,6 @@ TEST(ReflectTest, RfMacroUseFieldAt)
         EXPECT_STREQ("float", field.typeStr);
         EXPECT_EQ(0, field.arraySize);
         EXPECT_EQ(false, field.isIterable);
-        visited = true;
-    });
-    EXPECT_TRUE(visited);
-}
-
-class UseFieldValueAtTest {
-    public:
-        int first;
-        float second;
-
-        struct Class {
-            using ClassType = UseFieldValueAtTest;
-            enum_t(IndexOf, size_t, { first, second });
-            static constexpr NoAnnotation NoNote {};
-            struct first_ {
-                using Field = Fields::Field<int, decltype(&UseFieldValueAtTest::first), 0>;
-                static constexpr Field field = { "first", "int", 0, false, false, &UseFieldValueAtTest::first, NoNote };
-                CLANG_ONLY(first)
-            };
-            struct second_ {
-                using Field = Fields::Field<float, decltype(&UseFieldValueAtTest::second), 1>;
-                static constexpr Field field = { "second", "float", 0, false, false, &UseFieldValueAtTest::second, NoNote };
-                CLANG_ONLY(second)
-            };
-            template <typename Function>
-            static void FieldAt(UseFieldValueAtTest & object, size_t fieldIndex, Function function) {
-                switch ( fieldIndex ) {
-                    USE_FIELD_VALUE_AT(first)
-                    USE_FIELD_VALUE_AT(second)
-                }
-            }
-        };
-};
-
-TEST(ReflectTest, RfMacroUseFieldValueAt)
-{
-    UseFieldValueAtTest useFieldTest = { 1, 1.1f };
-    size_t index = 0;
-
-    bool visited = false;
-    UseFieldValueAtTest::Class::FieldAt(useFieldTest, 0, [&](auto & field, auto & value) {
-        EXPECT_STREQ("first", field.name);
-        EXPECT_STREQ("int", field.typeStr);
-        EXPECT_EQ(0, field.arraySize);
-        EXPECT_EQ(false, field.isIterable);
-        EXPECT_EQ(useFieldTest.first, value);
-        visited = true;
-    });
-    EXPECT_TRUE(visited);
-    
-    visited = false;
-    UseFieldValueAtTest::Class::FieldAt(useFieldTest, 1, [&](auto & field, auto & value) {
-        EXPECT_STREQ("second", field.name);
-        EXPECT_STREQ("float", field.typeStr);
-        EXPECT_EQ(0, field.arraySize);
-        EXPECT_EQ(false, field.isIterable);
-        EXPECT_EQ(useFieldTest.second, value);
         visited = true;
     });
     EXPECT_TRUE(visited);
@@ -470,6 +679,21 @@ struct does_have_reflected_class {
         static constexpr size_t TotalFields = 0;
     };
 };
+struct is_reflected_REFLECT {
+    int value;
+
+    REFLECT(is_reflected_REFLECT, value)
+};
+NOTE(is_reflected_REFLECT_NOTED)
+struct is_reflected_REFLECT_NOTED {
+    int value;
+
+    REFLECT_NOTED(is_reflected_REFLECT_NOTED, value)
+};
+NOTE(is_reflected_REFLECT_EMPTY)
+struct is_reflected_REFLECT_EMPTY {
+    REFLECT_EMPTY(is_reflected_REFLECT_EMPTY)
+};
 
 TEST(ExtendedTypeSupportTest, BaseTypeHasClass)
 {
@@ -479,6 +703,12 @@ TEST(ExtendedTypeSupportTest, BaseTypeHasClass)
     EXPECT_FALSE(hasClass);
     hasClass = decltype(typeHasReflection<does_have_reflected_class>(0))::value;
     EXPECT_TRUE(hasClass);
+    hasClass = decltype(typeHasReflection<is_reflected_REFLECT>(0))::value;
+    EXPECT_TRUE(hasClass);
+    hasClass = decltype(typeHasReflection<is_reflected_REFLECT_NOTED>(0))::value;
+    EXPECT_TRUE(hasClass);
+    hasClass = decltype(typeHasReflection<is_reflected_REFLECT_EMPTY>(0))::value;
+    EXPECT_TRUE(hasClass);
 }
 
 TEST(ExtendedTypeSupportTest, IsReflected)
@@ -486,6 +716,9 @@ TEST(ExtendedTypeSupportTest, IsReflected)
     EXPECT_FALSE(is_reflected<does_not_have_reflected_class>::value);
     EXPECT_FALSE(is_reflected<does_not_quite_have_reflected_class>::value);
     EXPECT_TRUE(is_reflected<does_have_reflected_class>::value);
+    EXPECT_TRUE(is_reflected<is_reflected_REFLECT>::value);
+    EXPECT_TRUE(is_reflected<is_reflected_REFLECT_NOTED>::value);
+    EXPECT_TRUE(is_reflected<is_reflected_REFLECT_EMPTY>::value);
 }
 
 class ReflectSuperObj {
