@@ -134,12 +134,12 @@ class UseFieldValueTest {
             static constexpr NoAnnotation NoNote {};
             struct first_ {
                 using Field = Fields::Field<int, decltype(&UseFieldValueTest::first), 0>;
-                static constexpr Field field = { "first", "int", 0, false, false, &UseFieldValueTest::first, NoNote };
+                static constexpr Field field = { "first", "int", &UseFieldValueTest::first, NoNote };
                 CLANG_ONLY(first)
             };
             struct second_ {
                 using Field = Fields::Field<const float, decltype(&UseFieldValueTest::second), 1>;
-                static constexpr Field field = { "second", "float", 0, false, false, &UseFieldValueTest::second, NoNote };
+                static constexpr Field field = { "second", "float", &UseFieldValueTest::second, NoNote };
                 CLANG_ONLY(second)
             };
             template <typename Function>
@@ -169,9 +169,6 @@ TEST(ReflectTest, RfMacroUseFieldValue)
 
             EXPECT_STREQ("first", field.name);
             EXPECT_STREQ("int", field.typeStr);
-            EXPECT_EQ(0, field.arraySize);
-            EXPECT_EQ(false, field.isIterable);
-            EXPECT_EQ(false, field.isFunction);
             isEqual = std::is_same_v<int, typename Field::Type>;
             EXPECT_TRUE(isEqual);
             isEqual = std::is_same_v<decltype(&UseFieldValueTest::first), typename Field::Pointer>;
@@ -189,9 +186,6 @@ TEST(ReflectTest, RfMacroUseFieldValue)
 
             EXPECT_STREQ("second", field.name);
             EXPECT_STREQ("float", field.typeStr);
-            EXPECT_EQ(0, field.arraySize);
-            EXPECT_EQ(false, field.isIterable);
-            EXPECT_EQ(false, field.isFunction);
             isEqual = std::is_same_v<const float, typename Field::Type>;
             EXPECT_TRUE(isEqual);
             isEqual = std::is_same_v<decltype(&UseFieldValueTest::second), typename Field::Pointer>;
@@ -217,12 +211,12 @@ class UseFieldValueAtTest {
             static constexpr NoAnnotation NoNote {};
             struct first_ {
                 using Field = Fields::Field<int, decltype(&UseFieldValueAtTest::first), 0>;
-                static constexpr Field field = { "first", "int", 0, false, false, &UseFieldValueAtTest::first, NoNote };
+                static constexpr Field field = { "first", "int", &UseFieldValueAtTest::first, NoNote };
                 CLANG_ONLY(first)
             };
             struct second_ {
                 using Field = Fields::Field<const float, decltype(&UseFieldValueAtTest::second), 1>;
-                static constexpr Field field = { "second", "float", 0, false, false, &UseFieldValueAtTest::second, NoNote };
+                static constexpr Field field = { "second", "float", &UseFieldValueAtTest::second, NoNote };
                 CLANG_ONLY(second)
             };
             template <typename Function>
@@ -254,9 +248,6 @@ TEST(ReflectTest, RfMacroUseFieldValueAt)
 
             EXPECT_STREQ("first", field.name);
             EXPECT_STREQ("int", field.typeStr);
-            EXPECT_EQ(0, field.arraySize);
-            EXPECT_EQ(false, field.isIterable);
-            EXPECT_EQ(false, field.isFunction);
             isEqual = std::is_same_v<int, typename Field::Type>;
             EXPECT_TRUE(isEqual);
             isEqual = std::is_same_v<decltype(&UseFieldValueAtTest::first), typename Field::Pointer>;
@@ -282,9 +273,6 @@ TEST(ReflectTest, RfMacroUseFieldValueAt)
 
             EXPECT_STREQ("second", field.name);
             EXPECT_STREQ("float", field.typeStr);
-            EXPECT_EQ(0, field.arraySize);
-            EXPECT_EQ(false, field.isIterable);
-            EXPECT_EQ(false, field.isFunction);
             isEqual = std::is_same_v<const float, typename Field::Type>;
             EXPECT_TRUE(isEqual);
             isEqual = std::is_same_v<decltype(&UseFieldValueAtTest::second), typename Field::Pointer>;
@@ -433,8 +421,6 @@ TEST(ReflectTest, RfMacroDescribeField)
     std::string firstTypeFieldStr = DescribeFieldTest::Class::first_::field.typeStr;
     firstTypeFieldStr.erase(std::remove(firstTypeFieldStr.begin(), firstTypeFieldStr.end(), ' '), firstTypeFieldStr.end());
     EXPECT_TRUE(firstTypeFieldStr.find("int") != std::string::npos);
-    EXPECT_EQ(0, DescribeFieldTest::Class::first_::field.arraySize);
-    EXPECT_EQ(false, DescribeFieldTest::Class::first_::field.isIterable);
     
     isEqual = std::is_same<int, DescribeFieldTest::Class::first_::Field::Type>::value;
     EXPECT_TRUE(isEqual);
@@ -460,8 +446,6 @@ TEST(ReflectTest, RfMacroDescribeField)
     std::string secondTypeFieldStr = DescribeFieldTest::Class::second_::field.typeStr;
     secondTypeFieldStr.erase(std::remove(secondTypeFieldStr.begin(), secondTypeFieldStr.end(), ' '), secondTypeFieldStr.end());
     EXPECT_TRUE(secondTypeFieldStr.find("float") != std::string::npos);
-    EXPECT_EQ(0, DescribeFieldTest::Class::second_::field.arraySize);
-    EXPECT_EQ(false, DescribeFieldTest::Class::second_::field.isIterable);
     
     isEqual = std::is_same<float, DescribeFieldTest::Class::second_::Field::Type>::value;
     EXPECT_TRUE(isEqual);
@@ -481,9 +465,9 @@ public:
     struct Class {
         static constexpr NoAnnotation NoNote {};
         struct first_ { static constexpr Fields::Field<decltype(first), decltype(&GetFieldTest::first), 0, NoAnnotation> field =
-            { "first", "int", 0, false, false, &GetFieldTest::first, NoNote }; };
+            { "first", "int", &GetFieldTest::first, NoNote }; };
         struct second_ { static constexpr Fields::Field<decltype(second), decltype(&GetFieldTest::second), 1, NoAnnotation> field =
-            { "second", "float", 0, false, false, &GetFieldTest::second, NoNote }; };
+            { "second", "float", &GetFieldTest::second, NoNote }; };
         static constexpr Fields::Field<> Fields[2] = {
             GET_FIELD(first)
             GET_FIELD(second)
@@ -495,13 +479,9 @@ TEST(ReflectTest, RfMacroGetField)
 {
     EXPECT_STREQ("first", GetFieldTest::Class::Fields[0].name);
     EXPECT_STREQ("int", GetFieldTest::Class::Fields[0].typeStr);
-    EXPECT_EQ(0, GetFieldTest::Class::Fields[0].arraySize);
-    EXPECT_EQ(false, GetFieldTest::Class::Fields[0].isIterable);
 
     EXPECT_STREQ("second", GetFieldTest::Class::Fields[1].name);
     EXPECT_STREQ("float", GetFieldTest::Class::Fields[1].typeStr);
-    EXPECT_EQ(0, GetFieldTest::Class::Fields[1].arraySize);
-    EXPECT_EQ(false, GetFieldTest::Class::Fields[1].isIterable);
 }
 
 struct UseFieldTest {
@@ -511,8 +491,8 @@ struct UseFieldTest {
     struct Class {
         enum_t(IndexOf, size_t, { first, second });
         static constexpr NoAnnotation NoNote {};
-        struct first_ { static constexpr Fields::Field<int, decltype(&UseFieldTest::first), 0> field = { "first", "int", 0, false, false, &UseFieldTest::first, NoNote }; };
-        struct second_ { static constexpr Fields::Field<float, decltype(&UseFieldTest::second), 1> field = { "second", "float", 0, false, false, &UseFieldTest::second, NoNote }; };
+        struct first_ { static constexpr Fields::Field<int, decltype(&UseFieldTest::first), 0> field = { "first", "int", &UseFieldTest::first, NoNote }; };
+        struct second_ { static constexpr Fields::Field<float, decltype(&UseFieldTest::second), 1> field = { "second", "float", &UseFieldTest::second, NoNote }; };
         template <typename Function>
         constexpr static void ForEachField(Function function) {
             USE_FIELD(first)
@@ -532,14 +512,10 @@ TEST(ReflectTest, RfMacroUseField)
         case 0:
             EXPECT_STREQ("first", field.name);
             EXPECT_STREQ("int", field.typeStr);
-            EXPECT_EQ(0, field.arraySize);
-            EXPECT_EQ(false, field.isIterable);
             break;
         case 1:
             EXPECT_STREQ("second", field.name);
             EXPECT_STREQ("float", field.typeStr);
-            EXPECT_EQ(0, field.arraySize);
-            EXPECT_EQ(false, field.isIterable);
             break;
         default: EXPECT_TRUE(false); break;
         }
@@ -556,8 +532,8 @@ class UseFieldAtTest {
         struct Class {
             enum_t(IndexOf, size_t, { first, second });
             static constexpr NoAnnotation NoNote {};
-            struct first_ { static constexpr Fields::Field<int, decltype(&UseFieldAtTest::first), 0> field = { "first", "int", 0, false, false, &UseFieldAtTest::first, NoNote }; };
-            struct second_ { static constexpr Fields::Field<float, decltype(&UseFieldAtTest::second), 1> field = { "second", "float", 0, false, false, &UseFieldAtTest::second, NoNote }; };
+            struct first_ { static constexpr Fields::Field<int, decltype(&UseFieldAtTest::first), 0> field = { "first", "int", &UseFieldAtTest::first, NoNote }; };
+            struct second_ { static constexpr Fields::Field<float, decltype(&UseFieldAtTest::second), 1> field = { "second", "float", &UseFieldAtTest::second, NoNote }; };
             template <typename Function>
             static void FieldAt(size_t fieldIndex, Function function) {
                 switch ( fieldIndex ) {
@@ -577,8 +553,6 @@ TEST(ReflectTest, RfMacroUseFieldAt)
     UseFieldAtTest::Class::FieldAt(0, [&](auto & field) {
         EXPECT_STREQ("first", field.name);
         EXPECT_STREQ("int", field.typeStr);
-        EXPECT_EQ(0, field.arraySize);
-        EXPECT_EQ(false, field.isIterable);
         visited = true;
     });
     EXPECT_TRUE(visited);
@@ -587,8 +561,6 @@ TEST(ReflectTest, RfMacroUseFieldAt)
     UseFieldAtTest::Class::FieldAt(1, [&](auto & field) {
         EXPECT_STREQ("second", field.name);
         EXPECT_STREQ("float", field.typeStr);
-        EXPECT_EQ(0, field.arraySize);
-        EXPECT_EQ(false, field.isIterable);
         visited = true;
     });
     EXPECT_TRUE(visited);
@@ -833,26 +805,6 @@ TEST(ReflectTest, RfMacroReflect)
     EXPECT_STREQ(ReflectObj::Class::primitiveReference_::typeStr.value, ReflectObj::Class::primitiveReference_::field.typeStr);
     EXPECT_STREQ(ReflectObj::Class::staticPrimitiveReference_::typeStr.value, ReflectObj::Class::staticPrimitiveReference_::field.typeStr);
     
-    EXPECT_EQ(0, ReflectObj::Class::primitive_::field.arraySize);
-    EXPECT_EQ(0, ReflectObj::Class::object_::field.arraySize);
-    EXPECT_EQ(2, ReflectObj::Class::primitiveArray_::field.arraySize);
-    EXPECT_EQ(0, ReflectObj::Class::map_::field.arraySize);
-    EXPECT_EQ(0, ReflectObj::Class::objCollection_::field.arraySize);
-    EXPECT_EQ(0, ReflectObj::Class::stack_::field.arraySize);
-    EXPECT_EQ(0, ReflectObj::Class::staticPrimitive_::field.arraySize);
-    EXPECT_EQ(0, ReflectObj::Class::primitiveReference_::field.arraySize);
-    EXPECT_EQ(0, ReflectObj::Class::staticPrimitiveReference_::field.arraySize);
-    
-    EXPECT_EQ(false, ReflectObj::Class::primitive_::field.isIterable);
-    EXPECT_EQ(false, ReflectObj::Class::object_::field.isIterable);
-    EXPECT_EQ(true, ReflectObj::Class::primitiveArray_::field.isIterable);
-    EXPECT_EQ(true, ReflectObj::Class::map_::field.isIterable);
-    EXPECT_EQ(true, ReflectObj::Class::objCollection_::field.isIterable);
-    EXPECT_EQ(true, ReflectObj::Class::stack_::field.isIterable);
-    EXPECT_EQ(false, ReflectObj::Class::staticPrimitive_::field.isIterable);
-    EXPECT_EQ(false, ReflectObj::Class::primitiveReference_::field.isIterable);
-    EXPECT_EQ(false, ReflectObj::Class::staticPrimitiveReference_::field.isIterable);
-    
     EXPECT_STREQ(ReflectObj::Class::primitive_::field.name, ReflectObj::Class::Fields[0].name);
     EXPECT_STREQ(ReflectObj::Class::object_::field.name, ReflectObj::Class::Fields[1].name);
     EXPECT_STREQ(ReflectObj::Class::primitiveArray_::field.name, ReflectObj::Class::Fields[2].name);
@@ -872,26 +824,6 @@ TEST(ReflectTest, RfMacroReflect)
     EXPECT_STREQ(ReflectObj::Class::staticPrimitive_::field.typeStr, ReflectObj::Class::Fields[6].typeStr);
     EXPECT_STREQ(ReflectObj::Class::primitiveReference_::field.typeStr, ReflectObj::Class::Fields[7].typeStr);
     EXPECT_STREQ(ReflectObj::Class::staticPrimitiveReference_::field.typeStr, ReflectObj::Class::Fields[8].typeStr);
-    
-    EXPECT_EQ(ReflectObj::Class::primitive_::field.arraySize, ReflectObj::Class::Fields[0].arraySize);
-    EXPECT_EQ(ReflectObj::Class::object_::field.arraySize, ReflectObj::Class::Fields[1].arraySize);
-    EXPECT_EQ(ReflectObj::Class::primitiveArray_::field.arraySize, ReflectObj::Class::Fields[2].arraySize);
-    EXPECT_EQ(ReflectObj::Class::map_::field.arraySize, ReflectObj::Class::Fields[3].arraySize);
-    EXPECT_EQ(ReflectObj::Class::objCollection_::field.arraySize, ReflectObj::Class::Fields[4].arraySize);
-    EXPECT_EQ(ReflectObj::Class::stack_::field.arraySize, ReflectObj::Class::Fields[5].arraySize);
-    EXPECT_EQ(ReflectObj::Class::staticPrimitive_::field.arraySize, ReflectObj::Class::Fields[6].arraySize);
-    EXPECT_EQ(ReflectObj::Class::primitiveReference_::field.arraySize, ReflectObj::Class::Fields[7].arraySize);
-    EXPECT_EQ(ReflectObj::Class::staticPrimitiveReference_::field.arraySize, ReflectObj::Class::Fields[8].arraySize);
-    
-    EXPECT_EQ(ReflectObj::Class::primitive_::field.isIterable, ReflectObj::Class::Fields[0].isIterable);
-    EXPECT_EQ(ReflectObj::Class::object_::field.isIterable, ReflectObj::Class::Fields[1].isIterable);
-    EXPECT_EQ(ReflectObj::Class::primitiveArray_::field.isIterable, ReflectObj::Class::Fields[2].isIterable);
-    EXPECT_EQ(ReflectObj::Class::map_::field.isIterable, ReflectObj::Class::Fields[3].isIterable);
-    EXPECT_EQ(ReflectObj::Class::objCollection_::field.isIterable, ReflectObj::Class::Fields[4].isIterable);
-    EXPECT_EQ(ReflectObj::Class::stack_::field.isIterable, ReflectObj::Class::Fields[5].isIterable);
-    EXPECT_EQ(ReflectObj::Class::staticPrimitive_::field.isIterable, ReflectObj::Class::Fields[6].isIterable);
-    EXPECT_EQ(ReflectObj::Class::primitiveReference_::field.isIterable, ReflectObj::Class::Fields[7].isIterable);
-    EXPECT_EQ(ReflectObj::Class::staticPrimitiveReference_::field.isIterable, ReflectObj::Class::Fields[8].isIterable);
     
     ReflectSubObj reflectSubObj = { 20 };
     ReflectSubObj reflectSubObjZero = { 90 };

@@ -815,18 +815,12 @@ namespace Reflect
         struct Field<void, nullptr_t, 0, NoAnnotation> {
             const char* name;
             const char* typeStr;
-            size_t arraySize;
-            bool isIterable;
-            bool isFunction;
         };
 
         template <typename T, typename FieldPointer, size_t FieldIndex, typename FieldAnnotations>
         struct Field {
             const char* name;
             const char* typeStr;
-            size_t arraySize;
-            bool isIterable;
-            bool isFunction;
 
             using Type = T;
             using Pointer = std::conditional_t<std::is_reference_v<T>, nullptr_t, FieldPointer>;
@@ -885,28 +879,20 @@ namespace Reflect
     using NoteType = decltype(idNote<ClassType>(0)); \
     using Field = Fields::Field<Type, Pointer, IndexOf::x, NoteType>; \
     static constexpr Field field = { \
-        &nameStr.value[0], &typeStr.value[0], ExtendedTypeSupport::static_array_size<Type>::value, \
-        ExtendedTypeSupport::is_stl_iterable<ExtendedTypeSupport::remove_pointer<Type>::type>::value || \
-            ExtendedTypeSupport::is_adaptor<ExtendedTypeSupport::remove_pointer<Type>::type>::value || \
-            std::is_array<ExtendedTypeSupport::remove_pointer<Type>::type>::value, \
-        std::is_same_v<Type, Pointer>, GetPointer<ClassType, std::is_reference_v<Type>>::value, \
+        &nameStr.value[0], &typeStr.value[0], GetPointer<ClassType, std::is_reference_v<Type>>::value, \
         GetNote<ClassType, std::is_same_v<decltype(Class::NoNote), NoteType>>::value }; \
     CLANG_ONLY(x) \
 };
 
-#define GET_FIELD(x) { Class::x##_::field.name, Class::x##_::field.typeStr, Class::x##_::field.arraySize, \
-    Class::x##_::field.isIterable, Class::x##_::field.isFunction },
-
+#define GET_FIELD(x) { Class::x##_::field.name, Class::x##_::field.typeStr },
 #define USE_FIELD(x) function(x##_::field);
-
 #define USE_FIELD_AT(x) case IndexOf::x: function(x##_::field); break;
-
 #define ADD_IF_STATIC(x) + ( x##_::Field::IsStatic ? 1 : 0 )
 
 
 #pragma warning(disable: 4003) // Not enough arguments warning generated despite macros working perfectly
 
-/// After the objectType there needs to be at least 1 and at most 123 field names
+/// After the objectType there needs to be at least 1 and at most 125 field names
 /// e.g. REFLECT(MyObj, myInt, myString, myOtherObj)
 #define REFLECT(objectType, ...) \
 struct Class { \
@@ -961,7 +947,7 @@ struct Class { \
     static constexpr Annotations & annotations = objectType##_note; \
     static constexpr size_t TotalFields = 0; \
     static constexpr size_t TotalStaticFields = 0; \
-    static constexpr Fields::Field<> Fields[1] = { { "", "", 0, false, false } }; \
+    static constexpr Fields::Field<> Fields[1] = { { "", "" } }; \
     template <typename Function> constexpr static void ForEachField(Function function) {} \
     template <typename Function> static void ForEachField(objectType & object, Function function) {} \
     template <typename Function> static void ForEachField(const objectType & object, Function function) { } \
