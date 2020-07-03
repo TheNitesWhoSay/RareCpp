@@ -262,12 +262,6 @@ namespace ExtendedTypeSupport
     template <typename T> struct remove_pointer<std::unique_ptr<T>> { using type = T; };
     template <typename T> struct remove_pointer<std::shared_ptr<T>> { using type = T; };
 
-    template <typename T> struct remove_all_pointers { using type = T; };
-    template <typename T> struct remove_all_pointers<const T> { using type = const typename remove_all_pointers<T>::type; };
-    template <typename T> struct remove_all_pointers<T*> { using type = typename remove_all_pointers<T>::type; };
-    template <typename T> struct remove_all_pointers<std::unique_ptr<T>> { using type = typename remove_all_pointers<T>::type; };
-    template <typename T> struct remove_all_pointers<std::shared_ptr<T>> { using type = typename remove_all_pointers<T>::type; };
-
     template <typename T> struct is_pointable { static constexpr bool value = std::is_pointer<T>::value; };
     template <typename T> struct is_pointable<const T> { static constexpr bool value = is_pointable<T>::value; };
     template <typename T> struct is_pointable<std::unique_ptr<T>> { static constexpr bool value = true; };
@@ -450,7 +444,7 @@ namespace ExtendedTypeSupport
         template <typename ...Ts> struct get_impl
         {
             template <size_t Index>
-            static constexpr TypeToGet GetElementRecursion(const std::tuple<Ts...> & elements) { return {}; }
+            static constexpr TypeToGet GetElementRecursion(const std::tuple<Ts...> & elements) { return TypeToGet{}; }
 
             template <size_t Index, typename CurrentType, typename... NextTypes>
             static constexpr TypeToGet GetElementRecursion(const std::tuple<Ts...> & elements)

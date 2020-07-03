@@ -117,35 +117,6 @@ TEST(ExtendedTypeSupportTest, RemovePointer)
     EXPECT_TRUE(isEqual);
 }
 
-TEST(ExtendedTypeSupportTest, RemoveAllPointers)
-{
-    bool isEqual = std::is_same<int, remove_all_pointers<int>::type>::value;
-    EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<int[2], remove_all_pointers<int[2]>::type>::value;
-    EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<int, remove_all_pointers<int*>::type>::value;
-    EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<int, remove_all_pointers<std::shared_ptr<int>>::type>::value;
-    EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<int, remove_all_pointers<std::unique_ptr<int>>::type>::value;
-    EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<int, remove_all_pointers<int**>::type>::value;
-    EXPECT_TRUE(isEqual);
-    
-    isEqual = std::is_same<const int, remove_all_pointers<const int>::type>::value;
-    EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<const int[2], remove_all_pointers<const int[2]>::type>::value;
-    EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<const int, remove_all_pointers<const int*>::type>::value;
-    EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<const int, remove_all_pointers<std::shared_ptr<const int>>::type>::value;
-    EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<const int, remove_all_pointers<std::unique_ptr<const int>>::type>::value;
-    EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<const int, remove_all_pointers<const int**>::type>::value;
-    EXPECT_TRUE(isEqual);
-}
-
 TEST(ExtendedTypeSupportTest, IsPointable)
 {
     EXPECT_FALSE(is_pointable<int>::value);
