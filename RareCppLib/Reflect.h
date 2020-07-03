@@ -884,10 +884,10 @@ namespace Reflect
     CLANG_ONLY(x) \
 };
 
+#define ADD_IF_STATIC(x) + ( x##_::Field::IsStatic ? 1 : 0 )
 #define GET_FIELD(x) { Class::x##_::field.name, Class::x##_::field.typeStr },
 #define USE_FIELD(x) function(x##_::field);
 #define USE_FIELD_AT(x) case IndexOf::x: function(x##_::field); break;
-#define ADD_IF_STATIC(x) + ( x##_::Field::IsStatic ? 1 : 0 )
 
 
 #pragma warning(disable: 4003) // Not enough arguments warning generated despite macros working perfectly
@@ -908,10 +908,10 @@ struct Class { \
     template <typename Function> constexpr static void ForEachField(Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
     template <typename Function> static void ForEachField(objectType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
     template <typename Function> static void ForEachField(const objectType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
-    template <typename Function> static void FieldAt(objectType & object, size_t fieldIndex, Function function) { \
-        switch ( fieldIndex ) { FOR_EACH(USE_FIELD_VALUE_AT, __VA_ARGS__) } } \
     template <typename Function> constexpr static void FieldAt(size_t fieldIndex, Function function) { \
         switch ( fieldIndex ) { FOR_EACH(USE_FIELD_AT, __VA_ARGS__) } } \
+    template <typename Function> static void FieldAt(objectType & object, size_t fieldIndex, Function function) { \
+        switch ( fieldIndex ) { FOR_EACH(USE_FIELD_VALUE_AT, __VA_ARGS__) } } \
 }; \
 using Supers = Inherit<Class::ClassType, Class::Annotations>;
 
@@ -931,10 +931,10 @@ struct Class { \
     template <typename Function> constexpr static void ForEachField(Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
     template <typename Function> static void ForEachField(objectType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
     template <typename Function> static void ForEachField(const objectType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
-    template <typename Function> static void FieldAt(objectType & object, size_t fieldIndex, Function function) { \
-        switch ( fieldIndex ) { FOR_EACH(USE_FIELD_VALUE_AT, __VA_ARGS__) } } \
     template <typename Function> constexpr static void FieldAt(size_t fieldIndex, Function function) { \
         switch ( fieldIndex ) { FOR_EACH(USE_FIELD_AT, __VA_ARGS__) } } \
+    template <typename Function> static void FieldAt(objectType & object, size_t fieldIndex, Function function) { \
+        switch ( fieldIndex ) { FOR_EACH(USE_FIELD_VALUE_AT, __VA_ARGS__) } } \
 }; \
 using Supers = Inherit<Class::ClassType, Class::Annotations>;
 
@@ -951,8 +951,8 @@ struct Class { \
     template <typename Function> constexpr static void ForEachField(Function function) {} \
     template <typename Function> static void ForEachField(objectType & object, Function function) {} \
     template <typename Function> static void ForEachField(const objectType & object, Function function) { } \
-    template <typename Function> static void FieldAt(objectType & object, size_t fieldIndex, Function function) {} \
     template <typename Function> constexpr static void FieldAt(size_t fieldIndex, Function function) {} \
+    template <typename Function> static void FieldAt(objectType & object, size_t fieldIndex, Function function) {} \
 }; \
 using Supers = Inherit<Class::ClassType, Class::Annotations>;
 
