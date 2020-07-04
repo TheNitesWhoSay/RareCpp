@@ -387,47 +387,19 @@ struct State : public Point, public Another
         Json::EnumInt)
     static Status status;
     
-    NOTE(memberUpdate,
+    NOTE(update,
         Rest::Method::PATCH,
         Rest::Url{"/memberUpdate/{value}/{otherValue}"},
         Rest::PathParam<int>{"value"},
         Rest::PathParam<long>{"otherValue"})
-    std::string memberUpdate(int value, long otherValue) {
+    std::string update(int value, long otherValue) {
         this->value = value;
         this->otherValue = otherValue;
         this->status = Status::Cached;
-        return "";//return Json::ToString(*this);
-    }
-    
-    NOTE(update,
-        Rest::Method::PATCH,
-        Rest::Url{"/update/{value}/{otherValue}"},
-        Rest::PathParam<int>{"value"},
-        Rest::PathParam<long>{"otherValue"})
-    static std::string update(int value, long otherValue) {
-        return "";//return Json::ToString(*this);
+        return Json::ToString(*this);
     }
 
-    REFLECT_NOTED(State, value, otherValue, status, memberUpdate, update)
-
-    struct NewClass {
-        using ClassType = State;
-        enum_t(IndexOf, size_t, {
-            update
-        });
-        static constexpr std::tuple<> NoNote {};
-        
-        struct value_ {
-            template <typename T> static constexpr decltype(T::value_note) & getNote(int) { return T::value_note; }
-            template <typename T> static constexpr decltype(NoNote) & getNote(...) { return NoNote; }
-        };
-
-        struct otherValue_ {
-            template <typename T> static constexpr decltype(T::otherValue_note) & getNote(int) { return T::otherValue_note; }
-            template <typename T> static constexpr decltype(NoNote) & getNote(...) { return NoNote; }
-        };
-
-    };
+    REFLECT_NOTED(State, value, otherValue, status, update)
 };
 
 Status State::status;
