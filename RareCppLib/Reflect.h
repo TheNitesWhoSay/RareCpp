@@ -419,6 +419,12 @@ namespace ExtendedTypeSupport
             }
         }
     }
+    
+    template <typename L, typename R>
+    struct TypePair {
+        using Left = L;
+        using Right = R;
+    };
 
     template <typename T>
     constexpr bool HasTypeRecursion() {
@@ -825,7 +831,7 @@ namespace Reflect
         
             static constexpr size_t Index = FieldIndex;
             static constexpr bool IsStatic = !std::is_member_pointer<FieldPointer>::value && !std::is_same<nullptr_t, FieldPointer>::value;
-            static constexpr bool IsFunction = std::is_same_v<T, FieldPointer>;
+            static constexpr bool IsFunction = std::is_function_v<T> || std::is_same_v<T, FieldPointer>;
 
             template <typename Annotation>
             static constexpr bool HasAnnotation = ExtendedTypeSupport::has_type<Annotation, Annotations>::value;
@@ -856,12 +862,11 @@ namespace Reflect
 #endif
 
 #define DESCRIBE_FIELD(x) struct x##_ { \
-    template <typename T> static constexpr std::pair<std::conditional_t< \
-        std::is_function_v<decltype(T::x)>, decltype(&T::x), decltype(T::x)>, decltype(&T::x)> identify(int); \
-    template <typename T> static constexpr std::pair<decltype(T::x), nullptr_t> identify(unsigned int); \
-    template <typename T> static constexpr std::pair<decltype(&T::x), decltype(&T::x)> identify(...); \
-    using Type = decltype(identify<ClassType>(0))::first_type; \
-    using Pointer = decltype(identify<ClassType>(0))::second_type; \
+    template <typename T> static constexpr ExtendedTypeSupport::TypePair<decltype(T::x), decltype(&T::x)> identify(int); \
+    template <typename T> static constexpr ExtendedTypeSupport::TypePair<decltype(T::x), nullptr_t> identify(unsigned int); \
+    template <typename T> static constexpr ExtendedTypeSupport::TypePair<decltype(&T::x), decltype(&T::x)> identify(...); \
+    using Type = decltype(identify<ClassType>(0))::Left; \
+    using Pointer = decltype(identify<ClassType>(0))::Right; \
     template <typename T, bool IsReference> struct GetPointer { static constexpr auto value = &T::x; }; \
     template <typename T> struct GetPointer<T, true> { static constexpr nullptr_t value = nullptr; }; \
     static constexpr auto nameStr = ConstexprStr::substr<std::string_view(#x).size()>(&#x[0]); \
@@ -872,8 +877,7 @@ namespace Reflect
     template <typename T> struct GetNote<T, false> { static constexpr auto & value = T::x##_note; }; \
     using NoteType = decltype(idNote<ClassType>(0)); \
     using Field = Fields::Field<Type, Pointer, IndexOf::x, NoteType>; \
-    static constexpr Field field = { \
-        &nameStr.value[0], &typeStr.value[0], GetPointer<ClassType, std::is_reference_v<Type>>::value, \
+    static constexpr Field field = { &nameStr.value[0], &typeStr.value[0], GetPointer<ClassType, std::is_reference_v<Type>>::value, \
         GetNote<ClassType, std::is_same_v<decltype(Class::NoNote), NoteType>>::value }; \
     CLANG_ONLY(x) \
 };

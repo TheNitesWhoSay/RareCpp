@@ -865,6 +865,20 @@ TEST(ExtendedTypeSupportTest, Clear)
     EXPECT_TRUE(unorderedMultimap.empty());
 }
 
+TEST(ExtendedTypeSupportTest, TypePair)
+{
+    using IntFloat = TypePair<int, float>;
+    using FloatInt = TypePair<float, int>;
+    bool isSame = std::is_same_v<int, IntFloat::Left>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<float, IntFloat::Right>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<float, FloatInt::Left>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<int, FloatInt::Right>;
+    EXPECT_TRUE(isSame);
+}
+
 TEST(ExtendedTypeSupportTest, HasType)
 {
     bool hasType = has_type<bool>::value;

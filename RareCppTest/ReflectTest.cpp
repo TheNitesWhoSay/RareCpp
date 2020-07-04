@@ -289,28 +289,33 @@ TEST(ReflectTest, RfMacroUseFieldValueAt)
 
 class DescribeFieldTest {
 public:
-    int first;
-    float second;
-
     int memberValue;
+
+    NOTE(staticValue)
     static int staticValue;
+
+    NOTE(memberValueReference, 'a')
     int & memberValueReference;
+
+    NOTE(staticValueReference, '1', 1)
     static int & staticValueReference;
+
     void memberMethod() {}
+
     static void staticMethod() {}
 
     struct Class {
         using ClassType = DescribeFieldTest;
-        enum_t(IndexOf, size_t, { first, second, memberValue, staticValue, memberValueReference, staticValueReference, memberMethod, staticMethod });
+        enum_t(IndexOf, size_t, { memberValue, staticValue, memberValueReference, staticValueReference, memberMethod, staticMethod });
         static constexpr NoAnnotation NoNote {};
-        FOR_EACH(DESCRIBE_FIELD, first, second, memberValue, staticValue, memberValueReference, staticValueReference, memberMethod, staticMethod)
+        FOR_EACH(DESCRIBE_FIELD, memberValue, staticValue, memberValueReference, staticValueReference, memberMethod, staticMethod)
     };
 };
 
 int DescribeFieldTest::staticValue = 0;
 int & DescribeFieldTest::staticValueReference = DescribeFieldTest::staticValue;
 
-TEST(ReflectTest, RfMacroDescribeFieldId)
+TEST(ReflectTest, RfMacroDescribeField)
 {
     using MemberValueId = decltype(DescribeFieldTest::Class::memberValue_::identify<DescribeFieldTest>(0));
     using StaticValueId = decltype(DescribeFieldTest::Class::staticValue_::identify<DescribeFieldTest>(0));
@@ -321,27 +326,27 @@ TEST(ReflectTest, RfMacroDescribeFieldId)
 
     using MemberValueType = decltype(DescribeFieldTest::memberValue);
     using MemberValuePointer = decltype(&DescribeFieldTest::memberValue);
-    using ExpectedMemberValueId = std::pair<MemberValueType, MemberValuePointer>;
+    using ExpectedMemberValueId = TypePair<MemberValueType, MemberValuePointer>;
 
     using StaticValueType = decltype(DescribeFieldTest::staticValue);
     using StaticValuePointer = decltype(&DescribeFieldTest::staticValue);
-    using ExpectedStaticValueId = std::pair<StaticValueType, StaticValuePointer>;
+    using ExpectedStaticValueId = TypePair<StaticValueType, StaticValuePointer>;
 
     using MemberValueReferenceType = decltype(DescribeFieldTest::memberValueReference);
     using MemberValueReferencePointer = nullptr_t;
-    using ExpectedMemberValueReferenceId = std::pair<MemberValueReferenceType, MemberValueReferencePointer>;
+    using ExpectedMemberValueReferenceId = TypePair<MemberValueReferenceType, MemberValueReferencePointer>;
 
     using StaticValueReferenceType = decltype(DescribeFieldTest::staticValueReference);
     using StaticValueReferencePointer = decltype(&DescribeFieldTest::staticValueReference);
-    using ExpectedStaticValueReferenceId = std::pair<StaticValueReferenceType, StaticValueReferencePointer>;
+    using ExpectedStaticValueReferenceId = TypePair<StaticValueReferenceType, StaticValueReferencePointer>;
 
     using MemberMethodType = decltype(&DescribeFieldTest::memberMethod);
     using MemberMethodPointer = decltype(&DescribeFieldTest::memberMethod);
-    using ExpectedMemberMethodId = std::pair<MemberMethodType, MemberMethodPointer>;
+    using ExpectedMemberMethodId = TypePair<MemberMethodType, MemberMethodPointer>;
 
-    using StaticMethodType = decltype(&DescribeFieldTest::staticMethod);
+    using StaticMethodType = decltype(DescribeFieldTest::staticMethod);
     using StaticMethodPointer = decltype(&DescribeFieldTest::staticMethod);
-    using ExpectedStaticMethodId = std::pair<StaticMethodType, StaticMethodPointer>;
+    using ExpectedStaticMethodId = TypePair<StaticMethodType, StaticMethodPointer>;
     
     bool isSame = std::is_same_v<MemberValueType, DescribeFieldTest::Class::memberValue_::Type>; EXPECT_TRUE(isSame);
     isSame = std::is_same_v<MemberValuePointer, DescribeFieldTest::Class::memberValue_::Pointer>; EXPECT_TRUE(isSame);
@@ -401,60 +406,198 @@ TEST(ReflectTest, RfMacroDescribeFieldId)
     EXPECT_TRUE(std::regex_match(staticValueReferenceTypeStr.c_str(), std::regex("int\\s*&")));
     EXPECT_TRUE(std::regex_match(memberMethodTypeStr.c_str(), std::regex(".*void.*")));
     EXPECT_TRUE(std::regex_match(staticMethodTypeStr.c_str(), std::regex(".*void.*")));
+    
+    using MemberValueNote = decltype(DescribeFieldTest::Class::memberValue_::idNote<DescribeFieldTest>(0));
+    using StaticValueNote = decltype(DescribeFieldTest::Class::staticValue_::idNote<DescribeFieldTest>(0));
+    using MemberValueReferenceNote = decltype(DescribeFieldTest::Class::memberValueReference_::idNote<DescribeFieldTest>(0));
+    using StaticValueReferenceNote = decltype(DescribeFieldTest::Class::staticValueReference_::idNote<DescribeFieldTest>(0));
+    using MemberMethodNote = decltype(DescribeFieldTest::Class::memberMethod_::idNote<DescribeFieldTest>(0));
+    using StaticMethodNote = decltype(DescribeFieldTest::Class::staticMethod_::idNote<DescribeFieldTest>(0));
+    
+    isSame = std::is_same<decltype(DescribeFieldTest::Class::NoNote), MemberValueNote>::value;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same<decltype(DescribeFieldTest::staticValue_note), StaticValueNote>::value;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same<decltype(DescribeFieldTest::memberValueReference_note), MemberValueReferenceNote>::value;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same<decltype(DescribeFieldTest::staticValueReference_note), StaticValueReferenceNote>::value;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same<decltype(DescribeFieldTest::Class::NoNote), MemberMethodNote>::value;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same<decltype(DescribeFieldTest::Class::NoNote), StaticMethodNote>::value;
+    EXPECT_TRUE(isSame);
+    
+    MemberValueNote memberValueNote = DescribeFieldTest::Class::memberValue_::GetNote<DescribeFieldTest, true>::value;
+    StaticValueNote staticValueNote = DescribeFieldTest::Class::staticValue_::GetNote<DescribeFieldTest, false>::value;
+    MemberValueReferenceNote memberValueReferenceNote = DescribeFieldTest::Class::memberValueReference_::GetNote<DescribeFieldTest, false>::value;
+    StaticValueReferenceNote staticValueReferenceNoteNote = DescribeFieldTest::Class::staticValueReference_::GetNote<DescribeFieldTest, false>::value;
+    MemberMethodNote memberMethodNote = DescribeFieldTest::Class::memberMethod_::GetNote<DescribeFieldTest, true>::value;
+    StaticMethodNote staticMethodNote = DescribeFieldTest::Class::staticMethod_::GetNote<DescribeFieldTest, true>::value;
+    
+    EXPECT_EQ(DescribeFieldTest::Class::NoNote, memberValueNote);
+    EXPECT_EQ(DescribeFieldTest::Class::NoNote, staticValueNote);
+    EXPECT_EQ(DescribeFieldTest::memberValueReference_note, memberValueReferenceNote);
+    EXPECT_EQ(DescribeFieldTest::staticValueReference_note, staticValueReferenceNoteNote);
+    EXPECT_EQ(DescribeFieldTest::Class::NoNote, memberMethodNote);
+    EXPECT_EQ(DescribeFieldTest::Class::NoNote, staticMethodNote);
+    
+    isSame = std::is_same<MemberValueNote, DescribeFieldTest::Class::memberValue_::NoteType>::value;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same<StaticValueNote, DescribeFieldTest::Class::staticValue_::NoteType>::value;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same<MemberValueReferenceNote, DescribeFieldTest::Class::memberValueReference_::NoteType>::value;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same<StaticValueReferenceNote, DescribeFieldTest::Class::staticValueReference_::NoteType>::value;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same<MemberMethodNote, DescribeFieldTest::Class::memberMethod_::NoteType>::value;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same<StaticMethodNote, DescribeFieldTest::Class::staticMethod_::NoteType>::value;
+    EXPECT_TRUE(isSame);
+    
+    using MemberValueField = DescribeFieldTest::Class::memberValue_::Field;
+    using StaticValueField = DescribeFieldTest::Class::staticValue_::Field;
+    using MemberValueReferenceField = DescribeFieldTest::Class::memberValueReference_::Field;
+    using StaticValueReferenceField = DescribeFieldTest::Class::staticValueReference_::Field;
+    using MemberMethodField = DescribeFieldTest::Class::memberMethod_::Field;
+    using StaticMethodField = DescribeFieldTest::Class::staticMethod_::Field;
+    
+    using ExpectedMemberValueField = Fields::Field<decltype(DescribeFieldTest::memberValue), decltype(&DescribeFieldTest::memberValue), 0, decltype(DescribeFieldTest::Class::NoNote)>;
+    using ExpectedStaticValueField = Fields::Field<decltype(DescribeFieldTest::staticValue), decltype(&DescribeFieldTest::staticValue), 1, decltype(DescribeFieldTest::Class::NoNote)>;
+    using ExpectedMemberValueReferenceField = Fields::Field<decltype(DescribeFieldTest::memberValueReference), nullptr_t, 2, decltype(DescribeFieldTest::memberValueReference_note)>;
+    using ExpectedStaticValueReferenceField = Fields::Field<decltype(DescribeFieldTest::staticValueReference), decltype(&DescribeFieldTest::staticValueReference), 3, decltype(DescribeFieldTest::staticValueReference_note)>;
+    using ExpectedMemberMethodField = Fields::Field<decltype(&DescribeFieldTest::memberMethod), decltype(&DescribeFieldTest::memberMethod), 4, decltype(DescribeFieldTest::Class::NoNote)>;
+    using ExpectedStaticMethodField = Fields::Field<decltype(DescribeFieldTest::staticMethod), decltype(&DescribeFieldTest::staticMethod), 5, decltype(DescribeFieldTest::Class::NoNote)>;
+    
+    isSame = std::is_same_v<ExpectedMemberValueField, MemberValueField>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<ExpectedStaticValueField, StaticValueField>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<ExpectedMemberValueReferenceField, MemberValueReferenceField>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<ExpectedStaticValueReferenceField, StaticValueReferenceField>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<ExpectedMemberMethodField, MemberMethodField>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<ExpectedStaticMethodField, StaticMethodField>;
+    EXPECT_TRUE(isSame);
+    
+    isSame = std::is_same_v<decltype(DescribeFieldTest::memberValue), MemberValueField::Type>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<decltype(DescribeFieldTest::staticValue), StaticValueField::Type>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<decltype(DescribeFieldTest::memberValueReference), MemberValueReferenceField::Type>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<decltype(DescribeFieldTest::staticValueReference), StaticValueReferenceField::Type>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<decltype(&DescribeFieldTest::memberMethod), MemberMethodField::Type>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<decltype(DescribeFieldTest::staticMethod), StaticMethodField::Type>;
+    EXPECT_TRUE(isSame);
+    
+    isSame = std::is_same_v<decltype(&DescribeFieldTest::memberValue), MemberValueField::Pointer>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<decltype(&DescribeFieldTest::staticValue), StaticValueField::Pointer>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<nullptr_t, MemberValueReferenceField::Pointer>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<nullptr_t, StaticValueReferenceField::Pointer>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<decltype(&DescribeFieldTest::memberMethod), MemberMethodField::Pointer>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<decltype(&DescribeFieldTest::staticMethod), StaticMethodField::Pointer>;
+    EXPECT_TRUE(isSame);
 
-    //EXPECT_TRUE(false); // TODO: Finish me
+    isSame = std::is_same<decltype(DescribeFieldTest::Class::NoNote), MemberValueField::Annotations>::value;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same<decltype(DescribeFieldTest::staticValue_note), StaticValueField::Annotations>::value;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same<decltype(DescribeFieldTest::memberValueReference_note), MemberValueReferenceField::Annotations>::value;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same<decltype(DescribeFieldTest::staticValueReference_note), StaticValueReferenceField::Annotations>::value;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same<decltype(DescribeFieldTest::Class::NoNote), MemberMethodField::Annotations>::value;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same<decltype(DescribeFieldTest::Class::NoNote), StaticMethodField::Annotations>::value;
+    EXPECT_TRUE(isSame);
+    
+    EXPECT_EQ(0, MemberValueField::Index);
+    EXPECT_EQ(1, StaticValueField::Index);
+    EXPECT_EQ(2, MemberValueReferenceField::Index);
+    EXPECT_EQ(3, StaticValueReferenceField::Index);
+    EXPECT_EQ(4, MemberMethodField::Index);
+    EXPECT_EQ(5, StaticMethodField::Index);
+    
+    EXPECT_FALSE(MemberValueField::IsStatic);
+    EXPECT_TRUE(StaticValueField::IsStatic);
+    EXPECT_FALSE(MemberValueReferenceField::IsStatic);
+    EXPECT_TRUE(StaticValueReferenceField::IsStatic);
+    EXPECT_FALSE(MemberMethodField::IsStatic);
+    EXPECT_TRUE(StaticMethodField::IsStatic);
+    
+    EXPECT_FALSE(MemberValueField::IsFunction);
+    EXPECT_FALSE(StaticValueField::IsFunction);
+    EXPECT_FALSE(MemberValueReferenceField::IsFunction);
+    EXPECT_FALSE(StaticValueReferenceField::IsFunction);
+    EXPECT_TRUE(MemberMethodField::IsFunction);
+    EXPECT_TRUE(StaticMethodField::IsFunction);
+
+    MemberValueField memberValueField = DescribeFieldTest::Class::memberValue_::field;
+    StaticValueField staticValueField = DescribeFieldTest::Class::staticValue_::field;
+    MemberValueReferenceField memberValueReferenceField = DescribeFieldTest::Class::memberValueReference_::field;
+    StaticValueReferenceField staticValueReferenceField = DescribeFieldTest::Class::staticValueReference_::field;
+    MemberMethodField memberMethodField = DescribeFieldTest::Class::memberMethod_::field;
+    StaticMethodField staticMethodField = DescribeFieldTest::Class::staticMethod_::field;
+    
+    EXPECT_STREQ("memberValue", memberValueField.name);
+    EXPECT_STREQ("staticValue", staticValueField.name);
+    EXPECT_STREQ("memberValueReference", memberValueReferenceField.name);
+    EXPECT_STREQ("staticValueReference", staticValueReferenceField.name);
+    EXPECT_STREQ("memberMethod", memberMethodField.name);
+    EXPECT_STREQ("staticMethod", staticMethodField.name);
+    
+    EXPECT_TRUE(std::regex_match(memberValueField.typeStr, std::regex("int")));
+    EXPECT_TRUE(std::regex_match(staticValueField.typeStr, std::regex("int")));
+    EXPECT_TRUE(std::regex_match(memberValueReferenceField.typeStr, std::regex("int\\s*&")));
+    EXPECT_TRUE(std::regex_match(staticValueReferenceField.typeStr, std::regex("int\\s*&")));
+    EXPECT_TRUE(std::regex_match(memberMethodField.typeStr, std::regex(".*void.*")));
+    EXPECT_TRUE(std::regex_match(staticMethodField.typeStr, std::regex(".*void.*")));
+    
+    EXPECT_EQ(DescribeFieldTest::Class::NoNote, memberValueField.annotations);
+    EXPECT_EQ(DescribeFieldTest::Class::NoNote, staticValueField.annotations);
+    EXPECT_EQ(DescribeFieldTest::memberValueReference_note, memberValueReferenceField.annotations);
+    EXPECT_EQ(DescribeFieldTest::staticValueReference_note, staticValueReferenceField.annotations);
+    EXPECT_EQ(DescribeFieldTest::Class::NoNote, memberMethodField.annotations);
+    EXPECT_EQ(DescribeFieldTest::Class::NoNote, staticMethodField.annotations);
 }
 
-TEST(ReflectTest, RfMacroDescribeField)
+struct AddIfStaticTest
 {
-    bool isEqual = std::is_same<decltype(&DescribeFieldTest::first), DescribeFieldTest::Class::first_::Pointer>::value;
-    EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<Fields::Field<int, DescribeFieldTest::Class::first_::Pointer, 0, NoAnnotation>,
-        DescribeFieldTest::Class::first_::Field>::value;
+    int testVal;
+    static int testStaticVal;
+    static int otherTestStaticVal;
 
-    EXPECT_STREQ("first", DescribeFieldTest::Class::first_::nameStr.value);
-    std::string firstTypeStr = DescribeFieldTest::Class::first_::typeStr.value;
-    firstTypeStr.erase(std::remove(firstTypeStr.begin(), firstTypeStr.end(), ' '), firstTypeStr.end());
-    EXPECT_TRUE(firstTypeStr.find("int") != std::string::npos);
+    struct Class
+    {
+        struct testVal_ {
+            using Field = Fields::Field<int, decltype(&AddIfStaticTest::testVal), 0>;
+        };
+        struct testStaticVal_ {
+            using Field = Fields::Field<int, decltype(&AddIfStaticTest::testStaticVal), 1>;
+        };
+        struct otherTestStaticVal_ {
+            using Field = Fields::Field<int, decltype(&AddIfStaticTest::otherTestStaticVal), 2>;
+        };
 
-    EXPECT_STREQ("first", DescribeFieldTest::Class::first_::field.name);
-    std::string firstTypeFieldStr = DescribeFieldTest::Class::first_::field.typeStr;
-    firstTypeFieldStr.erase(std::remove(firstTypeFieldStr.begin(), firstTypeFieldStr.end(), ' '), firstTypeFieldStr.end());
-    EXPECT_TRUE(firstTypeFieldStr.find("int") != std::string::npos);
-    
-    isEqual = std::is_same<int, DescribeFieldTest::Class::first_::Field::Type>::value;
-    EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<decltype(&DescribeFieldTest::first), DescribeFieldTest::Class::first_::Field::Pointer>::value;
-    EXPECT_TRUE(isEqual);
+        static constexpr size_t TotalStatics = 0
+            ADD_IF_STATIC(testVal)
+            ADD_IF_STATIC(testStaticVal)
+            ADD_IF_STATIC(otherTestStaticVal);
+    };
+};
 
-    EXPECT_EQ(&DescribeFieldTest::first, DescribeFieldTest::Class::first_::field.p);
-    EXPECT_EQ(0, DescribeFieldTest::Class::first_::Field::Index);
-    EXPECT_FALSE(DescribeFieldTest::Class::first_::Field::IsStatic);
-
-    
-    isEqual = std::is_same<decltype(&DescribeFieldTest::second), DescribeFieldTest::Class::second_::Pointer>::value;
-    EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<Fields::Field<float, DescribeFieldTest::Class::second_::Pointer, 0, NoAnnotation>,
-        DescribeFieldTest::Class::second_::Field>::value;
-
-    EXPECT_STREQ("second", DescribeFieldTest::Class::second_::nameStr.value);
-    std::string secondTypeStr = DescribeFieldTest::Class::second_::typeStr.value;
-    secondTypeStr.erase(std::remove(secondTypeStr.begin(), secondTypeStr.end(), ' '), secondTypeStr.end());
-    EXPECT_TRUE(secondTypeStr.find("float") != std::string::npos);
-
-    EXPECT_STREQ("second", DescribeFieldTest::Class::second_::field.name);
-    std::string secondTypeFieldStr = DescribeFieldTest::Class::second_::field.typeStr;
-    secondTypeFieldStr.erase(std::remove(secondTypeFieldStr.begin(), secondTypeFieldStr.end(), ' '), secondTypeFieldStr.end());
-    EXPECT_TRUE(secondTypeFieldStr.find("float") != std::string::npos);
-    
-    isEqual = std::is_same<float, DescribeFieldTest::Class::second_::Field::Type>::value;
-    EXPECT_TRUE(isEqual);
-    isEqual = std::is_same<decltype(&DescribeFieldTest::second), DescribeFieldTest::Class::second_::Field::Pointer>::value;
-    EXPECT_TRUE(isEqual);
-
-    EXPECT_EQ(&DescribeFieldTest::second, DescribeFieldTest::Class::second_::field.p);
-    EXPECT_EQ(1, DescribeFieldTest::Class::second_::Field::Index);
-    EXPECT_FALSE(DescribeFieldTest::Class::second_::Field::IsStatic);
+TEST(ReflectTest, RfMacroAddIfStatic)
+{
+    EXPECT_EQ(2, AddIfStaticTest::Class::TotalStatics);
 }
 
 class GetFieldTest {
@@ -566,47 +709,19 @@ TEST(ReflectTest, RfMacroUseFieldAt)
     EXPECT_TRUE(visited);
 }
 
-struct AddIfStaticTest
-{
-    int testVal;
-    static int testStaticVal;
-    static int otherTestStaticVal;
-
-    struct Class
-    {
-        struct testVal_ {
-            using Field = Fields::Field<int, decltype(&AddIfStaticTest::testVal), 0>;
-        };
-        struct testStaticVal_ {
-            using Field = Fields::Field<int, decltype(&AddIfStaticTest::testStaticVal), 1>;
-        };
-        struct otherTestStaticVal_ {
-            using Field = Fields::Field<int, decltype(&AddIfStaticTest::otherTestStaticVal), 2>;
-        };
-
-        static constexpr size_t TotalStatics = 0
-            ADD_IF_STATIC(testVal)
-            ADD_IF_STATIC(testStaticVal)
-            ADD_IF_STATIC(otherTestStaticVal);
-    };
-};
-
-TEST(ReflectTest, RfMacroAddIfStatic)
-{
-    EXPECT_EQ(2, AddIfStaticTest::Class::TotalStatics);
-}
-
 class CumulativeMacroTest {
 public:
     int first;
     float second;
 
     struct Class {
-        using ClassType = DescribeFieldTest;
+        using ClassType = CumulativeMacroTest;
         enum_t(IndexOf, size_t, {
             FOR_EACH(GET_FIELD_NAME, first, second)
         });
         static constexpr NoAnnotation NoNote {};
+        using Annotations = decltype(NoNote);
+        static constexpr Annotations & annotations = NoNote;
         FOR_EACH(DESCRIBE_FIELD, first, second)
         static constexpr size_t TotalFields = COUNT_ARGUMENTS(first, second);
         static constexpr size_t TotalStaticFields = 0 FOR_EACH(ADD_IF_STATIC, first, second);
@@ -622,14 +737,14 @@ public:
         template <typename Function> static void ForEachField(const CumulativeMacroTest & object, Function function) {
             FOR_EACH(USE_FIELD_VALUE, first, second)
         }
-        template <typename Function> static void FieldAt(CumulativeMacroTest & object, size_t fieldIndex, Function function) {
-            switch ( fieldIndex ) {
-                FOR_EACH(USE_FIELD_VALUE_AT, first, second)
-            }
-        }
         template <typename Function> static void FieldAt(size_t fieldIndex, Function function) {
             switch ( fieldIndex ) {
                 FOR_EACH(USE_FIELD_AT, first, second)
+            }
+        }
+        template <typename Function> static void FieldAt(CumulativeMacroTest & object, size_t fieldIndex, Function function) {
+            switch ( fieldIndex ) {
+                FOR_EACH(USE_FIELD_VALUE_AT, first, second)
             }
         }
     };
@@ -721,21 +836,20 @@ public:
     static int staticPrimitive;
     int & primitiveReference;
     static int & staticPrimitiveReference;
+    void memberMethod() {}
+    static void staticMethod() {}
 
-    REFLECT_NOTED(ReflectObj, primitive, object, primitiveArray, map, objCollection, stack, staticPrimitive, primitiveReference, staticPrimitiveReference)
+    REFLECT_NOTED(ReflectObj, primitive, object, primitiveArray, map, objCollection, stack, staticPrimitive, primitiveReference, staticPrimitiveReference, memberMethod, staticMethod)
 };
 
 int ReflectObj::staticPrimitive = 0;
 int & ReflectObj::staticPrimitiveReference = ReflectObj::staticPrimitive;
 
-TEST(ReflectTest, RfMacroReflect)
+TEST(ReflectTest, RfMacroReflectNoted)
 {
     EXPECT_TRUE(is_reflected<ReflectSuperObj>::value);
     EXPECT_TRUE(is_reflected<ReflectSubObj>::value);
     EXPECT_TRUE(is_reflected<ReflectObj>::value);
-
-    EXPECT_EQ(9, ReflectObj::Class::TotalFields);
-    EXPECT_EQ(2, ReflectObj::Class::TotalStaticFields);
 
     EXPECT_EQ(0, ReflectObj::Class::IndexOf::primitive);
     EXPECT_EQ(1, ReflectObj::Class::IndexOf::object);
@@ -746,6 +860,8 @@ TEST(ReflectTest, RfMacroReflect)
     EXPECT_EQ(6, ReflectObj::Class::IndexOf::staticPrimitive);
     EXPECT_EQ(7, ReflectObj::Class::IndexOf::primitiveReference);
     EXPECT_EQ(8, ReflectObj::Class::IndexOf::staticPrimitiveReference);
+    EXPECT_EQ(9, ReflectObj::Class::IndexOf::memberMethod);
+    EXPECT_EQ(10, ReflectObj::Class::IndexOf::staticMethod);
     
     EXPECT_STREQ("primitive", ReflectObj::Class::primitive_::nameStr.value);
     EXPECT_STREQ("object", ReflectObj::Class::object_::nameStr.value);
@@ -756,6 +872,11 @@ TEST(ReflectTest, RfMacroReflect)
     EXPECT_STREQ("staticPrimitive", ReflectObj::Class::staticPrimitive_::nameStr.value);
     EXPECT_STREQ("primitiveReference", ReflectObj::Class::primitiveReference_::nameStr.value);
     EXPECT_STREQ("staticPrimitiveReference", ReflectObj::Class::staticPrimitiveReference_::nameStr.value);
+    EXPECT_STREQ("memberMethod", ReflectObj::Class::memberMethod_::nameStr.value);
+    EXPECT_STREQ("staticMethod", ReflectObj::Class::staticMethod_::nameStr.value);
+
+    EXPECT_EQ(11, ReflectObj::Class::TotalFields);
+    EXPECT_EQ(3, ReflectObj::Class::TotalStaticFields);
 
     std::string typeStr = ReflectObj::Class::primitive_::typeStr.value;
     typeStr.erase(std::remove(typeStr.begin(), typeStr.end(), ' '), typeStr.end());
@@ -784,6 +905,12 @@ TEST(ReflectTest, RfMacroReflect)
     typeStr = ReflectObj::Class::staticPrimitiveReference_::typeStr.value;
     typeStr.erase(std::remove(typeStr.begin(), typeStr.end(), ' '), typeStr.end());
     EXPECT_TRUE(typeStr.find("int&") != std::string::npos);
+    typeStr = ReflectObj::Class::memberMethod_::typeStr.value;
+    typeStr.erase(std::remove(typeStr.begin(), typeStr.end(), ' '), typeStr.end());
+    EXPECT_TRUE(typeStr.find("void") != std::string::npos);
+    typeStr = ReflectObj::Class::staticMethod_::typeStr.value;
+    typeStr.erase(std::remove(typeStr.begin(), typeStr.end(), ' '), typeStr.end());
+    EXPECT_TRUE(typeStr.find("void") != std::string::npos);
     
     EXPECT_STREQ("primitive", ReflectObj::Class::primitive_::field.name);
     EXPECT_STREQ("object", ReflectObj::Class::object_::field.name);
@@ -794,6 +921,8 @@ TEST(ReflectTest, RfMacroReflect)
     EXPECT_STREQ("staticPrimitive", ReflectObj::Class::staticPrimitive_::field.name);
     EXPECT_STREQ("primitiveReference", ReflectObj::Class::primitiveReference_::field.name);
     EXPECT_STREQ("staticPrimitiveReference", ReflectObj::Class::staticPrimitiveReference_::field.name);
+    EXPECT_STREQ("memberMethod", ReflectObj::Class::memberMethod_::field.name);
+    EXPECT_STREQ("staticMethod", ReflectObj::Class::staticMethod_::field.name);
 
     EXPECT_STREQ(ReflectObj::Class::primitive_::typeStr.value, ReflectObj::Class::primitive_::field.typeStr);
     EXPECT_STREQ(ReflectObj::Class::object_::typeStr.value, ReflectObj::Class::object_::field.typeStr);
@@ -804,6 +933,8 @@ TEST(ReflectTest, RfMacroReflect)
     EXPECT_STREQ(ReflectObj::Class::staticPrimitive_::typeStr.value, ReflectObj::Class::staticPrimitive_::field.typeStr);
     EXPECT_STREQ(ReflectObj::Class::primitiveReference_::typeStr.value, ReflectObj::Class::primitiveReference_::field.typeStr);
     EXPECT_STREQ(ReflectObj::Class::staticPrimitiveReference_::typeStr.value, ReflectObj::Class::staticPrimitiveReference_::field.typeStr);
+    EXPECT_STREQ(ReflectObj::Class::memberMethod_::typeStr.value, ReflectObj::Class::memberMethod_::field.typeStr);
+    EXPECT_STREQ(ReflectObj::Class::staticMethod_::typeStr.value, ReflectObj::Class::staticMethod_::field.typeStr);
     
     EXPECT_STREQ(ReflectObj::Class::primitive_::field.name, ReflectObj::Class::Fields[0].name);
     EXPECT_STREQ(ReflectObj::Class::object_::field.name, ReflectObj::Class::Fields[1].name);
@@ -814,6 +945,8 @@ TEST(ReflectTest, RfMacroReflect)
     EXPECT_STREQ(ReflectObj::Class::staticPrimitive_::field.name, ReflectObj::Class::Fields[6].name);
     EXPECT_STREQ(ReflectObj::Class::primitiveReference_::field.name, ReflectObj::Class::Fields[7].name);
     EXPECT_STREQ(ReflectObj::Class::staticPrimitiveReference_::field.name, ReflectObj::Class::Fields[8].name);
+    EXPECT_STREQ(ReflectObj::Class::memberMethod_::field.name, ReflectObj::Class::Fields[9].name);
+    EXPECT_STREQ(ReflectObj::Class::staticMethod_::field.name, ReflectObj::Class::Fields[10].name);
     
     EXPECT_STREQ(ReflectObj::Class::primitive_::field.typeStr, ReflectObj::Class::Fields[0].typeStr);
     EXPECT_STREQ(ReflectObj::Class::object_::field.typeStr, ReflectObj::Class::Fields[1].typeStr);
@@ -824,6 +957,8 @@ TEST(ReflectTest, RfMacroReflect)
     EXPECT_STREQ(ReflectObj::Class::staticPrimitive_::field.typeStr, ReflectObj::Class::Fields[6].typeStr);
     EXPECT_STREQ(ReflectObj::Class::primitiveReference_::field.typeStr, ReflectObj::Class::Fields[7].typeStr);
     EXPECT_STREQ(ReflectObj::Class::staticPrimitiveReference_::field.typeStr, ReflectObj::Class::Fields[8].typeStr);
+    EXPECT_STREQ(ReflectObj::Class::memberMethod_::field.typeStr, ReflectObj::Class::Fields[9].typeStr);
+    EXPECT_STREQ(ReflectObj::Class::staticMethod_::field.typeStr, ReflectObj::Class::Fields[10].typeStr);
     
     ReflectSubObj reflectSubObj = { 20 };
     ReflectSubObj reflectSubObjZero = { 90 };
@@ -950,7 +1085,7 @@ TEST(ReflectTest, RfMacroReflect)
         index ++;
     });
     EXPECT_TRUE(visited);
-    EXPECT_EQ(9, index);
+    EXPECT_EQ(11, index);
 }
 
 struct ReflectReferences
