@@ -14,12 +14,13 @@ This JSON library will automatically...
 - Infer the appropriate JSON representation for various types
 - Read or put any array, STL iterable, or nested STL iterable as a JSON array
 - Read or put any map or STL iterable containg pairs, or nested maps/STL iterables as a JSON object with keys being the field names
+- Read or put pairs or tuples as JSON arrays
 - Read or put any nested reflected objects as nested JSON objects
 - Ignore any unknown fields in an object or automatically read them into a Json::FieldCluster if present
 
 There are a few annotations you can use to alter the JSON representation...
 - Json::Ignore will cause a field to be ignored by json I/O, on input
-- Json::String will result in the value given by the ostream operator being quoted and escaped as a JSON string
+- Json::Stringify will result in the value given by the ostream operator being quoted and escaped as a JSON string
 - Json::Unstring will demote an std::string type (which by default behaves like Json::String) so that it's put/read without quotes
 - Json::EnumInt can be used to force use of the integer value for an enum field that may otherwise have iostream overloads
 
@@ -35,7 +36,7 @@ struct MyObject
     std::string myString;
     std::vector<int> myIntCollection;
 
-    REFLECT(() MyObject, () myInt, () myString, () myIntCollection)
+    REFLECT(MyObject, myInt, myString, myIntCollection)
 };
 
 int main()
@@ -74,7 +75,7 @@ struct SomeStructure
     int usefulField;
     Json::FieldCluster fieldCluster;
 
-    REFLECT(() RegularFields, () usefulField, () fieldCluster)
+    REFLECT(RegularFields, usefulField, fieldCluster)
 };
 ```
 
@@ -191,7 +192,7 @@ std::cout << Json::pretty(a, EnhancedContext::Make(1337)) << std::endl;
 There are three main ways you can handle enumerations...
 1. Have an enumeration with the Json::EnumInt annotation used, this will force use of the integer value regardless of ostream/istream overloads
 2. Have an enumeration with ostream/istream operator overloads and the Json::String annotation used, this will create a one-to-one relationship with a string value for output, and a one-to-one or one-to-many relationship with a string value for input
-3. Have an enumeration with the Json::Enum annotation used, and add a customizer for your enumeration, this allows you to customize the string representation based on the state of the object and which specific field the enum belongs to - this is especially useful when you have multiple enum strings that share the same value (perhaps because the meaning of the enum value changes based on some type field, or because one string makes more grammatical sense than another in different contexts.
+3. Add a customizer for your enumeration, this allows you to customize the string representation based on the state of the object and which specific field the enum belongs to - this is especially useful when you have multiple enum strings that share the same value (perhaps because the meaning of the enum value changes based on some type field, or because one string makes more grammatical sense than another in different contexts.
 
 (1.)
 ```C++
@@ -203,10 +204,11 @@ public:
     };
 
     A() : testEnum(TestEnum::first) { }
-
+    
+    NOTE(Json::EnumInt)
     TestEnum testEnum;
 
-    REFLECT(() A, (Json::EnumInt) testEnum)
+    REFLECT(A, testEnum)
 };
 ```
 
@@ -220,10 +222,11 @@ public:
     };
 
     A() : testEnum(TestEnum::first) { }
-
+    
+    NOTE(Json::Stringify)
     TestEnum testEnum;
 
-    REFLECT(() A, (Json::String) testEnum)
+    REFLECT(A, testEnum)
         
     static const std::unordered_map<std::string, TestEnum> TestEnumCache;
 };
@@ -269,9 +272,11 @@ public:
     A() : alternate(false), testEnum(TestEnum::first) { }
 
     bool alternate;
+    
+    
     TestEnum testEnum;
 
-    REFLECT(() A, () alternate, (Json::Enum) testEnum)
+    REFLECT(A, alternate, testEnum)
         
     static const std::unordered_map<std::string, TestEnum> TestEnumCache;
     static const std::unordered_map<std::string, TestEnum> AltTestEnumCache;
