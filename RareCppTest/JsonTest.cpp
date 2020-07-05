@@ -214,7 +214,7 @@ NOTE(DoublyNestedEmptySuper, Super<NestedEmptySuper>)
 struct DoublyNestedEmptySuper : NestedEmptySuper { REFLECT_EMPTY(DoublyNestedEmptySuper) };
 NOTE(DoublyNestedFieldedSuper, Super<NestedFieldedSuper>)
 struct DoublyNestedFieldedSuper : NestedFieldedSuper { REFLECT_EMPTY(DoublyNestedFieldedSuper) };
-NOTE(DoubleSuper, Super<EmptySuper>, Super<FieldedSuper>)
+NOTE(DoubleSuper, Super<EmptySuper>, Super<FieldedSuper>(Json::Name{"Fielded"}))
 struct DoubleSuper : EmptySuper, FieldedSuper { REFLECT_EMPTY(DoubleSuper) };
 NOTE(TripleSuper, Super<EmptySuper>, Super<OtherEmptySuper>, Super<FieldedSuper>)
 struct TripleSuper : EmptySuper, OtherEmptySuper, FieldedSuper { REFLECT_EMPTY(TripleSuper) };
@@ -3274,7 +3274,8 @@ TEST_HEADER(JsonOutputPut, SupersTest)
     DoubleSuper doubleSuper;
     doubleSuper.a = 111;
     Json::Put::Supers<NoAnnotation, Json::Statics::Included, false, 0, Json::twoSpaces, DoubleSuper>(putDoubleSuper, Json::context, doubleSuper);
-    EXPECT_TRUE(std::regex_match(putDoubleSuper.str().c_str(), std::regex("\"__.*FieldedSuper\":\\{\"a\":111\\}")));
+    std::cout << putDoubleSuper.str() << std::endl;
+    EXPECT_TRUE(std::regex_match(putDoubleSuper.str().c_str(), std::regex("\"Fielded\":\\{\"a\":111\\}")));
 
     TestStreamType putTripleSuper;
     TripleSuper tripleSuper;

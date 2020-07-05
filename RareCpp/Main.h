@@ -64,7 +64,7 @@ public:
     REFLECT(Composed, composedVal)
 };
 
-NOTE(A, Super<SuperA>, Super<OtherSuperA>)
+NOTE(A, Super<SuperA>(Json::Name{"SupA"}), Super<OtherSuperA>)
 class A : public SuperA, public OtherSuperA {
 public:
     enum_t(TestEnum, u8, {

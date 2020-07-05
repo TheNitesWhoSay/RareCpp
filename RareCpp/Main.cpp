@@ -204,6 +204,7 @@ Car outputExamples()
     sub.val = 1;
     sub.otherVal = 2;
     sub.subVal = 3;
+    std::cout << Json::pretty(sub) << std::endl;
     
     SubTest::Supers::ForEach(sub, [&](auto superInfo, auto & superObj) {
         using SuperInfo = decltype(superInfo);
