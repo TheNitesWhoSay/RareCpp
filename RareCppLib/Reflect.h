@@ -857,8 +857,8 @@ namespace Reflect
 #define CLANG_ONLY(x) template <typename T, typename F, typename = decltype(T::x)> static constexpr void useInst(F f, T & t) { f(field, t.x); } \
     template <typename T, typename F, typename = decltype(T::x)> static constexpr void useInst(F f, const T & t) { f(field, t.x); } \
     template <typename T, typename F> static constexpr inline void useInst(F f, ...) { }
-#define USE_FIELD_VALUE(x) x##_::useInst<ClassType>(function, object);
-#define USE_FIELD_VALUE_AT(x) case IndexOf::x: x##_::useInst<ClassType>(function, object); break;
+#define USE_FIELD_VALUE(x) if constexpr ( !x##_::Field::IsFunction ) x##_::useInst<ClassType>(function, object);
+#define USE_FIELD_VALUE_AT(x) case IndexOf::x: if constexpr ( !x##_::Field::IsFunction ) x##_::useInst<ClassType>(function, object); break;
 #else
 #define CLANG_ONLY(x)
 #define USE_FIELD_VALUE(x) if constexpr ( !x##_::Field::IsFunction ) function(x##_::field, object.x);
