@@ -64,6 +64,11 @@ struct NoFields { REFLECT_EMPTY(NoFields) };
 struct InstanceField { int a; REFLECT(InstanceField, a) };
 struct StaticField { static int a; REFLECT(StaticField, a) };
 struct BothFields { int a; static int b; REFLECT(BothFields, a, b) };
+struct Functions {
+    void a() {}
+    static void b() {}
+    REFLECT(Functions, a, b)
+};
 struct MoreInstance { int a; int b; static int c; REFLECT(MoreInstance, a, b, c) };
 struct MoreStatic { int a; static int b; static int c; REFLECT(MoreStatic, a, b, c) };
 int StaticField::a = 0;
@@ -99,7 +104,9 @@ struct IgnoreMixed {
     static int e;
     NOTE(f, Json::Ignore)
     static int f;
-    REFLECT(IgnoreMixed, a, b, c, d, e, f)
+    void g() {}
+    static void h() {}
+    REFLECT(IgnoreMixed, a, b, c, d, e, f, g, h)
 };
 struct OnlyIgnoreStatics {
     int a;
@@ -131,6 +138,8 @@ TEST_HEADER(JsonSharedTest, IgnoredFieldCount)
     EXPECT_EQ(0, ignoredFieldCount);
     ignoredFieldCount = Json::IgnoredFieldCount<Statics::Excluded, BothFields>();
     EXPECT_EQ(0, ignoredFieldCount);
+    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Excluded, Functions>();
+    EXPECT_EQ(1, ignoredFieldCount);
     ignoredFieldCount = Json::IgnoredFieldCount<Statics::Excluded, MoreInstance>();
     EXPECT_EQ(0, ignoredFieldCount);
     ignoredFieldCount = Json::IgnoredFieldCount<Statics::Excluded, MoreStatic>();
@@ -143,7 +152,7 @@ TEST_HEADER(JsonSharedTest, IgnoredFieldCount)
     EXPECT_EQ(1, ignoredFieldCount);
     
     ignoredFieldCount = Json::IgnoredFieldCount<Statics::Excluded, IgnoreMixed>();
-    EXPECT_EQ(2, ignoredFieldCount);
+    EXPECT_EQ(3, ignoredFieldCount);
 
     ignoredFieldCount = Json::IgnoredFieldCount<Statics::Included, NoFields>();
     EXPECT_EQ(0, ignoredFieldCount);
@@ -153,6 +162,8 @@ TEST_HEADER(JsonSharedTest, IgnoredFieldCount)
     EXPECT_EQ(0, ignoredFieldCount);
     ignoredFieldCount = Json::IgnoredFieldCount<Statics::Included, BothFields>();
     EXPECT_EQ(0, ignoredFieldCount);
+    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Included, Functions>();
+    EXPECT_EQ(2, ignoredFieldCount);
     ignoredFieldCount = Json::IgnoredFieldCount<Statics::Included, MoreInstance>();
     EXPECT_EQ(0, ignoredFieldCount);
     ignoredFieldCount = Json::IgnoredFieldCount<Statics::Included, MoreStatic>();
@@ -164,7 +175,7 @@ TEST_HEADER(JsonSharedTest, IgnoredFieldCount)
     ignoredFieldCount = Json::IgnoredFieldCount<Statics::Included, IgnoreBothField>();
     EXPECT_EQ(2, ignoredFieldCount);
     ignoredFieldCount = Json::IgnoredFieldCount<Statics::Included, IgnoreMixed>();
-    EXPECT_EQ(3, ignoredFieldCount);
+    EXPECT_EQ(5, ignoredFieldCount);
 
     ignoredFieldCount = Json::IgnoredFieldCount<Statics::Only, NoFields>();
     EXPECT_EQ(0, ignoredFieldCount);
@@ -174,6 +185,8 @@ TEST_HEADER(JsonSharedTest, IgnoredFieldCount)
     EXPECT_EQ(0, ignoredFieldCount);
     ignoredFieldCount = Json::IgnoredFieldCount<Statics::Only, BothFields>();
     EXPECT_EQ(0, ignoredFieldCount);
+    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Only, Functions>();
+    EXPECT_EQ(1, ignoredFieldCount);
     ignoredFieldCount = Json::IgnoredFieldCount<Statics::Only, MoreInstance>();
     EXPECT_EQ(0, ignoredFieldCount);
     ignoredFieldCount = Json::IgnoredFieldCount<Statics::Only, MoreStatic>();
@@ -185,7 +198,7 @@ TEST_HEADER(JsonSharedTest, IgnoredFieldCount)
     ignoredFieldCount = Json::IgnoredFieldCount<Statics::Only, IgnoreBothField>();
     EXPECT_EQ(1, ignoredFieldCount);
     ignoredFieldCount = Json::IgnoredFieldCount<Statics::Only, IgnoreMixed>();
-    EXPECT_EQ(1, ignoredFieldCount);
+    EXPECT_EQ(2, ignoredFieldCount);
 }
 
 NOTE(EmptySuper)
@@ -216,6 +229,8 @@ TEST_HEADER(JsonSharedTest, HasFields)
     EXPECT_FALSE(hasFields);
     hasFields = Json::HasFields<Statics::Excluded, BothFields>();
     EXPECT_TRUE(hasFields);
+    hasFields = Json::HasFields<Statics::Excluded, Functions>();
+    EXPECT_FALSE(hasFields);
     hasFields = Json::HasFields<Statics::Excluded, MoreInstance>();
     EXPECT_TRUE(hasFields);
     hasFields = Json::HasFields<Statics::Excluded, MoreStatic>();
@@ -241,6 +256,8 @@ TEST_HEADER(JsonSharedTest, HasFields)
     EXPECT_TRUE(hasFields);
     hasFields = Json::HasFields<Statics::Included, BothFields>();
     EXPECT_TRUE(hasFields);
+    hasFields = Json::HasFields<Statics::Included, Functions>();
+    EXPECT_FALSE(hasFields);
     hasFields = Json::HasFields<Statics::Included, MoreInstance>();
     EXPECT_TRUE(hasFields);
     hasFields = Json::HasFields<Statics::Included, MoreStatic>();
@@ -266,6 +283,8 @@ TEST_HEADER(JsonSharedTest, HasFields)
     EXPECT_TRUE(hasFields);
     hasFields = Json::HasFields<Statics::Only, BothFields>();
     EXPECT_TRUE(hasFields);
+    hasFields = Json::HasFields<Statics::Only, Functions>();
+    EXPECT_FALSE(hasFields);
     hasFields = Json::HasFields<Statics::Only, MoreInstance>();
     EXPECT_TRUE(hasFields);
     hasFields = Json::HasFields<Statics::Only, MoreStatic>();
@@ -306,6 +325,8 @@ TEST_HEADER(JsonSharedTest, FirstIndex)
     EXPECT_EQ(0, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Excluded, BothFields>();
     EXPECT_EQ(0, firstIndex);
+    firstIndex = Json::FirstIndex<Statics::Excluded, Functions>();
+    EXPECT_EQ(0, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Excluded, MoreInstance>();
     EXPECT_EQ(0, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Excluded, MoreStatic>();
@@ -331,6 +352,8 @@ TEST_HEADER(JsonSharedTest, FirstIndex)
     EXPECT_EQ(0, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Included, BothFields>();
     EXPECT_EQ(0, firstIndex);
+    firstIndex = Json::FirstIndex<Statics::Included, Functions>();
+    EXPECT_EQ(0, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Included, MoreInstance>();
     EXPECT_EQ(0, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Included, MoreStatic>();
@@ -355,6 +378,8 @@ TEST_HEADER(JsonSharedTest, FirstIndex)
     firstIndex = Json::FirstIndex<Statics::Only, StaticField>();
     EXPECT_EQ(0, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Only, BothFields>();
+    EXPECT_EQ(1, firstIndex);
+    firstIndex = Json::FirstIndex<Statics::Only, Functions>();
     EXPECT_EQ(1, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Only, MoreInstance>();
     EXPECT_EQ(2, firstIndex);
@@ -1411,6 +1436,154 @@ TEST_HEADER(JsonGenericTest, GenericValueAssigner)
     Json::Value::Assigner numberSharedPtrAssigner(new Json::Number("7"));
     std::shared_ptr<Json::String> stringSharedPtr = std::unique_ptr<Json::String>(new Json::String("asdf"));
     EXPECT_THROW(numberSharedPtrAssigner.into(stringSharedPtr), Json::Value::TypeMismatch);
+}
+
+struct IsNonPrimitiveTestObj {
+    int a;
+    REFLECT(IsNonPrimitiveTestObj, a)
+};
+
+TEST_HEADER(JsonIdentifiersTest, IsNonPrimitive)
+{
+    EXPECT_FALSE(Json::is_non_primitive<char>::value);
+    EXPECT_FALSE(Json::is_non_primitive<char*>::value);
+    EXPECT_FALSE(Json::is_non_primitive<char**>::value);
+    EXPECT_FALSE(Json::is_non_primitive<char&>::value);
+    EXPECT_FALSE(Json::is_non_primitive<char&&>::value);
+    EXPECT_FALSE(Json::is_non_primitive<std::unique_ptr<char>>::value);
+    EXPECT_FALSE(Json::is_non_primitive<std::shared_ptr<char>>::value);
+    EXPECT_FALSE(Json::is_non_primitive<int>::value);
+    EXPECT_FALSE(Json::is_non_primitive<int*>::value);
+    EXPECT_FALSE(Json::is_non_primitive<int**>::value);
+    EXPECT_FALSE(Json::is_non_primitive<int&>::value);
+    EXPECT_FALSE(Json::is_non_primitive<int&&>::value);
+    EXPECT_FALSE(Json::is_non_primitive<std::unique_ptr<int>>::value);
+    EXPECT_FALSE(Json::is_non_primitive<std::shared_ptr<int>>::value);
+    EXPECT_FALSE(Json::is_non_primitive<std::string>::value);
+    EXPECT_FALSE(Json::is_non_primitive<Json::Generic::Bool>::value);
+    EXPECT_FALSE(Json::is_non_primitive<Json::Generic::Number>::value);
+    EXPECT_FALSE(Json::is_non_primitive<Json::Generic::String>::value);
+
+    using Pair = std::pair<int, int>;
+    using Tuple = std::tuple<int, int, int>;
+    using StlArray = std::array<int, 2>;
+    using Map = std::map<int, int>;
+    using MultiMap = std::multimap<int, int>;
+    using UnorderedMap = std::unordered_map<int, int>;
+    using UnorderedMultiMap = std::unordered_multimap<int, int>;
+    EXPECT_TRUE(Json::is_non_primitive<IsNonPrimitiveTestObj>::value);
+    EXPECT_TRUE(Json::is_non_primitive<Pair>::value);
+    EXPECT_TRUE(Json::is_non_primitive<Tuple>::value);
+    EXPECT_TRUE(Json::is_non_primitive<int[2]>::value);
+    EXPECT_TRUE(Json::is_non_primitive<StlArray>::value);
+    EXPECT_TRUE(Json::is_non_primitive<std::vector<int>>::value);
+    EXPECT_TRUE(Json::is_non_primitive<std::deque<int>>::value);
+    EXPECT_TRUE(Json::is_non_primitive<std::list<int>>::value);
+    EXPECT_TRUE(Json::is_non_primitive<std::forward_list<int>>::value);
+    EXPECT_TRUE(Json::is_non_primitive<std::stack<int>>::value);
+    EXPECT_TRUE(Json::is_non_primitive<std::queue<int>>::value);
+    EXPECT_TRUE(Json::is_non_primitive<std::priority_queue<int>>::value);
+    EXPECT_TRUE(Json::is_non_primitive<std::set<int>>::value);
+    EXPECT_TRUE(Json::is_non_primitive<std::multiset<int>>::value);
+    EXPECT_TRUE(Json::is_non_primitive<std::unordered_set<int>>::value);
+    EXPECT_TRUE(Json::is_non_primitive<std::unordered_multiset<int>>::value);
+    EXPECT_TRUE(Json::is_non_primitive<Map>::value);
+    EXPECT_TRUE(Json::is_non_primitive<MultiMap>::value);
+    EXPECT_TRUE(Json::is_non_primitive<UnorderedMap>::value);
+    EXPECT_TRUE(Json::is_non_primitive<UnorderedMultiMap>::value);
+    EXPECT_TRUE(Json::is_non_primitive<Json::Generic::Object>::value);
+    EXPECT_TRUE(Json::is_non_primitive<Json::Generic::NullArray>::value);
+    EXPECT_TRUE(Json::is_non_primitive<Json::Generic::BoolArray>::value);
+    EXPECT_TRUE(Json::is_non_primitive<Json::Generic::NumberArray>::value);
+    EXPECT_TRUE(Json::is_non_primitive<Json::Generic::StringArray>::value);
+    EXPECT_TRUE(Json::is_non_primitive<Json::Generic::ObjectArray>::value);
+    EXPECT_TRUE(Json::is_non_primitive<Json::Generic::MixedArray>::value);
+    EXPECT_TRUE(Json::is_non_primitive<Json::Generic::FieldCluster>::value);
+    EXPECT_TRUE(Json::is_non_primitive<std::vector<int>** &>::value);
+    
+    EXPECT_FALSE(Json::is_non_primitive<const char>::value);
+    EXPECT_FALSE(Json::is_non_primitive<const char*>::value);
+    EXPECT_FALSE(Json::is_non_primitive<const char**>::value);
+    EXPECT_FALSE(Json::is_non_primitive<const char&>::value);
+    EXPECT_FALSE(Json::is_non_primitive<const char&&>::value);
+    EXPECT_FALSE(Json::is_non_primitive<const std::unique_ptr<char>>::value);
+    EXPECT_FALSE(Json::is_non_primitive<const std::shared_ptr<char>>::value);
+    EXPECT_FALSE(Json::is_non_primitive<const int>::value);
+    EXPECT_FALSE(Json::is_non_primitive<const int*>::value);
+    EXPECT_FALSE(Json::is_non_primitive<const int**>::value);
+    EXPECT_FALSE(Json::is_non_primitive<const int&>::value);
+    EXPECT_FALSE(Json::is_non_primitive<const int&&>::value);
+    EXPECT_FALSE(Json::is_non_primitive<const std::unique_ptr<int>>::value);
+    EXPECT_FALSE(Json::is_non_primitive<const std::shared_ptr<int>>::value);
+    EXPECT_FALSE(Json::is_non_primitive<const std::string>::value);
+    EXPECT_FALSE(Json::is_non_primitive<const Json::Generic::Bool>::value);
+    EXPECT_FALSE(Json::is_non_primitive<const Json::Generic::Number>::value);
+    EXPECT_FALSE(Json::is_non_primitive<const Json::Generic::String>::value);
+
+    EXPECT_TRUE(Json::is_non_primitive<const IsNonPrimitiveTestObj>::value);
+    EXPECT_TRUE(Json::is_non_primitive<const Pair>::value);
+    EXPECT_TRUE(Json::is_non_primitive<const Tuple>::value);
+    EXPECT_TRUE(Json::is_non_primitive<const int[2]>::value);
+    EXPECT_TRUE(Json::is_non_primitive<const StlArray>::value);
+    EXPECT_TRUE(Json::is_non_primitive<const std::vector<int>>::value);
+    EXPECT_TRUE(Json::is_non_primitive<const std::deque<int>>::value);
+    EXPECT_TRUE(Json::is_non_primitive<const std::list<int>>::value);
+    EXPECT_TRUE(Json::is_non_primitive<const std::forward_list<int>>::value);
+    EXPECT_TRUE(Json::is_non_primitive<const std::stack<int>>::value);
+    EXPECT_TRUE(Json::is_non_primitive<const std::queue<int>>::value);
+    EXPECT_TRUE(Json::is_non_primitive<const std::priority_queue<int>>::value);
+    EXPECT_TRUE(Json::is_non_primitive<const std::set<int>>::value);
+    EXPECT_TRUE(Json::is_non_primitive<const std::multiset<int>>::value);
+    EXPECT_TRUE(Json::is_non_primitive<const std::unordered_set<int>>::value);
+    EXPECT_TRUE(Json::is_non_primitive<const std::unordered_multiset<int>>::value);
+    EXPECT_TRUE(Json::is_non_primitive<const Map>::value);
+    EXPECT_TRUE(Json::is_non_primitive<const MultiMap>::value);
+    EXPECT_TRUE(Json::is_non_primitive<const UnorderedMap>::value);
+    EXPECT_TRUE(Json::is_non_primitive<const UnorderedMultiMap>::value);
+    EXPECT_TRUE(Json::is_non_primitive<const Json::Generic::Object>::value);
+    EXPECT_TRUE(Json::is_non_primitive<const Json::Generic::NullArray>::value);
+    EXPECT_TRUE(Json::is_non_primitive<const Json::Generic::BoolArray>::value);
+    EXPECT_TRUE(Json::is_non_primitive<const Json::Generic::NumberArray>::value);
+    EXPECT_TRUE(Json::is_non_primitive<const Json::Generic::StringArray>::value);
+    EXPECT_TRUE(Json::is_non_primitive<const Json::Generic::ObjectArray>::value);
+    EXPECT_TRUE(Json::is_non_primitive<const Json::Generic::MixedArray>::value);
+    EXPECT_TRUE(Json::is_non_primitive<const Json::Generic::FieldCluster>::value);
+    EXPECT_TRUE(Json::is_non_primitive<const std::vector<int>** &>::value);
+}
+
+TEST_HEADER(JsonIdentifiersTest, IsNonPrimitiveTuple)
+{
+    using EmptyTuple = std::tuple<>;
+    using IntTuple = std::tuple<int>;
+    using IntIntTuple = std::tuple<int, int>;
+    using IntIntIntTuple = std::tuple<int, int, int>;
+    using ArrayTuple = std::tuple<int[2]>;
+    using IntArrayTuple = std::tuple<int, int[2]>;
+    using ArrayIntTuple = std::tuple<int[2], int>;
+    using IntIntArraayTuple = std::tuple<int, int, int[2]>;
+    
+    EXPECT_FALSE(Json::is_non_primitive_tuple<EmptyTuple>::value);
+    EXPECT_FALSE(Json::is_non_primitive_tuple<IntTuple>::value);
+    EXPECT_FALSE(Json::is_non_primitive_tuple<IntIntTuple>::value);
+    EXPECT_FALSE(Json::is_non_primitive_tuple<IntIntIntTuple>::value);
+    
+    EXPECT_TRUE(Json::is_non_primitive_tuple<ArrayTuple>::value);
+    EXPECT_TRUE(Json::is_non_primitive_tuple<IntArrayTuple>::value);
+    EXPECT_TRUE(Json::is_non_primitive_tuple<ArrayIntTuple>::value);
+    EXPECT_TRUE(Json::is_non_primitive_tuple<IntIntArraayTuple>::value);
+}
+
+TEST_HEADER(JsonIdentifiersTest, IsTuplePair)
+{
+    using EmptyTuple = std::tuple<>;
+    using IntTuple = std::tuple<int>;
+    using IntIntTuple = std::tuple<int, int>;
+    using IntIntIntTuple = std::tuple<int, int, int>;
+    
+    EXPECT_FALSE(Json::is_tuple_pair<EmptyTuple>::value);
+    EXPECT_FALSE(Json::is_tuple_pair<IntTuple>::value);
+    EXPECT_TRUE(Json::is_tuple_pair<IntIntTuple>::value);
+    EXPECT_FALSE(Json::is_tuple_pair<IntIntIntTuple>::value);
 }
 
 TEST_HEADER(JsonOutputCustomizersTest, CustomizeNoSpecialization)
@@ -2653,6 +2826,18 @@ struct AnObject
     char third;
 };
 
+struct Keyable
+{
+    int a;
+
+    REFLECT(Keyable, a)
+};
+
+bool operator<(const Keyable & lhs, const Keyable & rhs)
+{
+    return lhs.a < rhs.a;
+}
+
 TEST_HEADER(JsonOutputPut, Value)
 {
     TestStreamType customizedStream,
@@ -2724,15 +2909,168 @@ TEST_HEADER(JsonOutputPut, Value)
     short shortInt = 22222;
     Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(shortIntStream, Json::context, placeholderObj, shortInt);
     EXPECT_STREQ("22222", shortIntStream.str().c_str());
+
+    
+    TestStreamType emptyTupleStream,
+        intTupleStream,
+        intIntTupleStream,
+        intIntIntTupleStream,
+        intIntPairStream,
+        intIntMapStream,
+        intKeyableMapStream,
+        keyableIntMapStream,
+        keyableKeyableMapStream,
+        intIntTupleIntTupleStream;
+
+    Keyable keyable { 0 };
+    Keyable otherKey { 1 };
+
+    std::tuple<> shouldBeNull;
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(emptyTupleStream, Json::context, placeholderObj, shouldBeNull);
+    EXPECT_STREQ("null", emptyTupleStream.str().c_str());
+
+    std::tuple<int> shouldBeInt { 1337 };
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intTupleStream, Json::context, placeholderObj, shouldBeInt);
+    EXPECT_STREQ("1337", intTupleStream.str().c_str());
+
+    std::tuple<int, int> shouldBe2Array { 1, 2 };
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intIntTupleStream, Json::context, placeholderObj, shouldBe2Array);
+    EXPECT_STREQ("[1,2]", intIntTupleStream.str().c_str());
+
+    std::tuple<int, int, int> shouldBe3Array { 1, 2, 3 };
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intIntIntTupleStream, Json::context, placeholderObj, shouldBe3Array);
+    EXPECT_STREQ("[1,2,3]", intIntIntTupleStream.str().c_str());
+
+    std::pair<int, int> pair { 9000, 9001 };
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intIntPairStream, Json::context, placeholderObj, pair);
+    EXPECT_STREQ("[9000,9001]", intIntPairStream.str().c_str());
+
+    std::map<int, int> basicMap;
+    basicMap.insert(std::make_pair(1, 2));
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intIntMapStream, Json::context, placeholderObj, basicMap);
+    EXPECT_STREQ("{\"1\":2}", intIntMapStream.str().c_str());
+
+    std::map<int, Keyable> primitiveObjMap;
+    primitiveObjMap.insert(std::make_pair(1, keyable));
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intKeyableMapStream, Json::context, placeholderObj, primitiveObjMap);
+    EXPECT_STREQ("{\"1\":{\"a\":0}}", intKeyableMapStream.str().c_str());
+
+    std::map<Keyable, int> compKey;
+    compKey.insert(std::make_pair(keyable, 1));
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(keyableIntMapStream, Json::context, placeholderObj, compKey);
+    EXPECT_STREQ("[{\"key\":{\"a\":0},\"value\":1}]", keyableIntMapStream.str().c_str());
+
+    std::map<Keyable, Keyable> compMap;
+    compMap.insert(std::make_pair(keyable, otherKey));
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(keyableKeyableMapStream, Json::context, placeholderObj, compMap);
+    EXPECT_STREQ("[{\"key\":{\"a\":0},\"value\":{\"a\":1}}]", keyableKeyableMapStream.str().c_str());
+
+    std::tuple<std::tuple<int, int>, int> tup { {1, 2}, 3 };
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intIntTupleIntTupleStream, Json::context, placeholderObj, tup);
+    EXPECT_STREQ("[[1,2],3]", intIntTupleIntTupleStream.str().c_str());
 }
 
-TEST_HEADER(JsonOutputPut, PairValue)
+TEST_HEADER(JsonOutputPut, Tuple)
 {
-    TestStreamType pairValueStream;
-    std::pair<std::string, int> pair = std::pair("integer", 555);
+    TestStreamType emptyTupleStream,
+        intTupleStream,
+        intIntTupleStream,
+        intIntIntTupleStream,
+        intIntTupleIntTupleStream,
+        intVectorTupleStream,
+        intObjectTupleStream;
+
+    using AField = Fields::Field<int>;
+    
     int placeholderObj = 0;
-    Json::Put::Value<NoAnnotation, Fields::Field<decltype(pair)>, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(pairValueStream, Json::context, placeholderObj, pair);
-    EXPECT_STREQ("[\"integer\",555]", pairValueStream.str().c_str());
+
+    std::tuple<> shouldBeNull;
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(emptyTupleStream, Json::context, placeholderObj, shouldBeNull);
+    EXPECT_STREQ("null", emptyTupleStream.str().c_str());
+
+    std::tuple<int> shouldBeInt { 1337 };
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intTupleStream, Json::context, placeholderObj, shouldBeInt);
+    EXPECT_STREQ("1337", intTupleStream.str().c_str());
+
+    std::tuple<int, int> shouldBe2Array { 1, 2 };
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intIntTupleStream, Json::context, placeholderObj, shouldBe2Array);
+    EXPECT_STREQ("[1,2]", intIntTupleStream.str().c_str());
+
+    std::tuple<int, int, int> shouldBe3Array { 1, 2, 3 };
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intIntIntTupleStream, Json::context, placeholderObj, shouldBe3Array);
+    EXPECT_STREQ("[1,2,3]", intIntIntTupleStream.str().c_str());
+
+    std::tuple<std::tuple<int, int>, int> tup { {1, 2}, 3 };
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intIntTupleIntTupleStream, Json::context, placeholderObj, tup);
+    EXPECT_STREQ("[[1,2],3]", intIntTupleIntTupleStream.str().c_str());
+
+    std::tuple<int, std::vector<int>> intVectorTuple { 1, {2, 3, 4} };
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intVectorTupleStream, Json::context, placeholderObj, intVectorTuple);
+    EXPECT_STREQ("[1,[2,3,4]]", intVectorTupleStream.str().c_str());
+
+    std::tuple<int, Keyable> intObjectTuple { 1, {2} };
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intObjectTupleStream, Json::context, placeholderObj, intObjectTuple);
+    EXPECT_STREQ("[1,{\"a\":2}]", intObjectTupleStream.str().c_str());
+}
+
+TEST_HEADER(JsonOutputPut, Pair)
+{
+    TestStreamType intIntPairStream,
+        intVectorPairStream,
+        intObjectPairStream,
+        intPairPairStream;
+
+    using AField = Fields::Field<int>;
+    
+    int placeholderObj = 0;
+    
+    std::pair<int, int> intIntPair { 0, 1 };
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intIntPairStream, Json::context, placeholderObj, intIntPair);
+    EXPECT_STREQ("[0,1]", intIntPairStream.str().c_str());
+
+    std::pair<int, std::vector<int>> intVectorPair { 0, {1, 2, 3} };
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intVectorPairStream, Json::context, placeholderObj, intVectorPair);
+    EXPECT_STREQ("[0,[1,2,3]]", intVectorPairStream.str().c_str());
+
+    std::pair<int, Keyable> intObjectPair { 0, {1} };
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intObjectPairStream, Json::context, placeholderObj, intObjectPair);
+    EXPECT_STREQ("[0,{\"a\":1}]", intObjectPairStream.str().c_str());
+
+    std::pair<int, std::pair<int, int>> intPairPair { 0, {1, 2} };
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intPairPairStream, Json::context, placeholderObj, intPairPair);
+    EXPECT_STREQ("[0,[1,2]]", intPairPairStream.str().c_str());
+}
+
+TEST_HEADER(JsonOutputPut, KeyValueObject)
+{
+    TestStreamType intIntPairStream,
+        objObjPairStream;
+
+    using AField = Fields::Field<int>;
+    
+    int placeholderObj = 0;
+
+    std::pair<int, int> intIntPair { 0, 1 };
+    Json::Put::KeyValueObject<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intIntPairStream, Json::context, placeholderObj, intIntPair);
+    EXPECT_STREQ("{\"key\":0,\"value\":1}", intIntPairStream.str().c_str());
+
+    std::pair<Keyable, Keyable> objObjPair { {0}, {1} };
+    Json::Put::KeyValueObject<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(objObjPairStream, Json::context, placeholderObj, objObjPair);
+    EXPECT_STREQ("{\"key\":{\"a\":0},\"value\":{\"a\":1}}", objObjPairStream.str().c_str());
+}
+
+TEST_HEADER(JsonOutputPut, FieldPair)
+{
+    TestStreamType intIntPairStream,
+        objObjPairStream;
+
+    using AField = Fields::Field<int>;
+    
+    int placeholderObj = 0;
+
+    std::pair<int, int> intIntPair { 0, 1 };
+    Json::Put::FieldPair<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intIntPairStream, Json::context, placeholderObj, intIntPair);
+    EXPECT_STREQ("\"0\":1", intIntPairStream.str().c_str());
 }
 
 struct ContainsIterables

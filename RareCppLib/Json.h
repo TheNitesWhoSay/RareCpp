@@ -32,7 +32,7 @@ namespace Json
         struct EnumIntType {};
         static constexpr EnumIntType EnumInt{};
 
-        /// Field annotation telling JSON to skip a field during input or output
+        /// Field annotation telling JSON to skip a field during input and output
         struct IgnoreType {};
         static constexpr IgnoreType Ignore{};
 
@@ -946,45 +946,45 @@ namespace Json
         };
     };
     
+    inline namespace Identifiers
+    {
+        template <typename T> struct is_non_primitive {
+            static constexpr bool value = is_tuple<T>::value || is_pair<T>::value || is_iterable<T>::value || is_reflected<T>::value;
+        };
+        template <typename T> struct is_non_primitive<const T> { static constexpr bool value = is_non_primitive<T>::value; };
+        template <typename T> struct is_non_primitive<T*> { static constexpr bool value = is_non_primitive<T>::value; };
+        template <typename T> struct is_non_primitive<T &> { static constexpr bool value = is_non_primitive<T>::value; };
+        template <typename T> struct is_non_primitive<T &&> { static constexpr bool value = is_non_primitive<T>::value; };
+        template <typename T> struct is_non_primitive<std::unique_ptr<T>> { static constexpr bool value = is_non_primitive<T>::value; };
+        template <typename T> struct is_non_primitive<std::shared_ptr<T>> { static constexpr bool value = is_non_primitive<T>::value; };
+        template <> struct is_non_primitive<Json::Generic::Object> { static constexpr bool value = true; };
+        template <> struct is_non_primitive<Json::Generic::NullArray> { static constexpr bool value = true; };
+        template <> struct is_non_primitive<Json::Generic::BoolArray> { static constexpr bool value = true; };
+        template <> struct is_non_primitive<Json::Generic::NumberArray> { static constexpr bool value = true; };
+        template <> struct is_non_primitive<Json::Generic::StringArray> { static constexpr bool value = true; };
+        template <> struct is_non_primitive<Json::Generic::ObjectArray> { static constexpr bool value = true; };
+        template <> struct is_non_primitive<Json::Generic::MixedArray> { static constexpr bool value = true; };
+        template <> struct is_non_primitive<Json::Generic::FieldCluster> { static constexpr bool value = true; };
+
+        template <size_t Index, typename ...Ts> struct is_non_primitive_tuple_element;
+        template <typename ...Ts> struct is_non_primitive_tuple_element<0, std::tuple<Ts...>> { static constexpr bool value = false; };
+        template <size_t Index, typename ...Ts> struct is_non_primitive_tuple_element<Index, std::tuple<Ts...>> {
+            using T = typename std::tuple_element_t<Index-1, std::tuple<Ts...>>;
+            static constexpr bool value = is_non_primitive<T>::value || is_non_primitive_tuple_element<Index-1, std::tuple<Ts...>>::value;
+        };
+
+        template <typename T> struct is_non_primitive_tuple { static constexpr bool value = false; };
+        template <typename ...Ts> struct is_non_primitive_tuple<std::tuple<Ts...>> {
+            static constexpr bool value = is_non_primitive_tuple_element<sizeof...(Ts), std::tuple<Ts...>>::value;
+        };
+
+        template <typename T> struct is_tuple_pair { static constexpr bool value = false; };
+        template <typename T1, typename T2> struct is_tuple_pair<std::tuple<T1, T2>> { static constexpr bool value = true; };
+    }
+
     inline namespace Output
     {
         constexpr const char twoSpaces[] = "  ";
-
-        inline namespace Identifiers
-        {
-            template <typename T> struct is_non_primitive {
-                static constexpr bool value = is_tuple<T>::value || is_pair<T>::value || is_iterable<T>::value || is_reflected<T>::value;
-            };
-            template <typename T> struct is_non_primitive<const T> { static constexpr bool value = is_non_primitive<T>::value; };
-            template <typename T> struct is_non_primitive<T*> { static constexpr bool value = is_non_primitive<T>::value; };
-            template <typename T> struct is_non_primitive<T &> { static constexpr bool value = is_non_primitive<T>::value; };
-            template <typename T> struct is_non_primitive<T &&> { static constexpr bool value = is_non_primitive<T>::value; };
-            template <typename T> struct is_non_primitive<std::unique_ptr<T>> { static constexpr bool value = is_non_primitive<T>::value; };
-            template <typename T> struct is_non_primitive<std::shared_ptr<T>> { static constexpr bool value = is_non_primitive<T>::value; };
-            template <> struct is_non_primitive<Json::Generic::Object> { static constexpr bool value = false; };
-            template <> struct is_non_primitive<Json::Generic::NullArray> { static constexpr bool value = false; };
-            template <> struct is_non_primitive<Json::Generic::BoolArray> { static constexpr bool value = false; };
-            template <> struct is_non_primitive<Json::Generic::NumberArray> { static constexpr bool value = false; };
-            template <> struct is_non_primitive<Json::Generic::StringArray> { static constexpr bool value = false; };
-            template <> struct is_non_primitive<Json::Generic::ObjectArray> { static constexpr bool value = false; };
-            template <> struct is_non_primitive<Json::Generic::MixedArray> { static constexpr bool value = false; };
-            template <> struct is_non_primitive<Json::Generic::FieldCluster> { static constexpr bool value = false; };
-
-            template <size_t Index, typename ...Ts> struct is_non_primitive_tuple_element;
-            template <typename ...Ts> struct is_non_primitive_tuple_element<0, std::tuple<Ts...>> { static constexpr bool value = false; };
-            template <size_t Index, typename ...Ts> struct is_non_primitive_tuple_element<Index, std::tuple<Ts...>> {
-                using T = typename std::tuple_element_t<Index-1, std::tuple<Ts...>>;
-                static constexpr bool value = is_non_primitive<T>::value || is_non_primitive_tuple_element<Index-1, std::tuple<Ts...>>::value;
-            };
-
-            template <typename T> struct is_non_primitive_tuple { static constexpr bool value = false; };
-            template <typename ...Ts> struct is_non_primitive_tuple<std::tuple<Ts...>> {
-                static constexpr bool value = is_non_primitive_tuple_element<sizeof...(Ts), std::tuple<Ts...>>::value;
-            };
-
-            template <typename T> struct is_tuple_pair { static constexpr bool value = false; };
-            template <typename T1, typename T2> struct is_tuple_pair<std::tuple<T1, T2>> { static constexpr bool value = true; };
-        }
         
         inline namespace Customizers
         {

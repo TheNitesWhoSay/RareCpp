@@ -836,8 +836,8 @@ public:
     static int staticPrimitive;
     int & primitiveReference;
     static int & staticPrimitiveReference;
-    void memberMethod() {}
-    static void staticMethod() {}
+    int memberMethod() { return 1; }
+    static int staticMethod() { return 2; }
 
     REFLECT_NOTED(ReflectObj, primitive, object, primitiveArray, map, objCollection, stack, staticPrimitive, primitiveReference, staticPrimitiveReference, memberMethod, staticMethod)
 };
@@ -907,10 +907,10 @@ TEST(ReflectTest, RfMacroReflectNoted)
     EXPECT_TRUE(typeStr.find("int&") != std::string::npos);
     typeStr = ReflectObj::Class::memberMethod_::typeStr.value;
     typeStr.erase(std::remove(typeStr.begin(), typeStr.end(), ' '), typeStr.end());
-    EXPECT_TRUE(typeStr.find("void") != std::string::npos);
+    EXPECT_TRUE(typeStr.find("int") != std::string::npos);
     typeStr = ReflectObj::Class::staticMethod_::typeStr.value;
     typeStr.erase(std::remove(typeStr.begin(), typeStr.end(), ' '), typeStr.end());
-    EXPECT_TRUE(typeStr.find("void") != std::string::npos);
+    EXPECT_TRUE(typeStr.find("int") != std::string::npos);
     
     EXPECT_STREQ("primitive", ReflectObj::Class::primitive_::field.name);
     EXPECT_STREQ("object", ReflectObj::Class::object_::field.name);
@@ -1071,7 +1071,7 @@ TEST(ReflectTest, RfMacroReflectNoted)
     EXPECT_EQ(9, index);
 
     index = 0;
-    bool visited = true;
+    int visitCount = 0;
     ReflectObj::Class::ForEachField([&](auto & field) {
         
         using Field = typename std::remove_reference<decltype(field)>::type;
@@ -1080,11 +1080,23 @@ TEST(ReflectTest, RfMacroReflectNoted)
         if constexpr ( Field::IsStatic && Field::Index == 6 )
         {
             EXPECT_EQ(ReflectObj::staticPrimitive, *field.p);
-            visited = true;
+            visitCount++;
+        }
+        else if constexpr ( Field::Index == 9 )
+        {
+            int result = (reflectObj.*field.p)();
+            EXPECT_EQ(1, result);
+            visitCount++;
+        }
+        else if constexpr ( Field::Index == 10 )
+        {
+            int result = field.p();
+            EXPECT_EQ(2, result);
+            visitCount++;
         }
         index ++;
     });
-    EXPECT_TRUE(visited);
+    EXPECT_EQ(3, visitCount);
     EXPECT_EQ(11, index);
 }
 

@@ -365,12 +365,6 @@ struct Another
     REFLECT(Another, anything)
 };
 
-struct State;
-
-template <typename T> struct State_;
-
-template <> struct State_<State> { using type = std::true_type; };
-
 NOTE(State,
     Rest::Controller,
     Super<Point>(Json::Name{"point"}, Json::SuperFormat::Nested),
@@ -389,7 +383,7 @@ struct State : public Point, public Another
     
     NOTE(update,
         Rest::Method::PATCH,
-        Rest::Url{"/memberUpdate/{value}/{otherValue}"},
+        Rest::Url{"/update/{value}/{otherValue}"},
         Rest::PathParam<int>{"value"},
         Rest::PathParam<long>{"otherValue"})
     std::string update(int value, long otherValue) {
@@ -403,47 +397,6 @@ struct State : public Point, public Another
 };
 
 Status State::status;
-
-struct Keyable
-{
-    int a;
-
-    REFLECT(Keyable, a)
-};
-
-bool operator<(const Keyable & lhs, const Keyable & rhs)
-{
-    return lhs.a < rhs.a;
-}
-
-struct CompKey
-{
-    std::tuple<> shouldBeNull;
-    std::tuple<int> shouldBeInt;
-    std::tuple<int, int> shouldBe2Array;
-    std::tuple<int, int, int> shouldBe3Array;
-    std::pair<int, int> pair;
-    std::map<int, int> basicMap;
-    std::map<int, Keyable> primitiveObjMap;
-    std::map<Keyable, int> compKey;
-    std::map<Keyable, Keyable> compMap;
-    std::tuple<std::tuple<int, int>, int> tup;
-
-    REFLECT(CompKey, shouldBeNull, shouldBeInt, shouldBe2Array, shouldBe3Array, pair, basicMap, primitiveObjMap, compKey, compMap, tup)
-};
-
-struct InputTest
-{
-    std::tuple<> emptyTuple;
-    std::tuple<int> singleTuple;
-    std::tuple<int, int> doubleTuple;
-    std::tuple<int, int, int> tripleTuple;
-    std::pair<int, int> pair;
-    std::map<int, Keyable> primitiveKey;
-    std::map<Keyable, int> complexKey;
-
-    REFLECT(InputTest, emptyTuple, singleTuple, doubleTuple, tripleTuple, pair, primitiveKey, complexKey)
-};
 
 int main()
 {
@@ -461,18 +414,6 @@ int main()
         std::cout << "Field 0: " << field.template getAnnotation<Json::Name>().value << std::endl;
     });
 
-    Keyable keyable { 0 };
-    Keyable otherKey { 1 };
-    CompKey compKey;
-    compKey.basicMap.insert(std::make_pair(0, 0));
-    compKey.basicMap.insert(std::make_pair(1, 1));
-    compKey.primitiveObjMap.insert(std::make_pair(1, keyable));
-    compKey.primitiveObjMap.insert(std::make_pair(1, otherKey));
-    compKey.compKey.insert(std::make_pair(keyable, 1));
-    compKey.compKey.insert(std::make_pair(otherKey, 2));
-
-    std::cout << Json::pretty(compKey) << std::endl;
-
     Json::Object obj;
     try {
         std::cout << std::endl << std::endl << "Enter Any JSON:" << std::endl;
@@ -484,15 +425,6 @@ int main()
     std::cout << "..." << std::endl;
     std::cin.clear();
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-
-    InputTest it;
-    std::cout << Json::pretty(it) << std::endl;
-    std::cin >> Json::in(it);
-    std::cout << Json::pretty(it) << std::endl;
-    std::cin >> Json::in(it);
-    std::cout << Json::pretty(it) << std::endl;
-    std::cin >> Json::in(it);
-    std::cout << Json::pretty(it) << std::endl;
 
     A a;
     do {

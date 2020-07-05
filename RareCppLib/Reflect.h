@@ -450,7 +450,11 @@ namespace ExtendedTypeSupport
         template <typename ...Ts> struct get_impl
         {
             template <size_t Index>
-            static constexpr TypeToGet GetElementRecursion(const std::tuple<Ts...> & elements) { return TypeToGet{}; }
+            static constexpr TypeToGet GetElementRecursion(const std::tuple<Ts...> & elements)
+            {
+                #pragma warning(suppress: 26444) // Warning incorrectly raised for unnamed local variable
+                return {};
+            }
 
             template <size_t Index, typename CurrentType, typename... NextTypes>
             static constexpr TypeToGet GetElementRecursion(const std::tuple<Ts...> & elements)
