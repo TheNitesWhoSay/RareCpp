@@ -1,7 +1,7 @@
 # RareCpp
 ***C++** **R**andom **A**ccess **R**eflection & **E**xtensions: adding a simple, intuitive means of reflection to C++ and leveraging it to create powerful extensions.*
 
-To include reflection in your project you simply need to copy the [Reflect.h](https://github.com/jjf28/CppRandomAccessReflection/blob/master/CppRandomAccessReflectionLib/Reflect.h) file into your project, then within the class(es) you're looking to reflect you place the REFLECT macro.
+To include reflection in your project you simply need to copy the [Reflect.h](https://github.com/jjf28/CppRandomAccessReflection/blob/master/CppRandomAccessReflectionLib/Reflect.h) file into your project and use the Reflect namespace, then within the class(es) you're looking to reflect you place the REFLECT macro.
 
 ```C++
 #include "Reflect.h"
@@ -13,14 +13,11 @@ public:
     float currentLevel;
     float tickMarks[2];
 
-    REFLECT(() FuelTank, () capacity, () currentLevel, () tickMarks)
+    REFLECT(FuelTank, capacity, currentLevel, tickMarks)
 };
 ```
 
-The REFLECT macro takes the class parameter, then between 1 and 123 fields.
-
-- The class parameter is of the form "(SuperClasses) ClassName", SuperClasses are optional
-- The fields are all of the form "(Annotations) FieldName", Annotations are optional
+The REFLECT macro takes the class type, then between 1 and 125 fields.
 
 
 
@@ -70,7 +67,7 @@ public:
     float currentLevel;
     float tickMarks[2];
 
-    REFLECT(() FuelTank, () capacity, () currentLevel, () tickMarks)
+    REFLECT(FuelTank, capacity, currentLevel, tickMarks)
 };
 
 FuelTank::Class::ForEachField(fuelTank, [&](auto & field, auto & value) {
@@ -83,7 +80,7 @@ FuelTank::Class::ForEachField(fuelTank, [&](auto & field, auto & value) {
 The above will cause a compiler error as not every field in FuelTank is an array, meaning the array access "value[0]" will not be valid code on those fields. Using constexpr ifs as well as code from the ExtendedTypeSupport namespace (if not from the standard library type support methods https://en.cppreference.com/w/cpp/types ) included in Reflect.h you can circumvent such problems.
 ```C++
 FuelTank::Class::ForEachField(fuelTank, [&](auto & field, auto & value) {
-    using Type = std::remove_reference<decltype(value)>::type;
+    using Type = typename std::remove_reference<decltype(value)>::type;
     if constexpr ( ExtendedTypeSupport::is_static_array<Type>::value )
         std::cout << field.name << ": " << value[0] << std::endl;
     else
@@ -92,6 +89,7 @@ FuelTank::Class::ForEachField(fuelTank, [&](auto & field, auto & value) {
 ```
 
 ExtendedTypeSupport defines many useful interfaces for these purposes...
+- pair_lhs\<T\>::type // Gets the type of the left-hand value in an std::pair
 - pair_rhs\<T\>::type // Gets the type of the right-hand value in an std::pair
 - element_type\<T\>::type // Gets the type of the element contained in some iterable (be it a static_array, or STL container)
 - remove_pointer\<T\>::type // Gets the type pointed to by a regular or smart pointer type
@@ -99,49 +97,76 @@ ExtendedTypeSupport defines many useful interfaces for these purposes...
 - static_array_size\<T\>::value // Gets the size of a static array, which may be a basic C++ array or the STL std::array type
 - is_static_array\<T\>::value // Checks whether a type is a static array
 - is_iterable\<T\>::value // Checks whether a type can be iterated, meaning it's a static array or other STL container
+- is_map\<T\>::value // Checks whether a type is a map (std::map, std::unordered_map, std::multimap, std::unordered_multimap)
 - is_stl_iterable\<T\>::value // Checks whether a type can be iterated with begin()/end()
 - is_adaptor\<T\>::value // Checks whether a type is an STL adaptor (std::stack, std::queue, std::priority_queue)
 - is_forward_list\<T\>::value // Checks whether a type is a forward list
 - is_pair\<T\>::value // Checks whether a type is a pair
 - is_bool\<T\>::value // Checks whether a type is a bool
+- is_string\<T\>::value // Checks whether a type is a std::string
 - has_push_back\<T\>::value // Checks whether a type is an STL container with a push_back method
 - has_push\<T\>::value // Checks whether a type is an STL container with a push method
 - has_insert\<T\>::value // Checks whether a type is an STL container with an insert method
 - has_clear\<T\>::value // Checks whether a type is an STL container with a clear method
 
-Extended type support also provides the HasType method to check whether a type is included in a list of types, a TypeToStr method to retrieve a string representation of a type, and the get_underlying_container method to retrieve a const version of the underlying container for an STL adaptor.
+Extended type support also provides several other pieces of functionality including... 
+- The Append, Clear, and IsEmpty methods that work on all stl containers
+- The has_type interface to check whether a type is included in a list of types
+- A get_underlying_container method to retrieve a const version of the underlying container for an STL adaptor
+- An interface "get<T>::from(tuple)" to get the first instance of type T from a tuple
+- An interface "for_each<T>::in(tuple)" to iterate each tuple element of type T
+- An interface "for_each_in(tuple)" to iterate all tuple elements
+- A TypeToStr method to retrieve a string representation of a type
+
 
 See [Json.h](https://github.com/jjf28/CppRandomAccessReflection/blob/master/CppRandomAccessReflectionLib/Json.h) for where all of this gets put together to traverse fairly complex objects - in the case of JSON serialization and deserialization is split into three main methods: get[Object]/put[Object], getIterable/putIterable, and getValue/putValue.
 
 
 ## Field
-Information provided to REFLECT is used to generate meta-data about your classes fields in the form of "Field" objects stored in a nested-class of your object titled "Class", Field objects come in two flavors but both share the following members:
+Information provided to REFLECT is used to generate meta-data about your classes fields in the form of "Field" objects stored in a nested-class of your object titled "Class", Field objects come in two flavors but both share two members:
 
 1. name
 2. typeStr
-3. arraySize (0 for fields that are not static arrays)
-4. isIterable (either a static array or STL container)
-5. isReflected
 
-The enhanced flavor of Field provides two additional static members:
+The enhanced flavor of Field provides several additional members:
 1. Type (the actual type of the field)
 2. Index (the index of the field, first field is zero, second is one, and so on)
+3. IsStatic (boolean indicating whether the field is static)
+4. IsFunction (boolean indicating whether the field is a member or static function)
 
-The enhanced flavor also provides the HasAnnotation method which can be used to check what fields were annotated with. 
+5. p (a pointer to the field, nullptr if the field is a reference)
+6. Pointer (the type of a pointer to the field)
+
+7. annotations (the value of the annotations attached to the field)
+8. Annotations (the type of the annotations attached to the field)
+9. HasAnnotation (template boolean indicating whether the field has a given annotation)
+10. getAnnotation<T> (template function getting the first instance of a given annotation)
+11. forEach<T> (lambda you can use to iterate all instances of a given annotation)
+12. forEachAnnotation (lambda you can use to iterate all annotations)
+	
 
 
 ## Class
 As stated, Class is a nested-class of the class you're trying to reflect; Class has the following static data members:
 
 1. TotalFields
-2. Fields[TotalFields] // Simple flavor, doesn't include the Type, Index, or HasAnnotation members
+2. TotalStaticFields
+3. Fields[TotalFields] // Simple flavor, doesn't include members like Type, or annotation details
+4. annotations
 
-Class also provides two static methods to retrieve information about fields
+Class also provides four static methods to retrieve information about fields
 ```C++
 ForEachField(object, [&](auto & field, auto & value) {
 	// Your code here
 });
-FieldAt(object, size_t fieldIndex, [&](auto & field, auto & value) {
+FieldAt(object, fieldIndex, [&](auto & field, auto & value) {
+	// Your code here
+});
+
+ForEachField([&](auto & field) {
+	// Your code here
+});
+FieldAt(fieldIndex, [&](auto & field) {
 	// Your code here
 });
 ```
@@ -153,59 +178,44 @@ using Type = std::remove_reference<decltype(value)>::type;
 ```
 
 
-## Super Classes
-
-If you only have one SuperClass, you can simply put the name of the SuperClass in for the SuperClasses parameter like so...
-
-```C++
-class A : public SuperA {
-public:
-    REFLECT((SuperA) A, ...)
-};
-```
-
-If you have multiple SuperClasses then you need to first group them as template arguments for the "Inherit" type, perhaps with a using statement. The using statement is required because it's difficult if not impossible to accomodate a comma within a single argument of a macro.
-
-```C++
-class SubTest : public Super, public OtherSuper
-{
-public:
-    int subVal;
-    
-    using Parents = Inherit<Super, OtherSuper>;
-    REFLECT((Parents) SubTest, () otherVal)
-};
-```
-
 ## Annotations
 
-Annotations are a way of giving additional information about a field that cannot be determined only using the field name and type information, for instance, whether the object stored in a field is also reflected, or whether the field should be treated as a string when streaming to JSON.
 
-At present the only annotation specific to the RareCpp reflection library is the "Reflected" annotation, which simply tells any code examining the field that the Class in that field is in turn, reflected using the REFLECT macro.
+Annotations are a way of giving additional information about a field that cannot be determined only using the field name and type information, for instance whether a field should be ignored or treated as a string or renamed when serializing.
+
+At present the only annotation specific to the RareCpp reflection library is the "Super" annotation, which enables reflection of super-classes (explained more in the Super Classes section).
+
+A downstream library, such is the JSON library included in this project, or whatever code you may be writing, can define its own annotations, an annotation is quite simply anything that can be stored at compile time (basic types, custom structures with basic types, string views, etc).
+
+(tbd, usage examples, more documentation)
+
+
+## Super Classes
+
+If you have super classes you can capture them in a class-level annotation like so...
 
 ```C++
+NOTE(A, Super<SuperA>)
 class A : public SuperA {
 public:
-    int first;
-    int second;
-    SubA sub;
-
-    REFLECT((SuperA) A, () first, () second, (Reflected) sub, ...)
-}
+    ...
+    REFLECT_NOTED(A, ...)
+};
 ```
 
-A downstream library, such is the JSON library included in this project, or whatever code you may be writing, can define its own annotations, an annotation is quite simply a unique type - that is a type that isn't already used as an annotation for a different purpose (in the future I may find ways to have annotations including string values).
+You can list multiple super classes, you can also add annotations specific to the subclass-to-superclass relationship e.g. ...
 
 ```C++
-/// The "Reflected" annotation denotes whether a given field is a type that is also reflected
-struct Reflected {};
+NOTE(A,
+    Super<SuperA>,
+    Super<Another>(Json::Ignore),
+    Super<OtherSuper>)
+class A : public SuperA, public Another, public OtherSuper {
+public:
+    ...
+    REFLECT_NOTED(A, ...)
+};
 ```
-
-You can then check whether a field has a given annotation using code such as:
-```C++
-bool isReflected = Field::template HasAnnotation<Reflected>;
-```
-
 
 
 ## How It Works
