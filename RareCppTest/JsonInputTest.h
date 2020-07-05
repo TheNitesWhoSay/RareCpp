@@ -10,7 +10,7 @@ struct CustomizeUnspecialized
     int secondField;
     char unspecialized;
 
-    REFLECT(() CustomizeUnspecialized, () firstField, () secondField, () unspecialized)
+    REFLECT(CustomizeUnspecialized, firstField, secondField, unspecialized)
 };
 
 struct CustomizeFullySpecialized
@@ -19,7 +19,7 @@ struct CustomizeFullySpecialized
     int secondField;
     char unspecialized;
 
-    REFLECT(() CustomizeFullySpecialized, () firstField, () secondField, () unspecialized)
+    REFLECT(CustomizeFullySpecialized, firstField, secondField, unspecialized)
 };
 
 template <size_t FieldIndex, typename OpAnnotations, typename Field>
@@ -34,11 +34,11 @@ struct Customize5Args_OpAnnotationsDefaulted
     int secondField;
     char unspecialized;
 
-    REFLECT(() Customize5Args_OpAnnotationsDefaulted, () firstField, () secondField, () unspecialized)
+    REFLECT(Customize5Args_OpAnnotationsDefaulted, firstField, secondField, unspecialized)
 };
 
 template <size_t FieldIndex, typename Field>
-struct Json::Input::Customize<Customize5Args_OpAnnotationsDefaulted, int, FieldIndex, Annotate<>, Field>
+struct Json::Input::Customize<Customize5Args_OpAnnotationsDefaulted, int, FieldIndex, NoAnnotation, Field>
 {
     static bool As(std::istream & input, Context & context, Customize5Args_OpAnnotationsDefaulted & object, int & value) { return true; }
 };
@@ -49,7 +49,7 @@ struct Customize5Args_FieldIndexDefaulted
     int secondField;
     char unspecialized;
 
-    REFLECT(() Customize5Args_FieldIndexDefaulted, () firstField, () secondField, () unspecialized)
+    REFLECT(Customize5Args_FieldIndexDefaulted, firstField, secondField, unspecialized)
 };
 
 template <typename OpAnnotations, typename Field>
@@ -64,11 +64,11 @@ struct Customize5Args_BothDefaulted
     int secondField;
     char unspecialized;
 
-    REFLECT(() Customize5Args_BothDefaulted, () firstField, () secondField, () unspecialized)
+    REFLECT(Customize5Args_BothDefaulted, firstField, secondField, unspecialized)
 };
 
 template <typename Field>
-struct Json::Input::Customize<Customize5Args_BothDefaulted, int, Json::NoFieldIndex, Annotate<>, Field>
+struct Json::Input::Customize<Customize5Args_BothDefaulted, int, Json::NoFieldIndex, NoAnnotation, Field>
 {
     static bool As(std::istream & input, Context & context, Customize5Args_BothDefaulted & object, int & value) { return true; }
 };
@@ -79,7 +79,7 @@ struct Customize4Args
     int secondField;
     char unspecialized;
 
-    REFLECT(() Customize4Args, () firstField, () secondField, () unspecialized)
+    REFLECT(Customize4Args, firstField, secondField, unspecialized)
 };
 
 template <size_t FieldIndex, typename OpAnnotations>
@@ -94,7 +94,7 @@ struct Customize4Args_FieldIndexDefaulted
     int secondField;
     char unspecialized;
 
-    REFLECT(() Customize4Args_FieldIndexDefaulted, () firstField, () secondField, () unspecialized)
+    REFLECT(Customize4Args_FieldIndexDefaulted, firstField, secondField, unspecialized)
 };
 
 template <typename OpAnnotations>
@@ -109,7 +109,7 @@ struct Customize3Args
     int secondField;
     char unspecialized;
 
-    REFLECT(() Customize3Args, () firstField, () secondField, () unspecialized)
+    REFLECT(Customize3Args, firstField, secondField, unspecialized)
 };
 
 template <size_t FieldIndex>
@@ -124,7 +124,7 @@ struct Customize2Args
     int secondField;
     char unspecialized;
 
-    REFLECT(() Customize2Args, () firstField, () secondField, () unspecialized)
+    REFLECT(Customize2Args, firstField, secondField, unspecialized)
 };
 
 template <>
@@ -139,7 +139,7 @@ struct CustomizeTypeFullySpecialized
     int secondField;
     char unspecialized;
 
-    REFLECT(() CustomizeTypeFullySpecialized, () firstField, () secondField, () unspecialized)
+    REFLECT(CustomizeTypeFullySpecialized, firstField, secondField, unspecialized)
 };
 
 template <typename OpAnnotations, typename Field>
@@ -158,11 +158,11 @@ struct CustomizeType3Args_OpAnnotationsDefaulted
     int secondField;
     char unspecialized;
 
-    REFLECT(() CustomizeType3Args_OpAnnotationsDefaulted, () firstField, () secondField, () unspecialized)
+    REFLECT(CustomizeType3Args_OpAnnotationsDefaulted, firstField, secondField, unspecialized)
 };
 
 template <typename Field>
-struct Json::Input::CustomizeType<CustomizeType3Args_OpAnnotationsDefaulted, Annotate<>, Field>
+struct Json::Input::CustomizeType<CustomizeType3Args_OpAnnotationsDefaulted, NoAnnotation, Field>
 {
     static bool As(std::istream & input, Context & context, CustomizeType3Args_OpAnnotationsDefaulted & value) { return true; }
 };
@@ -173,7 +173,7 @@ struct CustomizeType2Args
     int secondField;
     char unspecialized;
 
-    REFLECT(() CustomizeType2Args, () firstField, () secondField, () unspecialized)
+    REFLECT(CustomizeType2Args, firstField, secondField, unspecialized)
 };
 
 template <typename OpAnnotations>
@@ -188,7 +188,7 @@ struct CustomizeType1Arg
     int secondField;
     char unspecialized;
 
-    REFLECT(() CustomizeType1Arg, () firstField, () secondField, () unspecialized)
+    REFLECT(CustomizeType1Arg, firstField, secondField, unspecialized)
 };
 
 template <>

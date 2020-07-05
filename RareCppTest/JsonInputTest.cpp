@@ -18,7 +18,7 @@ using namespace Reflect;
 TEST_HEADER(JsonInputCustomizersTest, CustomizeUnspecialized)
 {
     CustomizeUnspecialized customizeUnspecialized = { 1, 2, 'a' };
-    bool isSpecialized = Json::Input::Customize<CustomizeUnspecialized, int, CustomizeUnspecialized::Class::IndexOf::firstField, Annotate<>, CustomizeUnspecialized::Class::firstField_::Field>
+    bool isSpecialized = Json::Input::Customize<CustomizeUnspecialized, int, CustomizeUnspecialized::Class::IndexOf::firstField, NoAnnotation, CustomizeUnspecialized::Class::firstField_::Field>
         ::As(std::cin, Json::context, customizeUnspecialized, customizeUnspecialized.firstField);
     EXPECT_FALSE(isSpecialized);
 
@@ -29,66 +29,66 @@ TEST_HEADER(JsonInputCustomizersTest, CustomizeUnspecialized)
 TEST_HEADER(JsonInputCustomizersTest, CustomizeFullySpecialized)
 {
     CustomizeFullySpecialized customizeFullySpecialized = { 1, 2, 'a' };
-    bool isSpecialized = Json::Input::Customize<CustomizeFullySpecialized, int, CustomizeFullySpecialized::Class::IndexOf::firstField, Annotate<>, CustomizeFullySpecialized::Class::firstField_::Field>
+    bool isSpecialized = Json::Input::Customize<CustomizeFullySpecialized, int, CustomizeFullySpecialized::Class::IndexOf::firstField, NoAnnotation, CustomizeFullySpecialized::Class::firstField_::Field>
         ::As(std::cin, Json::context, customizeFullySpecialized, customizeFullySpecialized.firstField);
     EXPECT_TRUE(isSpecialized);
 
-    isSpecialized = Json::Input::HaveSpecialization<CustomizeFullySpecialized, int, CustomizeFullySpecialized::Class::IndexOf::firstField, Annotate<>, CustomizeFullySpecialized::Class::firstField_::Field>;
+    isSpecialized = Json::Input::HaveSpecialization<CustomizeFullySpecialized, int, CustomizeFullySpecialized::Class::IndexOf::firstField, NoAnnotation, CustomizeFullySpecialized::Class::firstField_::Field>;
     EXPECT_TRUE(isSpecialized);
 }
 
 TEST_HEADER(JsonInputCustomizersTest, Customize5Args_OpAnnotationsDefaulted)
 {
     Customize5Args_OpAnnotationsDefaulted customize5Args_OpAnnotationsDefaulted;
-    bool isSpecialized = Json::Input::Customize<Customize5Args_OpAnnotationsDefaulted, int, Customize5Args_OpAnnotationsDefaulted::Class::IndexOf::firstField, Annotate<>, Customize5Args_OpAnnotationsDefaulted::Class::firstField_::Field>
+    bool isSpecialized = Json::Input::Customize<Customize5Args_OpAnnotationsDefaulted, int, Customize5Args_OpAnnotationsDefaulted::Class::IndexOf::firstField, NoAnnotation, Customize5Args_OpAnnotationsDefaulted::Class::firstField_::Field>
         ::As(std::cin, Json::context, customize5Args_OpAnnotationsDefaulted, customize5Args_OpAnnotationsDefaulted.firstField);
     EXPECT_TRUE(isSpecialized);
     
-    isSpecialized = Json::Input::HaveSpecialization<Customize5Args_OpAnnotationsDefaulted, int, Customize5Args_OpAnnotationsDefaulted::Class::IndexOf::firstField, Annotate<>, Customize5Args_OpAnnotationsDefaulted::Class::firstField_::Field>;
+    isSpecialized = Json::Input::HaveSpecialization<Customize5Args_OpAnnotationsDefaulted, int, Customize5Args_OpAnnotationsDefaulted::Class::IndexOf::firstField, NoAnnotation, Customize5Args_OpAnnotationsDefaulted::Class::firstField_::Field>;
     EXPECT_TRUE(isSpecialized);
 }
 
 TEST_HEADER(JsonInputCustomizersTest, Customize5Args_FieldIndexDefaulted)
 {
     Customize5Args_FieldIndexDefaulted customize5Args_FieldIndexDefaulted;
-    bool isSpecialized = Json::Input::Customize<Customize5Args_FieldIndexDefaulted, int, Json::NoFieldIndex, Annotate<>, Customize5Args_FieldIndexDefaulted::Class::firstField_::Field>
+    bool isSpecialized = Json::Input::Customize<Customize5Args_FieldIndexDefaulted, int, Json::NoFieldIndex, NoAnnotation, Customize5Args_FieldIndexDefaulted::Class::firstField_::Field>
         ::As(std::cin, Json::context, customize5Args_FieldIndexDefaulted, customize5Args_FieldIndexDefaulted.firstField);
     EXPECT_TRUE(isSpecialized);
     
-    isSpecialized = Json::Input::HaveSpecialization<Customize5Args_FieldIndexDefaulted, int, Customize5Args_FieldIndexDefaulted::Class::IndexOf::firstField, Annotate<>, Customize5Args_FieldIndexDefaulted::Class::firstField_::Field>;
+    isSpecialized = Json::Input::HaveSpecialization<Customize5Args_FieldIndexDefaulted, int, Customize5Args_FieldIndexDefaulted::Class::IndexOf::firstField, NoAnnotation, Customize5Args_FieldIndexDefaulted::Class::firstField_::Field>;
     EXPECT_TRUE(isSpecialized);
 }
 
 TEST_HEADER(JsonInputCustomizersTest, Customize5Args_BothDefaulted)
 {
     Customize5Args_BothDefaulted customize5Args_BothDefaulted;
-    bool isSpecialized = Json::Input::Customize<Customize5Args_BothDefaulted, int, Json::NoFieldIndex, Annotate<>, Customize5Args_BothDefaulted::Class::firstField_::Field>
+    bool isSpecialized = Json::Input::Customize<Customize5Args_BothDefaulted, int, Json::NoFieldIndex, NoAnnotation, Customize5Args_BothDefaulted::Class::firstField_::Field>
         ::As(std::cin, Json::context, customize5Args_BothDefaulted, customize5Args_BothDefaulted.firstField);
     EXPECT_TRUE(isSpecialized);
     
-    isSpecialized = Json::Input::HaveSpecialization<Customize5Args_BothDefaulted, int, Customize5Args_BothDefaulted::Class::IndexOf::firstField, Annotate<>, Customize5Args_BothDefaulted::Class::firstField_::Field>;
+    isSpecialized = Json::Input::HaveSpecialization<Customize5Args_BothDefaulted, int, Customize5Args_BothDefaulted::Class::IndexOf::firstField, NoAnnotation, Customize5Args_BothDefaulted::Class::firstField_::Field>;
     EXPECT_TRUE(isSpecialized);
 }
 
 TEST_HEADER(JsonInputCustomizersTest, Customize4Args)
 {
     Customize4Args customize4Args;
-    bool isSpecialized = Json::Input::Customize<Customize4Args, int, Customize4Args::Class::IndexOf::firstField, Annotate<>>
+    bool isSpecialized = Json::Input::Customize<Customize4Args, int, Customize4Args::Class::IndexOf::firstField, NoAnnotation>
         ::As(std::cin, Json::context, customize4Args, customize4Args.firstField);
     EXPECT_TRUE(isSpecialized);
     
-    isSpecialized = Json::Input::HaveSpecialization<Customize4Args, int, Customize4Args::Class::IndexOf::firstField, Annotate<>, Customize4Args::Class::firstField_::Field>;
+    isSpecialized = Json::Input::HaveSpecialization<Customize4Args, int, Customize4Args::Class::IndexOf::firstField, NoAnnotation, Customize4Args::Class::firstField_::Field>;
     EXPECT_TRUE(isSpecialized);
 }
 
 TEST_HEADER(JsonInputCustomizersTest, Customize4Args_FieldIndexDefaulted)
 {
     Customize4Args_FieldIndexDefaulted customize4Args_FieldIndexDefaulted;
-    bool isSpecialized = Json::Input::Customize<Customize4Args_FieldIndexDefaulted, int, Json::NoFieldIndex, Annotate<>>
+    bool isSpecialized = Json::Input::Customize<Customize4Args_FieldIndexDefaulted, int, Json::NoFieldIndex, NoAnnotation>
         ::As(std::cin, Json::context, customize4Args_FieldIndexDefaulted, customize4Args_FieldIndexDefaulted.firstField);
     EXPECT_TRUE(isSpecialized);
     
-    isSpecialized = Json::Input::HaveSpecialization<Customize4Args_FieldIndexDefaulted, int, Customize4Args_FieldIndexDefaulted::Class::IndexOf::firstField, Annotate<>, Customize4Args_FieldIndexDefaulted::Class::firstField_::Field>;
+    isSpecialized = Json::Input::HaveSpecialization<Customize4Args_FieldIndexDefaulted, int, Customize4Args_FieldIndexDefaulted::Class::IndexOf::firstField, NoAnnotation, Customize4Args_FieldIndexDefaulted::Class::firstField_::Field>;
     EXPECT_TRUE(isSpecialized);
 }
 
@@ -99,7 +99,7 @@ TEST_HEADER(JsonInputCustomizersTest, Customize3Args)
         ::As(std::cin, Json::context, customize3Args, customize3Args.firstField);
     EXPECT_TRUE(isSpecialized);
     
-    isSpecialized = Json::Input::HaveSpecialization<Customize3Args, int, Customize3Args::Class::IndexOf::firstField, Annotate<>, Customize3Args::Class::firstField_::Field>;
+    isSpecialized = Json::Input::HaveSpecialization<Customize3Args, int, Customize3Args::Class::IndexOf::firstField, NoAnnotation, Customize3Args::Class::firstField_::Field>;
     EXPECT_TRUE(isSpecialized);
 }
 
@@ -110,7 +110,7 @@ TEST_HEADER(JsonInputCustomizersTest, Customize2Args)
         ::As(std::cin, Json::context, customize2Args, customize2Args.firstField);
     EXPECT_TRUE(isSpecialized);
     
-    isSpecialized = Json::Input::HaveSpecialization<Customize2Args, int, Customize2Args::Class::IndexOf::firstField, Annotate<>, Customize2Args::Class::firstField_::Field>;
+    isSpecialized = Json::Input::HaveSpecialization<Customize2Args, int, Customize2Args::Class::IndexOf::firstField, NoAnnotation, Customize2Args::Class::firstField_::Field>;
     EXPECT_TRUE(isSpecialized);
 }
 
@@ -118,33 +118,33 @@ TEST_HEADER(JsonInputCustomizersTest, CustomizeTypeFullySpecialized)
 {
     std::stringstream input("0");
     CustomizeTypeFullySpecialized customizeTypeFullySpecialized;
-    bool isSpecialized = Json::Input::CustomizeType<CustomizeTypeFullySpecialized, Annotate<>, CustomizeTypeFullySpecialized::Class::firstField_::Field>
+    bool isSpecialized = Json::Input::CustomizeType<CustomizeTypeFullySpecialized, NoAnnotation, CustomizeTypeFullySpecialized::Class::firstField_::Field>
         ::As(input, Json::context, customizeTypeFullySpecialized);
     EXPECT_TRUE(isSpecialized);
 
-    isSpecialized = Json::Input::HaveSpecialization<CustomizeTypeFullySpecialized, CustomizeTypeFullySpecialized, CustomizeTypeFullySpecialized::Class::IndexOf::firstField, Annotate<>, CustomizeTypeFullySpecialized::Class::firstField_::Field>;
+    isSpecialized = Json::Input::HaveSpecialization<CustomizeTypeFullySpecialized, CustomizeTypeFullySpecialized, CustomizeTypeFullySpecialized::Class::IndexOf::firstField, NoAnnotation, CustomizeTypeFullySpecialized::Class::firstField_::Field>;
     EXPECT_TRUE(isSpecialized);
 }
 
 TEST_HEADER(JsonInputCustomizersTest, CustomizeType3Args_OpAnnotationsDefaulted)
 {
     CustomizeType3Args_OpAnnotationsDefaulted customizeType3Args_OpAnnotationsDefaulted;
-    bool isSpecialized = Json::Input::CustomizeType<CustomizeType3Args_OpAnnotationsDefaulted, Annotate<>, CustomizeType3Args_OpAnnotationsDefaulted::Class::firstField_::Field>
+    bool isSpecialized = Json::Input::CustomizeType<CustomizeType3Args_OpAnnotationsDefaulted, NoAnnotation, CustomizeType3Args_OpAnnotationsDefaulted::Class::firstField_::Field>
         ::As(std::cin, Json::context, customizeType3Args_OpAnnotationsDefaulted);
     EXPECT_TRUE(isSpecialized);
 
-    isSpecialized = Json::Input::HaveSpecialization<CustomizeType3Args_OpAnnotationsDefaulted, CustomizeType3Args_OpAnnotationsDefaulted, CustomizeType3Args_OpAnnotationsDefaulted::Class::IndexOf::firstField, Annotate<>, CustomizeType3Args_OpAnnotationsDefaulted::Class::firstField_::Field>;
+    isSpecialized = Json::Input::HaveSpecialization<CustomizeType3Args_OpAnnotationsDefaulted, CustomizeType3Args_OpAnnotationsDefaulted, CustomizeType3Args_OpAnnotationsDefaulted::Class::IndexOf::firstField, NoAnnotation, CustomizeType3Args_OpAnnotationsDefaulted::Class::firstField_::Field>;
     EXPECT_TRUE(isSpecialized);
 }
 
 TEST_HEADER(JsonInputCustomizersTest, CustomizeType2Args)
 {
     CustomizeType2Args customizeType2Args;
-    bool isSpecialized = Json::Input::CustomizeType<CustomizeType2Args, Annotate<>>
+    bool isSpecialized = Json::Input::CustomizeType<CustomizeType2Args, NoAnnotation>
         ::As(std::cin, Json::context, customizeType2Args);
     EXPECT_TRUE(isSpecialized);
 
-    isSpecialized = Json::Input::HaveSpecialization<CustomizeType2Args, CustomizeType2Args, CustomizeType2Args::Class::IndexOf::firstField, Annotate<>, CustomizeType2Args::Class::firstField_::Field>;
+    isSpecialized = Json::Input::HaveSpecialization<CustomizeType2Args, CustomizeType2Args, CustomizeType2Args::Class::IndexOf::firstField, NoAnnotation, CustomizeType2Args::Class::firstField_::Field>;
     EXPECT_TRUE(isSpecialized);
 }
 
@@ -155,7 +155,7 @@ TEST_HEADER(JsonInputCustomizersTest, CustomizeType1Arg)
         ::As(std::cin, Json::context, customizeType1Arg);
     EXPECT_TRUE(isSpecialized);
 
-    isSpecialized = Json::Input::HaveSpecialization<CustomizeType1Arg, CustomizeType1Arg, CustomizeType1Arg::Class::IndexOf::firstField, Annotate<>, CustomizeType1Arg::Class::firstField_::Field>;
+    isSpecialized = Json::Input::HaveSpecialization<CustomizeType1Arg, CustomizeType1Arg, CustomizeType1Arg::Class::IndexOf::firstField, NoAnnotation, CustomizeType1Arg::Class::firstField_::Field>;
     EXPECT_TRUE(isSpecialized);
 }
 
@@ -164,7 +164,7 @@ struct Cacheable
     int a;
     short b;
 
-    REFLECT(() Cacheable, () a, () b)
+    REFLECT(Cacheable, a, b)
 };
 
 TEST_HEADER(JsonInputCacheTest, GetClassFieldCache)
@@ -709,6 +709,18 @@ TEST_HEADER(JsonInputReadAffix, ArrayPrefix)
     EXPECT_THROW(Json::Read::ArrayPrefix(letter, c), Json::Exception);
 }
 
+TEST_HEADER(JsonInputReadAffix, TrySingularTupleArrayPrefix)
+{
+    char c = '\0';
+    std::stringstream arrayPrefix("[");
+    std::stringstream objectPrefix("{");
+    std::stringstream letter("a");
+    
+    EXPECT_TRUE(Json::Read::TrySingularTupleArrayPrefix(arrayPrefix, c));
+    EXPECT_FALSE(Json::Read::TrySingularTupleArrayPrefix(objectPrefix, c));
+    EXPECT_FALSE(Json::Read::TrySingularTupleArrayPrefix(letter, c));
+}
+
 TEST_HEADER(JsonInputReadAffix, TryArraySuffix)
 {
     std::stringstream arraySuffix("]");
@@ -720,7 +732,39 @@ TEST_HEADER(JsonInputReadAffix, TryArraySuffix)
     EXPECT_FALSE(Json::Read::TryArraySuffix(letter));
 }
 
-TEST_HEADER(JsonInputReadAffix, IterablePrefix)
+TEST_HEADER(JsonInputReadAffix, EitherIterablePrefix)
+{
+    char c = '\0';
+    std::stringstream objectPrefix("{");
+    std::stringstream arrayPrefix("[");
+    std::stringstream objectSuffix("}");
+    std::stringstream arraySuffix("}");
+    std::stringstream letter("a");
+    
+    EXPECT_TRUE(Json::Read::IterablePrefix(objectPrefix, c));
+    EXPECT_FALSE(Json::Read::IterablePrefix(arrayPrefix, c));
+    EXPECT_THROW(Json::Read::IterablePrefix(objectSuffix, c), Json::Exception);
+    EXPECT_THROW(Json::Read::IterablePrefix(arraySuffix, c), Json::Exception);
+    EXPECT_THROW(Json::Read::IterablePrefix(letter, c), Json::Exception);
+}
+
+TEST_HEADER(JsonInputReadAffix, PeekIterablePrefix)
+{
+    char c = '\0';
+    std::stringstream objectPrefix("{");
+    std::stringstream arrayPrefix("[");
+    std::stringstream objectSuffix("}");
+    std::stringstream arraySuffix("}");
+    std::stringstream letter("a");
+    
+    EXPECT_TRUE(Json::Read::PeekIterablePrefix(objectPrefix, c));
+    EXPECT_FALSE(Json::Read::PeekIterablePrefix(arrayPrefix, c));
+    EXPECT_THROW(Json::Read::PeekIterablePrefix(objectSuffix, c), Json::Exception);
+    EXPECT_THROW(Json::Read::PeekIterablePrefix(arraySuffix, c), Json::Exception);
+    EXPECT_THROW(Json::Read::PeekIterablePrefix(letter, c), Json::Exception);
+}
+
+TEST_HEADER(JsonInputReadAffix, SpecificIterablePrefix)
 {
     char c = '\0';
     std::stringstream objectPrefixExpected("{");
@@ -745,6 +789,19 @@ TEST_HEADER(JsonInputReadAffix, TryIterableSuffix)
     EXPECT_FALSE(Json::Read::TryIterableSuffix<false>(objectSuffixUnexpected));
     EXPECT_TRUE(Json::Read::TryIterableSuffix<false>(arraySuffixExpected));
     EXPECT_FALSE(Json::Read::TryIterableSuffix<true>(arraySuffixUnexpected));
+}
+
+TEST_HEADER(JsonInputReadAffix, TryIterableSuffixInstanced)
+{
+    std::stringstream objectSuffixExpected("}");
+    std::stringstream objectSuffixUnexpected("}");
+    std::stringstream arraySuffixExpected("]");
+    std::stringstream arraySuffixUnexpected("]");
+    
+    EXPECT_TRUE(Json::Read::TryIterableSuffix(objectSuffixExpected, true));
+    EXPECT_FALSE(Json::Read::TryIterableSuffix(objectSuffixUnexpected, false));
+    EXPECT_TRUE(Json::Read::TryIterableSuffix(arraySuffixExpected, false));
+    EXPECT_FALSE(Json::Read::TryIterableSuffix(arraySuffixUnexpected, true));
 }
 
 TEST_HEADER(JsonInputReadAffix, IterableElementSeparator)
@@ -780,32 +837,32 @@ TEST_HEADER(JsonInputRead, Customization)
 
     using AField = Fields::Field<>;
 
-    bool customized = Json::Read::Customization<CustomizeUnspecialized, int, 0, Annotate<>, AField>(std::cin, Json::context, customizeUnspecialized, customizeUnspecialized.firstField);
+    bool customized = Json::Read::Customization<CustomizeUnspecialized, int, 0, NoAnnotation, AField>(std::cin, Json::context, customizeUnspecialized, customizeUnspecialized.firstField);
     EXPECT_FALSE(customized);
-    customized = Json::Read::Customization<CustomizeFullySpecialized, int, 0, Annotate<>, AField>(std::cin, Json::context, customizeFullySpecialized, customizeFullySpecialized.firstField);
+    customized = Json::Read::Customization<CustomizeFullySpecialized, int, 0, NoAnnotation, AField>(std::cin, Json::context, customizeFullySpecialized, customizeFullySpecialized.firstField);
     EXPECT_TRUE(customized);
-    customized = Json::Read::Customization<Customize5Args_OpAnnotationsDefaulted, int, 0, Annotate<>, AField>(std::cin, Json::context, customize5Args_OpAnnotationsDefaulted, customize5Args_OpAnnotationsDefaulted.firstField);
+    customized = Json::Read::Customization<Customize5Args_OpAnnotationsDefaulted, int, 0, NoAnnotation, AField>(std::cin, Json::context, customize5Args_OpAnnotationsDefaulted, customize5Args_OpAnnotationsDefaulted.firstField);
     EXPECT_TRUE(customized);
-    customized = Json::Read::Customization<Customize5Args_FieldIndexDefaulted, int, 0, Annotate<>, AField>(std::cin, Json::context, customize5Args_FieldIndexDefaulted, customize5Args_FieldIndexDefaulted.firstField);
+    customized = Json::Read::Customization<Customize5Args_FieldIndexDefaulted, int, 0, NoAnnotation, AField>(std::cin, Json::context, customize5Args_FieldIndexDefaulted, customize5Args_FieldIndexDefaulted.firstField);
     EXPECT_TRUE(customized);
-    customized = Json::Read::Customization<Customize5Args_BothDefaulted, int, 0, Annotate<>, AField>(std::cin, Json::context, customize5Args_BothDefaulted, customize5Args_BothDefaulted.firstField);
+    customized = Json::Read::Customization<Customize5Args_BothDefaulted, int, 0, NoAnnotation, AField>(std::cin, Json::context, customize5Args_BothDefaulted, customize5Args_BothDefaulted.firstField);
     EXPECT_TRUE(customized);
-    customized = Json::Read::Customization<Customize4Args, int, 0, Annotate<>, AField>(std::cin, Json::context, customize4Args, customize4Args.firstField);
+    customized = Json::Read::Customization<Customize4Args, int, 0, NoAnnotation, AField>(std::cin, Json::context, customize4Args, customize4Args.firstField);
     EXPECT_TRUE(customized);
-    customized = Json::Read::Customization<Customize4Args_FieldIndexDefaulted, int, 0, Annotate<>, AField>(std::cin, Json::context, customize4Args_FieldIndexDefaulted, customize4Args_FieldIndexDefaulted.firstField);
+    customized = Json::Read::Customization<Customize4Args_FieldIndexDefaulted, int, 0, NoAnnotation, AField>(std::cin, Json::context, customize4Args_FieldIndexDefaulted, customize4Args_FieldIndexDefaulted.firstField);
     EXPECT_TRUE(customized);
-    customized = Json::Read::Customization<Customize3Args, int, 0, Annotate<>, AField>(std::cin, Json::context, customize3Args, customize3Args.firstField);
+    customized = Json::Read::Customization<Customize3Args, int, 0, NoAnnotation, AField>(std::cin, Json::context, customize3Args, customize3Args.firstField);
     EXPECT_TRUE(customized);
-    customized = Json::Read::Customization<Customize2Args, int, 0, Annotate<>, AField>(std::cin, Json::context, customize2Args, customize2Args.firstField);
+    customized = Json::Read::Customization<Customize2Args, int, 0, NoAnnotation, AField>(std::cin, Json::context, customize2Args, customize2Args.firstField);
     EXPECT_TRUE(customized);
     std::stringstream input("0");
-    customized = Json::Read::Customization<CustomizeTypeFullySpecialized, CustomizeTypeFullySpecialized, 0, Annotate<>, AField>(input, Json::context, customizeTypeFullySpecialized, customizeTypeFullySpecialized);
+    customized = Json::Read::Customization<CustomizeTypeFullySpecialized, CustomizeTypeFullySpecialized, 0, NoAnnotation, AField>(input, Json::context, customizeTypeFullySpecialized, customizeTypeFullySpecialized);
     EXPECT_TRUE(customized);
-    customized = Json::Read::Customization<CustomizeType3Args_OpAnnotationsDefaulted, CustomizeType3Args_OpAnnotationsDefaulted, 0, Annotate<>, AField>(std::cin, Json::context, customizeType3Args_OpAnnotationsDefaulted, customizeType3Args_OpAnnotationsDefaulted);
+    customized = Json::Read::Customization<CustomizeType3Args_OpAnnotationsDefaulted, CustomizeType3Args_OpAnnotationsDefaulted, 0, NoAnnotation, AField>(std::cin, Json::context, customizeType3Args_OpAnnotationsDefaulted, customizeType3Args_OpAnnotationsDefaulted);
     EXPECT_TRUE(customized);
-    customized = Json::Read::Customization<CustomizeType2Args, CustomizeType2Args, 0, Annotate<>, AField>(std::cin, Json::context, customizeType2Args, customizeType2Args);
+    customized = Json::Read::Customization<CustomizeType2Args, CustomizeType2Args, 0, NoAnnotation, AField>(std::cin, Json::context, customizeType2Args, customizeType2Args);
     EXPECT_TRUE(customized);
-    customized = Json::Read::Customization<CustomizeType1Arg, CustomizeType1Arg, 0, Annotate<>, AField>(std::cin, Json::context, customizeType1Arg, customizeType1Arg);
+    customized = Json::Read::Customization<CustomizeType1Arg, CustomizeType1Arg, 0, NoAnnotation, AField>(std::cin, Json::context, customizeType1Arg, customizeType1Arg);
     EXPECT_TRUE(customized);
 }
 
@@ -1143,11 +1200,23 @@ TEST_HEADER(JsonInputRead, GenericObject)
     EXPECT_STREQ("2", assigner->get()->object().find("two")->second->number().c_str());
 }
 
+struct Keyable
+{
+    int a;
+
+    REFLECT(Keyable, a)
+};
+
+bool operator<(const Keyable & lhs, const Keyable & rhs)
+{
+    return lhs.a < rhs.a;
+}
+
 struct ComposedObj
 {
     int a;
 
-    REFLECT(() ComposedObj, () a)
+    REFLECT(ComposedObj, a)
 };
 
 struct VariousValues
@@ -1167,15 +1236,30 @@ struct VariousValues
     Json::Object genericValue;
     std::vector<int> intVector;
     ComposedObj composedObj;
+    NOTE(integerString, Json::Stringify)
     int integerString;
+    NOTE(enumInt, Json::EnumInt)
     EnumIntEnum enumInt;
     bool boolean;
     static constexpr const int constant = 0;
     std::string str;
+    
+    std::tuple<> emptyTuple;
+    std::tuple<int> singleTuple;
+    std::tuple<int, int> doubleTuple;
+    std::tuple<int, int, int> tripleTuple;
+    std::pair<int, int> pair;
+    std::map<int, Keyable> primitiveKey;
+    std::map<Keyable, int> complexKey;
+    std::tuple<int, int, int[2]> intIntArrayTuple;
+    std::tuple<int, int, Keyable> intIntKeyableTuple;
+    std::tuple<int, int, std::tuple<int, int>> intIntTupleTuple;
 
-    REFLECT(() VariousValues, (Reflected) customized, () genericNonNull, () genericNull, () sharedPointerNull, () uniquePointerNull,
-        () regularPointerNull, () regularPointerToBecomeNull, () regularPointerValue,
-        () genericValue, () intVector, (Reflected) composedObj, (Json::String) integerString, (Json::EnumInt) enumInt, () boolean, () constant, () str)
+    REFLECT(VariousValues, customized, genericNonNull, genericNull, sharedPointerNull, uniquePointerNull,
+        regularPointerNull, regularPointerToBecomeNull, regularPointerValue,
+        genericValue, intVector, composedObj, integerString, enumInt, boolean, constant, str,
+        emptyTuple, singleTuple, doubleTuple, tripleTuple, pair, primitiveKey, complexKey, intIntArrayTuple,
+        intIntKeyableTuple, intIntTupleTuple)
 };
 
 TEST_HEADER(JsonInputRead, Value)
@@ -1197,6 +1281,21 @@ TEST_HEADER(JsonInputRead, Value)
     v.enumInt = EnumIntEnum::none;
     v.boolean = false;
     v.str = "";
+
+    v.emptyTuple = {};
+    v.singleTuple = { 0 };
+    v.doubleTuple = { 0, 0 };
+    v.tripleTuple = { 0, 0, 0 };
+    v.pair = { 0, 0 };
+    std::get<0>(v.intIntArrayTuple) = 0;
+    std::get<1>(v.intIntArrayTuple) = 0;
+    std::get<2>(v.intIntArrayTuple)[0] = 0;
+    std::get<2>(v.intIntArrayTuple)[1] = 0;
+    v.intIntKeyableTuple = { 0, 0, {0} };
+    std::get<0>(v.intIntTupleTuple) = 0;
+    std::get<1>(v.intIntTupleTuple) = 0;
+    std::get<0>(std::get<2>(v.intIntTupleTuple)) = 0;
+    std::get<1>(std::get<2>(v.intIntTupleTuple)) = 0;
 
     std::stringstream customizedStream("1234,");
     Json::Read::Value<true, VariousValues::Class::customized_::Field, CustomizeTypeFullySpecialized, VariousValues>(
@@ -1270,17 +1369,288 @@ TEST_HEADER(JsonInputRead, Value)
     Json::Read::Value<true, VariousValues::Class::str_::Field, std::string, VariousValues>(
         strStream, Json::context, c, v, v.str);
     EXPECT_STREQ("asdf", v.str.c_str());
+
+    std::stringstream nullTupleStream("null,");
+    Json::Read::Value<true, VariousValues::Class::emptyTuple_::Field, std::tuple<>, VariousValues>(
+        nullTupleStream, Json::context, c, v, v.emptyTuple);
+    
+    std::stringstream emptyArrayTupleStream("[],");
+    Json::Read::Value<true, VariousValues::Class::emptyTuple_::Field, std::tuple<>, VariousValues>(
+        emptyArrayTupleStream, Json::context, c, v, v.emptyTuple);
+
+    std::stringstream singleTupleValueStream("1,");
+    Json::Read::Value<true, VariousValues::Class::singleTuple_::Field, std::tuple<int>, VariousValues>(
+        singleTupleValueStream, Json::context, c, v, v.singleTuple);
+    EXPECT_EQ(1, std::get<0>(v.singleTuple));
+
+    std::stringstream singleTupleArrayStream("[2],");
+    Json::Read::Value<true, VariousValues::Class::singleTuple_::Field, std::tuple<int>, VariousValues>(
+        singleTupleArrayStream, Json::context, c, v, v.singleTuple);
+    EXPECT_EQ(2, std::get<0>(v.singleTuple));
+
+    std::stringstream doubleTupleArrayStream("[1, 2],");
+    Json::Read::Value<true, VariousValues::Class::doubleTuple_::Field, std::tuple<int, int>, VariousValues>(
+        doubleTupleArrayStream, Json::context, c, v, v.doubleTuple);
+    EXPECT_EQ(1, std::get<0>(v.doubleTuple));
+    EXPECT_EQ(2, std::get<1>(v.doubleTuple));
+
+    std::stringstream tripleTupleArrayStream("[1, 2, 3],");
+    Json::Read::Value<true, VariousValues::Class::tripleTuple_::Field, std::tuple<int, int, int>, VariousValues>(
+        tripleTupleArrayStream, Json::context, c, v, v.tripleTuple);
+    EXPECT_EQ(1, std::get<0>(v.tripleTuple));
+    EXPECT_EQ(2, std::get<1>(v.tripleTuple));
+    EXPECT_EQ(3, std::get<2>(v.tripleTuple));
+
+    std::stringstream pairStream("[1, 2],");
+    Json::Read::Value<true, VariousValues::Class::pair_::Field, std::pair<int, int>, VariousValues>(
+        pairStream, Json::context, c, v, v.pair);
+    EXPECT_EQ(1, std::get<0>(v.pair));
+    EXPECT_EQ(2, std::get<1>(v.pair));
+
+    std::stringstream primitiveKeyStream("{\"1\": {\"a\":2}},");
+    Json::Read::Value<true, VariousValues::Class::primitiveKey_::Field, std::map<int, Keyable>, VariousValues>(
+        primitiveKeyStream, Json::context, c, v, v.primitiveKey);
+    auto found = v.primitiveKey.find(1);
+    EXPECT_TRUE(found != v.primitiveKey.end());
+    EXPECT_EQ(2, found->second.a);
+
+    std::stringstream primitiveKeyArrayStream("[[3, {\"a\":4}]],");
+    Json::Read::Value<true, VariousValues::Class::primitiveKey_::Field, std::map<int, Keyable>, VariousValues>(
+        primitiveKeyArrayStream, Json::context, c, v, v.primitiveKey);
+    auto primitiveKeyArrayFound = v.primitiveKey.find(3);
+    EXPECT_TRUE(primitiveKeyArrayFound != v.primitiveKey.end());
+    EXPECT_EQ(4, primitiveKeyArrayFound->second.a);
+
+    std::stringstream complexKeyStream("[{\"key\":{\"a\":1},\"value\":2}],");
+    Json::Read::Value<true, VariousValues::Class::complexKey_::Field, std::map<Keyable, int>, VariousValues>(
+        complexKeyStream, Json::context, c, v, v.complexKey);
+    Keyable keyable { 1 };
+    auto complexKeyFound = v.complexKey.find(keyable);
+    EXPECT_TRUE(complexKeyFound != v.complexKey.end());
+    EXPECT_EQ(2, complexKeyFound->second);
+
+    std::stringstream complexKeyArrayStream("[[{\"a\":3},4]],");
+    Json::Read::Value<true, VariousValues::Class::complexKey_::Field, std::map<Keyable, int>, VariousValues>(
+        complexKeyArrayStream, Json::context, c, v, v.complexKey);
+    Keyable arrayKeyable { 3 };
+    auto complexKeyArrayFound = v.complexKey.find(arrayKeyable);
+    EXPECT_TRUE(complexKeyArrayFound != v.complexKey.end());
+    EXPECT_EQ(4, complexKeyArrayFound->second);
+
+    std::stringstream intIntArrayTupleStream("[1, 2, [3,4]],");
+    Json::Read::Tuple<VariousValues::Class::intIntArrayTuple_::Field, 0>(
+        intIntArrayTupleStream, Json::context, c, v, v.intIntArrayTuple);
+    EXPECT_EQ(1, std::get<0>(v.intIntArrayTuple));
+    EXPECT_EQ(2, std::get<1>(v.intIntArrayTuple));
+    EXPECT_EQ(3, std::get<2>(v.intIntArrayTuple)[0]);
+    EXPECT_EQ(4, std::get<2>(v.intIntArrayTuple)[1]);
+
+    std::stringstream intIntKeyableTupleStream("[1, 2, {\"a\":3}],");
+    Json::Read::Tuple<VariousValues::Class::intIntKeyableTuple_::Field, 0>(
+        intIntKeyableTupleStream, Json::context, c, v, v.intIntKeyableTuple);
+    EXPECT_EQ(1, std::get<0>(v.intIntKeyableTuple));
+    EXPECT_EQ(2, std::get<1>(v.intIntKeyableTuple));
+    EXPECT_EQ(3, std::get<2>(v.intIntKeyableTuple).a);
+
+    std::stringstream intIntTupleTupleStream("[1, 2, [3, 4]],");
+    Json::Read::Tuple<VariousValues::Class::intIntTupleTuple_::Field, 0>(
+        intIntTupleTupleStream, Json::context, c, v, v.intIntTupleTuple);
+    EXPECT_EQ(1, std::get<0>(v.intIntTupleTuple));
+    EXPECT_EQ(2, std::get<1>(v.intIntTupleTuple));
+    EXPECT_EQ(3, std::get<0>(std::get<2>(v.intIntTupleTuple)));
+    EXPECT_EQ(4, std::get<1>(std::get<2>(v.intIntTupleTuple)));
 }
 
-TEST_HEADER(JsonInputRead, ValuePair)
+TEST_HEADER(JsonInputRead, Tuple)
 {
-    int placeholderObj = 0;
     char c = '\0';
-    std::pair<std::string, bool> testPair = std::pair<std::string, bool>("", true);
-    EXPECT_TRUE(testPair.second);
-    std::stringstream testPairStream("\"aPair\":false ,");
-    Json::Read::Value<true, Fields::Field<decltype(testPair)>>(testPairStream, Json::context, c, placeholderObj, testPair);
-    EXPECT_FALSE(testPair.second);
+    int anInt = 0;
+
+    VariousValues v = {};
+    v.genericNonNull = Json::Bool::Make(false);
+    v.genericNull = nullptr;
+    v.sharedPointerNull = nullptr;
+    v.uniquePointerNull = nullptr;
+    v.regularPointerNull = nullptr;
+    v.regularPointerToBecomeNull = &anInt;
+    v.regularPointerValue = &anInt;
+
+    v.composedObj.a = 0;
+    v.integerString = 0;
+    v.enumInt = EnumIntEnum::none;
+    v.boolean = false;
+    v.str = "";
+
+    v.emptyTuple = {};
+    v.singleTuple = { 0 };
+    v.doubleTuple = { 0, 0 };
+    v.tripleTuple = { 0, 0, 0 };
+    v.pair = { 0, 0 };
+    std::get<0>(v.intIntArrayTuple) = 0;
+    std::get<1>(v.intIntArrayTuple) = 0;
+    std::get<2>(v.intIntArrayTuple)[0] = 0;
+    std::get<2>(v.intIntArrayTuple)[1] = 0;
+    v.intIntKeyableTuple = { 0, 0, {0} };
+    std::get<0>(v.intIntTupleTuple) = 0;
+    std::get<1>(v.intIntTupleTuple) = 0;
+    std::get<0>(std::get<2>(v.intIntTupleTuple)) = 0;
+    std::get<1>(std::get<2>(v.intIntTupleTuple)) = 0;
+
+    std::stringstream doubleTupleArrayStream("[1, 2],");
+    Json::Read::Tuple<VariousValues::Class::doubleTuple_::Field, 0>(
+        doubleTupleArrayStream, Json::context, c, v, v.doubleTuple);
+    EXPECT_EQ(1, std::get<0>(v.doubleTuple));
+    EXPECT_EQ(2, std::get<1>(v.doubleTuple));
+
+    std::stringstream tripleTupleArrayStream("[1, 2, 3],");
+    Json::Read::Tuple<VariousValues::Class::tripleTuple_::Field, 0>(
+        tripleTupleArrayStream, Json::context, c, v, v.tripleTuple);
+    EXPECT_EQ(1, std::get<0>(v.tripleTuple));
+    EXPECT_EQ(2, std::get<1>(v.tripleTuple));
+    EXPECT_EQ(3, std::get<2>(v.tripleTuple));
+
+    std::stringstream intIntArrayTupleStream("[1, 2, [3,4]],");
+    Json::Read::Tuple<VariousValues::Class::intIntArrayTuple_::Field, 0>(
+        intIntArrayTupleStream, Json::context, c, v, v.intIntArrayTuple);
+    EXPECT_EQ(1, std::get<0>(v.intIntArrayTuple));
+    EXPECT_EQ(2, std::get<1>(v.intIntArrayTuple));
+    EXPECT_EQ(3, std::get<2>(v.intIntArrayTuple)[0]);
+    EXPECT_EQ(4, std::get<2>(v.intIntArrayTuple)[1]);
+
+    std::stringstream intIntKeyableTupleStream("[1, 2, {\"a\":3}],");
+    Json::Read::Tuple<VariousValues::Class::intIntKeyableTuple_::Field, 0>(
+        intIntKeyableTupleStream, Json::context, c, v, v.intIntKeyableTuple);
+    EXPECT_EQ(1, std::get<0>(v.intIntKeyableTuple));
+    EXPECT_EQ(2, std::get<1>(v.intIntKeyableTuple));
+    EXPECT_EQ(3, std::get<2>(v.intIntKeyableTuple).a);
+
+    std::stringstream intIntTupleTupleStream("[1, 2, [3, 4]],");
+    Json::Read::Tuple<VariousValues::Class::intIntTupleTuple_::Field, 0>(
+        intIntTupleTupleStream, Json::context, c, v, v.intIntTupleTuple);
+    EXPECT_EQ(1, std::get<0>(v.intIntTupleTuple));
+    EXPECT_EQ(2, std::get<1>(v.intIntTupleTuple));
+    EXPECT_EQ(3, std::get<0>(std::get<2>(v.intIntTupleTuple)));
+    EXPECT_EQ(4, std::get<1>(std::get<2>(v.intIntTupleTuple)));
+}
+
+struct VariousPairs
+{
+    std::pair<int, int> intIntPair;
+    std::pair<int, Keyable> intObjPair;
+    std::pair<Keyable, int> objIntPair;
+    std::pair<int, std::pair<Keyable, Keyable>> intPairPair;
+
+    REFLECT(VariousPairs, intIntPair, intObjPair, objIntPair, intPairPair)
+};
+
+TEST_HEADER(JsonInputRead, Pair)
+{
+    char c = '\0';
+
+    VariousPairs v;
+    v.intIntPair = { 0, 0 };
+    v.intObjPair = { 0, {0} };
+    v.objIntPair = { {0}, 0 };
+    v.intPairPair = { 0, {{0},{0}} };
+
+    std::stringstream intIntPairStream("[1, 2],");
+    Json::Read::Pair<VariousPairs::Class::intIntPair_::Field, VariousPairs>(
+        intIntPairStream, Json::context, c, v, v.intIntPair);
+    EXPECT_EQ(1, std::get<0>(v.intIntPair));
+    EXPECT_EQ(2, std::get<1>(v.intIntPair));
+
+    std::stringstream intObjPairStream("[1, {\"a\":2}],");
+    Json::Read::Pair<VariousPairs::Class::intObjPair_::Field, VariousPairs>(
+        intObjPairStream, Json::context, c, v, v.intObjPair);
+    EXPECT_EQ(1, std::get<0>(v.intObjPair));
+    EXPECT_EQ(2, std::get<1>(v.intObjPair).a);
+
+    std::stringstream objIntPairStream("[{\"a\":1}, 2],");
+    Json::Read::Pair<VariousPairs::Class::objIntPair_::Field, VariousPairs>(
+        objIntPairStream, Json::context, c, v, v.objIntPair);
+    EXPECT_EQ(1, std::get<0>(v.objIntPair).a);
+    EXPECT_EQ(2, std::get<1>(v.objIntPair));
+
+    std::stringstream intPairPairStream("[1, [{\"a\":2}, {\"a\":3}]],");
+    Json::Read::Pair<VariousPairs::Class::intPairPair_::Field, VariousPairs>(
+        intPairPairStream, Json::context, c, v, v.intPairPair);
+    EXPECT_EQ(1, std::get<0>(v.intPairPair));
+    EXPECT_EQ(2, std::get<0>(std::get<1>(v.intPairPair)).a);
+    EXPECT_EQ(3, std::get<1>(std::get<1>(v.intPairPair)).a);
+}
+
+struct VariousMaps
+{
+    std::map<int, int> intIntMap;
+    std::map<int, Keyable> intObjMap;
+    std::map<Keyable, int> objIntMap;
+    std::map<Keyable, Keyable> objObjMap;
+
+    REFLECT(VariousMaps, intIntMap, intObjMap, objIntMap, objObjMap)
+};
+
+TEST_HEADER(JsonInputRead, KeyValueObject)
+{
+    char c = '\0';
+
+    VariousMaps v;
+    v.intIntMap = { {0, 0} };
+    v.intObjMap = { {0, {0}} };
+    v.objIntMap = { {{0}, 0} };
+    v.objObjMap = { {{0}, {0}} };
+    
+    std::stringstream intIntMapStream("{\"key\":1,\"value\":2},");
+    std::pair<int, int> value = { 0, 0 };
+    Json::Read::KeyValueObject<VariousMaps::Class::intIntMap_::Field, VariousMaps>(
+        intIntMapStream, Json::context, c, v, value);
+    EXPECT_EQ(1, std::get<0>(value));
+    EXPECT_EQ(2, std::get<1>(value));
+    
+    std::stringstream intObjMapStream("{\"key\":1,\"value\":{\"a\":2}},");
+    std::pair<int, Keyable> intObjElement = { 0, {0} };
+    Json::Read::KeyValueObject<VariousMaps::Class::intObjMap_::Field, VariousMaps>(
+        intObjMapStream, Json::context, c, v, intObjElement);
+    EXPECT_EQ(1, std::get<0>(intObjElement));
+    EXPECT_EQ(2, std::get<1>(intObjElement).a);
+    
+    std::stringstream objIntMapStream("{\"key\":{\"a\":1},\"value\":2},");
+    std::pair<Keyable, int> objIntElement = { {0}, 0 };
+    Json::Read::KeyValueObject<VariousMaps::Class::objIntMap_::Field, VariousMaps>(
+        objIntMapStream, Json::context, c, v, objIntElement);
+    EXPECT_EQ(1, std::get<0>(objIntElement).a);
+    EXPECT_EQ(2, std::get<1>(objIntElement));
+    
+    std::stringstream objObjMapStream("{\"key\":{\"a\":1},\"value\":{\"a\":2}},");
+    std::pair<Keyable, Keyable> objObjElement = { {0}, {0} };
+    Json::Read::KeyValueObject<VariousMaps::Class::objObjMap_::Field, VariousMaps>(
+        objObjMapStream, Json::context, c, v, objObjElement);
+    EXPECT_EQ(1, std::get<0>(objObjElement).a);
+    EXPECT_EQ(2, std::get<1>(objObjElement).a);
+}
+
+TEST_HEADER(JsonInputRead, FieldPair)
+{
+    char c = '\0';
+
+    VariousMaps v;
+    v.intIntMap = { {0, 0} };
+    v.intObjMap = { {0, {0}} };
+    v.objIntMap = { {{0}, 0} };
+    v.objObjMap = { {{0}, {0}} };
+
+    std::stringstream intIntFieldPairStream("\"1\":2");
+    std::pair<int, int> value;
+    Json::Read::FieldPair<VariousMaps::Class::intIntMap_::Field, VariousMaps>(
+        intIntFieldPairStream, Json::context, c, v, value.first, value.second);
+    EXPECT_EQ(1, std::get<0>(value));
+    EXPECT_EQ(2, std::get<1>(value));
+
+    std::stringstream intObjFieldPairStream("\"1\":{\"a\":2}");
+    std::pair<int, Keyable> intObjValue;
+    Json::Read::FieldPair<VariousMaps::Class::intObjMap_::Field, VariousMaps>(
+        intObjFieldPairStream, Json::context, c, v, intObjValue.first, intObjValue.second);
+    EXPECT_EQ(1, std::get<0>(intObjValue));
+    EXPECT_EQ(2, std::get<1>(intObjValue).a);
 }
 
 TEST_HEADER(JsonInputRead, Iterable)
@@ -1311,12 +1681,13 @@ struct RegularField
 {
     int a;
 
-    REFLECT(() RegularField, () a)
+    REFLECT(RegularField, a)
 };
 
+NOTE(SuperClassField, Super<RegularField>)
 struct SuperClassField : RegularField
 {
-    REFLECT_EMPTY((RegularField) SuperClassField)
+    REFLECT_EMPTY(SuperClassField)
 };
 
 TEST_HEADER(JsonInputRead, Field)
@@ -1344,7 +1715,7 @@ struct ReadableObject
 {
     int a;
 
-    REFLECT(() ReadableObject, () a)
+    REFLECT(ReadableObject, a)
 };
 
 TEST_HEADER(JsonInputRead, Object)
@@ -1379,7 +1750,7 @@ struct JsonReferences
     static int staticPrimitive;
     static int & staticPrimitiveReference;
 
-    REFLECT(() JsonReferences, () primitive, () primitiveReference, () staticPrimitive, () staticPrimitiveReference)
+    REFLECT(JsonReferences, primitive, primitiveReference, staticPrimitive, staticPrimitiveReference)
 };
 
 int JsonReferences::staticPrimitive = 2;
@@ -1410,18 +1781,20 @@ TEST_HEADER(JsonInput, InReferences)
     EXPECT_EQ(222, jsonReferences.staticPrimitiveReference);
 }
 
+NOTE(EmptyIn)
 struct EmptyIn
 {
-    REFLECT_EMPTY(() EmptyIn)
+    REFLECT_EMPTY(EmptyIn)
 };
 
 struct SingleFieldIn
 {
     int a;
 
-    REFLECT(() SingleFieldIn, () a)
+    REFLECT(SingleFieldIn, a)
 };
 
+NOTE(ComplexStruct, Super<EmptyIn>, Super<SingleFieldIn>)
 struct ComplexStruct : EmptyIn, SingleFieldIn
 {
     int a;
@@ -1432,8 +1805,7 @@ struct ComplexStruct : EmptyIn, SingleFieldIn
     std::vector<int> intVector;
     Json::FieldCluster fieldCluster;
     
-    using Parents = Inherit<EmptyIn, SingleFieldIn>;
-    REFLECT((Parents) ComplexStruct, () a, () b, () dynamicString, (Reflected) singleFieldIn, () intStringMap, () intVector, () fieldCluster)
+    REFLECT_NOTED(ComplexStruct, a, b, dynamicString, singleFieldIn, intStringMap, intVector, fieldCluster)
 };
 
 TEST_HEADER(JsonInput, In)

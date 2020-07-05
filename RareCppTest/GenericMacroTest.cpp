@@ -813,19 +813,3 @@ TEST(GenericMacroTest, MacroForEach)
         a121,a122,a123,a124,a125);
     EXPECT_EQ(125, test.size()); for ( size_t i=0; i<125; i++ ) EXPECT_STREQ(std::string("a" + std::to_string(i+1)).c_str(), test[i].c_str()); test.clear();
 }
-
-TEST(GenericMacroTest, MacroLhs)
-{
-    bool lhs = false;
-    bool rhs = true;
-    bool lhsResult = LHS((lhs) rhs);
-    EXPECT_EQ(lhs, lhsResult);
-}
-
-TEST(GenericMacroTest, MacroRhs)
-{
-    bool lhs = false;
-    bool rhs = true;
-    bool rhsResult = RHS((lhs) rhs);
-    EXPECT_EQ(rhs, rhsResult);
-}

@@ -33,6 +33,19 @@ TEST(ExtendedTypeSupportTest, PromoteChar)
     EXPECT_TRUE(isSame);
 }
 
+TEST(ExtendedTypeSupportTest, PairLhs)
+{
+    bool isSame = std::is_same<float, pair_lhs<std::pair<float, int>>::type>::value;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same<char, pair_lhs<std::pair<char, int>>::type>::value;
+    EXPECT_TRUE(isSame);
+    
+    isSame = std::is_same<float, pair_lhs<const std::pair<float, int>>::type>::value;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same<char, pair_lhs<const std::pair<char, int>>::type>::value;
+    EXPECT_TRUE(isSame);
+}
+
 TEST(ExtendedTypeSupportTest, PairRhs)
 {
     bool isSame = std::is_same<float, pair_rhs<std::pair<int, float>>::type>::value;
@@ -87,6 +100,8 @@ TEST(ExtendedTypeSupportTest, RemovePointer)
     EXPECT_TRUE(isEqual);
     isEqual = std::is_same<int, remove_pointer<std::unique_ptr<int>>::type>::value;
     EXPECT_TRUE(isEqual);
+    isEqual = std::is_same<int*, remove_pointer<int**>::type>::value;
+    EXPECT_TRUE(isEqual);
     
     isEqual = std::is_same<const int, remove_pointer<const int>::type>::value;
     EXPECT_TRUE(isEqual);
@@ -97,6 +112,8 @@ TEST(ExtendedTypeSupportTest, RemovePointer)
     isEqual = std::is_same<const int, remove_pointer<std::shared_ptr<const int>>::type>::value;
     EXPECT_TRUE(isEqual);
     isEqual = std::is_same<const int, remove_pointer<std::unique_ptr<const int>>::type>::value;
+    EXPECT_TRUE(isEqual);
+    isEqual = std::is_same<const int*, remove_pointer<const int**>::type>::value;
     EXPECT_TRUE(isEqual);
 }
 
@@ -200,6 +217,59 @@ TEST(ExtendedTypeSupportTest, IsIterable)
     EXPECT_TRUE(isIterable);
 }
 
+TEST(ExtendedTypeSupportTest, IsMap)
+{
+    EXPECT_FALSE(is_map<int>::value);
+    EXPECT_FALSE(is_map<int*>::value);
+    EXPECT_FALSE(is_map<int[2]>::value);
+    bool isMap = is_map<std::array<int, 2>>::value;
+    EXPECT_FALSE(isMap);
+    EXPECT_FALSE(is_map<std::vector<int>>::value);
+    EXPECT_FALSE(is_map<std::deque<int>>::value);
+    EXPECT_FALSE(is_map<std::list<int>>::value);
+    EXPECT_FALSE(is_map<std::forward_list<int>>::value);
+    EXPECT_FALSE(is_map<std::stack<int>>::value);
+    EXPECT_FALSE(is_map<std::queue<int>>::value);
+    EXPECT_FALSE(is_map<std::priority_queue<int>>::value);
+    EXPECT_FALSE(is_map<std::set<int>>::value);
+    EXPECT_FALSE(is_map<std::multiset<int>>::value);
+    EXPECT_FALSE(is_map<std::unordered_set<int>>::value);
+    EXPECT_FALSE(is_map<std::unordered_multiset<int>>::value);
+    isMap = is_map<std::map<int, float>>::value;
+    EXPECT_TRUE(isMap);
+    isMap = is_map<std::multimap<int, float>>::value;
+    EXPECT_TRUE(isMap);
+    isMap = is_map<std::unordered_map<int, float>>::value;
+    EXPECT_TRUE(isMap);
+    isMap = is_map<std::unordered_multimap<int, float>>::value;
+    EXPECT_TRUE(isMap);
+    
+    EXPECT_FALSE(is_map<const int>::value);
+    EXPECT_FALSE(is_map<const int*>::value);
+    EXPECT_FALSE(is_map<const int[2]>::value);
+    isMap = is_map<const std::array<int, 2>>::value;
+    EXPECT_FALSE(isMap);
+    EXPECT_FALSE(is_map<const std::vector<int>>::value);
+    EXPECT_FALSE(is_map<const std::deque<int>>::value);
+    EXPECT_FALSE(is_map<const std::list<int>>::value);
+    EXPECT_FALSE(is_map<const std::forward_list<int>>::value);
+    EXPECT_FALSE(is_map<const std::stack<int>>::value);
+    EXPECT_FALSE(is_map<const std::queue<int>>::value);
+    EXPECT_FALSE(is_map<const std::priority_queue<int>>::value);
+    EXPECT_FALSE(is_map<const std::set<int>>::value);
+    EXPECT_FALSE(is_map<const std::multiset<int>>::value);
+    EXPECT_FALSE(is_map<const std::unordered_set<int>>::value);
+    EXPECT_FALSE(is_map<const std::unordered_multiset<int>>::value);
+    isMap = is_map<const std::map<int, float>>::value;
+    EXPECT_TRUE(isMap);
+    isMap = is_map<const std::multimap<int, float>>::value;
+    EXPECT_TRUE(isMap);
+    isMap = is_map<const std::unordered_map<int, float>>::value;
+    EXPECT_TRUE(isMap);
+    isMap = is_map<const std::unordered_multimap<int, float>>::value;
+    EXPECT_TRUE(isMap);
+}
+
 TEST(ExtendedTypeSupportTest, IsStlIterable)
 {
     EXPECT_FALSE(is_stl_iterable<int>::value);
@@ -296,6 +366,8 @@ TEST(ExtendedTypeSupportTest, IsPair)
     EXPECT_FALSE(is_pair<std::vector<int>>::value);
     bool isPair = is_pair<std::map<int, float>>::value;
     EXPECT_FALSE(isPair);
+    isPair = is_pair<std::tuple<int, int>>::value;
+    EXPECT_FALSE(isPair);
     isPair = is_pair<std::pair<int, float>>::value;
     EXPECT_TRUE(isPair);
     
@@ -305,8 +377,51 @@ TEST(ExtendedTypeSupportTest, IsPair)
     EXPECT_FALSE(is_pair<const std::vector<int>>::value);
     isPair = is_pair<const std::map<int, float>>::value;
     EXPECT_FALSE(isPair);
+    isPair = is_pair<const std::tuple<int, int>>::value;
+    EXPECT_FALSE(isPair);
     isPair = is_pair<const std::pair<int, float>>::value;
     EXPECT_TRUE(isPair);
+}
+
+TEST(ExtendedTypeSupportTest, IsTuple)
+{
+    EXPECT_FALSE(is_tuple<int>::value);
+    EXPECT_FALSE(is_tuple<int*>::value);
+    EXPECT_FALSE(is_tuple<int[2]>::value);
+    EXPECT_FALSE(is_tuple<std::vector<int>>::value);
+    bool isTuple = is_tuple<std::map<int, float>>::value;
+    EXPECT_FALSE(isTuple);
+    isTuple = is_tuple<std::pair<int, float>>::value;
+    EXPECT_FALSE(isTuple);
+    isTuple = is_tuple<std::tuple<>>::value;
+    EXPECT_TRUE(isTuple);
+    isTuple = is_tuple<std::tuple<int>>::value;
+    EXPECT_TRUE(isTuple);
+    isTuple = is_tuple<std::tuple<int, int>>::value;
+    EXPECT_TRUE(isTuple);
+    isTuple = is_tuple<std::tuple<int, int, int>>::value;
+    EXPECT_TRUE(isTuple);
+    isTuple = is_tuple<std::tuple<int, int, int, int>>::value;
+    EXPECT_TRUE(isTuple);
+    
+    EXPECT_FALSE(is_tuple<const int>::value);
+    EXPECT_FALSE(is_tuple<const int*>::value);
+    EXPECT_FALSE(is_tuple<const int[2]>::value);
+    EXPECT_FALSE(is_tuple<const std::vector<int>>::value);
+    isTuple = is_tuple<const std::pair<int, float>>::value;
+    EXPECT_FALSE(isTuple);
+    isTuple = is_tuple<const std::map<int, float>>::value;
+    EXPECT_FALSE(isTuple);
+    isTuple = is_tuple<const std::tuple<>>::value;
+    EXPECT_TRUE(isTuple);
+    isTuple = is_tuple<const std::tuple<int>>::value;
+    EXPECT_TRUE(isTuple);
+    isTuple = is_tuple<const std::tuple<int, int>>::value;
+    EXPECT_TRUE(isTuple);
+    isTuple = is_tuple<const std::tuple<int, int, int>>::value;
+    EXPECT_TRUE(isTuple);
+    isTuple = is_tuple<const std::tuple<int, int, int, int>>::value;
+    EXPECT_TRUE(isTuple);
 }
 
 TEST(ExtendedTypeSupportTest, IsBool)
@@ -750,22 +865,196 @@ TEST(ExtendedTypeSupportTest, Clear)
     EXPECT_TRUE(unorderedMultimap.empty());
 }
 
+TEST(ExtendedTypeSupportTest, TypePair)
+{
+    using IntFloat = TypePair<int, float>;
+    using FloatInt = TypePair<float, int>;
+    bool isSame = std::is_same_v<int, IntFloat::Left>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<float, IntFloat::Right>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<float, FloatInt::Left>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<int, FloatInt::Right>;
+    EXPECT_TRUE(isSame);
+}
+
 TEST(ExtendedTypeSupportTest, HasType)
 {
-    bool hasType = HasType<bool>::value;
+    bool hasType = has_type<bool>::value;
     EXPECT_FALSE(hasType);
-    hasType = HasType<bool, int>::value;
+    hasType = has_type<bool, int>::value;
     EXPECT_FALSE(hasType);
-    hasType = HasType<bool, bool>::value;
-    EXPECT_TRUE(hasType);
-    hasType = HasType<bool, int, int>::value;
+    hasType = has_type<bool, std::tuple<>>::value;
     EXPECT_FALSE(hasType);
-    hasType = HasType<bool, int, bool>::value;
+    hasType = has_type<bool, std::tuple<int>>::value;
+    EXPECT_FALSE(hasType);
+    hasType = has_type<bool, std::tuple<bool>>::value;
     EXPECT_TRUE(hasType);
-    hasType = HasType<bool, bool, int>::value;
+    hasType = has_type<bool, std::tuple<int, int>>::value;
+    EXPECT_FALSE(hasType);
+    hasType = has_type<bool, std::tuple<int, bool>>::value;
     EXPECT_TRUE(hasType);
-    hasType = HasType<bool, bool, bool>::value;
+    hasType = has_type<bool, std::tuple<bool, int>>::value;
     EXPECT_TRUE(hasType);
+    hasType = has_type<bool, std::tuple<bool, bool>>::value;
+    EXPECT_TRUE(hasType);
+    hasType = has_type<bool, const std::tuple<>>::value;
+    EXPECT_FALSE(hasType);
+    hasType = has_type<bool, const std::tuple<int>>::value;
+    EXPECT_FALSE(hasType);
+    hasType = has_type<bool, const std::tuple<bool>>::value;
+    EXPECT_TRUE(hasType);
+    hasType = has_type<bool, const std::tuple<int, int>>::value;
+    EXPECT_FALSE(hasType);
+    hasType = has_type<bool, const std::tuple<int, bool>>::value;
+    EXPECT_TRUE(hasType);
+    hasType = has_type<bool, const std::tuple<bool, int>>::value;
+    EXPECT_TRUE(hasType);
+    hasType = has_type<bool, const std::tuple<bool, bool>>::value;
+    EXPECT_TRUE(hasType);
+}
+
+TEST(ExtendedTypeSupportTest, GetFirstTupleElementOfType)
+{
+    struct S { int a; };
+
+    std::tuple<int> integer { 1337 };
+    EXPECT_EQ(1337, get<int>::from(integer));
+    EXPECT_NO_THROW(get<S>::from(integer));
+
+    std::tuple<int, char> intChar { 1337, '\0' };
+    EXPECT_EQ(1337, get<int>::from(intChar));
+    EXPECT_NO_THROW(get<S>::from(intChar));
+    std::tuple<char, int> charInt { '\0', 1337 };
+    EXPECT_EQ(1337, get<int>::from(charInt));
+    EXPECT_NO_THROW(get<S>::from(charInt));
+
+    std::tuple<int, char, char> intCharChar { 1337, '\0', '\0' };
+    EXPECT_EQ(1337, get<int>::from(intCharChar));
+    EXPECT_NO_THROW(get<S>::from(intCharChar));
+    std::tuple<char, int, char> charIntChar { '\0', 1337, '\0' };
+    EXPECT_EQ(1337, get<int>::from(charIntChar));
+    EXPECT_NO_THROW(get<S>::from(charIntChar));
+    std::tuple<char, char, int> charCharInt { '\0', '\0', 1337 };
+    EXPECT_EQ(1337, get<int>::from(charCharInt));
+    EXPECT_NO_THROW(get<S>::from(charCharInt));
+
+    
+    S s { 9001 };
+    std::tuple<S> es { s };
+    EXPECT_EQ(9001, get<S>::from(es).a);
+    EXPECT_NO_THROW(get<int>::from(es));
+
+    std::tuple<S, char> sChar { s, '\0' };
+    EXPECT_EQ(9001, get<S>::from(sChar).a);
+    EXPECT_NO_THROW(get<int>::from(sChar));
+    std::tuple<char, S> charS { '\0', s };
+    EXPECT_EQ(9001, get<S>::from(charS).a);
+    EXPECT_NO_THROW(get<int>::from(charS));
+
+    std::tuple<S, char, char> sCharChar { s, '\0', '\0' };
+    EXPECT_EQ(9001, get<S>::from(sCharChar).a);
+    EXPECT_NO_THROW(get<int>::from(sCharChar));
+    std::tuple<char, S, char> charEsChar { '\0', s, '\0' };
+    EXPECT_EQ(9001, get<S>::from(charEsChar).a);
+    EXPECT_NO_THROW(get<int>::from(charEsChar));
+    std::tuple<char, char, S> charCharS { '\0', '\0', s };
+    EXPECT_EQ(9001, get<S>::from(charCharS).a);
+    EXPECT_NO_THROW(get<int>::from(charCharS));
+
+    std::tuple<> empty {};
+    EXPECT_NO_THROW(get<int>::from(empty));
+    EXPECT_NO_THROW(get<S>::from(empty));
+}
+
+TEST(ExtendeTypeSupportTest, ForEach)
+{
+    std::tuple<> empty;
+    bool visited = false;
+    for_each<int>::in(empty, [&](auto & element) {
+        visited = true;
+    });
+    EXPECT_FALSE(visited);
+
+    visited = false;
+    std::tuple<int> integer { 555 };
+    for_each<char>::in(integer, [&](auto & element) {
+        visited = true;
+    });
+    EXPECT_FALSE(visited);
+
+    visited = false;
+    for_each<int>::in(integer, [&](auto & element) {
+        EXPECT_EQ(555, element);
+        visited = true;
+    });
+    EXPECT_TRUE(visited);
+
+    std::tuple<char, int> charInt { '\0', 1 };
+    int visitCount = 0;
+    for_each<int>::in(charInt, [&](auto & element) {
+        EXPECT_EQ(1, element);
+        visitCount++;
+    });
+    EXPECT_EQ(1, visitCount);
+
+    std::tuple<int, char> intChar { 1, '\0' };
+    visitCount = 0;
+    for_each<int>::in(intChar, [&](auto & element) {
+        EXPECT_EQ(1, element);
+        visitCount++;
+    });
+    EXPECT_EQ(1, visitCount);
+
+    std::tuple<int, int> intInt { 0, 1 };
+    visitCount = 0;
+    for_each<int>::in(intInt, [&](auto & element) {
+        EXPECT_EQ(visitCount, element);
+        visitCount++;
+    });
+    EXPECT_EQ(2, visitCount);
+    
+    std::tuple<int, char, char, int, int> intCharCharInt { 0, 'a', 'b', 1, 2 };
+    visitCount = 0;
+    for_each<int>::in(intCharCharInt, [&](auto & element) {
+        EXPECT_EQ(visitCount, element);
+        visitCount++;
+    });
+    EXPECT_EQ(3, visitCount);
+}
+
+TEST(ExtendedTypeSupportTest, ForEachIn)
+{
+    std::tuple<> empty {};
+    bool visited = false;
+    for_each_in(empty, [&](auto & element) {
+        visited = true;
+    });
+    EXPECT_FALSE(visited);
+
+    std::tuple<int> integer { 1 };
+    visited = false;
+    for_each_in(integer, [&](auto & element) {
+        EXPECT_EQ(1, element);
+        visited = true;
+    });
+
+    std::tuple<int, int> intInt { 0, 1 };
+    int visitCount = 0;
+    for_each_in(intInt, [&](auto & element) {
+        EXPECT_EQ(visitCount, element);
+        visitCount++;
+    });
+    EXPECT_EQ(2, visitCount);
+
+    std::tuple<int, int, int> intIntInt { 0, 1, 2 };
+    visitCount = 0;
+    for_each_in(intIntInt, [&](auto & element) {
+        EXPECT_EQ(visitCount, element);
+        visitCount++;
+    });
+    EXPECT_EQ(3, visitCount);
 }
 
 TEST(ExtendedTypeSupportTest, ConstexprTypeToStr)

@@ -12,7 +12,7 @@ struct CustomizeNoSpecialization
     int integer;
     char character;
 
-    REFLECT(() CustomizeNoSpecialization, () integer, () character)
+    REFLECT(CustomizeNoSpecialization, integer, character)
 };
 
 struct CustomizeFullySpecialized
@@ -21,7 +21,7 @@ struct CustomizeFullySpecialized
     int secondField;
     char unspecialized;
 
-    REFLECT(() CustomizeFullySpecialized, () firstField, () secondField, () unspecialized)
+    REFLECT(CustomizeFullySpecialized, firstField, secondField, unspecialized)
 };
 
 template <size_t FieldIndex, typename OpAnnotations, typename Field, Json::Statics statics,
@@ -42,7 +42,7 @@ struct Customize5ArgSpecialized
     int secondField;
     char unspecialized;
 
-    REFLECT(() Customize5ArgSpecialized, () firstField, () secondField, () unspecialized)
+    REFLECT(Customize5ArgSpecialized, firstField, secondField, unspecialized)
 };
 
 template <size_t FieldIndex, typename OpAnnotations, typename Field>
@@ -60,7 +60,7 @@ struct Customize4ArgSpecialized
     int secondField;
     char unspecialized;
 
-    REFLECT(() Customize4ArgSpecialized, () firstField, () secondField, () unspecialized)
+    REFLECT(Customize4ArgSpecialized, firstField, secondField, unspecialized)
 };
 
 template <size_t FieldIndex, typename OpAnnotations>
@@ -78,7 +78,7 @@ struct Customize3ArgSpecialized
     int secondField;
     char unspecialized;
 
-    REFLECT(() Customize3ArgSpecialized, () firstField, () secondField, () unspecialized)
+    REFLECT(Customize3ArgSpecialized, firstField, secondField, unspecialized)
 };
 
 template <size_t FieldIndex>
@@ -96,7 +96,7 @@ struct Customize2ArgSpecialized
     int secondField;
     char unspecialized;
 
-    REFLECT(() Customize3ArgSpecialized, () firstField, () secondField, () unspecialized)
+    REFLECT(Customize3ArgSpecialized, firstField, secondField, unspecialized)
 };
 
 template <>
@@ -114,11 +114,11 @@ struct Customize5ArgSpecialized_OpAnnotationsDefaulted
     int secondField;
     char unspecialized;
 
-    REFLECT(() Customize5ArgSpecialized_OpAnnotationsDefaulted, () firstField, () secondField, () unspecialized)
+    REFLECT(Customize5ArgSpecialized_OpAnnotationsDefaulted, firstField, secondField, unspecialized)
 };
 
 template <size_t FieldIndex, typename Field>
-struct Json::Output::Customize<Customize5ArgSpecialized_OpAnnotationsDefaulted, int, FieldIndex, Annotate<>, Field>
+struct Json::Output::Customize<Customize5ArgSpecialized_OpAnnotationsDefaulted, int, FieldIndex, NoAnnotation, Field>
 {
     static bool As(Json::OutStreamType & output, Json::Context & context, const Customize5ArgSpecialized_OpAnnotationsDefaulted & object, const int & value)
     {
@@ -132,7 +132,7 @@ struct Customize5ArgSpecialized_FieldIndexDefaulted
     int secondField;
     char unspecialized;
 
-    REFLECT(() Customize5ArgSpecialized_FieldIndexDefaulted, () firstField, () secondField, () unspecialized)
+    REFLECT(Customize5ArgSpecialized_FieldIndexDefaulted, firstField, secondField, unspecialized)
 };
 
 template <typename OpAnnotations, typename Field>
@@ -150,11 +150,11 @@ struct Customize5ArgSpecialized_BothDefaulted
     int secondField;
     char unspecialized;
 
-    REFLECT(() Customize5ArgSpecialized_BothDefaulted, () firstField, () secondField, () unspecialized)
+    REFLECT(Customize5ArgSpecialized_BothDefaulted, firstField, secondField, unspecialized)
 };
 
 template <typename Field>
-struct Json::Output::Customize<Customize5ArgSpecialized_BothDefaulted, int, Json::NoFieldIndex, Annotate<>, Field>
+struct Json::Output::Customize<Customize5ArgSpecialized_BothDefaulted, int, Json::NoFieldIndex, NoAnnotation, Field>
 {
     static bool As(Json::OutStreamType & output, Json::Context & context, const Customize5ArgSpecialized_BothDefaulted & object, const int & value)
     {
@@ -168,7 +168,7 @@ struct Customize4ArgSpecialized_FieldIndexDefaulted
     int secondField;
     char unspecialized;
 
-    REFLECT(() Customize4ArgSpecialized_FieldIndexDefaulted, () firstField, () secondField, () unspecialized)
+    REFLECT(Customize4ArgSpecialized_FieldIndexDefaulted, firstField, secondField, unspecialized)
 };
 
 template <typename OpAnnotations>
@@ -189,7 +189,7 @@ struct ContainsUnspecialized
 {
     UnspecializedType unspecializedType;
 
-    REFLECT(() ContainsUnspecialized, () unspecializedType)
+    REFLECT(ContainsUnspecialized, unspecializedType)
 };
 
 enum_t(FullySpecializedType, uint8_t, {
@@ -201,7 +201,7 @@ struct ContainsFullySpecialized
 {
     FullySpecializedType fullySpecializedType;
 
-    REFLECT(() ContainsFullySpecialized, () fullySpecializedType)
+    REFLECT(ContainsFullySpecialized, fullySpecializedType)
 };
 
 template <typename OpAnnotations, typename Field, Json::Statics statics,
@@ -223,7 +223,7 @@ struct ContainsThreeArgSpecialized
 {
     ThreeArgSpecializedType threeArgSpecializedType;
 
-    REFLECT(() ContainsThreeArgSpecialized, () threeArgSpecializedType)
+    REFLECT(ContainsThreeArgSpecialized, threeArgSpecializedType)
 };
 
 template <typename OpAnnotations, typename Field>
@@ -244,7 +244,7 @@ struct ContainsTwoArgSpecialized
 {
     TwoArgSpecializedType twoArgSpecializedType;
 
-    REFLECT(() ContainsTwoArgSpecialized, () twoArgSpecializedType)
+    REFLECT(ContainsTwoArgSpecialized, twoArgSpecializedType)
 };
 
 template<typename OpAnnotations>
@@ -265,7 +265,7 @@ struct ContainsOneArgSpecialized
 {
     OneArgSpecializedType oneArgSpecializedType;
 
-    REFLECT(() ContainsOneArgSpecialized, () oneArgSpecializedType)
+    REFLECT(ContainsOneArgSpecialized, oneArgSpecializedType)
 };
 
 template <>
@@ -286,7 +286,7 @@ struct ContainsThreeArgSpecializedType_OpAnnotationsDefaulted
 {
     ThreeArgSpecializedType_OpAnnotationsDefaulted threeArgSpecializedType_OpAnnotationsDefaulted;
 
-    REFLECT(() ContainsThreeArgSpecializedType_OpAnnotationsDefaulted, () threeArgSpecializedType_OpAnnotationsDefaulted)
+    REFLECT(ContainsThreeArgSpecializedType_OpAnnotationsDefaulted, threeArgSpecializedType_OpAnnotationsDefaulted)
 };
 
 template <typename OpAnnotations, typename Field>

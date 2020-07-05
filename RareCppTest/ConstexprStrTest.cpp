@@ -45,14 +45,6 @@ TEST(ConstexprStrTest, ConstexprStrSubstr)
     EXPECT_STREQ("f", substr<1>(&"abcdef"[0]+5).value);
 }
 
-TEST(ConstexprStrTest, ConstexprStrLengthAfterLast)
-{
-    EXPECT_EQ(0, length_after_last("a b ", ' '));
-    EXPECT_EQ(1, length_after_last("a b 1", ' '));
-    EXPECT_EQ(2, length_after_last("a b 12", ' '));
-    EXPECT_EQ(3, length_after_last("a b 123", ' '));
-}
-
 TEST(ConstexprStrTest, ConstexprStrFindLastOf)
 {
     EXPECT_EQ(6, find_last_of("abcdefabcdef", 'a'));
