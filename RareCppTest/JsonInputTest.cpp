@@ -1690,22 +1690,35 @@ struct SuperClassField : RegularField
     REFLECT_EMPTY(SuperClassField)
 };
 
+struct RenamedField
+{
+    NOTE(renamed, Json::Name{"Custom Name"})
+    int renamed;
+
+    REFLECT(RenamedField, renamed)
+};
+
 TEST_HEADER(JsonInputRead, Field)
 {
     RegularField regularField = {};
     regularField.a = 444;
     SuperClassField superClassField = {};
     superClassField.a = 555;
+    RenamedField renamedField = {};
+    renamedField.renamed = 666;
 
     char c = '\0';
     std::stringstream regularFieldStream(":777,");
     std::stringstream superClassFieldStream(":{\"a\":888}");
+    std::stringstream renamedFieldStream(":999");
 
     Json::Read::Field<RegularField>(regularFieldStream, Json::context, c, regularField, "a");
     Json::Read::Field<SuperClassField>(superClassFieldStream, Json::context, c, superClassField, Json::Shared::superTypeToJsonFieldName<RegularField>().c_str());
+    Json::Read::Field<RenamedField>(renamedFieldStream, Json::context, c, renamedField, "Custom Name");
 
     EXPECT_EQ(regularField.a, 777);
     EXPECT_EQ(superClassField.a, 888);
+    EXPECT_EQ(renamedField.renamed, 999);
 
     std::stringstream unknownFieldStream(":222,");
     EXPECT_NO_THROW(Json::Read::Field<RegularField>(unknownFieldStream, Json::context, c, regularField, "b"));
@@ -1715,30 +1728,37 @@ struct ReadableObject
 {
     int a;
 
-    REFLECT(ReadableObject, a)
+    NOTE(b, Json::Name{"c"})
+    int b;
+
+    REFLECT(ReadableObject, a, b)
 };
 
 TEST_HEADER(JsonInputRead, Object)
 {
     char c = '\0';
-    std::stringstream objectStream("{\"a\":5}");
+    std::stringstream objectStream("{\"a\":5,\"c\":6}");
     ReadableObject object;
     object.a = 0;
+    object.b = 0;
 
     Json::Read::Object<ReadableObject>(objectStream, Json::context, c, object);
     EXPECT_EQ(5, object.a);
+    EXPECT_EQ(6, object.b);
 }
 
 TEST_HEADER(JsonInput, ReflectedObject)
 {
-    std::stringstream objectStream("{\"a\":5}");
+    std::stringstream objectStream("{\"a\":5,\"b\":6}");
     ReadableObject object;
     object.a = 0;
+    object.b = 0;
 
     Json::Input::ReflectedObject<ReadableObject> reflectedObject(object, nullptr);
     objectStream >> reflectedObject;
-
+    
     EXPECT_EQ(5, object.a);
+    EXPECT_EQ(0, object.b);
 }
 
 struct JsonReferences

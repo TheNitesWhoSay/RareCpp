@@ -87,6 +87,7 @@ public:
     bool boolean;
     bool putCache;
     uint16_t customInt;
+    NOTE(str, Json::Name{"string"})
     std::string str;
     std::map<std::string, std::string> map;
     std::vector<std::vector<int>> vecVec;
