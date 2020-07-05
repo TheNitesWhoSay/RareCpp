@@ -129,20 +129,19 @@ Information provided to REFLECT is used to generate meta-data about your classes
 2. typeStr
 
 The enhanced flavor of Field provides several additional members:
-1. Type (the actual type of the field)
-2. Index (the index of the field, first field is zero, second is one, and so on)
-3. IsStatic (boolean indicating whether the field is static)
-4. IsFunction (boolean indicating whether the field is a member or static function)
 
-5. p (a pointer to the field, nullptr if the field is a reference)
-6. Pointer (the type of a pointer to the field)
-
-7. annotations (the value of the annotations attached to the field)
-8. Annotations (the type of the annotations attached to the field)
-9. HasAnnotation (template boolean indicating whether the field has a given annotation)
-10. getAnnotation<T> (template function getting the first instance of a given annotation)
-11. forEach<T> (lambda you can use to iterate all instances of a given annotation)
-12. forEachAnnotation (lambda you can use to iterate all annotations)
+3. Type (the actual type of the field)
+4. Index (the index of the field, first field is zero, second is one, and so on)
+5. IsStatic (boolean indicating whether the field is static)
+6. IsFunction (boolean indicating whether the field is a member or static function)
+7. p (a pointer to the field, nullptr if the field is a reference)
+8. Pointer (the type of a pointer to the field)
+9. annotations (the value of the annotations attached to the field)
+10. Annotations (the type of the annotations attached to the field)
+11. HasAnnotation (template boolean indicating whether the field has a given annotation)
+12. getAnnotation<T> (template function getting the first instance of a given annotation)
+13. forEach<T> (lambda you can use to iterate all instances of a given annotation)
+14. forEachAnnotation (lambda you can use to iterate all annotations)
 	
 
 
