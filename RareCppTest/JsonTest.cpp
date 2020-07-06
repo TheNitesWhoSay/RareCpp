@@ -214,7 +214,7 @@ NOTE(DoublyNestedEmptySuper, Super<NestedEmptySuper>)
 struct DoublyNestedEmptySuper : NestedEmptySuper { REFLECT_EMPTY(DoublyNestedEmptySuper) };
 NOTE(DoublyNestedFieldedSuper, Super<NestedFieldedSuper>)
 struct DoublyNestedFieldedSuper : NestedFieldedSuper { REFLECT_EMPTY(DoublyNestedFieldedSuper) };
-NOTE(DoubleSuper, Super<EmptySuper>, Super<FieldedSuper>)
+NOTE(DoubleSuper, Super<EmptySuper>, Super<FieldedSuper>(Json::Name{"Fielded"}))
 struct DoubleSuper : EmptySuper, FieldedSuper { REFLECT_EMPTY(DoubleSuper) };
 NOTE(TripleSuper, Super<EmptySuper>, Super<OtherEmptySuper>, Super<FieldedSuper>)
 struct TripleSuper : EmptySuper, OtherEmptySuper, FieldedSuper { REFLECT_EMPTY(TripleSuper) };
@@ -3112,11 +3112,16 @@ TEST_HEADER(JsonOutputPut, Iterable)
 struct RegularFields
 {
     int regular;
+
+    NOTE(regularRenamed, Json::Name{"regular2"})
+    int regularRenamed;
+
     NOTE(regularIgnored, Json::Ignore)
     int regularIgnored;
+    
     Json::FieldCluster regularFieldCluster;
 
-    REFLECT(RegularFields, regular, regularIgnored, regularFieldCluster)
+    REFLECT(RegularFields, regular, regularRenamed, regularIgnored, regularFieldCluster)
 };
 
 struct FieldClusterOnly
@@ -3146,10 +3151,15 @@ struct FieldClusterPointer
 TEST_HEADER(JsonOutputPut, Field)
 {
     TestStreamType putRegular;
-    RegularFields regularFields = {1, 2};
+    RegularFields regularFields = {1, 2, 3};
     Json::Put::Field<NoAnnotation, RegularFields::Class::regular_::Field, Json::Statics::Excluded, false, 0, Json::twoSpaces, RegularFields>(
         putRegular, Json::context, regularFields, "regular", regularFields.regular);
     EXPECT_STREQ("\"regular\":1", putRegular.str().c_str());
+
+    TestStreamType putRegularRenamed;
+    Json::Put::Field<NoAnnotation, RegularFields::Class::regularRenamed_::Field, Json::Statics::Excluded, false, 0, Json::twoSpaces, RegularFields>(
+        putRegularRenamed, Json::context, regularFields, "regular2", regularFields.regularRenamed);
+    EXPECT_STREQ(",\"regular2\":2", putRegularRenamed.str().c_str());
 
     TestStreamType putRegularIgnored;
     Json::Put::Field<NoAnnotation, RegularFields::Class::regularIgnored_::Field, Json::Statics::Excluded, false, 0, Json::twoSpaces, RegularFields>(
@@ -3194,7 +3204,7 @@ TEST_HEADER(JsonOutputPut, Field)
     fieldClusterPointer.fieldClusterPointer = nullptr;
     Json::Put::Field<NoAnnotation, FieldClusterPointer::Class::fieldClusterPointer_::Field, Json::Statics::Excluded, false, 0, Json::twoSpaces, FieldClusterPointer>(
         putClusterNullPointer, Json::context, fieldClusterPointer, "fieldClusterPointer", fieldClusterPointer.fieldClusterPointer);
-    EXPECT_STREQ("null", putClusterNullPointer.str().c_str());
+    EXPECT_STREQ("", putClusterNullPointer.str().c_str());
 
     TestStreamType putClusterPointerEmpty;
     fieldClusterPointer.fieldClusterPointer = std::unique_ptr<Json::FieldCluster>(new Json::FieldCluster());
@@ -3213,16 +3223,16 @@ TEST_HEADER(JsonOutputPut, Field)
 TEST_HEADER(JsonOutputPut, Fields)
 {
     TestStreamType putRegularFields;
-    RegularFields regularFields = { 1, 2 };
+    RegularFields regularFields = { 1, 2, 3 };
     Json::Put::Fields<NoAnnotation, Json::Statics::Excluded, false, 0, Json::twoSpaces, RegularFields>(
         putRegularFields, Json::context, regularFields);
-    EXPECT_STREQ("\"regular\":1", putRegularFields.str().c_str());
+    EXPECT_STREQ("\"regular\":1,\"regular2\":2", putRegularFields.str().c_str());
 
     TestStreamType putMultipleRegularFields;
     regularFields.regularFieldCluster.put("unknown", Json::String::Make("field"));
     Json::Put::Fields<NoAnnotation, Json::Statics::Excluded, false, 0, Json::twoSpaces, RegularFields>(
         putMultipleRegularFields, Json::context, regularFields);
-    EXPECT_STREQ("\"regular\":1,\"unknown\":\"field\"", putMultipleRegularFields.str().c_str());
+    EXPECT_STREQ("\"regular\":1,\"regular2\":2,\"unknown\":\"field\"", putMultipleRegularFields.str().c_str());
 }
 
 TEST_HEADER(JsonOutputPut, SuperTest)
@@ -3264,7 +3274,8 @@ TEST_HEADER(JsonOutputPut, SupersTest)
     DoubleSuper doubleSuper;
     doubleSuper.a = 111;
     Json::Put::Supers<NoAnnotation, Json::Statics::Included, false, 0, Json::twoSpaces, DoubleSuper>(putDoubleSuper, Json::context, doubleSuper);
-    EXPECT_TRUE(std::regex_match(putDoubleSuper.str().c_str(), std::regex("\"__.*FieldedSuper\":\\{\"a\":111\\}")));
+    std::cout << putDoubleSuper.str() << std::endl;
+    EXPECT_TRUE(std::regex_match(putDoubleSuper.str().c_str(), std::regex("\"Fielded\":\\{\"a\":111\\}")));
 
     TestStreamType putTripleSuper;
     TripleSuper tripleSuper;
@@ -3275,7 +3286,9 @@ TEST_HEADER(JsonOutputPut, SupersTest)
 
 struct NestedObj
 {
+    NOTE(boolean, Json::Name{"bool"})
     bool boolean;
+
     int ray[3];
 
     REFLECT(NestedObj, boolean, ray)
@@ -3297,7 +3310,7 @@ TEST_HEADER(JsonOutputPut, Object)
 
     TestStreamType objStream;
     Json::Put::Object<NoAnnotation, Json::Statics::Included, false, 0, Json::twoSpaces, AnObjectTest>(objStream, Json::context, anObject);
-    EXPECT_STREQ("{\"integer\":4,\"str\":\"aString\",\"nestedObj\":{\"boolean\":false,\"ray\":[1,2,3]}}", objStream.str().c_str());
+    EXPECT_STREQ("{\"integer\":4,\"str\":\"aString\",\"nestedObj\":{\"bool\":false,\"ray\":[1,2,3]}}", objStream.str().c_str());
 }
 
 TEST_HEADER(JsonOutputTest, JsonOutputReflectedObject)
@@ -3308,7 +3321,7 @@ TEST_HEADER(JsonOutputTest, JsonOutputReflectedObject)
     TestStreamType objStream;
     reflectedObj.put(objStream);
 
-    EXPECT_STREQ("{\"integer\":4,\"str\":\"aString\",\"nestedObj\":{\"boolean\":false,\"ray\":[1,2,3]}}", objStream.str().c_str());
+    EXPECT_STREQ("{\"integer\":4,\"str\":\"aString\",\"nestedObj\":{\"bool\":false,\"ray\":[1,2,3]}}", objStream.str().c_str());
 }
 
 TEST_HEADER(JsonOutputTest, JsonOut)
@@ -3318,11 +3331,11 @@ TEST_HEADER(JsonOutputTest, JsonOut)
     auto reflectedObj = Json::out(anObject);
     TestStreamType objStream;
     reflectedObj.put(objStream);
-    EXPECT_STREQ("{\"integer\":4,\"str\":\"aString\",\"nestedObj\":{\"boolean\":false,\"ray\":[1,2,3]}}", objStream.str().c_str());
+    EXPECT_STREQ("{\"integer\":4,\"str\":\"aString\",\"nestedObj\":{\"bool\":false,\"ray\":[1,2,3]}}", objStream.str().c_str());
 
     TestStreamType finalObjStream;
     finalObjStream << Json::out(anObject);
-    EXPECT_STREQ("{\"integer\":4,\"str\":\"aString\",\"nestedObj\":{\"boolean\":false,\"ray\":[1,2,3]}}", finalObjStream.str().c_str());
+    EXPECT_STREQ("{\"integer\":4,\"str\":\"aString\",\"nestedObj\":{\"bool\":false,\"ray\":[1,2,3]}}", finalObjStream.str().c_str());
 }
 
 struct JsonReferences
@@ -3358,7 +3371,7 @@ TEST_HEADER(JsonOutputTest, JsonPretty)
         << "  \"integer\": 4," << osEndl
         << "  \"str\": \"aString\"," << osEndl
         << "  \"nestedObj\": {" << osEndl
-        << "    \"boolean\": false," << osEndl
+        << "    \"bool\": false," << osEndl
         << "    \"ray\": [ 1, 2, 3 ]" << osEndl
         << "  }" << osEndl
         << "}";

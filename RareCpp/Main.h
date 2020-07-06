@@ -6,22 +6,6 @@ using namespace Reflect;
 using ExtendedTypeSupport::TypeToStr;
 using u8 = uint8_t;
 
-namespace Json
-{
-    enum class SuperFormat
-    {
-        Nested
-    };
-
-    template <typename T>
-    std::string ToString(T & t)
-    {
-        std::stringstream ss;
-        ss << Json::out(t);
-        return ss.str();
-    }
-}
-
 namespace Rest
 {
     enum class Method {
@@ -64,7 +48,7 @@ public:
     REFLECT(Composed, composedVal)
 };
 
-NOTE(A, Super<SuperA>, Super<OtherSuperA>)
+NOTE(A, Super<SuperA>(Json::Name{"SupA"}), Super<OtherSuperA>)
 class A : public SuperA, public OtherSuperA {
 public:
     enum_t(TestEnum, u8, {
@@ -87,6 +71,7 @@ public:
     bool boolean;
     bool putCache;
     uint16_t customInt;
+    NOTE(str, Json::Name{"string"})
     std::string str;
     std::map<std::string, std::string> map;
     std::vector<std::vector<int>> vecVec;

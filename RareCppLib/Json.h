@@ -43,7 +43,7 @@ namespace Json
         struct StringifyType {};
         static constexpr StringifyType Stringify{};
 
-        /// Field annotation telling JSON to use a different name for the field
+        /// Field or Super annotation telling JSON to use a different name for the field
         struct Name
         {
              std::string_view value;
@@ -1836,8 +1836,8 @@ namespace Json
             }
 
             template <typename Annotations, typename FieldClass, Statics statics,
-                bool PrettyPrint, size_t IndentLevel, const char* indent, typename Object>
-            static constexpr void Field(OutStreamType & os, Context & context, const Object & obj, const char* fieldName,
+                bool PrettyPrint, size_t IndentLevel, const char* indent, typename Object, typename FieldName>
+            static constexpr void Field(OutStreamType & os, Context & context, const Object & obj, FieldName fieldName,
                 const typename FieldClass::Type & value)
             {
                 if constexpr ( matches_statics<FieldClass::IsStatic, statics>::value )
@@ -1850,8 +1850,6 @@ namespace Json
                         {
                             if ( value != nullptr )
                                 Put::Value<Annotations, FieldClass, statics, PrettyPrint, 0, IndentLevel, indent, Object, false>(os, context, obj, *value);
-                            else
-                                os << "null";
                         }
                         else
                             Put::Value<Annotations, FieldClass, statics, PrettyPrint, 0, IndentLevel, indent, Object, false>(os, context, obj, value);
@@ -1873,13 +1871,19 @@ namespace Json
                 Object::Class::ForEachField(obj, [&](auto & field, auto & value)
                 {
                     using Field = typename std::remove_reference<decltype(field)>::type;
-                    Put::Field<Annotations, Field, statics, PrettyPrint, IndentLevel, indent, Object>(os, context, obj, field.name, value);
+                    if constexpr ( Field::template HasAnnotation<Json::Name> )
+                    {
+                        const auto & fieldName = field.getAnnotation<Json::Name>().value;
+                        Put::Field<Annotations, Field, statics, PrettyPrint, IndentLevel, indent, Object>(os, context, obj, fieldName, value);
+                    }
+                    else
+                        Put::Field<Annotations, Field, statics, PrettyPrint, IndentLevel, indent, Object>(os, context, obj, field.name, value);
                 });
             }
 
             template <typename Annotations, size_t SuperIndex, typename T, Statics statics,
-                bool PrettyPrint, size_t IndentLevel, const char* indent, typename Object>
-            static constexpr void Super(OutStreamType & os, Context & context, const Object & obj, const std::string & superFieldName)
+                bool PrettyPrint, size_t IndentLevel, const char* indent, typename Object, typename FieldName>
+            static constexpr void Super(OutStreamType & os, Context & context, const Object & obj, const FieldName & superFieldName)
             {
                 if constexpr ( HasFields<statics, T>() )
                 {
@@ -1897,8 +1901,17 @@ namespace Json
                 Object::Supers::ForEach(obj, [&](auto superInfo, auto & superObj)
                 {
                     using Super = typename std::remove_reference<decltype(superObj)>::type;
-                    Put::Super<Annotations, decltype(superInfo)::Index, Super, statics, PrettyPrint, IndentLevel, indent, Object>(
-                        os, context, obj, superTypeToJsonFieldName<Super>());
+                    if constexpr ( superInfo.HasAnnotation<Json::Name> )
+                    {
+                        const auto & superName = superInfo.getAnnotation<Json::Name>().value;
+                        Put::Super<Annotations, decltype(superInfo)::Index, Super, statics, PrettyPrint, IndentLevel, indent, Object>(
+                            os, context, obj, superName);
+                    }
+                    else
+                    {
+                        Put::Super<Annotations, decltype(superInfo)::Index, Super, statics, PrettyPrint, IndentLevel, indent, Object>(
+                            os, context, obj, superTypeToJsonFieldName<Super>());
+                    }
                 });
             }
 
@@ -2108,9 +2121,18 @@ namespace Json
                                 }
                                 else if constexpr ( !Field::template HasAnnotation<Json::IgnoreType> )
                                 {
-                                    inserted.first->second.insert(std::pair<size_t, JsonField>(
-                                        strHash(Class::Fields[fieldIndex].name),
-                                        JsonField(fieldIndex, JsonField::Type::Regular, Class::Fields[fieldIndex].name)));
+                                    if constexpr ( Field::template HasAnnotation<Json::Name> )
+                                    {
+                                        std::string fieldName = std::string(field.getAnnotation<Json::Name>().value);
+                                        inserted.first->second.insert(std::pair<size_t, JsonField>(
+                                            strHash(fieldName.c_str()), JsonField(fieldIndex, JsonField::Type::Regular, fieldName.c_str())));
+                                    }
+                                    else
+                                    {
+                                        inserted.first->second.insert(std::pair<size_t, JsonField>(
+                                            strHash(Class::Fields[fieldIndex].name),
+                                            JsonField(fieldIndex, JsonField::Type::Regular, Class::Fields[fieldIndex].name)));
+                                    }
                                 }
                             });
                         }
@@ -2124,9 +2146,18 @@ namespace Json
                                 using Super = typename std::remove_reference<decltype(superObj)>::type;
                                 if constexpr ( HasFields<Statics::Included, Super>() )
                                 {
-                                    std::string superTypeFieldName = superTypeToJsonFieldName<Super>();
-                                    inserted.first->second.insert(std::pair<size_t, JsonField>(
-                                        strHash(superTypeFieldName), JsonField(superIndex, JsonField::Type::SuperClass, superTypeFieldName)));
+                                    if constexpr ( superInfo.HasAnnotation<Json::Name> )
+                                    {
+                                        std::string superName = std::string(superInfo.getAnnotation<Json::Name>().value);
+                                        inserted.first->second.insert(std::pair<size_t, JsonField>(
+                                            strHash(superName), JsonField(superIndex, JsonField::Type::SuperClass, superName)));
+                                    }
+                                    else
+                                    {
+                                        std::string superTypeFieldName = superTypeToJsonFieldName<Super>();
+                                        inserted.first->second.insert(std::pair<size_t, JsonField>(
+                                            strHash(superTypeFieldName), JsonField(superIndex, JsonField::Type::SuperClass, superTypeFieldName)));
+                                    }
                                 }
                             });
                         }
