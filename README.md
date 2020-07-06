@@ -182,7 +182,8 @@ using Type = std::remove_reference<decltype(value)>::type;
 
 Annotations are a way of giving additional information about a field that cannot be determined only using the field name and type information, for instance whether a field should be ignored or treated as a string or renamed when serializing. Annotations should be placed above the item being annotated using the NOTE macro - which takes the name of the item being annotated followed by one or more comma-separated annotations.
 
-```struct Point
+```C++
+struct Point
 {
     NOTE(latitude, Json::Name{"lat"})
     double latitude;
@@ -191,7 +192,8 @@ Annotations are a way of giving additional information about a field that cannot
     double longitude;
 
     REFLECT(Point, latitude, longitude)
-};```
+};
+```
 
 A downstream library, such is the JSON library included in this project, or whatever code you may be writing, can define its own annotations, an annotation is quite simply anything that can be stored at compile time (basic types, custom structures with basic types, string views, etc).
 
