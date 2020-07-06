@@ -1873,7 +1873,7 @@ namespace Json
                     using Field = typename std::remove_reference<decltype(field)>::type;
                     if constexpr ( Field::template HasAnnotation<Json::Name> )
                     {
-                        const auto & fieldName = field.getAnnotation<Json::Name>().value;
+                        const auto & fieldName = field.template getAnnotation<Json::Name>().value;
                         Put::Field<Annotations, Field, statics, PrettyPrint, IndentLevel, indent, Object>(os, context, obj, fieldName, value);
                     }
                     else
@@ -1900,10 +1900,11 @@ namespace Json
             {
                 Object::Supers::ForEach(obj, [&](auto superInfo, auto & superObj)
                 {
+                    using SuperInfo = decltype(superInfo);
                     using Super = typename std::remove_reference<decltype(superObj)>::type;
-                    if constexpr ( superInfo.HasAnnotation<Json::Name> )
+                    if constexpr ( SuperInfo::template HasAnnotation<Json::Name> )
                     {
-                        const auto & superName = superInfo.getAnnotation<Json::Name>().value;
+                        const auto & superName = superInfo.template getAnnotation<Json::Name>().value;
                         Put::Super<Annotations, decltype(superInfo)::Index, Super, statics, PrettyPrint, IndentLevel, indent, Object>(
                             os, context, obj, superName);
                     }
@@ -2123,7 +2124,7 @@ namespace Json
                                 {
                                     if constexpr ( Field::template HasAnnotation<Json::Name> )
                                     {
-                                        std::string fieldName = std::string(field.getAnnotation<Json::Name>().value);
+                                        std::string fieldName = std::string(field.template getAnnotation<Json::Name>().value);
                                         inserted.first->second.insert(std::pair<size_t, JsonField>(
                                             strHash(fieldName.c_str()), JsonField(fieldIndex, JsonField::Type::Regular, fieldName.c_str())));
                                     }
@@ -2143,12 +2144,13 @@ namespace Json
                         for ( size_t superIndex = 0; superIndex < Supers::TotalSupers; superIndex++ )
                         {
                             Supers::At(t, superIndex, [&](auto superInfo, auto & superObj) {
+                                using SuperInfo = decltype(superInfo);
                                 using Super = typename std::remove_reference<decltype(superObj)>::type;
                                 if constexpr ( HasFields<Statics::Included, Super>() )
                                 {
-                                    if constexpr ( superInfo.HasAnnotation<Json::Name> )
+                                    if constexpr ( SuperInfo::template HasAnnotation<Json::Name> )
                                     {
-                                        std::string superName = std::string(superInfo.getAnnotation<Json::Name>().value);
+                                        std::string superName = std::string(superInfo.template getAnnotation<Json::Name>().value);
                                         inserted.first->second.insert(std::pair<size_t, JsonField>(
                                             strHash(superName), JsonField(superIndex, JsonField::Type::SuperClass, superName)));
                                     }
