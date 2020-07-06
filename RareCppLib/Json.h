@@ -29,13 +29,25 @@ namespace Json
     inline namespace Annotations
     {
         /// Field annotation telling JSON to explicitly use the numeric value of an enum
-        struct EnumInt {};
+        struct EnumIntType {};
+        static constexpr EnumIntType EnumInt{};
 
-        /// Field annotation telling JSON to skip a field during input or output
-        struct Ignore {};
+        /// Field annotation telling JSON to skip a field during input and output
+        struct IgnoreType {};
+        static constexpr IgnoreType Ignore{};
 
         /// Field annotation telling JSON to treat a std::string field as though it wasn't a string
-        struct Unstring {};
+        struct UnstringType {};
+        static constexpr UnstringType Unstring{};
+
+        struct StringifyType {};
+        static constexpr StringifyType Stringify{};
+
+        /// Field or Super annotation telling JSON to use a different name for the field
+        struct Name
+        {
+             std::string_view value;
+        };
 
         struct Unspecialized {};
 
@@ -72,7 +84,7 @@ namespace Json
             size_t count = 0;
             Object::Class::ForEachField([&](auto & field) {
                 using Field = typename std::remove_reference<decltype(field)>::type;
-                if constexpr ( Field::template HasAnnotation<Ignore> && matches_statics<Field::IsStatic, statics>::value )
+                if constexpr ( (Field::template HasAnnotation<Json::IgnoreType> || Field::IsFunction) && matches_statics<Field::IsStatic, statics>::value )
                     count ++;
             });
             return count;
@@ -95,8 +107,8 @@ namespace Json
             else
             {
                 bool hasFields = false;
-                Object::Supers::ForEach([&](auto index, auto superType) {
-                    using Super = typename decltype(superType)::type;
+                Object::Supers::ForEach([&](auto superInfo) {
+                    using Super = typename decltype(superInfo)::Type;
                     if constexpr ( HasFields<statics, Super>() )
                         hasFields = true;
                 });
@@ -110,7 +122,7 @@ namespace Json
             size_t firstIndex = 0;
             Object::Class::FieldAt(Index, [&](auto & field) {
                 using Field = typename std::remove_reference<decltype(field)>::type;
-                if constexpr ( !Field::template HasAnnotation<Ignore> && matches_statics<Field::IsStatic, statics>::value )
+                if constexpr ( !Field::template HasAnnotation<Json::IgnoreType> && matches_statics<Field::IsStatic, statics>::value )
                     firstIndex = Field::Index;
                 else if constexpr ( Index < Object::Class::TotalFields )
                     firstIndex = FirstIndex<statics, Object, Index+1>();
@@ -122,8 +134,8 @@ namespace Json
         static constexpr size_t FirstSuperIndex()
         {
             size_t firstSuperIndex = 0;
-            Object::Supers::At(Index, [&](auto super) {
-                using Super = typename std::remove_reference<decltype(super)>::type::type;
+            Object::Supers::At(Index, [&](auto superInfo) {
+                using Super = typename decltype(superInfo)::Type;
                 if constexpr ( HasFields<statics, Super>() )
                     firstSuperIndex = Index;
                 else if constexpr ( Index < Object::Supers::TotalSupers )
@@ -136,7 +148,7 @@ namespace Json
         using NoField = Fields::Field<>;
 
         template <typename T>
-        using ReflectedField = Fields::Field<T, void*, 0, IsRoot>;
+        using ReflectedField = Fields::Field<T, nullptr_t, 0, IsRoot>;
 
         struct Context
         {
@@ -281,9 +293,9 @@ namespace Json
                             }
                             else if ( value->type() != allocatedValue->type() ) // value != nullptr
                                 throw TypeMismatch(value->type(), allocatedValue->type());
-                            else if constexpr ( std::is_same<std::shared_ptr<Dereferenced>, T>::value ) // value != nullptr && value->type() == allocatedValue->type()
+                            else if constexpr ( std::is_same<std::shared_ptr<Dereferenced>, T>::value ) // && value != nullptr && types match
                                 value = std::shared_ptr<Dereferenced>(dynamic_cast<Dereferenced*>(allocatedValue));
-                            else if constexpr ( std::is_same<std::unique_ptr<Dereferenced>, T>::value ) // value != nullptr && value->type() == allocatedValue->type()
+                            else if constexpr ( std::is_same<std::unique_ptr<Dereferenced>, T>::value ) // && value != nullptr && types match
                                 value = std::unique_ptr<Dereferenced>(dynamic_cast<Dereferenced*>(allocatedValue));
                             else // value != nullptr && value->type() == allocatedValue->type()
                             {
@@ -392,7 +404,9 @@ namespace Json
             virtual const bool & boolean() const { return value; }
             virtual const std::string & number() const { throw TypeMismatch(Value::Type::Boolean, Value::Type::Number, "number"); }
             virtual const std::string & string() const { throw TypeMismatch(Value::Type::Boolean, Value::Type::String, "string"); }
-            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::Boolean, Value::Type::Object, "object"); }
+            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const {
+                throw TypeMismatch(Value::Type::Boolean, Value::Type::Object, "object");
+            }
 
             virtual size_t arraySize() const { throw TypeMismatch(Value::Type::Boolean, Value::Type::Array, "arraySize"); }
             
@@ -412,7 +426,9 @@ namespace Json
 	        virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const {
                 throw TypeMismatch(Value::Type::Boolean, Value::Type::ObjectArray, "objectArray");
             }
-            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const { throw TypeMismatch(Value::Type::Boolean, Value::Type::MixedArray, "mixedArray"); }
+            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const {
+                throw TypeMismatch(Value::Type::Boolean, Value::Type::MixedArray, "mixedArray");
+            }
 
         private:
 	        bool value;
@@ -442,7 +458,9 @@ namespace Json
             virtual const bool & boolean() const { throw TypeMismatch(Value::Type::Number, Value::Type::Boolean, "bool"); }
             virtual const std::string & number() const { return value; }
             virtual const std::string & string() const { throw TypeMismatch(Value::Type::Number, Value::Type::String, "string"); }
-            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::Number, Value::Type::Object, "object"); }
+            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const {
+                throw TypeMismatch(Value::Type::Number, Value::Type::Object, "object");
+            }
 
             virtual size_t arraySize() const { throw TypeMismatch(Value::Type::Number, Value::Type::Array, "arraySize"); }
             
@@ -462,7 +480,9 @@ namespace Json
 	        virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const {
                 throw TypeMismatch(Value::Type::Number, Value::Type::ObjectArray, "objectArray");
             }
-            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const { throw TypeMismatch(Value::Type::Number, Value::Type::MixedArray, "mixedArray"); }
+            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const {
+                throw TypeMismatch(Value::Type::Number, Value::Type::MixedArray, "mixedArray");
+            }
             
         private:
 	        std::string value;
@@ -490,7 +510,9 @@ namespace Json
             virtual const bool & boolean() const { throw TypeMismatch(Value::Type::String, Value::Type::Boolean, "bool"); }
             virtual const std::string & number() const { throw TypeMismatch(Value::Type::String, Value::Type::Number, "number"); }
             virtual const std::string & string() const { return value; }
-            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::String, Value::Type::Object, "object"); }
+            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const {
+                throw TypeMismatch(Value::Type::String, Value::Type::Object, "object");
+            }
 
             virtual size_t arraySize() const { throw TypeMismatch(Value::Type::String, Value::Type::Array, "arraySize"); }
             
@@ -510,7 +532,9 @@ namespace Json
 	        virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const {
                 throw TypeMismatch(Value::Type::String, Value::Type::ObjectArray, "objectArray");
             }
-            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const { throw TypeMismatch(Value::Type::String, Value::Type::MixedArray, "mixedArray"); }
+            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const {
+                throw TypeMismatch(Value::Type::String, Value::Type::MixedArray, "mixedArray");
+            }
             
         private:
 	        std::string value;
@@ -523,7 +547,9 @@ namespace Json
             virtual ~Object() {}
             
             static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new Object()); }
-            static std::shared_ptr<Value> Make(const std::map<std::string, std::shared_ptr<Value>> & value) { return std::shared_ptr<Value>(new Object(value)); }
+            static std::shared_ptr<Value> Make(const std::map<std::string, std::shared_ptr<Value>> & value) {
+                return std::shared_ptr<Value>(new Object(value));
+            }
             static std::shared_ptr<Value> Make(const Object & other) { return std::shared_ptr<Value>(new Object(other)); }
             
             Object & operator=(const Value & other) { value = other.object(); return *this; }
@@ -558,7 +584,9 @@ namespace Json
 	        virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const {
                 throw TypeMismatch(Value::Type::Object, Value::Type::ObjectArray, "objectArray");
             }
-            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const { throw TypeMismatch(Value::Type::Object, Value::Type::MixedArray, "mixedArray"); }
+            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const {
+                throw TypeMismatch(Value::Type::Object, Value::Type::MixedArray, "mixedArray");
+            }
             
             virtual void put(std::string fieldName, std::shared_ptr<Value> value)
             {
@@ -592,7 +620,9 @@ namespace Json
             virtual const bool & boolean() const { throw TypeMismatch(Value::Type::NullArray, Value::Type::Boolean, "bool"); }
             virtual const std::string & number() const { throw TypeMismatch(Value::Type::NullArray, Value::Type::Number, "number"); }
             virtual const std::string & string() const { throw TypeMismatch(Value::Type::NullArray, Value::Type::String, "string"); }
-            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::NullArray, Value::Type::Object, "object"); }
+            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const {
+                throw TypeMismatch(Value::Type::NullArray, Value::Type::Object, "object");
+            }
 
             virtual size_t arraySize() const { return nullCount; }
             
@@ -607,12 +637,18 @@ namespace Json
             
             virtual const size_t & nullArray() const { return nullCount; }
             virtual const std::vector<bool> & boolArray() const { throw TypeMismatch(Value::Type::NullArray, Value::Type::BoolArray, "boolArray"); }
-            virtual const std::vector<std::string> & numberArray() const { throw TypeMismatch(Value::Type::NullArray, Value::Type::NumberArray, "numberArray"); }
-            virtual const std::vector<std::string> & stringArray() const { throw TypeMismatch(Value::Type::NullArray, Value::Type::StringArray, "stringArray"); }
+            virtual const std::vector<std::string> & numberArray() const {
+                throw TypeMismatch(Value::Type::NullArray, Value::Type::NumberArray, "numberArray");
+            }
+            virtual const std::vector<std::string> & stringArray() const {
+                throw TypeMismatch(Value::Type::NullArray, Value::Type::StringArray, "stringArray");
+            }
 	        virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const {
                 throw TypeMismatch(Value::Type::NullArray, Value::Type::ObjectArray, "objectArray");
             }
-            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const { throw TypeMismatch(Value::Type::NullArray, Value::Type::MixedArray, "mixedArray"); }
+            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const {
+                throw TypeMismatch(Value::Type::NullArray, Value::Type::MixedArray, "mixedArray");
+            }
 
         private:
 	        size_t nullCount;
@@ -640,7 +676,9 @@ namespace Json
             virtual const bool & boolean() const { throw TypeMismatch(Value::Type::BoolArray, Value::Type::Boolean, "bool"); }
             virtual const std::string & number() const { throw TypeMismatch(Value::Type::BoolArray, Value::Type::Number, "number"); }
             virtual const std::string & string() const { throw TypeMismatch(Value::Type::BoolArray, Value::Type::String, "string"); }
-            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::BoolArray, Value::Type::Object, "object"); }
+            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const {
+                throw TypeMismatch(Value::Type::BoolArray, Value::Type::Object, "object");
+            }
 
             virtual size_t arraySize() const { return values.size(); }
             
@@ -655,12 +693,18 @@ namespace Json
             
             virtual const size_t & nullArray() const { throw TypeMismatch(Value::Type::BoolArray, Value::Type::NullArray, "nullArray"); }
             virtual const std::vector<bool> & boolArray() const { return values; }
-            virtual const std::vector<std::string> & numberArray() const { throw TypeMismatch(Value::Type::BoolArray, Value::Type::NumberArray, "numberArray"); }
-            virtual const std::vector<std::string> & stringArray() const { throw TypeMismatch(Value::Type::BoolArray, Value::Type::StringArray, "stringArray"); }
+            virtual const std::vector<std::string> & numberArray() const {
+                throw TypeMismatch(Value::Type::BoolArray, Value::Type::NumberArray, "numberArray");
+            }
+            virtual const std::vector<std::string> & stringArray() const {
+                throw TypeMismatch(Value::Type::BoolArray, Value::Type::StringArray, "stringArray");
+            }
 	        virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const {
                 throw TypeMismatch(Value::Type::BoolArray, Value::Type::ObjectArray, "objectArray");
             }
-            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const { throw TypeMismatch(Value::Type::BoolArray, Value::Type::MixedArray, "mixedArray"); }
+            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const {
+                throw TypeMismatch(Value::Type::BoolArray, Value::Type::MixedArray, "mixedArray");
+            }
             
         private:
 	        std::vector<bool> values;
@@ -688,7 +732,9 @@ namespace Json
             virtual const bool & boolean() const { throw TypeMismatch(Value::Type::NumberArray, Value::Type::Boolean, "bool"); }
             virtual const std::string & number() const { throw TypeMismatch(Value::Type::NumberArray, Value::Type::Number, "number"); }
             virtual const std::string & string() const { throw TypeMismatch(Value::Type::NumberArray, Value::Type::String, "string"); }
-            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::NumberArray, Value::Type::Object, "object"); }
+            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const {
+                throw TypeMismatch(Value::Type::NumberArray, Value::Type::Object, "object");
+            }
 
             virtual size_t arraySize() const { return values.size(); }
             
@@ -704,11 +750,15 @@ namespace Json
             virtual const size_t & nullArray() const { throw TypeMismatch(Value::Type::NumberArray, Value::Type::NullArray, "nullArray"); }
             virtual const std::vector<bool> & boolArray() const { throw TypeMismatch(Value::Type::NumberArray, Value::Type::BoolArray, "boolArray"); }
             virtual const std::vector<std::string> & numberArray() const { return values; }
-            virtual const std::vector<std::string> & stringArray() const { throw TypeMismatch(Value::Type::NumberArray, Value::Type::StringArray, "stringArray"); }
+            virtual const std::vector<std::string> & stringArray() const {
+                throw TypeMismatch(Value::Type::NumberArray, Value::Type::StringArray, "stringArray");
+            }
 	        virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const {
                 throw TypeMismatch(Value::Type::NumberArray, Value::Type::ObjectArray, "objectArray");
             }
-            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const { throw TypeMismatch(Value::Type::NumberArray, Value::Type::MixedArray, "mixedArray"); }
+            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const {
+                throw TypeMismatch(Value::Type::NumberArray, Value::Type::MixedArray, "mixedArray");
+            }
             
         private:
 	        std::vector<std::string> values;
@@ -736,7 +786,9 @@ namespace Json
             virtual const bool & boolean() const { throw TypeMismatch(Value::Type::StringArray, Value::Type::Boolean, "bool"); }
             virtual const std::string & number() const { throw TypeMismatch(Value::Type::StringArray, Value::Type::Number, "number"); }
             virtual const std::string & string() const { throw TypeMismatch(Value::Type::StringArray, Value::Type::String, "string"); }
-            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::StringArray, Value::Type::Object, "object"); }
+            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const {
+                throw TypeMismatch(Value::Type::StringArray, Value::Type::Object, "object");
+            }
 
             virtual size_t arraySize() const { return values.size(); }
             
@@ -751,12 +803,16 @@ namespace Json
             
             virtual const size_t & nullArray() const { throw TypeMismatch(Value::Type::StringArray, Value::Type::NullArray, "nullArray"); }
             virtual const std::vector<bool> & boolArray() const { throw TypeMismatch(Value::Type::StringArray, Value::Type::BoolArray, "boolArray"); }
-            virtual const std::vector<std::string> & numberArray() const { throw TypeMismatch(Value::Type::StringArray, Value::Type::NumberArray, "numberArray"); }
+            virtual const std::vector<std::string> & numberArray() const {
+                throw TypeMismatch(Value::Type::StringArray, Value::Type::NumberArray, "numberArray");
+            }
             virtual const std::vector<std::string> & stringArray() const { return values; }
 	        virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const {
                 throw TypeMismatch(Value::Type::StringArray, Value::Type::ObjectArray, "objectArray");
             }
-            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const { throw TypeMismatch(Value::Type::StringArray, Value::Type::MixedArray, "mixedArray"); }
+            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const {
+                throw TypeMismatch(Value::Type::StringArray, Value::Type::MixedArray, "mixedArray");
+            }
 
         private:
 	        std::vector<std::string> values;
@@ -769,7 +825,9 @@ namespace Json
             virtual ~ObjectArray() {}
             
             static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new ObjectArray()); }
-            static std::shared_ptr<Value> Make(const std::vector<std::map<std::string, std::shared_ptr<Value>>> & values) { return std::shared_ptr<Value>(new ObjectArray(values)); }
+            static std::shared_ptr<Value> Make(const std::vector<std::map<std::string, std::shared_ptr<Value>>> & values) {
+                return std::shared_ptr<Value>(new ObjectArray(values));
+            }
             static std::shared_ptr<Value> Make(const ObjectArray & other) { return std::shared_ptr<Value>(new ObjectArray(other)); }
             
             ObjectArray & operator=(const Value & other) { values = other.objectArray(); return *this; }
@@ -784,7 +842,9 @@ namespace Json
             virtual const bool & boolean() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Boolean, "bool"); }
             virtual const std::string & number() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Number, "number"); }
             virtual const std::string & string() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::String, "string"); }
-            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Object, "object"); }
+            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const {
+                throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Object, "object");
+            }
 
             virtual size_t arraySize() const { return values.size(); }
             
@@ -797,10 +857,16 @@ namespace Json
             
             virtual const size_t & nullArray() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::NullArray, "nullArray"); }
             virtual const std::vector<bool> & boolArray() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::BoolArray, "boolArray"); }
-            virtual const std::vector<std::string> & numberArray() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::NumberArray, "numberArray"); }
-            virtual const std::vector<std::string> & stringArray() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::StringArray, "stringArray"); }
+            virtual const std::vector<std::string> & numberArray() const {
+                throw TypeMismatch(Value::Type::ObjectArray, Value::Type::NumberArray, "numberArray");
+            }
+            virtual const std::vector<std::string> & stringArray() const {
+                throw TypeMismatch(Value::Type::ObjectArray, Value::Type::StringArray, "stringArray");
+            }
             virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const { return values; }
-            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::MixedArray, "mixedArray"); }
+            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const {
+                throw TypeMismatch(Value::Type::ObjectArray, Value::Type::MixedArray, "mixedArray");
+            }
             
         private:
 	        std::vector<std::map<std::string, std::shared_ptr<Value>>> values;
@@ -828,7 +894,9 @@ namespace Json
             virtual const bool & boolean() const { throw TypeMismatch(Value::Type::MixedArray, Value::Type::Boolean, "bool"); }
             virtual const std::string & number() const { throw TypeMismatch(Value::Type::MixedArray, Value::Type::Number, "number"); }
             virtual const std::string & string() const { throw TypeMismatch(Value::Type::MixedArray, Value::Type::String, "string"); }
-            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const { throw TypeMismatch(Value::Type::MixedArray, Value::Type::Object, "object"); }
+            virtual const std::map<std::string, std::shared_ptr<Value>> & object() const {
+                throw TypeMismatch(Value::Type::MixedArray, Value::Type::Object, "object");
+            }
 
             virtual size_t arraySize() const { return values.size(); }
             
@@ -843,8 +911,12 @@ namespace Json
             
             virtual const size_t & nullArray() const { throw TypeMismatch(Value::Type::MixedArray, Value::Type::NullArray, "nullArray"); }
             virtual const std::vector<bool> & boolArray() const { throw TypeMismatch(Value::Type::MixedArray, Value::Type::BoolArray, "boolArray"); }
-            virtual const std::vector<std::string> & numberArray() const { throw TypeMismatch(Value::Type::MixedArray, Value::Type::NumberArray, "numberArray"); }
-            virtual const std::vector<std::string> & stringArray() const { throw TypeMismatch(Value::Type::MixedArray, Value::Type::StringArray, "stringArray"); }
+            virtual const std::vector<std::string> & numberArray() const {
+                throw TypeMismatch(Value::Type::MixedArray, Value::Type::NumberArray, "numberArray");
+            }
+            virtual const std::vector<std::string> & stringArray() const {
+                throw TypeMismatch(Value::Type::MixedArray, Value::Type::StringArray, "stringArray");
+            }
 	        virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const {
                 throw TypeMismatch(Value::Type::MixedArray, Value::Type::ObjectArray, "objectArray");
             }
@@ -863,7 +935,9 @@ namespace Json
             virtual ~FieldCluster() {}
             
             static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new FieldCluster()); }
-            static std::shared_ptr<Value> Make(const std::map<std::string, std::shared_ptr<Value>> & value) { return std::shared_ptr<Value>(new FieldCluster(value)); }
+            static std::shared_ptr<Value> Make(const std::map<std::string, std::shared_ptr<Value>> & value) {
+                return std::shared_ptr<Value>(new FieldCluster(value));
+            }
             static std::shared_ptr<Value> Make(const FieldCluster & other) { return std::shared_ptr<Value>(new FieldCluster(other)); }
             
             FieldCluster & operator=(const Value & other) { object() = other.object(); return *this; }
@@ -872,6 +946,42 @@ namespace Json
         };
     };
     
+    inline namespace Identifiers
+    {
+        template <typename T> struct is_non_primitive {
+            static constexpr bool value = is_tuple<T>::value || is_pair<T>::value || is_iterable<T>::value || is_reflected<T>::value;
+        };
+        template <typename T> struct is_non_primitive<const T> { static constexpr bool value = is_non_primitive<T>::value; };
+        template <typename T> struct is_non_primitive<T*> { static constexpr bool value = is_non_primitive<T>::value; };
+        template <typename T> struct is_non_primitive<T &> { static constexpr bool value = is_non_primitive<T>::value; };
+        template <typename T> struct is_non_primitive<T &&> { static constexpr bool value = is_non_primitive<T>::value; };
+        template <typename T> struct is_non_primitive<std::unique_ptr<T>> { static constexpr bool value = is_non_primitive<T>::value; };
+        template <typename T> struct is_non_primitive<std::shared_ptr<T>> { static constexpr bool value = is_non_primitive<T>::value; };
+        template <> struct is_non_primitive<Json::Generic::Object> { static constexpr bool value = true; };
+        template <> struct is_non_primitive<Json::Generic::NullArray> { static constexpr bool value = true; };
+        template <> struct is_non_primitive<Json::Generic::BoolArray> { static constexpr bool value = true; };
+        template <> struct is_non_primitive<Json::Generic::NumberArray> { static constexpr bool value = true; };
+        template <> struct is_non_primitive<Json::Generic::StringArray> { static constexpr bool value = true; };
+        template <> struct is_non_primitive<Json::Generic::ObjectArray> { static constexpr bool value = true; };
+        template <> struct is_non_primitive<Json::Generic::MixedArray> { static constexpr bool value = true; };
+        template <> struct is_non_primitive<Json::Generic::FieldCluster> { static constexpr bool value = true; };
+
+        template <size_t Index, typename ...Ts> struct is_non_primitive_tuple_element;
+        template <typename ...Ts> struct is_non_primitive_tuple_element<0, std::tuple<Ts...>> { static constexpr bool value = false; };
+        template <size_t Index, typename ...Ts> struct is_non_primitive_tuple_element<Index, std::tuple<Ts...>> {
+            using T = typename std::tuple_element_t<Index-1, std::tuple<Ts...>>;
+            static constexpr bool value = is_non_primitive<T>::value || is_non_primitive_tuple_element<Index-1, std::tuple<Ts...>>::value;
+        };
+
+        template <typename T> struct is_non_primitive_tuple { static constexpr bool value = false; };
+        template <typename ...Ts> struct is_non_primitive_tuple<std::tuple<Ts...>> {
+            static constexpr bool value = is_non_primitive_tuple_element<sizeof...(Ts), std::tuple<Ts...>>::value;
+        };
+
+        template <typename T> struct is_tuple_pair { static constexpr bool value = false; };
+        template <typename T1, typename T2> struct is_tuple_pair<std::tuple<T1, T2>> { static constexpr bool value = true; };
+    }
+
     inline namespace Output
     {
         constexpr const char twoSpaces[] = "  ";
@@ -879,7 +989,7 @@ namespace Json
         inline namespace Customizers
         {
             template <typename Object, typename Value,
-                size_t FieldIndex = NoFieldIndex, typename OpAnnotations = Annotate<>, typename Field = NoField, Statics statics = Statics::Excluded,
+                size_t FieldIndex = NoFieldIndex, typename OpAnnotations = NoAnnotation, typename Field = NoField, Statics statics = Statics::Excluded,
                 bool PrettyPrint = false, size_t TotalParentIterables = 0, size_t IndentLevel = 0, const char* indent = twoSpaces>
             struct Customize : public Unspecialized
             {
@@ -887,7 +997,7 @@ namespace Json
                 static bool As(OutStreamType & output, Context & context, const Object & object, const Value & value) { return false; }
             };
 
-            template <typename Value, typename OpAnnotations = Annotate<>, typename Field = NoField, Statics statics = Statics::Excluded,
+            template <typename Value, typename OpAnnotations = NoAnnotation, typename Field = NoField, Statics statics = Statics::Excluded,
                 bool PrettyPrint = false, size_t TotalParentIterables = 0, size_t IndentLevel = 0, const char* indent = twoSpaces>
             struct CustomizeType : public Unspecialized
             {
@@ -896,25 +1006,25 @@ namespace Json
             };
 
             template <typename Object, typename Value,
-                size_t FieldIndex = NoFieldIndex, typename OpAnnotations = Annotate<>, typename Field = NoField, Statics statics = Statics::Excluded,
+                size_t FieldIndex = NoFieldIndex, typename OpAnnotations = NoAnnotation, typename Field = NoField, Statics statics = Statics::Excluded,
                 bool PrettyPrint = false, size_t TotalParentIterables = 0, size_t IndentLevel = 0, const char* indent = twoSpaces>
             static constexpr bool HaveSpecialization =
-                is_specialized<Customize<Object, Value, Field::Index, OpAnnotations, Field, statics,
+                is_specialized<Customize<Object, Value, FieldIndex, OpAnnotations, Field, statics,
                     PrettyPrint, TotalParentIterables, IndentLevel, indent>>::value || // Fully specialized
-                is_specialized<Customize<Object, Value, Field::Index, OpAnnotations, Field>>::value || // Customize<5args> specialized
-                is_specialized<Customize<Object, Value, Field::Index, OpAnnotations>>::value || // Customize<4args> specialized
-                is_specialized<Customize<Object, Value, Field::Index>>::value || // Customize<3args> specialized
+                is_specialized<Customize<Object, Value, FieldIndex, OpAnnotations, Field>>::value || // Customize<5args> specialized
+                is_specialized<Customize<Object, Value, FieldIndex, OpAnnotations>>::value || // Customize<4args> specialized
+                is_specialized<Customize<Object, Value, FieldIndex>>::value || // Customize<3args> specialized
                 is_specialized<Customize<Object, Value>>::value || // Customize<2args> specialized
-                is_specialized<Customize<Object, Value, Field::Index, Annotate<>, Field>>::value || // Customize<5args>, OpAnnotations defaulted
+                is_specialized<Customize<Object, Value, FieldIndex, NoAnnotation, Field>>::value || // Customize<5args>, OpAnnotations defaulted
                 is_specialized<Customize<Object, Value, NoFieldIndex, OpAnnotations, Field>>::value || // Customize<5args>, FieldIndex defaulted
-                is_specialized<Customize<Object, Value, NoFieldIndex, Annotate<>, Field>>::value || // Customize<5args>, both defaulted
+                is_specialized<Customize<Object, Value, NoFieldIndex, NoAnnotation, Field>>::value || // Customize<5args>, both defaulted
                 is_specialized<Customize<Object, Value, NoFieldIndex, OpAnnotations>>::value || // Customize<4args>, FieldIndex defaulted
                 is_specialized<CustomizeType<Value, OpAnnotations, Field, statics,
                     PrettyPrint, TotalParentIterables, IndentLevel, indent>>::value || // Fully specialized
                 is_specialized<CustomizeType<Value, OpAnnotations, Field>>::value || // CustomizeType<3args> specialized
                 is_specialized<CustomizeType<Value, OpAnnotations>>::value || // CustomizeType<2args> specialized
                 is_specialized<CustomizeType<Value>>::value || // CustomizeType<1arg> specialized
-                is_specialized<CustomizeType<Value, Annotate<>, Field>>::value; // CustomizeType<3arg>, OpAnnotations defaulted
+                is_specialized<CustomizeType<Value, NoAnnotation, Field>>::value; // CustomizeType<3arg>, OpAnnotations defaulted
         }
 
         inline namespace StaticAffix
@@ -1301,12 +1411,12 @@ namespace Json
                 }
                 else if constexpr ( is_specialized<Customize<Object, Value, Field::Index, Annotations, Field>>::value )
                     return Customize<Object, Value, Field::Index, Annotations, Field>::As(os, context, obj, value); // Five Customize arguments specialized
-                else if constexpr ( is_specialized<Customize<Object, Value, Field::Index, Annotate<>, Field>>::value )
-                    return Customize<Object, Value, Field::Index, Annotate<>, Field>::As(os, context, obj, value); // Customize<5args>, Annotations defaulted
+                else if constexpr ( is_specialized<Customize<Object, Value, Field::Index, NoAnnotation, Field>>::value )
+                    return Customize<Object, Value, Field::Index, NoAnnotation, Field>::As(os, context, obj, value); // Customize<5args>, Annotations defaulted
                 else if constexpr ( is_specialized<Customize<Object, Value, NoFieldIndex, Annotations, Field>>::value )
                     return Customize<Object, Value, NoFieldIndex, Annotations, Field>::As(os, context, obj, value); // Customize<5args>, FieldIndex defaulted
-                else if constexpr ( is_specialized<Customize<Object, Value, NoFieldIndex, Annotate<>, Field>>::value )
-                    return Customize<Object, Value, NoFieldIndex, Annotate<>, Field>::As(os, context, obj, value); // Customize<5args>, two args defaulted
+                else if constexpr ( is_specialized<Customize<Object, Value, NoFieldIndex, NoAnnotation, Field>>::value )
+                    return Customize<Object, Value, NoFieldIndex, NoAnnotation, Field>::As(os, context, obj, value); // Customize<5args>, two args defaulted
                 else if constexpr ( is_specialized<Customize<Object, Value, Field::Index, Annotations>>::value )
                     return Customize<Object, Value, Field::Index, Annotations>::As(os, context, obj, value); // Four Customize arguments specialized
                 else if constexpr ( is_specialized<Customize<Object, Value, NoFieldIndex, Annotations>>::value )
@@ -1323,8 +1433,8 @@ namespace Json
                 }
                 else if constexpr ( is_specialized<CustomizeType<Value, Annotations, Field>>::value )
                     return CustomizeType<Value, Annotations, Field>::As(os, context, value); // Three CustomizeType arguments specialized
-                else if constexpr ( is_specialized<CustomizeType<Value, Annotate<>, Field>>::value )
-                    return CustomizeType<Value, Annotate<>, Field>::As(os, context, value); // CustomizeType<3args>, Annotations defaulted
+                else if constexpr ( is_specialized<CustomizeType<Value, NoAnnotation, Field>>::value )
+                    return CustomizeType<Value, NoAnnotation, Field>::As(os, context, value); // CustomizeType<3args>, Annotations defaulted
                 else if constexpr ( is_specialized<CustomizeType<Value, Annotations>>::value )
                     return CustomizeType<Value, Annotations>::As(os, context, value); // Two CustomizeType arguments specialized
                 else if constexpr ( is_specialized<CustomizeType<Value>>::value )
@@ -1369,6 +1479,15 @@ namespace Json
             template <typename Annotations, bool PrettyPrint, const char* indent>
             static void GenericIterable(OutStreamType & os, Context & context,
                 size_t totalParentIterables, size_t indentLevel, const Generic::Value & iterable);
+            
+            template <typename Annotations, typename Field, Statics statics,
+                bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, bool IsFirst,
+                bool IsComplexTuple = false, size_t TupleIndex = 0, typename T1, typename T2, typename ...Ts>
+            static constexpr void Tuple(OutStreamType & os, Context & context, const Object & obj, const std::tuple<T1, T2, Ts...> & value);
+
+            template <typename Annotations, typename Field, Statics statics,
+                bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, bool IsFirst, typename Key, typename T>
+            static constexpr void Pair(OutStreamType & os, Context & context, const Object & obj, const std::pair<Key, T> & value);
 
             template <typename Annotations, typename Field, Statics statics,
                 bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, typename IterableValue = uint_least8_t>
@@ -1413,7 +1532,10 @@ namespace Json
                             if ( field.second == nullptr )
                                 os << "null";
                             else
-                                Put::GenericValue<Annotations, PrettyPrint, indent, false>(os, context, 0, indentLevel+totalParentIterables, (Generic::Value &)*field.second);
+                            {
+                                Put::GenericValue<Annotations, PrettyPrint, indent, false>(
+                                    os, context, 0, indentLevel+totalParentIterables, (Generic::Value &)*field.second);
+                            }
 
                             isFirst = false;
                         }
@@ -1444,7 +1566,8 @@ namespace Json
                             Put::FieldPrefix<PrettyPrint, indent>(os, isFirst, indentLevel+totalParentIterables+1);
                             Put::String(os, field.first);
                             os << FieldNameValueSeparator<PrettyPrint>;
-                            Put::GenericValue<Annotations, PrettyPrint, indent, false>(os, context, 0, indentLevel+totalParentIterables+1, (Generic::Value &)*field.second);
+                            Put::GenericValue<Annotations, PrettyPrint, indent, false>(
+                                os, context, 0, indentLevel+totalParentIterables+1, (Generic::Value &)*field.second);
                             isFirst = false;
                         }
                     }
@@ -1501,7 +1624,8 @@ namespace Json
                                 Put::FieldPrefix<PrettyPrint, indent>(os, isFirst, totalParentIterables+indentLevel+2);
                                 Put::String(os, field.first);
                                 os << FieldNameValueSeparator<PrettyPrint>;
-                                Put::GenericValue<Annotations, PrettyPrint, indent, false>(os, context, totalParentIterables+1, indentLevel, (Generic::Value &)*field.second);
+                                Put::GenericValue<Annotations, PrettyPrint, indent, false>(
+                                    os, context, totalParentIterables+1, indentLevel, (Generic::Value &)*field.second);
                                 isFirst = false;
                             }
                             Put::ObjectSuffix<PrettyPrint, indent>(os, obj.empty(), totalParentIterables+indentLevel+1);
@@ -1544,26 +1668,46 @@ namespace Json
                     if ( value == nullptr )
                         os << "null";
                     else
-                        Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object, IsFirst>(os, context, obj, *value);
+                    {
+                        Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object, IsFirst>(
+                            os, context, obj, *value);
+                    }
                 }
                 else if constexpr ( std::is_base_of<Generic::Value, T>::value )
                 {
                     Put::GenericValue<Annotations, PrettyPrint, indent, IsFirst>(os, context, TotalParentIterables,
                         IndentLevel+((Field::template HasAnnotation<IsRoot> ) ? 0 : 1), (const Generic::Value &)value);
                 }
+                else if constexpr ( is_tuple<T>::value )
+                {
+                    if constexpr ( std::tuple_size<T>::value == 0 )
+                        os << "null";
+                    else if constexpr ( std::tuple_size<T>::value == 1 )
+                    {
+                        Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object, IsFirst>(
+                            os, context, obj, std::get<0>(value));
+                    }
+                    else if constexpr ( std::tuple_size<T>::value >= 2 )
+                    {
+                        Put::Tuple<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object, IsFirst>(
+                            os, context, obj, value);
+                    }
+                }
+                else if constexpr ( is_pair<T>::value )
+                    Put::Pair<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object, IsFirst>(os, context, obj, value);
                 else if constexpr ( is_iterable<T>::value )
                     Put::Iterable<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object>(os, context, obj, value);
                 else if constexpr ( Field::template HasAnnotation<IsRoot> )
                     Put::Object<Annotations, statics, PrettyPrint, IndentLevel+TotalParentIterables, indent, T>(os, context, value);
-                else if constexpr ( Field::template HasAnnotation<Reflect::Reflected> )
+                else if constexpr ( is_reflected<T>::value )
                     Put::Object<Annotations, statics, PrettyPrint, IndentLevel+TotalParentIterables+1, indent, T>(os, context, value);
-                else if constexpr ( Field::template HasAnnotation<Json::String> )
+                else if constexpr ( Field::template HasAnnotation<Json::StringifyType> )
                     Put::String(os, value);
-                else if constexpr ( Field::template HasAnnotation<Json::EnumInt> )
+                else if constexpr ( Field::template HasAnnotation<Json::EnumIntType> )
                     os << (typename promote_char<typename std::underlying_type<T>::type>::type)value;
                 else if constexpr ( is_bool<T>::value )
                     os << (value ? "true" : "false");
-                else if constexpr ( is_string<T>::value && !Field::template HasAnnotation<Json::Unstring> )
+                else if constexpr ( is_string<T>::value && !Field::template HasAnnotation<Json::UnstringType> )
                     Put::String(os, value);
                 else if constexpr ( std::is_enum<T>::value )
                     os << (typename promote_char<typename std::underlying_type<T>::type>::type)value;
@@ -1572,12 +1716,66 @@ namespace Json
             }
             
             template <typename Annotations, typename Field, Statics statics,
+                bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, bool IsFirst,
+                bool IsComplexTuple, size_t TupleIndex, typename T1, typename T2, typename ...Ts>
+            static constexpr void Tuple(OutStreamType & os, Context & context, const Object & obj, const std::tuple<T1, T2, Ts...> & value)
+            {
+                constexpr bool isComplexTuple = TupleIndex == 0 ? is_non_primitive_tuple<std::tuple<T1, T2, Ts...>>::value : IsComplexTuple;
+                constexpr size_t tupleSize = std::tuple_size<typename std::remove_reference_t<decltype(value)>>::value;
+                if constexpr ( TupleIndex == 0 )
+                    Put::ArrayPrefix<PrettyPrint, !isComplexTuple, indent>(os, IndentLevel+TotalParentIterables+2);
+                if constexpr ( TupleIndex < tupleSize )
+                {
+                    Put::Separator<PrettyPrint, false, isComplexTuple, IndentLevel+TotalParentIterables+2, indent>(os, TupleIndex == 0);
+                    Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, IsFirst>(
+                        os, context, obj, std::get<TupleIndex>(value));
+                    Put::Tuple<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object, IsFirst,
+                        isComplexTuple, TupleIndex+1>(os, context, obj, value);
+                }
+                else if constexpr ( TupleIndex == tupleSize )
+                    Put::ArraySuffix<PrettyPrint, !isComplexTuple, indent>(os, IndentLevel+TotalParentIterables+1);
+            }
+            
+            template <typename Annotations, typename Field, Statics statics,
+                bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, bool IsFirst, typename Key, typename T>
+            static constexpr void Pair(OutStreamType & os, Context & context, const Object & obj, const std::pair<Key, T> & value)
+            {
+                constexpr bool isComplexPair = is_non_primitive<Key>::value || is_non_primitive<T>::value;
+                Put::ArrayPrefix<PrettyPrint, !isComplexPair, indent>(os, IndentLevel+TotalParentIterables+2);
+                Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, IsFirst>(
+                    os, context, obj, value.first);
+                Put::Separator<PrettyPrint, false, isComplexPair, IndentLevel+TotalParentIterables+2, indent>(os, false);
+                Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, IsFirst>(
+                    os, context, obj, value.second);
+                Put::ArraySuffix<PrettyPrint, !isComplexPair, indent>(os, IndentLevel+TotalParentIterables+1);
+            }
+
+            template<typename Annotations, typename Field, Statics statics,
+                bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, bool IsFirst, typename Key, typename T>
+            static constexpr void KeyValueObject(OutStreamType & os, Context & context, const Object & obj, const std::pair<Key, T> & pair)
+            {
+                os << StaticAffix::ObjectPrefix<PrettyPrint, IndentLevel, indent, statics>;
+                os << StaticAffix::FieldPrefix<true, PrettyPrint, TotalParentIterables+IndentLevel+2, indent>;
+                Put::String(os, "key");
+                os << FieldNameValueSeparator<PrettyPrint>;
+                Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, true>(
+                    os, context, obj, pair.first);
+                os << StaticAffix::FieldPrefix<false, PrettyPrint, TotalParentIterables+IndentLevel+2, indent>;
+                Put::String(os, "value");
+                os << FieldNameValueSeparator<PrettyPrint>;
+                Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, false>(
+                    os, context, obj, pair.second);
+                os << StaticAffix::ObjectSuffix<PrettyPrint, TotalParentIterables+IndentLevel+1, indent, statics>;
+            }
+            
+            template <typename Annotations, typename Field, Statics statics,
                 bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent, typename Object, bool IsFirst, typename T, typename Key>
-            static constexpr void Value(OutStreamType & os, Context & context, const Object & obj, const std::pair<Key, T> & pair)
+            static constexpr void FieldPair(OutStreamType & os, Context & context, const Object & obj, const std::pair<Key, T> & pair)
             {
                 Put::String(os, pair.first);
                 os << FieldNameValueSeparator<PrettyPrint>;
-                Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object, IsFirst>(os, context, obj, pair.second);
+                Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent, Object, IsFirst>(
+                    os, context, obj, pair.second);
             }
 
             template <typename Annotations, typename Field, Statics statics,
@@ -1585,18 +1783,34 @@ namespace Json
             static constexpr void Iterable(OutStreamType & os, Context & context, const Object & obj, const IterableValue & iterable)
             {
                 using Element = typename element_type<IterableValue>::type;
-                constexpr bool ContainsIterables = is_iterable<typename pair_rhs<Element>::type>::value;
-                constexpr bool ContainsPrimitives = !Field::template HasAnnotation<Reflect::Reflected> && !ContainsIterables;
-                constexpr bool ContainsPairs = is_pair<Element>::value;
-                
+                constexpr bool IsMap = is_map<IterableValue>::value; // Simple maps are just json objects with keys as the field names, values as field values
+                constexpr bool HasComplexKey = IsMap && is_non_primitive<typename pair_lhs<Element>::type>::value;
+                constexpr bool IsArray = !IsMap || HasComplexKey; // Maps with complex keys are arrays consisting of objects with two fields: "key" and "value"
+                constexpr bool ContainsIterables = is_iterable<typename pair_rhs<Element>::type>::value || HasComplexKey;
+                constexpr bool ContainsPrimitives = !is_reflected<Element>::value && !ContainsIterables;
+
                 size_t i=0;
-                Put::NestedPrefix<PrettyPrint, !ContainsPairs, ContainsPrimitives, IndentLevel+TotalParentIterables+2, indent>(os, IsEmpty(iterable));
+                Put::NestedPrefix<PrettyPrint, IsArray, ContainsPrimitives, IndentLevel+TotalParentIterables+2, indent>(os, IsEmpty(iterable));
                 if constexpr ( is_stl_iterable<IterableValue>::value )
                 {
                     for ( auto & element : iterable )
                     {
-                        Put::Separator<PrettyPrint, ContainsPairs, ContainsIterables, IndentLevel+TotalParentIterables+2, indent>(os, 0 == i++);
-                        Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, false>(os, context, obj, element);
+                        Put::Separator<PrettyPrint, !IsArray, ContainsIterables, IndentLevel+TotalParentIterables+2, indent>(os, 0 == i++);
+                        if constexpr ( !IsMap )
+                        {
+                            Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, false>(
+                                os, context, obj, element);
+                        }
+                        else if constexpr ( HasComplexKey )
+                        {
+                            Put::KeyValueObject<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, false>(
+                                os, context, obj, element);
+                        }
+                        else
+                        {
+                            Put::FieldPair<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, false>(
+                                os, context, obj, element);
+                        }
                     }
                 }
                 else if constexpr ( is_adaptor<IterableValue>::value )
@@ -1604,24 +1818,27 @@ namespace Json
                     const auto & sequenceContainer = get_underlying_container(iterable);
                     for ( auto it = sequenceContainer.begin(); it != sequenceContainer.end(); ++it )
                     {
-                        Put::Separator<PrettyPrint, ContainsPairs, ContainsIterables, IndentLevel+TotalParentIterables+2, indent>(os, 0 == i++);
-                        Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, false>(os, context, obj, *it);
+                        Put::Separator<PrettyPrint, !IsArray, ContainsIterables, IndentLevel+TotalParentIterables+2, indent>(os, 0 == i++);
+                        Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, false>(
+                            os, context, obj, *it);
                     }
                 }
                 else if constexpr ( std::is_array<IterableValue>::value && std::extent<typename Field::Type>::value > 0 )
                 {
                     for ( ; i<std::extent<typename Field::Type>::value; i++ )
                     {
-                        Put::Separator<PrettyPrint, ContainsPairs, ContainsIterables, IndentLevel+TotalParentIterables+2, indent>(os, 0 == i);
-                        Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, false>(os, context, obj, iterable[i]);
+                        Put::Separator<PrettyPrint, !IsArray, ContainsIterables, IndentLevel+TotalParentIterables+2, indent>(os, 0 == i);
+                        Put::Value<Annotations, Field, statics, PrettyPrint, TotalParentIterables+1, IndentLevel, indent, Object, false>(
+                            os, context, obj, iterable[i]);
                     }
                 }
-                Put::NestedSuffix<PrettyPrint, !ContainsPairs, ContainsPrimitives, IndentLevel+TotalParentIterables+1, indent>(os, IsEmpty(iterable));
+                Put::NestedSuffix<PrettyPrint, IsArray, ContainsPrimitives, IndentLevel+TotalParentIterables+1, indent>(os, IsEmpty(iterable));
             }
 
             template <typename Annotations, typename FieldClass, Statics statics,
-                bool PrettyPrint, size_t IndentLevel, const char* indent, typename Object>
-            static constexpr void Field(OutStreamType & os, Context & context, const Object & obj, const char* fieldName, const typename FieldClass::Type & value)
+                bool PrettyPrint, size_t IndentLevel, const char* indent, typename Object, typename FieldName>
+            static constexpr void Field(OutStreamType & os, Context & context, const Object & obj, FieldName fieldName,
+                const typename FieldClass::Type & value)
             {
                 if constexpr ( matches_statics<FieldClass::IsStatic, statics>::value )
                 {
@@ -1637,7 +1854,7 @@ namespace Json
                         else
                             Put::Value<Annotations, FieldClass, statics, PrettyPrint, 0, IndentLevel, indent, Object, false>(os, context, obj, value);
                     }
-                    else if constexpr ( !FieldClass::template HasAnnotation<Ignore> )
+                    else if constexpr ( !FieldClass::template HasAnnotation<Json::IgnoreType> )
                     {
                         os << StaticAffix::FieldPrefix<FieldClass::Index == FirstIndex<statics, Object>(), PrettyPrint, IndentLevel+1, indent>;
                         Put::String(os, fieldName);
@@ -1654,13 +1871,19 @@ namespace Json
                 Object::Class::ForEachField(obj, [&](auto & field, auto & value)
                 {
                     using Field = typename std::remove_reference<decltype(field)>::type;
-                    Put::Field<Annotations, Field, statics, PrettyPrint, IndentLevel, indent, Object>(os, context, obj, field.name, value);
+                    if constexpr ( Field::template HasAnnotation<Json::Name> )
+                    {
+                        const auto & fieldName = field.template getAnnotation<Json::Name>().value;
+                        Put::Field<Annotations, Field, statics, PrettyPrint, IndentLevel, indent, Object>(os, context, obj, fieldName, value);
+                    }
+                    else
+                        Put::Field<Annotations, Field, statics, PrettyPrint, IndentLevel, indent, Object>(os, context, obj, field.name, value);
                 });
             }
 
             template <typename Annotations, size_t SuperIndex, typename T, Statics statics,
-                bool PrettyPrint, size_t IndentLevel, const char* indent, typename Object>
-            static constexpr void Super(OutStreamType & os, Context & context, const Object & obj, const std::string & superFieldName)
+                bool PrettyPrint, size_t IndentLevel, const char* indent, typename Object, typename FieldName>
+            static constexpr void Super(OutStreamType & os, Context & context, const Object & obj, const FieldName & superFieldName)
             {
                 if constexpr ( HasFields<statics, T>() )
                 {
@@ -1675,11 +1898,21 @@ namespace Json
             template <typename Annotations, Statics statics, bool PrettyPrint, size_t IndentLevel, const char* indent, typename Object>
             static constexpr void Supers(OutStreamType & os, Context & context, const Object & obj)
             {
-                Object::Supers::ForEach(obj, [&](auto index, auto & superObj)
+                Object::Supers::ForEach(obj, [&](auto superInfo, auto & superObj)
                 {
+                    using SuperInfo = decltype(superInfo);
                     using Super = typename std::remove_reference<decltype(superObj)>::type;
-                    Put::Super<Annotations, decltype(index)::Index, Super, statics, PrettyPrint, IndentLevel, indent, Object>(
-                        os, context, obj, superTypeToJsonFieldName<Super>());
+                    if constexpr ( SuperInfo::template HasAnnotation<Json::Name> )
+                    {
+                        const auto & superName = superInfo.template getAnnotation<Json::Name>().value;
+                        Put::Super<Annotations, decltype(superInfo)::Index, Super, statics, PrettyPrint, IndentLevel, indent, Object>(
+                            os, context, obj, superName);
+                    }
+                    else
+                    {
+                        Put::Super<Annotations, decltype(superInfo)::Index, Super, statics, PrettyPrint, IndentLevel, indent, Object>(
+                            os, context, obj, superTypeToJsonFieldName<Super>());
+                    }
                 });
             }
 
@@ -1693,7 +1926,7 @@ namespace Json
             }
         }
         
-        template <typename Annotations = Annotate<>, Statics statics = Statics::Excluded,
+        template <typename Annotations = NoAnnotation, Statics statics = Statics::Excluded,
             bool PrettyPrint = false, size_t IndentLevel = 0, const char* indent = twoSpaces, typename Object = uint_least8_t>
         class ReflectedObject
         {
@@ -1714,21 +1947,21 @@ namespace Json
         };
         
 #ifdef USE_BUFFERED_STREAMS
-        template <Statics statics = Statics::Excluded, typename Annotations = Annotate<>, bool PrettyPrint = false,
+        template <Statics statics = Statics::Excluded, typename Annotations = NoAnnotation, bool PrettyPrint = false,
             size_t IndentLevel = 0, const char* indent = twoSpaces, typename T = uint_least8_t>
         StringBuffer & operator<<(StringBuffer & os, Output::ReflectedObject<Annotations, statics, PrettyPrint, IndentLevel, indent, T> object)
         {
             return object.put(os);
         }
 
-        template <Statics statics = Statics::Excluded, typename Annotations = Annotate<>, bool PrettyPrint = false,
+        template <Statics statics = Statics::Excluded, typename Annotations = NoAnnotation, bool PrettyPrint = false,
             size_t IndentLevel = 0, const char* indent = twoSpaces, typename T = uint_least8_t>
         std::ostream & operator<<(StringBufferPtr os, Output::ReflectedObject<Annotations, statics, PrettyPrint, IndentLevel, indent, T> object)
         {
             return object.put(*os);
         }
 #else
-        template <Statics statics = Statics::Excluded, typename Annotations = Annotate<>, bool PrettyPrint = false,
+        template <Statics statics = Statics::Excluded, typename Annotations = NoAnnotation, bool PrettyPrint = false,
             size_t IndentLevel = 0, const char* indent = twoSpaces, typename T = uint_least8_t>
         std::ostream & operator<<(std::ostream & os, Output::ReflectedObject<Annotations, statics, PrettyPrint, IndentLevel, indent, T> object)
         {
@@ -1736,14 +1969,14 @@ namespace Json
         }
 #endif
 
-        template <Statics statics = Statics::Excluded, typename Annotations = Annotate<>,
+        template <Statics statics = Statics::Excluded, typename Annotations = NoAnnotation,
             size_t IndentLevel = 0, const char* indent = twoSpaces, typename T = uint_least8_t>
         Output::ReflectedObject<Annotations, statics, false, IndentLevel, indent, T> out(const T & t, std::shared_ptr<Context> context = nullptr)
         {
             return Output::ReflectedObject<Annotations, statics, false, IndentLevel, indent, T>(t, context);
         }
     
-        template <Statics statics = Statics::Excluded, typename Annotations = Annotate<>,
+        template <Statics statics = Statics::Excluded, typename Annotations = NoAnnotation,
             size_t IndentLevel = 0, const char* indent = twoSpaces, typename T = uint_least8_t>
         Output::ReflectedObject<Annotations, statics, true, IndentLevel, indent, T> pretty(const T & t, std::shared_ptr<Context> context = nullptr)
         {
@@ -1755,7 +1988,7 @@ namespace Json
     {
         inline namespace Customizers
         {
-            template <typename Object, typename Value, size_t FieldIndex = NoFieldIndex, typename OpAnnotations = Annotate<>, typename Field = NoField>
+            template <typename Object, typename Value, size_t FieldIndex = NoFieldIndex, typename OpAnnotations = NoAnnotation, typename Field = NoField>
             struct Customize : public Unspecialized
             {
                 /// return false if you wish for the input to be re-parsed by the default JSON code, else return true
@@ -1763,27 +1996,27 @@ namespace Json
                 static bool As(std::istream & input, Context & context, const Object & object, Value & value) { return false; }
             };
             
-            template <typename Value, typename OpAnnotations = Annotate<>, typename Field = NoField>
+            template <typename Value, typename OpAnnotations = NoAnnotation, typename Field = NoField>
             struct CustomizeType : public Unspecialized
             {
                 /// Should return true if you put any output, else you should leave output unchanged
                 static bool As(std::istream & input, Context & context, Value & value) { return false; }
             };
 
-            template <typename Object, typename Value, size_t FieldIndex = NoFieldIndex, typename OpAnnotations = Annotate<>, typename Field = NoField>
+            template <typename Object, typename Value, size_t FieldIndex = NoFieldIndex, typename OpAnnotations = NoAnnotation, typename Field = NoField>
             static constexpr bool HaveSpecialization =
                 is_specialized<Customize<Object, Value, FieldIndex, OpAnnotations, Field>>::value || // Fully specialized
                 is_specialized<Customize<Object, Value, FieldIndex, OpAnnotations>>::value || // Customize<4args> specialized
                 is_specialized<Customize<Object, Value, FieldIndex>>::value || // Customize<3args> specialized
                 is_specialized<Customize<Object, Value>>::value || // Customize<2args> specialized
-                is_specialized<Customize<Object, Value, FieldIndex, Annotate<>, Field>>::value || // Customize<5args>, OpAnnotations defaulted
+                is_specialized<Customize<Object, Value, FieldIndex, NoAnnotation, Field>>::value || // Customize<5args>, OpAnnotations defaulted
                 is_specialized<Customize<Object, Value, NoFieldIndex, OpAnnotations, Field>>::value || // Customize<5args>, FieldIndex defaulted
-                is_specialized<Customize<Object, Value, NoFieldIndex, Annotate<>, Field>>::value || // Customize<5args>, both defaulted
+                is_specialized<Customize<Object, Value, NoFieldIndex, NoAnnotation, Field>>::value || // Customize<5args>, both defaulted
                 is_specialized<Customize<Object, Value, NoFieldIndex, OpAnnotations>>::value || // Customize<4args>, FieldIndex defaulted
                 is_specialized<CustomizeType<Value, OpAnnotations, Field>>::value || // Fully specialized
                 is_specialized<CustomizeType<Value, OpAnnotations>>::value || // CustomizeType<2args> specialized
                 is_specialized<CustomizeType<Value>>::value || // CustomizeType<1arg> specialized
-                is_specialized<CustomizeType<Value, Annotate<>, Field>>::value; // CustomizeType<3args>, OpAnnotations defaulted
+                is_specialized<CustomizeType<Value, NoAnnotation, Field>>::value; // CustomizeType<3args>, OpAnnotations defaulted
         }
 
         inline namespace Exceptions
@@ -1887,10 +2120,20 @@ namespace Json
                                     inserted.first->second.insert(std::pair<size_t, JsonField>(
                                         strHash(fieldName), JsonField(fieldIndex, JsonField::Type::FieldCluster, fieldName)));
                                 }
-                                else if constexpr ( !Field::template HasAnnotation<Ignore> )
+                                else if constexpr ( !Field::template HasAnnotation<Json::IgnoreType> )
                                 {
-                                    inserted.first->second.insert(std::pair<size_t, JsonField>(
-                                        strHash(Class::Fields[fieldIndex].name), JsonField(fieldIndex, JsonField::Type::Regular, Class::Fields[fieldIndex].name)));
+                                    if constexpr ( Field::template HasAnnotation<Json::Name> )
+                                    {
+                                        std::string fieldName = std::string(field.template getAnnotation<Json::Name>().value);
+                                        inserted.first->second.insert(std::pair<size_t, JsonField>(
+                                            strHash(fieldName.c_str()), JsonField(fieldIndex, JsonField::Type::Regular, fieldName.c_str())));
+                                    }
+                                    else
+                                    {
+                                        inserted.first->second.insert(std::pair<size_t, JsonField>(
+                                            strHash(Class::Fields[fieldIndex].name),
+                                            JsonField(fieldIndex, JsonField::Type::Regular, Class::Fields[fieldIndex].name)));
+                                    }
                                 }
                             });
                         }
@@ -1900,13 +2143,23 @@ namespace Json
                     {
                         for ( size_t superIndex = 0; superIndex < Supers::TotalSupers; superIndex++ )
                         {
-                            Supers::At(t, superIndex, [&](auto & superObj) {
+                            Supers::At(t, superIndex, [&](auto superInfo, auto & superObj) {
+                                using SuperInfo = decltype(superInfo);
                                 using Super = typename std::remove_reference<decltype(superObj)>::type;
                                 if constexpr ( HasFields<Statics::Included, Super>() )
                                 {
-                                    std::string superTypeFieldName = superTypeToJsonFieldName<Super>();
-                                    inserted.first->second.insert(std::pair<size_t, JsonField>(
-                                        strHash(superTypeFieldName), JsonField(superIndex, JsonField::Type::SuperClass, superTypeFieldName)));
+                                    if constexpr ( SuperInfo::template HasAnnotation<Json::Name> )
+                                    {
+                                        std::string superName = std::string(superInfo.template getAnnotation<Json::Name>().value);
+                                        inserted.first->second.insert(std::pair<size_t, JsonField>(
+                                            strHash(superName), JsonField(superIndex, JsonField::Type::SuperClass, superName)));
+                                    }
+                                    else
+                                    {
+                                        std::string superTypeFieldName = superTypeToJsonFieldName<Super>();
+                                        inserted.first->second.insert(std::pair<size_t, JsonField>(
+                                            strHash(superTypeFieldName), JsonField(superIndex, JsonField::Type::SuperClass, superTypeFieldName)));
+                                    }
                                 }
                             });
                         }
@@ -2092,7 +2345,8 @@ namespace Json
             }
 
             template <bool usePrimary>
-            static constexpr inline void get(std::istream & is, char & c, char expectation, char secondaryExpectation, const char* expectedDescription, const char* secondaryDescription)
+            static constexpr inline void get(std::istream & is, char & c, char expectation, char secondaryExpectation, const char* expectedDescription,
+                const char* secondaryDescription)
             {
                 is >> c;
                 if ( !is.good() )
@@ -2560,6 +2814,11 @@ namespace Json
                     Checked::get(is, c, '[', "array opening \"[\"");
                 }
 
+                inline bool TrySingularTupleArrayPrefix(std::istream & is, char & c)
+                {
+                    return Checked::tryGet(is, '[', "array opening \"[\" or tuple value");
+                }
+
                 inline bool TryArraySuffix(std::istream & is)
                 {
                     return Checked::tryGet(is, ']', "array closing \"]\" or array element");
@@ -2571,10 +2830,38 @@ namespace Json
                     Checked::get<IsObject>(is, c, '{', '[', "object opening \"{\"", "array opening \"[\"");
                 }
 
+                inline bool IterablePrefix(std::istream & is, char & c)
+                {
+                    if ( Checked::tryGet(is, '{', "object opening \"{\" or array opening \"[\"") )
+                        return true;
+
+                    Checked::get<true>(is, c, '[', "object opening \"{\" or array opening \"[\"");
+                    return false;
+                }
+
+                inline bool PeekIterablePrefix(std::istream & is, char & c)
+                {
+                    Checked::peek(is, c, "object opening \"{\" or array opening \"[\"");
+                    if ( c == '{' )
+                        return true;
+                    else if ( c == '[' )
+                        return false;
+                    else
+                        throw Exception(std::string("Expected: object opening \"{\" or array opening \"[\"").c_str());
+                }
+
                 template <bool IsObject>
                 inline bool TryIterableSuffix(std::istream & is)
                 {
                     return Checked::tryGet<IsObject>(is, '}', ']', "object closing \"}\" or field name opening \"", "array closing \"]\" or array element");
+                }
+
+                inline bool TryIterableSuffix(std::istream & is, bool isObject)
+                {
+                    if ( isObject )
+                        return Checked::tryGet(is, '}', "object closing \"}\" or field name opening \"");
+                    else
+                        return Checked::tryGet(is, ']', "array closing \"]\" or array element");
                 }
 
                 template <bool IsObject>
@@ -2589,12 +2876,12 @@ namespace Json
             {
                 if constexpr ( is_specialized<Customize<Object, Value, FieldIndex, OpAnnotations, Field>>::value )
                     return Customize<Object, Value, FieldIndex, OpAnnotations, Field>::As(is, context, obj, value); // Customize fully specialized
-                else if constexpr ( is_specialized<Customize<Object, Value, FieldIndex, Annotate<>, Field>>::value )
-                    return Customize<Object, Value, FieldIndex, Annotate<>, Field>::As(is, context, obj, value); // Customize<5args>, OpAnnotations defaulted
+                else if constexpr ( is_specialized<Customize<Object, Value, FieldIndex, NoAnnotation, Field>>::value )
+                    return Customize<Object, Value, FieldIndex, NoAnnotation, Field>::As(is, context, obj, value); // Customize<5args>, OpAnnotations defaulted
                 else if constexpr ( is_specialized<Customize<Object, Value, NoFieldIndex, OpAnnotations, Field>>::value )
                     return Customize<Object, Value, NoFieldIndex, OpAnnotations, Field>::As(is, context, obj, value); // Customize<5args>, FieldIndex defaulted
-                else if constexpr ( is_specialized<Customize<Object, Value, NoFieldIndex, Annotate<>, Field>>::value )
-                    return Customize<Object, Value, NoFieldIndex, Annotate<>, Field>::As(is, context, obj, value); // Customize<5args>, both defaulted
+                else if constexpr ( is_specialized<Customize<Object, Value, NoFieldIndex, NoAnnotation, Field>>::value )
+                    return Customize<Object, Value, NoFieldIndex, NoAnnotation, Field>::As(is, context, obj, value); // Customize<5args>, both defaulted
                 else if constexpr ( is_specialized<Customize<Object, Value, FieldIndex, OpAnnotations>>::value )
                     return Customize<Object, Value, FieldIndex, OpAnnotations>::As(is, context, obj, value); // Four Customize arguments specialized
                 else if constexpr ( is_specialized<Customize<Object, Value, NoFieldIndex, OpAnnotations>>::value )
@@ -2605,8 +2892,8 @@ namespace Json
                     return Customize<Object, Value>::As(is, context, obj, value); // Two Customize arguments specialized
                 else if constexpr ( is_specialized<CustomizeType<Value, OpAnnotations, Field>>::value )
                     return CustomizeType<Value, OpAnnotations, Field>::As(is, context, value); // CustomizeType fully specialized
-                else if constexpr ( is_specialized<CustomizeType<Value, Annotate<>, Field>>::value )
-                    return CustomizeType<Value, Annotate<>, Field>::As(is, context, value); // CustomizeType<3args>, OpAnnotations defaulted
+                else if constexpr ( is_specialized<CustomizeType<Value, NoAnnotation, Field>>::value )
+                    return CustomizeType<Value, NoAnnotation, Field>::As(is, context, value); // CustomizeType<3args>, OpAnnotations defaulted
                 else if constexpr ( is_specialized<CustomizeType<Value, OpAnnotations>>::value )
                     return CustomizeType<Value, OpAnnotations>::As(is, context, value); // CustomizeType<2args> specialized
                 else if constexpr ( is_specialized<CustomizeType<Value>>::value )
@@ -2926,7 +3213,8 @@ namespace Json
                             case Generic::Value::Type::Boolean: result->get()->boolArray().push_back(Read::Bool<true>(is, c)); break;
                             case Generic::Value::Type::Number: result->get()->numberArray().push_back(Read::Number<true>(is, c)); break;
                             case Generic::Value::Type::String: result->get()->stringArray().push_back(Read::String(is, c)); break;
-                            case Generic::Value::Type::Object: result->get()->objectArray().push_back(Read::GenericObject(is, context, c)->out()->object()); break;
+                            case Generic::Value::Type::Object: result->get()->objectArray().push_back(Read::GenericObject(is, context, c)->out()->object());
+                                break;
                             case Generic::Value::Type::Array: result->get()->mixedArray().push_back(Read::GenericArray<true>(is, context, c)->out()); break;
                         }
                     }
@@ -2956,6 +3244,12 @@ namespace Json
                 return result;
             }
             
+            template <typename Field, size_t TupleIndex = 0, typename Object, typename T1, typename T2, typename ...Ts>
+            static constexpr void Tuple(std::istream & is, Context & context, char & c, Object & object, std::tuple<T1, T2, Ts...> & value);
+
+            template <typename Field, typename Object, typename Key, typename T>
+            static constexpr void Pair(std::istream & is, Context & context, char & c, Object & object, std::pair<Key, T> & value);
+
             template <typename Field, typename T, typename Object>
             static constexpr void Iterable(std::istream & is, Context & context, char & c, Object & object, T & iterable);
 
@@ -2965,12 +3259,12 @@ namespace Json
             template <bool InArray, typename Field, typename T, typename Object, bool AllowCustomization = true>
             static void Value(std::istream & is, Context & context, char & c, Object & object, T & value)
             {
-                if constexpr ( AllowCustomization && Customizers::HaveSpecialization<Object, T, Field::Index, Annotate<>, Field> ) // Input for this is specialized
+                if constexpr ( AllowCustomization && Customizers::HaveSpecialization<Object, T, Field::Index, NoAnnotation, Field> ) // Input is specialized
                 {
                     std::stringstream ss;
                     Json::Consume::Value<InArray>(is, c, ss);
                     std::string preserved = ss.str();
-                    if ( !Read::Customization<Object, T, Field::Index, Annotate<>, Field>(ss, context, object, value) )
+                    if ( !Read::Customization<Object, T, Field::Index, NoAnnotation, Field>(ss, context, object, value) )
                     {
                         std::stringstream subIs(preserved);
                         Read::Value<InArray, Field, T, Object, false>(subIs, context, c, object, value);
@@ -3012,7 +3306,7 @@ namespace Json
                             Consume::Null<InArray>(is, c);
                     }
                     else if constexpr ( is_pointable<Dereferenced>::value && !std::is_const<Dereferenced>::value )
-                        Read::Value<InArray, Field>(is, context, c, object, *value);  // Only take the chance of assigning nullptr to that more deeply nested pointer
+                        Read::Value<InArray, Field>(is, context, c, object, *value);  // Only chance assigning nullptr to the more deeply nested pointer
                     else if ( Consume::TryNull<InArray>(is, c) ) // If value pointer is not nullptr, "null" is a possible value
                     {
                         if constexpr ( !std::is_const<T>::value )
@@ -3028,45 +3322,168 @@ namespace Json
                     else
                         Read::GenericValue<InArray>(is, context, c)->into(value);
                 }
+                else if constexpr ( is_tuple<T>::value )
+                {
+                    if constexpr ( std::tuple_size<T>::value == 0 )
+                    {
+                        if ( !Consume::TryNull<InArray>(is, c) )
+                            Consume::Iterable<true>(is, c);
+                    }
+                    else if constexpr ( std::tuple_size<T>::value == 1 )
+                    {
+                        if ( Read::TrySingularTupleArrayPrefix(is, c) )
+                        {
+                            if ( !Read::TryArraySuffix(is) )
+                            {
+                                Read::Value<true, Field>(is, context, c, object, std::get<0>(value));
+                                while ( Read::IterableElementSeparator<false>(is) )
+                                    Consume::Value<true>(is, c);
+                            }
+                        }
+                        else
+                            Read::Value<InArray, Field>(is, context, c, object, std::get<0>(value));
+                    }
+                    else if constexpr ( std::tuple_size<T>::value >= 2 )
+                        Read::Tuple<Field>(is, context, c, object, value);
+                }
+                else if constexpr ( is_pair<T>::value )
+                    Read::Pair<Field>(is, context, c, object, value);
                 else if constexpr ( is_iterable<T>::value )
                     Read::Iterable<Field, T>(is, context, c, object, value);
                 else if constexpr ( Field::template HasAnnotation<IsRoot> )
                     Read::Object<T>(is, context, c, value);
-                else if constexpr ( Field::template HasAnnotation<Reflect::Reflected> )
+                else if constexpr ( is_reflected<T>::value )
                     Read::Object(is, context, c, value);
-                else if constexpr ( Field::template HasAnnotation<Json::String> )
+                else if constexpr ( Field::template HasAnnotation<Json::StringifyType> )
                     Read::String(is, c, value);
-                else if constexpr ( Field::template HasAnnotation<Json::EnumInt> )
+                else if constexpr ( Field::template HasAnnotation<Json::EnumIntType> )
                     Read::EnumInt<T>(is, value);
                 else if constexpr ( is_bool<T>::value )
                     Read::Bool<InArray>(is, c, value);
                 else if constexpr ( std::is_const<T>::value )
                     Consume::Value<InArray>(is, c);
-                else if constexpr ( is_string<T>::value && !Field::template HasAnnotation<Json::Unstring> )
+                else if constexpr ( is_string<T>::value && !Field::template HasAnnotation<Json::UnstringType> )
                     Read::String(is, c, value);
                 else
                     is >> value;
             }
 
-            template <bool InArray, typename Field, typename Key, typename T, typename Object>
-            static constexpr void Value(std::istream & is, Context & context, char & c, Object & object, std::pair<Key, T> & pair)
+            template <typename Field, size_t TupleIndex, typename Object, typename T1, typename T2, typename ...Ts>
+            static constexpr void Tuple(std::istream & is, Context & context, char & c, Object & object, std::tuple<T1, T2, Ts...> & value)
             {
-                Read::String(is, c, pair.first);
-                Read::FieldNameValueSeparator(is, c);
-                Read::Value<InArray, Field, T>(is, context, c, object, pair.second);
+                constexpr size_t tupleSize = std::tuple_size<typename std::remove_reference_t<decltype(value)>>::value;
+                if constexpr ( TupleIndex == 0 )
+                    Read::ArrayPrefix(is, c);
+
+                if ( !Read::TryArraySuffix(is) )
+                {
+                    if constexpr ( TupleIndex < tupleSize )
+                    {
+                        Read::Value<true, Field>(is, context, c, object, std::get<TupleIndex>(value));
+                        if ( Read::IterableElementSeparator<false>(is) )
+                            Read::Tuple<Field, TupleIndex+1, Object, T1, T2, Ts...>(is, context, c, object, value);
+                    }
+                    else
+                    {
+                        do
+                        {
+                            Consume::Value<true>(is, c);
+                        }
+                        while ( Read::IterableElementSeparator<false>(is) );
+                    }
+                }
+            }
+
+            template <typename Field, typename Object, typename Key, typename T>
+            static constexpr void Pair(std::istream & is, Context & context, char & c, Object & object, std::pair<Key, T> & value)
+            {
+                Read::ArrayPrefix(is, c);
+                if ( !Read::TryArraySuffix(is) )
+                {
+                    Read::Value<true, Field>(is, context, c, object, value.first);
+                    if ( Read::IterableElementSeparator<false>(is) )
+                    {
+                        Read::Value<true, Field>(is, context, c, object, value.second);
+                        while ( Read::IterableElementSeparator<false>(is) )
+                            Consume::Value<true>(is, c);
+                    }
+                }
+            }
+
+            template <typename Field, typename Object, typename Key, typename T>
+            static void KeyValueObject(std::istream & is, Context & context, char & c, Object & object, std::pair<Key, T> & value)
+            {
+                Read::ObjectPrefix(is, c);
+                if ( !Read::TryObjectSuffix(is) )
+                {
+                    do
+                    {
+                        std::string fieldName = Read::FieldName(is, c);
+                        Read::FieldNameValueSeparator(is, c);
+                        if ( fieldName.compare("key") == 0 )
+                            Read::Value<false, Field>(is, context, c, object, value.first);
+                        else if ( fieldName.compare("value") == 0 )
+                            Read::Value<false, Field>(is, context, c, object, value.second);
+                        else
+                            Consume::Value<false>(is, c);
+                    }
+                    while ( Read::FieldSeparator(is) );
+                }
             }
             
+            template <typename Field, typename Object, typename Key, typename T>
+            static void FieldPair(std::istream & is, Context & context, char & c, Object & object, Key & key, T & value)
+            {
+                std::stringstream ss;
+                Read::String(is, c, ss);
+                Read::Value<false, Field>(ss, context, c, object, key);
+                Read::FieldNameValueSeparator(is, c);
+                Read::Value<false, Field>(is, context, c, object, value);
+            }
+
             template <typename Field, typename T, typename Object>
             static constexpr void Iterable(std::istream & is, Context & context, char & c, Object & object, T & iterable)
             {
                 using Element = typename element_type<T>::type;
-                constexpr bool ContainsPairs = is_pair<Element>::value;
+                constexpr bool IsMap = is_map<T>::value; // Simple maps are just json objects with keys as the field names, values as field values
+                constexpr bool HasComplexKey = IsMap && is_non_primitive<typename pair_lhs<Element>::type>::value;
+                constexpr bool JsonObjectCompatible = (IsMap && !HasComplexKey) || (!IsMap && (is_pair<Element>::value || is_tuple_pair<Element>::value));
 
-                Read::IterablePrefix<ContainsPairs>(is, c);
-                if ( !Read::TryIterableSuffix<ContainsPairs>(is) )
+                Clear(iterable);
+                size_t i=0;
+                if constexpr ( JsonObjectCompatible )
                 {
-                    Clear(iterable);
-                    size_t i=0;
+                    if ( Read::IterablePrefix(is, c) ) // Json Object
+                    {
+                        if ( !Read::TryObjectSuffix(is) )
+                        {
+                            do
+                            {
+                                if constexpr ( is_static_array<T>::value )
+                                {
+                                    if ( i >= static_array_size<T>::value )
+                                        throw ArraySizeExceeded();
+                                    else
+                                        Read::FieldPair<Field, Object>(is, context, c, object, std::get<0>(iterable[i]), std::get<1>(iterable[i]));
+                                    i++;
+                                }
+                                else // Appendable STL container
+                                {
+                                    typename element_type<T>::type value;
+                                    Read::FieldPair<Field, Object>(is, context, c, object, std::get<0>(value), std::get<1>(value));
+                                    Append<T, typename element_type<T>::type>(iterable, value);
+                                }
+                            }
+                            while ( Read::IterableElementSeparator<true>(is) );
+                        }
+                        return; // Object read finished
+                    }
+                }
+                else
+                    Read::ArrayPrefix(is, c); // Json Array
+
+                if ( !Read::TryArraySuffix(is) )
+                {
                     do
                     {
                         if constexpr ( is_static_array<T>::value )
@@ -3074,16 +3491,21 @@ namespace Json
                             if ( i >= static_array_size<T>::value )
                                 throw ArraySizeExceeded();
                             else
-                                Read::Value<!ContainsPairs, Field>(is, context, c, object, iterable[i++]);
+                                Read::Value<true, Field>(is, context, c, object, iterable[i++]);
                         }
                         else // Appendable STL container
                         {
                             typename element_type<T>::type value;
-                            Read::Value<!ContainsPairs, Field>(is, context, c, object, value);
+                            if constexpr ( !IsMap )
+                                Read::Value<true, Field>(is, context, c, object, value);
+                            else if ( Read::PeekIterablePrefix(is, c) ) // Json Object
+                                Read::KeyValueObject<Field, Object>(is, context, c, object, value);
+                            else // Json Array
+                                Read::Pair<Field, Object>(is, context, c, object, value);
                             Append<T, typename element_type<T>::type>(iterable, value);
                         }
                     }
-                    while ( Read::IterableElementSeparator<ContainsPairs>(is) );
+                    while ( Read::IterableElementSeparator<false>(is) );
                 }
             }
 
@@ -3103,7 +3525,7 @@ namespace Json
                     }
                     else if ( jsonField->type == JsonField::Type::SuperClass )
                     {
-                        Object::Supers::At(object, jsonField->index, [&](auto & superObj) {
+                        Object::Supers::At(object, jsonField->index, [&](auto superInfo, auto & superObj) {
                             using Super = typename std::remove_reference<decltype(superObj)>::type;
                             Read::Object<Super>(is, context, c, superObj);
                         });
@@ -3126,7 +3548,10 @@ namespace Json
                                     else if constexpr ( std::is_same<std::unique_ptr<Dereferenced>, ValueType>::value )
                                         value = std::unique_ptr<Dereferenced>(new Dereferenced());
                                     else
-                                        throw Exception("Cannot assign a non-null value to a null pointer unless the type is std::shared_ptr or std::unique_ptr");
+                                    {
+                                        throw Exception(
+                                            "Cannot assign a non-null value to a null pointer unless the type is std::shared_ptr or std::unique_ptr");
+                                    }
 
                                     value->put(fieldName, Read::GenericValue<false>(is, context, c)->out());
                                 }
@@ -3215,7 +3640,7 @@ namespace Json
         return simpleTypeStr; \
     } \
     Json::OutStreamType & operator<<(Json::OutStreamType & os, const Json::Generic::Value & value) { \
-        Json::Put::GenericValue<Annotate<>, true, Json::twoSpaces, true>(os, Json::context, 0, 0, value); \
+        Json::Put::GenericValue<NoAnnotation, true, Json::twoSpaces, true>(os, Json::context, 0, 0, value); \
         return os; \
     } \
     std::string Json::Shared::fieldClusterToJsonFieldName() { \

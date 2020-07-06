@@ -3,7 +3,26 @@
 #include "../RareCppLib/Json.h"
 #include <iostream>
 using namespace Reflect;
+using ExtendedTypeSupport::TypeToStr;
 using u8 = uint8_t;
+
+namespace Rest
+{
+    enum class Method {
+        GET,
+        PATCH
+    };
+    struct Url {
+        std::string_view url;
+    };
+    template <typename T>
+    struct PathParam
+    {
+        std::string_view param;
+    };
+    struct ControllerWrapper {};
+    static constexpr ControllerWrapper Controller{};
+}
 
 class SuperA {
 public:
@@ -11,12 +30,13 @@ public:
 
     int superVal;
 
-    REFLECT(() SuperA, () superVal)
+    REFLECT(SuperA, superVal)
 };
 
+NOTE(OtherSuperA)
 class OtherSuperA {
 public:
-    REFLECT_EMPTY(() OtherSuperA)
+    REFLECT_EMPTY(OtherSuperA)
 };
 
 class Composed {
@@ -25,9 +45,10 @@ public:
 
     int composedVal;
 
-    REFLECT(() Composed, () composedVal)
+    REFLECT(Composed, composedVal)
 };
 
+NOTE(A, Super<SuperA>(Json::Name{"SupA"}), Super<OtherSuperA>)
 class A : public SuperA, public OtherSuperA {
 public:
     enum_t(TestEnum, u8, {
@@ -46,9 +67,11 @@ public:
     static int & secondReference;
     int* ptr;
     Composed composed;
+    NOTE(boolean, Json::Ignore)
     bool boolean;
     bool putCache;
     uint16_t customInt;
+    NOTE(str, Json::Name{"string"})
     std::string str;
     std::map<std::string, std::string> map;
     std::vector<std::vector<int>> vecVec;
@@ -57,9 +80,8 @@ public:
     std::vector<std::shared_ptr<int>> autoAllocate;
     std::shared_ptr<Json::Generic::FieldCluster> unknownFields;
 
-    using Parents = Inherit<SuperA, OtherSuperA>;
-    REFLECT((Parents) A, () testEnum, (Reflected) composed, () first, () firstReference, () second, () secondReference,
-        () ptr, (Json::Ignore) boolean, () putCache, () customInt, () str, () map, () vecVec, () ray, () runtime, () autoAllocate, () unknownFields)
+    REFLECT_NOTED(A, testEnum, composed, first, firstReference, second, secondReference,
+        ptr, boolean, putCache, customInt, str, map, vecVec, ray, runtime, autoAllocate, unknownFields)
 };
 
 std::istream & operator>>(std::istream & is, A::TestEnum & testEnum);

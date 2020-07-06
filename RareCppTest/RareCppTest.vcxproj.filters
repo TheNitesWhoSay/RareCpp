@@ -9,8 +9,17 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
+    <Filter Include="Source Files\JsonTest">
+      <UniqueIdentifier>{218ffa84-fb66-450a-b1db-66f82d057562}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\StringBufferTest">
+      <UniqueIdentifier>{454782c6-0e0d-4f8f-8916-dc461f0cdec4}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source Files\ReflectTest">
       <UniqueIdentifier>{130fa6d8-e04e-4817-ad39-0d9a23121594}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\JsonTest\Definition">
+      <UniqueIdentifier>{e908698b-aa91-4fe9-b3a5-b79599f34b2e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -22,30 +31,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="JsonDefinition.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="JsonInputTest.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="JsonInputTestBuffered.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="JsonInputTestUnbuffered.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="JsonTest.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="JsonTestRunBuffered.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="JsonTestRunUnbuffered.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="StringBufferTest.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="TestMain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -62,6 +47,33 @@
       <Filter>Source Files\ReflectTest</Filter>
     </ClCompile>
     <ClCompile Include="ReflectTest.cpp">
+      <Filter>Source Files\ReflectTest</Filter>
+    </ClCompile>
+    <ClCompile Include="JsonInputTest.cpp">
+      <Filter>Source Files\JsonTest</Filter>
+    </ClCompile>
+    <ClCompile Include="JsonTest.cpp">
+      <Filter>Source Files\JsonTest</Filter>
+    </ClCompile>
+    <ClCompile Include="StringBufferTest.cpp">
+      <Filter>Source Files\StringBufferTest</Filter>
+    </ClCompile>
+    <ClCompile Include="JsonDefinition.cpp">
+      <Filter>Source Files\JsonTest\Definition</Filter>
+    </ClCompile>
+    <ClCompile Include="JsonInputTestBuffered.cpp">
+      <Filter>Source Files\JsonTest\Definition</Filter>
+    </ClCompile>
+    <ClCompile Include="JsonInputTestUnbuffered.cpp">
+      <Filter>Source Files\JsonTest\Definition</Filter>
+    </ClCompile>
+    <ClCompile Include="JsonTestRunBuffered.cpp">
+      <Filter>Source Files\JsonTest\Definition</Filter>
+    </ClCompile>
+    <ClCompile Include="JsonTestRunUnbuffered.cpp">
+      <Filter>Source Files\JsonTest\Definition</Filter>
+    </ClCompile>
+    <ClCompile Include="InheritTest.cpp">
       <Filter>Source Files\ReflectTest</Filter>
     </ClCompile>
   </ItemGroup>
