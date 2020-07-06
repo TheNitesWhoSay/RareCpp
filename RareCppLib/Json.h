@@ -43,7 +43,7 @@ namespace Json
         struct StringifyType {};
         static constexpr StringifyType Stringify{};
 
-        /// Field annotation telling JSON to use a different name for the field
+        /// Field or Super annotation telling JSON to use a different name for the field
         struct Name
         {
              std::string_view value;
@@ -1850,8 +1850,6 @@ namespace Json
                         {
                             if ( value != nullptr )
                                 Put::Value<Annotations, FieldClass, statics, PrettyPrint, 0, IndentLevel, indent, Object, false>(os, context, obj, *value);
-                            else
-                                os << "null";
                         }
                         else
                             Put::Value<Annotations, FieldClass, statics, PrettyPrint, 0, IndentLevel, indent, Object, false>(os, context, obj, value);
@@ -2148,7 +2146,7 @@ namespace Json
                                 using Super = typename std::remove_reference<decltype(superObj)>::type;
                                 if constexpr ( HasFields<Statics::Included, Super>() )
                                 {
-                                    if ( superInfo.HasAnnotation<Json::Name> )
+                                    if constexpr ( superInfo.HasAnnotation<Json::Name> )
                                     {
                                         std::string superName = std::string(superInfo.getAnnotation<Json::Name>().value);
                                         inserted.first->second.insert(std::pair<size_t, JsonField>(

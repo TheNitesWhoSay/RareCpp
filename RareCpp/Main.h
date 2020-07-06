@@ -6,22 +6,6 @@ using namespace Reflect;
 using ExtendedTypeSupport::TypeToStr;
 using u8 = uint8_t;
 
-namespace Json
-{
-    enum class SuperFormat
-    {
-        Nested
-    };
-
-    template <typename T>
-    std::string ToString(T & t)
-    {
-        std::stringstream ss;
-        ss << Json::out(t);
-        return ss.str();
-    }
-}
-
 namespace Rest
 {
     enum class Method {

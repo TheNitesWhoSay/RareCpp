@@ -3204,7 +3204,7 @@ TEST_HEADER(JsonOutputPut, Field)
     fieldClusterPointer.fieldClusterPointer = nullptr;
     Json::Put::Field<NoAnnotation, FieldClusterPointer::Class::fieldClusterPointer_::Field, Json::Statics::Excluded, false, 0, Json::twoSpaces, FieldClusterPointer>(
         putClusterNullPointer, Json::context, fieldClusterPointer, "fieldClusterPointer", fieldClusterPointer.fieldClusterPointer);
-    EXPECT_STREQ("null", putClusterNullPointer.str().c_str());
+    EXPECT_STREQ("", putClusterNullPointer.str().c_str());
 
     TestStreamType putClusterPointerEmpty;
     fieldClusterPointer.fieldClusterPointer = std::unique_ptr<Json::FieldCluster>(new Json::FieldCluster());

@@ -368,7 +368,7 @@ struct Another
 
 NOTE(State,
     Rest::Controller,
-    Super<Point>(Json::Name{"point"}, Json::SuperFormat::Nested),
+    Super<Point>(Json::Name{"point"}),
     Super<Another>)
 struct State : public Point, public Another
 {
@@ -391,7 +391,7 @@ struct State : public Point, public Another
         this->value = value;
         this->otherValue = otherValue;
         this->status = Status::Cached;
-        return Json::ToString(*this);
+        return "";
     }
 
     REFLECT_NOTED(State, value, otherValue, status, update)
