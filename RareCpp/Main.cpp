@@ -4,8 +4,6 @@
 #include <memory>
 using Json::Statics;
 
-ENABLE_JSON;
-
 int A::second = 0;
 int & A::secondReference = A::second;
 

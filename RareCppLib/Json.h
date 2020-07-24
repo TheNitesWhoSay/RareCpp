@@ -156,7 +156,7 @@ namespace Json
         {
             virtual ~Context() {}
         };
-        extern Context context;
+        static inline Context context;
 
         class Exception : public std::exception
         {
@@ -177,7 +177,23 @@ namespace Json
 
         inline namespace TypeNames
         {
-            extern std::string simplifyTypeStr(const std::string & superTypeStr);
+            static inline std::string simplifyTypeStr(const std::string & superTypeStr)
+            {
+                std::string rawSimpleTypeStr = superTypeStr;
+                if ( rawSimpleTypeStr.find("struct ", 0) != std::string::npos )
+                    rawSimpleTypeStr.erase(0, strlen("struct "));
+                if ( rawSimpleTypeStr.find("class ", 0) != std::string::npos )
+                    rawSimpleTypeStr.erase(0, strlen("class "));
+
+                std::string simpleTypeStr;
+                for ( size_t i=0; i<rawSimpleTypeStr.size(); i++ ) {
+                    if ( rawSimpleTypeStr[i] != ' ' )
+                        simpleTypeStr += rawSimpleTypeStr[i];
+                    else if ( ++i < rawSimpleTypeStr.size() ) /* Remove space and upper-case the letter following the space */
+                        simpleTypeStr += std::toupper(rawSimpleTypeStr[i]);
+                }
+                return simpleTypeStr;
+            }
 
             template <typename T>
             std::string superTypeToJsonFieldName()
@@ -185,7 +201,10 @@ namespace Json
                 return std::string("__") + simplifyTypeStr(TypeToStr<T>());
             }
 
-            extern std::string fieldClusterToJsonFieldName();
+            static inline std::string fieldClusterToJsonFieldName()
+            {
+                return std::string("____fieldCluster");
+            }
         }
     };
 
@@ -2092,9 +2111,9 @@ namespace Json
 
         inline namespace Cache
         {
-            extern std::hash<std::string> strHash;
+            static inline std::hash<std::string> strHash;
 
-            extern std::map<std::type_index, std::multimap<size_t, JsonField>> classToNameHashToJsonField;
+            static inline std::map<std::type_index, std::multimap<size_t, JsonField>> classToNameHashToJsonField;
 
             template <typename T>
             static std::multimap<size_t, JsonField> & getClassFieldCache(const T & t)
@@ -3617,37 +3636,11 @@ namespace Json
             return Input::ReflectedObject<T>(t, context);
         }
     }
-    
-    inline namespace Enabler
+
+    inline Json::OutStreamType & operator<<(Json::OutStreamType & os, const Json::Generic::Value & value)
     {
-        /// "ENABLE_JSON;" must be placed in a .cpp file in the target project
-        /// Having this macro avoids the need for a separate Json.cpp file
-#define ENABLE_JSON \
-    std::hash<std::string> Json::strHash; \
-    std::map<std::type_index, std::multimap<size_t, Json::Generic::JsonField>> Json::classToNameHashToJsonField; \
-    Json::Shared::Context Json::Shared::context; \
-    std::string Json::Shared::simplifyTypeStr(const std::string & superTypeStr) { \
-        std::string rawSimpleTypeStr = superTypeStr; \
-        if ( rawSimpleTypeStr.find("struct ", 0) != std::string::npos ) \
-            rawSimpleTypeStr.erase(0, strlen("struct ")); \
-        if ( rawSimpleTypeStr.find("class ", 0) != std::string::npos ) \
-            rawSimpleTypeStr.erase(0, strlen("class ")); \
-        std::string simpleTypeStr; \
-        for ( size_t i=0; i<rawSimpleTypeStr.size(); i++ ) { \
-            if ( rawSimpleTypeStr[i] != ' ' ) \
-                simpleTypeStr += rawSimpleTypeStr[i]; \
-            else if ( ++i < rawSimpleTypeStr.size() ) /* Remove space and upper-case the letter following the space */ \
-                simpleTypeStr += std::toupper(rawSimpleTypeStr[i]); \
-        } \
-        return simpleTypeStr; \
-    } \
-    Json::OutStreamType & operator<<(Json::OutStreamType & os, const Json::Generic::Value & value) { \
-        Json::Put::GenericValue<NoAnnotation, true, Json::twoSpaces, true>(os, Json::context, 0, 0, value); \
-        return os; \
-    } \
-    std::string Json::Shared::fieldClusterToJsonFieldName() { \
-        return std::string("____fieldCluster"); \
-    }
+        Json::Put::GenericValue<Json::NoAnnotation, true, Json::twoSpaces, true>(os, Json::context, 0, 0, value);
+        return os;
     }
 };
 

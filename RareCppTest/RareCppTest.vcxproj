@@ -171,7 +171,6 @@
     <ClCompile Include="FieldTest.cpp" />
     <ClCompile Include="GenericMacroTest.cpp" />
     <ClCompile Include="InheritTest.cpp" />
-    <ClCompile Include="JsonDefinition.cpp" />
     <ClCompile Include="JsonInputTest.cpp" />
     <ClCompile Include="JsonInputTestBuffered.cpp" />
     <ClCompile Include="JsonInputTestUnbuffered.cpp" />
