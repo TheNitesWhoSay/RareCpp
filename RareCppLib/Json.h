@@ -7,7 +7,9 @@
 #include <type_traits>
 #include <functional>
 #include <cstring>
+#ifndef REFLECT_H
 #include "Reflect.h"
+#endif
 #ifdef USE_BUFFERED_STREAMS
 #include "StringBuffer.h"
 #endif
