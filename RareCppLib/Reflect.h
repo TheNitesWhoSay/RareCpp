@@ -15,6 +15,7 @@
 #include <type_traits>
 #include <memory>
 #include <string_view>
+#include <string>
 #include <tuple>
 
 #ifndef enum_t
