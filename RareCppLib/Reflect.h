@@ -208,13 +208,6 @@ namespace ConstexprStr
         }
         char value[N + 1];
     };
-
-    template <size_t N> constexpr size_t find_last_of(const char(&s)[N], const char character)
-    {
-        size_t pos = N-1;
-        for ( ; pos < N && s[pos] != character; pos-- );
-        return pos;
-    }
 };
 
 namespace ExtendedTypeSupport

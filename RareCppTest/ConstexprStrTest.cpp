@@ -1,18 +1,5 @@
 #include <gtest/gtest.h>
 #include "../RareCppLib/Reflect.h"
-#include <array>
-#include <vector>
-#include <deque>
-#include <forward_list>
-#include <list>
-#include <stack>
-#include <queue>
-#include <set>
-#include <map>
-#include <unordered_set>
-#include <unordered_map>
-#include <utility>
-#include <type_traits>
 using namespace ConstexprStr;
 
 TEST(ConstexprStrTest, ConstexprStrSubstr)
@@ -43,14 +30,4 @@ TEST(ConstexprStrTest, ConstexprStrSubstr)
     EXPECT_STREQ("ef", substr<2>(&"abcdef"[0]+4).value);
 
     EXPECT_STREQ("f", substr<1>(&"abcdef"[0]+5).value);
-}
-
-TEST(ConstexprStrTest, ConstexprStrFindLastOf)
-{
-    EXPECT_EQ(6, find_last_of("abcdefabcdef", 'a'));
-    EXPECT_EQ(7, find_last_of("abcdefabcdef", 'b'));
-    EXPECT_EQ(8, find_last_of("abcdefabcdef", 'c'));
-    EXPECT_EQ(9, find_last_of("abcdefabcdef", 'd'));
-    EXPECT_EQ(10, find_last_of("abcdefabcdef", 'e'));
-    EXPECT_EQ(11, find_last_of("abcdefabcdef", 'f'));
 }
