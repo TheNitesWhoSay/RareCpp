@@ -874,7 +874,7 @@ namespace Reflect
     template <typename T, bool NoNote> struct GetNote { static constexpr auto & value = Class::NoNote; }; \
     template <typename T> struct GetNote<T, false> { static constexpr auto & value = T::x##_note; }; \
     using NoteType = decltype(idNote<ClassType>(0)); \
-    using Field = Fields::Field<Type, Pointer, IndexOf::x, NoteType>; \
+    using Field = Reflect::Fields::Field<Type, Pointer, IndexOf::x, NoteType>; \
     static constexpr Field field = { &nameStr.value[0], &typeStr.value[0], GetPointer<ClassType, std::is_reference_v<Type>>::value, \
         GetNote<ClassType, std::is_same_v<decltype(Class::NoNote), NoteType>>::value }; \
     CLANG_ONLY(x) \
@@ -894,13 +894,13 @@ namespace Reflect
 struct Class { \
     using ClassType = objectType; \
     enum_t(IndexOf, size_t, { FOR_EACH(GET_FIELD_NAME, __VA_ARGS__) }); \
-    static constexpr NoAnnotation NoNote {}; \
+    static constexpr Reflect::NoAnnotation NoNote {}; \
     using Annotations = decltype(NoNote); \
     static constexpr Annotations & annotations = NoNote; \
     FOR_EACH(DESCRIBE_FIELD, __VA_ARGS__) \
     static constexpr size_t TotalFields = COUNT_ARGUMENTS(__VA_ARGS__); \
     static constexpr size_t TotalStaticFields = 0 FOR_EACH(ADD_IF_STATIC, __VA_ARGS__); \
-    static constexpr Fields::Field<> Fields[TotalFields] = { FOR_EACH(GET_FIELD, __VA_ARGS__) }; \
+    static constexpr Reflect::Fields::Field<> Fields[TotalFields] = { FOR_EACH(GET_FIELD, __VA_ARGS__) }; \
     template <typename Function> constexpr static void ForEachField(Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
     template <typename Function> static void ForEachField(objectType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
     template <typename Function> static void ForEachField(const objectType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
@@ -909,7 +909,7 @@ struct Class { \
     template <typename Function> static void FieldAt(objectType & object, size_t fieldIndex, Function function) { \
         switch ( fieldIndex ) { FOR_EACH(USE_FIELD_VALUE_AT, __VA_ARGS__) } } \
 }; \
-using Supers = Inherit<Class::ClassType, Class::Annotations>;
+using Supers = Reflect::Inherit<Class::ClassType, Class::Annotations>;
 
 
 /// REFLECT_NOTED is exactly the same as REFLECT except this signals that objectType itself is annotated
@@ -917,13 +917,13 @@ using Supers = Inherit<Class::ClassType, Class::Annotations>;
 struct Class { \
     using ClassType = objectType; \
     enum_t(IndexOf, size_t, { FOR_EACH(GET_FIELD_NAME, __VA_ARGS__) }); \
-    static constexpr NoAnnotation NoNote {}; \
+    static constexpr Reflect::NoAnnotation NoNote {}; \
     using Annotations = decltype(objectType##_note); \
     static constexpr Annotations & annotations = objectType##_note; \
     FOR_EACH(DESCRIBE_FIELD, __VA_ARGS__) \
     static constexpr size_t TotalFields = COUNT_ARGUMENTS(__VA_ARGS__); \
     static constexpr size_t TotalStaticFields = 0 FOR_EACH(ADD_IF_STATIC, __VA_ARGS__); \
-    static constexpr Fields::Field<> Fields[TotalFields] = { FOR_EACH(GET_FIELD, __VA_ARGS__) }; \
+    static constexpr Reflect::Fields::Field<> Fields[TotalFields] = { FOR_EACH(GET_FIELD, __VA_ARGS__) }; \
     template <typename Function> constexpr static void ForEachField(Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
     template <typename Function> static void ForEachField(objectType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
     template <typename Function> static void ForEachField(const objectType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
@@ -932,7 +932,7 @@ struct Class { \
     template <typename Function> static void FieldAt(objectType & object, size_t fieldIndex, Function function) { \
         switch ( fieldIndex ) { FOR_EACH(USE_FIELD_VALUE_AT, __VA_ARGS__) } } \
 }; \
-using Supers = Inherit<Class::ClassType, Class::Annotations>;
+using Supers = Reflect::Inherit<Class::ClassType, Class::Annotations>;
 
 
 /// REFLECT_EMPTY is used to reflect an annotated class with no reflected fields
@@ -943,14 +943,14 @@ struct Class { \
     static constexpr Annotations & annotations = objectType##_note; \
     static constexpr size_t TotalFields = 0; \
     static constexpr size_t TotalStaticFields = 0; \
-    static constexpr Fields::Field<> Fields[1] = { { "", "" } }; \
+    static constexpr Reflect::Fields::Field<> Fields[1] = { { "", "" } }; \
     template <typename Function> constexpr static void ForEachField(Function function) {} \
     template <typename Function> static void ForEachField(objectType & object, Function function) {} \
     template <typename Function> static void ForEachField(const objectType & object, Function function) { } \
     template <typename Function> constexpr static void FieldAt(size_t fieldIndex, Function function) {} \
     template <typename Function> static void FieldAt(objectType & object, size_t fieldIndex, Function function) {} \
 }; \
-using Supers = Inherit<Class::ClassType, Class::Annotations>;
+using Supers = Reflect::Inherit<Class::ClassType, Class::Annotations>;
 
 
     template <typename T, typename = decltype(T::Class::TotalFields)> static constexpr std::true_type typeHasReflection(int);
