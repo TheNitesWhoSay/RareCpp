@@ -150,7 +150,7 @@ namespace Json
         using NoField = Fields::Field<>;
 
         template <typename T>
-        using ReflectedField = Fields::Field<T, nullptr_t, 0, IsRoot>;
+        using ReflectedField = Fields::Field<T, std::nullptr_t, 0, IsRoot>;
 
         struct Context
         {

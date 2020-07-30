@@ -333,7 +333,7 @@ TEST(ReflectTest, RfMacroDescribeField)
     using ExpectedStaticValueId = TypePair<StaticValueType, StaticValuePointer>;
 
     using MemberValueReferenceType = decltype(DescribeFieldTest::memberValueReference);
-    using MemberValueReferencePointer = nullptr_t;
+    using MemberValueReferencePointer = std::nullptr_t;
     using ExpectedMemberValueReferenceId = TypePair<MemberValueReferenceType, MemberValueReferencePointer>;
 
     using StaticValueReferenceType = decltype(DescribeFieldTest::staticValueReference);
@@ -463,7 +463,7 @@ TEST(ReflectTest, RfMacroDescribeField)
     
     using ExpectedMemberValueField = Fields::Field<decltype(DescribeFieldTest::memberValue), decltype(&DescribeFieldTest::memberValue), 0, decltype(DescribeFieldTest::Class::NoNote)>;
     using ExpectedStaticValueField = Fields::Field<decltype(DescribeFieldTest::staticValue), decltype(&DescribeFieldTest::staticValue), 1, decltype(DescribeFieldTest::Class::NoNote)>;
-    using ExpectedMemberValueReferenceField = Fields::Field<decltype(DescribeFieldTest::memberValueReference), nullptr_t, 2, decltype(DescribeFieldTest::memberValueReference_note)>;
+    using ExpectedMemberValueReferenceField = Fields::Field<decltype(DescribeFieldTest::memberValueReference), std::nullptr_t, 2, decltype(DescribeFieldTest::memberValueReference_note)>;
     using ExpectedStaticValueReferenceField = Fields::Field<decltype(DescribeFieldTest::staticValueReference), decltype(&DescribeFieldTest::staticValueReference), 3, decltype(DescribeFieldTest::staticValueReference_note)>;
     using ExpectedMemberMethodField = Fields::Field<decltype(&DescribeFieldTest::memberMethod), decltype(&DescribeFieldTest::memberMethod), 4, decltype(DescribeFieldTest::Class::NoNote)>;
     using ExpectedStaticMethodField = Fields::Field<decltype(DescribeFieldTest::staticMethod), decltype(&DescribeFieldTest::staticMethod), 5, decltype(DescribeFieldTest::Class::NoNote)>;
@@ -498,9 +498,9 @@ TEST(ReflectTest, RfMacroDescribeField)
     EXPECT_TRUE(isSame);
     isSame = std::is_same_v<decltype(&DescribeFieldTest::staticValue), StaticValueField::Pointer>;
     EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<nullptr_t, MemberValueReferenceField::Pointer>;
+    isSame = std::is_same_v<std::nullptr_t, MemberValueReferenceField::Pointer>;
     EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<nullptr_t, StaticValueReferenceField::Pointer>;
+    isSame = std::is_same_v<std::nullptr_t, StaticValueReferenceField::Pointer>;
     EXPECT_TRUE(isSame);
     isSame = std::is_same_v<decltype(&DescribeFieldTest::memberMethod), MemberMethodField::Pointer>;
     EXPECT_TRUE(isSame);

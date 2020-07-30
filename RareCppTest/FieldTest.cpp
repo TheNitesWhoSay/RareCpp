@@ -9,7 +9,7 @@ TEST(ReflectionFieldTest, FieldSimple)
     char fieldTypeStr[] = "int";
 
     Field<> field = { fieldName, fieldTypeStr };
-    bool isEqual = std::is_same<decltype(field), Field<void, nullptr_t, 0, NoAnnotation>>::value;
+    bool isEqual = std::is_same<decltype(field), Field<void, std::nullptr_t, 0, NoAnnotation>>::value;
     EXPECT_TRUE(isEqual);
     
     EXPECT_STREQ(fieldName, field.name);
@@ -77,7 +77,7 @@ TEST(ReflectionFieldTest, ReferencesFieldTemplated)
     bool fieldIsFunction = false;
     NoAnnotation noAnnotation{};
 
-    Field<decltype(ReferencesTestStruct::testVal), nullptr_t, fieldIndex> field =
+    Field<decltype(ReferencesTestStruct::testVal), std::nullptr_t, fieldIndex> field =
     { fieldName, fieldTypeStr, nullptr, noAnnotation };
     using IntField = decltype(field);
 
@@ -87,7 +87,7 @@ TEST(ReflectionFieldTest, ReferencesFieldTemplated)
     bool isEqual = std::is_same<int&, IntField::Type>::value;
     EXPECT_TRUE(isEqual);
 
-    isEqual = std::is_same<nullptr_t, IntField::Pointer>::value;
+    isEqual = std::is_same<std::nullptr_t, IntField::Pointer>::value;
     EXPECT_TRUE(isEqual);
 
     isEqual = std::is_same<NoAnnotation, IntField::Annotations>::value;
@@ -103,7 +103,7 @@ TEST(ReflectionFieldTest, ReferencesFieldTemplated)
     { fieldName, fieldTypeStr, nullptr, noAnnotation };
     using StaticIntField = decltype(staticField);
 
-    isEqual = std::is_same<StaticIntField::Pointer, nullptr_t>::value;
+    isEqual = std::is_same<StaticIntField::Pointer, std::nullptr_t>::value;
     EXPECT_TRUE(isEqual);
 
     EXPECT_TRUE(staticField.p == nullptr);
