@@ -2,9 +2,8 @@
 #include "../RareCppLib/Reflect.h"
 #include <typeinfo>
 #include <memory>
+using Reflect::is_reflected;
 using Json::Statics;
-
-ENABLE_JSON;
 
 int A::second = 0;
 int & A::secondReference = A::second;

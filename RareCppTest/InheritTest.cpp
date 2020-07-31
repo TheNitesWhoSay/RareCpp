@@ -329,7 +329,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstance)
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         isSame = std::is_same<InheritSuper_S1, InfoType>::value;
         EXPECT_TRUE(isSame);
@@ -344,7 +344,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstance)
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         isSame = std::is_same<InheritSuper_S1, InfoType>::value;
         EXPECT_TRUE(isSame);
@@ -361,7 +361,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstance)
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         isSame = std::is_same<InheritSuper_S1, InfoType>::value;
         EXPECT_TRUE(isSame);
@@ -376,7 +376,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstance)
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         isSame = std::is_same<InheritSuper_S1, InfoType>::value;
         EXPECT_TRUE(isSame);
@@ -394,7 +394,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstance)
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
         if constexpr ( superInfo.Index == 0 )
         {
-            bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S1, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -404,7 +404,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstance)
         }
         else if constexpr ( superInfo.Index == 1 )
         {
-            bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S2, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -422,7 +422,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstance)
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
         if constexpr ( superInfo.Index == 0 )
         {
-            bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S1, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -432,7 +432,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstance)
         }
         else if constexpr ( superInfo.Index == 1 )
         {
-            bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S2, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -452,7 +452,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstance)
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
         if constexpr ( superInfo.Index == 0 )
         {
-            bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S1, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -462,7 +462,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstance)
         }
         else if constexpr ( superInfo.Index == 1 )
         {
-            bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S2, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -480,7 +480,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstance)
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
         if constexpr ( superInfo.Index == 0 )
         {
-            bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S1, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -490,7 +490,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstance)
         }
         else if constexpr ( superInfo.Index == 1 )
         {
-            bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S2, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -511,7 +511,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstance)
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
         if constexpr ( superInfo.Index == 0 )
         {
-            bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S1, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -521,7 +521,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstance)
         }
         else if constexpr ( superInfo.Index == 1 )
         {
-            bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S2, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -531,7 +531,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstance)
         }
         else if constexpr ( superInfo.Index == 2 )
         {
-            bool isSame = std::is_same<InheritSuper_S3, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S3, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -549,7 +549,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstance)
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
         if constexpr ( superInfo.Index == 0 )
         {
-            bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S1, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -559,7 +559,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstance)
         }
         else if constexpr ( superInfo.Index == 1 )
         {
-            bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S2, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -571,7 +571,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstance)
         }
         else if constexpr ( superInfo.Index == 2 )
         {
-            bool isSame = std::is_same<InheritSuper_S3, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S3, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -589,7 +589,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstance)
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
         if constexpr ( superInfo.Index == 0 )
         {
-            bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S1, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -599,7 +599,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstance)
         }
         else if constexpr ( superInfo.Index == 1 )
         {
-            bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S2, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -609,7 +609,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstance)
         }
         else if constexpr ( superInfo.Index == 2 )
         {
-            bool isSame = std::is_same<InheritSuper_S3, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S3, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -627,7 +627,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstance)
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
         if constexpr ( superInfo.Index == 0 )
         {
-            bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S1, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -637,7 +637,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstance)
         }
         else if constexpr ( superInfo.Index == 1 )
         {
-            bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S2, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -649,7 +649,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstance)
         }
         else if constexpr ( superInfo.Index == 2 )
         {
-            bool isSame = std::is_same<InheritSuper_S3, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S3, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -685,7 +685,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstanceConst)
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         isSame = std::is_same<InheritSuper_S1, InfoType>::value;
         EXPECT_TRUE(isSame);
@@ -700,7 +700,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstanceConst)
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         isSame = std::is_same<InheritSuper_S1, InfoType>::value;
         EXPECT_TRUE(isSame);
@@ -717,7 +717,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstanceConst)
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         isSame = std::is_same<InheritSuper_S1, InfoType>::value;
         EXPECT_TRUE(isSame);
@@ -732,7 +732,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstanceConst)
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         isSame = std::is_same<InheritSuper_S1, InfoType>::value;
         EXPECT_TRUE(isSame);
@@ -750,7 +750,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstanceConst)
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
         if constexpr ( superInfo.Index == 0 )
         {
-            bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S1, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -760,7 +760,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstanceConst)
         }
         else if constexpr ( superInfo.Index == 1 )
         {
-            bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S2, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -778,7 +778,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstanceConst)
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
         if constexpr ( superInfo.Index == 0 )
         {
-            bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S1, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -788,7 +788,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstanceConst)
         }
         else if constexpr ( superInfo.Index == 1 )
         {
-            bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S2, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -808,7 +808,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstanceConst)
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
         if constexpr ( superInfo.Index == 0 )
         {
-            bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S1, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -818,7 +818,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstanceConst)
         }
         else if constexpr ( superInfo.Index == 1 )
         {
-            bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S2, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -836,7 +836,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstanceConst)
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
         if constexpr ( superInfo.Index == 0 )
         {
-            bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S1, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -846,7 +846,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstanceConst)
         }
         else if constexpr ( superInfo.Index == 1 )
         {
-            bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S2, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -867,7 +867,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstanceConst)
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
         if constexpr ( superInfo.Index == 0 )
         {
-            bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S1, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -877,7 +877,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstanceConst)
         }
         else if constexpr ( superInfo.Index == 1 )
         {
-            bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S2, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -887,7 +887,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstanceConst)
         }
         else if constexpr ( superInfo.Index == 2 )
         {
-            bool isSame = std::is_same<InheritSuper_S3, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S3, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -905,7 +905,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstanceConst)
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
         if constexpr ( superInfo.Index == 0 )
         {
-            bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S1, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -915,7 +915,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstanceConst)
         }
         else if constexpr ( superInfo.Index == 1 )
         {
-            bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S2, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -927,7 +927,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstanceConst)
         }
         else if constexpr ( superInfo.Index == 2 )
         {
-            bool isSame = std::is_same<InheritSuper_S3, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S3, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -945,7 +945,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstanceConst)
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
         if constexpr ( superInfo.Index == 0 )
         {
-            bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S1, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -955,7 +955,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstanceConst)
         }
         else if constexpr ( superInfo.Index == 1 )
         {
-            bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S2, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -965,7 +965,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstanceConst)
         }
         else if constexpr ( superInfo.Index == 2 )
         {
-            bool isSame = std::is_same<InheritSuper_S3, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S3, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -983,7 +983,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstanceConst)
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
         if constexpr ( superInfo.Index == 0 )
         {
-            bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S1, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -993,7 +993,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstanceConst)
         }
         else if constexpr ( superInfo.Index == 1 )
         {
-            bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S2, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -1005,7 +1005,7 @@ TEST(ReflectInheritanceTest, InheritForEachInstanceConst)
         }
         else if constexpr ( superInfo.Index == 2 )
         {
-            bool isSame = std::is_same<InheritSuper_S3, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritSuper_S3, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -1349,7 +1349,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         isSame = std::is_same<InheritSuper_S1, InfoType>::value;
         EXPECT_TRUE(isSame);
@@ -1364,7 +1364,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         isSame = std::is_same<InheritSuper_S1, InfoType>::value;
         EXPECT_TRUE(isSame);
@@ -1381,7 +1381,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         isSame = std::is_same<InheritSuper_S1, InfoType>::value;
         EXPECT_TRUE(isSame);
@@ -1396,7 +1396,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         isSame = std::is_same<InheritSuper_S1, InfoType>::value;
         EXPECT_TRUE(isSame);
@@ -1416,7 +1416,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
             using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
             if constexpr ( superInfo.Index == 0 )
             {
-                bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S1, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1426,7 +1426,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
             }
             else if constexpr ( superInfo.Index == 1 )
             {
-                bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S2, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1447,7 +1447,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
             using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
             if constexpr ( superInfo.Index == 0 )
             {
-                bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S1, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1457,7 +1457,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
             }
             else if constexpr ( superInfo.Index == 1 )
             {
-                bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S2, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1480,7 +1480,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
             using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
             if constexpr ( superInfo.Index == 0 )
             {
-                bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S1, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1490,7 +1490,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
             }
             else if constexpr ( superInfo.Index == 1 )
             {
-                bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S2, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1511,7 +1511,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
             using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
             if constexpr ( superInfo.Index == 0 )
             {
-                bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S1, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1521,7 +1521,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
             }
             else if constexpr ( superInfo.Index == 1 )
             {
-                bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S2, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1545,7 +1545,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
             using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
             if constexpr ( superInfo.Index == 0 )
             {
-                bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S1, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1555,7 +1555,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
             }
             else if constexpr ( superInfo.Index == 1 )
             {
-                bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S2, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1565,7 +1565,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
             }
             else if constexpr ( superInfo.Index == 2 )
             {
-                bool isSame = std::is_same<InheritSuper_S3, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S3, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1586,7 +1586,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
             using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
             if constexpr ( superInfo.Index == 0 )
             {
-                bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S1, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1596,7 +1596,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
             }
             else if constexpr ( superInfo.Index == 1 )
             {
-                bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S2, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1608,7 +1608,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
             }
             else if constexpr ( superInfo.Index == 2 )
             {
-                bool isSame = std::is_same<InheritSuper_S3, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S3, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1629,7 +1629,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
             using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
             if constexpr ( superInfo.Index == 0 )
             {
-                bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S1, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1639,7 +1639,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
             }
             else if constexpr ( superInfo.Index == 1 )
             {
-                bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S2, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1649,7 +1649,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
             }
             else if constexpr ( superInfo.Index == 2 )
             {
-                bool isSame = std::is_same<InheritSuper_S3, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S3, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1670,7 +1670,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
             using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
             if constexpr ( superInfo.Index == 0 )
             {
-                bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S1, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1680,7 +1680,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
             }
             else if constexpr ( superInfo.Index == 1 )
             {
-                bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S2, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1692,7 +1692,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
             }
             else if constexpr ( superInfo.Index == 2 )
             {
-                bool isSame = std::is_same<InheritSuper_S3, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S3, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1729,7 +1729,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         isSame = std::is_same<InheritSuper_S1, InfoType>::value;
         EXPECT_TRUE(isSame);
@@ -1744,7 +1744,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         isSame = std::is_same<InheritSuper_S1, InfoType>::value;
         EXPECT_TRUE(isSame);
@@ -1761,7 +1761,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         isSame = std::is_same<InheritSuper_S1, InfoType>::value;
         EXPECT_TRUE(isSame);
@@ -1776,7 +1776,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         isSame = std::is_same<InheritSuper_S1, InfoType>::value;
         EXPECT_TRUE(isSame);
@@ -1796,7 +1796,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
             using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
             if constexpr ( superInfo.Index == 0 )
             {
-                bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S1, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1806,7 +1806,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
             }
             else if constexpr ( superInfo.Index == 1 )
             {
-                bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S2, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1827,7 +1827,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
             using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
             if constexpr ( superInfo.Index == 0 )
             {
-                bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S1, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1837,7 +1837,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
             }
             else if constexpr ( superInfo.Index == 1 )
             {
-                bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S2, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1860,7 +1860,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
             using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
             if constexpr ( superInfo.Index == 0 )
             {
-                bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S1, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1870,7 +1870,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
             }
             else if constexpr ( superInfo.Index == 1 )
             {
-                bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S2, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1891,7 +1891,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
             using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
             if constexpr ( superInfo.Index == 0 )
             {
-                bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S1, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1901,7 +1901,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
             }
             else if constexpr ( superInfo.Index == 1 )
             {
-                bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S2, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1925,7 +1925,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
             using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
             if constexpr ( superInfo.Index == 0 )
             {
-                bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S1, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1935,7 +1935,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
             }
             else if constexpr ( superInfo.Index == 1 )
             {
-                bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S2, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1945,7 +1945,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
             }
             else if constexpr ( superInfo.Index == 2 )
             {
-                bool isSame = std::is_same<InheritSuper_S3, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S3, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1966,7 +1966,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
             using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
             if constexpr ( superInfo.Index == 0 )
             {
-                bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S1, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1976,7 +1976,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
             }
             else if constexpr ( superInfo.Index == 1 )
             {
-                bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S2, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -1988,7 +1988,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
             }
             else if constexpr ( superInfo.Index == 2 )
             {
-                bool isSame = std::is_same<InheritSuper_S3, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S3, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -2009,7 +2009,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
             using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
             if constexpr ( superInfo.Index == 0 )
             {
-                bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S1, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -2019,7 +2019,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
             }
             else if constexpr ( superInfo.Index == 1 )
             {
-                bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S2, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -2029,7 +2029,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
             }
             else if constexpr ( superInfo.Index == 2 )
             {
-                bool isSame = std::is_same<InheritSuper_S3, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S3, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -2050,7 +2050,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
             using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
             if constexpr ( superInfo.Index == 0 )
             {
-                bool isSame = std::is_same<InheritSuper_S1, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S1, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -2060,7 +2060,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
             }
             else if constexpr ( superInfo.Index == 1 )
             {
-                bool isSame = std::is_same<InheritSuper_S2, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S2, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -2072,7 +2072,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
             }
             else if constexpr ( superInfo.Index == 2 )
             {
-                bool isSame = std::is_same<InheritSuper_S3, std::remove_reference<decltype(super)>::type>::value;
+                bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 isSame = std::is_same<InheritSuper_S3, InfoType>::value;
                 EXPECT_TRUE(isSame);
@@ -2445,7 +2445,7 @@ TEST(ReflectInheritanceTest, InheritRecursion)
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        bool isSame = std::is_same<InheritParent, std::remove_reference<decltype(super)>::type>::value;
+        bool isSame = std::is_same<InheritParent, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         isSame = std::is_same<InheritParent, InfoType>::value;
         EXPECT_TRUE(isSame);
@@ -2459,7 +2459,7 @@ TEST(ReflectInheritanceTest, InheritRecursion)
             using Info = decltype(superInfo);
             using InfoType = typename Info::Type;
             using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-            bool isSame = std::is_same<InheritGrandparent, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritGrandparent, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritGrandparent, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -2482,7 +2482,7 @@ TEST(ReflectInheritanceTest, InheritRecursion)
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        bool isSame = std::is_same<InheritParent, std::remove_reference<decltype(super)>::type>::value;
+        bool isSame = std::is_same<InheritParent, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         isSame = std::is_same<InheritParent, InfoType>::value;
         EXPECT_TRUE(isSame);
@@ -2496,7 +2496,7 @@ TEST(ReflectInheritanceTest, InheritRecursion)
             using Info = decltype(superInfo);
             using InfoType = typename Info::Type;
             using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-            bool isSame = std::is_same<InheritGrandparent, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritGrandparent, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritGrandparent, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -2552,7 +2552,7 @@ TEST(ReflectInheritanceTest, InheritRecursion)
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        bool isSame = std::is_same<InheritParent, std::remove_reference<decltype(super)>::type>::value;
+        bool isSame = std::is_same<InheritParent, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         isSame = std::is_same<InheritParent, InfoType>::value;
         EXPECT_TRUE(isSame);
@@ -2566,7 +2566,7 @@ TEST(ReflectInheritanceTest, InheritRecursion)
             using Info = decltype(superInfo);
             using InfoType = typename Info::Type;
             using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-            bool isSame = std::is_same<InheritGrandparent, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritGrandparent, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritGrandparent, InfoType>::value;
             EXPECT_TRUE(isSame);
@@ -2589,7 +2589,7 @@ TEST(ReflectInheritanceTest, InheritRecursion)
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
         using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        bool isSame = std::is_same<InheritParent, std::remove_reference<decltype(super)>::type>::value;
+        bool isSame = std::is_same<InheritParent, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         isSame = std::is_same<InheritParent, InfoType>::value;
         EXPECT_TRUE(isSame);
@@ -2603,7 +2603,7 @@ TEST(ReflectInheritanceTest, InheritRecursion)
             using Info = decltype(superInfo);
             using InfoType = typename Info::Type;
             using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-            bool isSame = std::is_same<InheritGrandparent, std::remove_reference<decltype(super)>::type>::value;
+            bool isSame = std::is_same<InheritGrandparent, typename std::remove_reference<decltype(super)>::type>::value;
             EXPECT_TRUE(isSame);
             isSame = std::is_same<InheritGrandparent, InfoType>::value;
             EXPECT_TRUE(isSame);

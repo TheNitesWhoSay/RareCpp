@@ -2,8 +2,8 @@
 #define MAIN_H
 #include "../RareCppLib/Json.h"
 #include <iostream>
-using namespace Reflect;
 using ExtendedTypeSupport::TypeToStr;
+using Reflect::Super;
 using u8 = uint8_t;
 
 namespace Rest

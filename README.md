@@ -71,9 +71,7 @@ public:
 };
 
 FuelTank::Class::ForEachField(fuelTank, [&](auto & field, auto & value) {
-    if ( field.isIterable ) {
-        std::cout << field.name << ": " << value[0] << std::endl;
-    }
+    std::cout << field.name << ": " << value[0] << std::endl;
 });
 ```
 
@@ -259,7 +257,7 @@ a, 3, 2, 1, 0
 ```
 With the count, and call to the appropriate static macro iteration, plus a little extra macro expansion and concatenation to avoid bugs with Visual Studios, we have all the magic needed to perform a FOR_EACH loop on a set of macro arguments.
 
-The REFLECT macro takes in the name of the class you're adding reflection to, followed by a list of fields, using the LHS macro to extract superclasses from the first parenthesis, and any annotations in subsequent sets of parenthesis, and the RHS macro to extract the class name and fieldNames; using the for each macro we build the class "Class" one piece at a time...
+The REFLECT macro takes in the name of the class you're adding reflection to, followed by a list of fields; using the for each macro we build the class "Class" one piece at a time...
 
 1. TotalFields gets set to the count of arguments, not including the class name
 2. an enum "IndexOf" is generated using each field name, because enums start at 0 and count up, IndexOf::fieldName provides the index of a given field in a manner statically available at compile time (this especially helps us build switches later)
