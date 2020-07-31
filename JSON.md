@@ -27,7 +27,7 @@ There are a few annotations you can use to alter the JSON representation...
 
 ## Usage
 
-To use simply copy the Reflect.h and Json.h files into your project, then put the line ```ENABLE_JSON;``` near the top of one of your cpp files where Json.h is included; then REFLECT objects as needed and enjoy the awsome power of JSON!
+To use simply copy the Reflect.h and Json.h files into your project and include where needed; then REFLECT objects as needed and enjoy the awsome power of JSON!
 
 ```
 struct MyObject
