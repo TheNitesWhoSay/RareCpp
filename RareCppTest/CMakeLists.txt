@@ -11,7 +11,7 @@ set(Sources
   ExtendedTypeSupportTest.cpp
   FieldTest.cpp
   GenericMacroTest.cpp
-  JsonDefinition.cpp
+  InheritTest.cpp
   JsonInputTest.cpp
   JsonInputTestBuffered.cpp
   JsonInputTestUnbuffered.cpp
