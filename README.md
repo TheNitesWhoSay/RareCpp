@@ -1,7 +1,7 @@
 # RareCpp
 ***C++** **R**andom **A**ccess **R**eflection & **E**xtensions: adding a simple, intuitive means of reflection to C++ and leveraging it to create powerful extensions.*
 
-To include reflection in your project you simply need to copy the [Reflect.h](https://github.com/jjf28/CppRandomAccessReflection/blob/master/CppRandomAccessReflectionLib/Reflect.h) file into your project and use the Reflect namespace, then within the class(es) you're looking to reflect you place the REFLECT macro.
+To include reflection in your project you simply need to copy the [Reflect.h](https://github.com/jjf28/RareCpp/blob/master/RareCppLib/Reflect.h) file into your project and (optionally) use the Reflect namespace; then within the class(es) you're looking to reflect you place the REFLECT macro.
 
 ```C++
 #include "Reflect.h"
@@ -90,8 +90,8 @@ ExtendedTypeSupport defines many useful interfaces for these purposes...
 - pair_lhs\<T\>::type // Gets the type of the left-hand value in an std::pair
 - pair_rhs\<T\>::type // Gets the type of the right-hand value in an std::pair
 - element_type\<T\>::type // Gets the type of the element contained in some iterable (be it a static_array, or STL container)
-- remove_pointer\<T\>::type // Gets the type pointed to by a regular or smart pointer type
 - is_pointable\<T\>::value // Checks whether a type is a regular or smart pointer
+- remove_pointer\<T\>::type // Gets the type pointed to by a regular or smart pointer type
 - static_array_size\<T\>::value // Gets the size of a static array, which may be a basic C++ array or the STL std::array type
 - is_static_array\<T\>::value // Checks whether a type is a static array
 - is_iterable\<T\>::value // Checks whether a type can be iterated, meaning it's a static array or other STL container
@@ -117,7 +117,7 @@ Extended type support also provides several other pieces of functionality includ
 - A TypeToStr method to retrieve a string representation of a type
 
 
-See [Json.h](https://github.com/jjf28/CppRandomAccessReflection/blob/master/CppRandomAccessReflectionLib/Json.h) for where all of this gets put together to traverse fairly complex objects - in the case of JSON serialization and deserialization is split into three main methods: get[Object]/put[Object], getIterable/putIterable, and getValue/putValue.
+See [Json.h](https://github.com/jjf28/RareCpp/blob/master/RareCppLib/Json.h) for where all of this gets put together to traverse fairly complex objects - in the case of JSON serialization and deserialization is split into three main methods: get[Object]/put[Object], getIterable/putIterable, and getValue/putValue.
 
 
 ## Field
@@ -259,15 +259,20 @@ With the count, and call to the appropriate static macro iteration, plus a littl
 
 The REFLECT macro takes in the name of the class you're adding reflection to, followed by a list of fields; using the for each macro we build the class "Class" one piece at a time...
 
-1. TotalFields gets set to the count of arguments, not including the class name
-2. an enum "IndexOf" is generated using each field name, because enums start at 0 and count up, IndexOf::fieldName provides the index of a given field in a manner statically available at compile time (this especially helps us build switches later)
-3. An alias for each type is defined (via "using") named the same as the fieldname
-4. a nested-class is defined for each field named fieldName_, in this nested-class a typeStr and nameStr are constructed, and a "Field" object is defined, using the typeStr, and name, these Field objects are the enhanced flavor
-5. a "Field" array is generated, similar to the field object defined in the third step, but the simple flavor
-6. The ForEachField method is generated, calling the given function with the enhanced flavor of the Field and a reference to the field
-7. The FieldAt method is generated, calling the given function with the enhanced flavor of the Field and a reference to the field at the given fieldIndex
+1. ClassType is set to the first argument from the reflect macro
+2. An enum "IndexOf" is generated using each field name, because enums start at 0 and count up, IndexOf::fieldName provides the index of a given field in a manner statically available at compile time (this especially helps us build switches later)
+3. An empty annotation "NoNote" is set to an empty tuple (this will help stage field annotations later and the class anotations in the next step)
+4. An "annotations" field is set to the class level annotation (if using REFLECT_NOTED), else it's set to an empty-brace initialized NoNote
+5. A description of each field is generated in "Class::fieldName_", wherein the type of the field and the type of a pointer the the field is deduced (with the help of decltype and SFINAE to default cases where either either type may not be available) and where possible the pointer is obtained, the field name and type strings are extracted, any field annotations are identified and a reference to them is obtained, and all of this is packaged into a "Field" object
+6. TotalFields gets set to the count of arguments, not including the class name
+7. TotalStaticFields gets set to the count of static field arguments
+8. A "Field" array is generated, similar to the field object defined the fifth step, but the simple flavor
+9. The ForEachField methods are generated, calling the given function with the enhanced flavor of the Field and a reference to the field (if calling the instance or const instance ForEachField overloads)
+10. The FieldAt methods are generated, calling the given function with the enhanced flavor of the Field and a reference to the field (if calling the instance or const instance FieldAt overloads) at the given fieldIndex
 
-See [Reflect.h](https://github.com/jjf28/CppRandomAccessReflection/blob/master/CppRandomAccessReflectionLib/Reflect.h) for the full implementation of macro loops and the REFLECT macro.
+Another sub-class called "Supers" is added after this using the Class::ClassType and Class::Annotations which has similar static and instance ForEach and At methods to loop through any super-classes, as well as a "TotalSupers" member.
+
+See [Reflect.h](https://github.com/jjf28/RareCpp/blob/master/RareCppLib/Reflect.h) for the full implementation of macro loops and the REFLECT macro.
 
 
 ## Compatibility

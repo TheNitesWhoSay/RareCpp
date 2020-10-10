@@ -2843,6 +2843,9 @@ TEST_HEADER(JsonOutputPut, Value)
     TestStreamType customizedStream,
         nullPointerStream,
         intPointerStream,
+        constIntPointerStream,
+        intConstPointerStream,
+        constIntConstPointerStream,
         genericNumberStream,
         intVectorStream,
         intMapStream,
@@ -2871,6 +2874,21 @@ TEST_HEADER(JsonOutputPut, Value)
     int* intPointer = &anInt;
     Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intPointerStream, Json::context, placeholderObj, intPointer);
     EXPECT_STREQ("555", intPointerStream.str().c_str());
+
+    anInt = 556;
+    const int* constIntPointer = &anInt;
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(constIntPointerStream, Json::context, placeholderObj, constIntPointer);
+    EXPECT_STREQ("556", constIntPointerStream.str().c_str());
+    
+    anInt = 557;
+    int* const intConstPointer = &anInt;
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intConstPointerStream, Json::context, placeholderObj, intConstPointer);
+    EXPECT_STREQ("557", intConstPointerStream.str().c_str());
+    
+    anInt = 558;
+    const int* const constIntConstPointer = &anInt;
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(constIntConstPointerStream, Json::context, placeholderObj, constIntConstPointer);
+    EXPECT_STREQ("558", constIntConstPointerStream.str().c_str());
 
     Json::Number number("123.456");
     Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(genericNumberStream, Json::context, placeholderObj, number);
