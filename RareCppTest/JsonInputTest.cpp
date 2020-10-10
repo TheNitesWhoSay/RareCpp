@@ -1221,6 +1221,17 @@ struct ComposedObj
 
 struct VariousValues
 {
+    VariousValues(int & integer) : customized({}), genericNonNull(nullptr), genericNull(nullptr),
+        sharedPointerNull(nullptr), uniquePointerNull(nullptr),
+        regularPointerNull(nullptr), regularPointerToBecomeNull(nullptr), regularPointerValue(nullptr),
+        constIntPointerNull(nullptr), constIntPointerToBecomeNull(&integer), constIntPointerValue(&integer),
+        intConstPointerNull(nullptr), intConstPointerToBecomeNull(&integer), intConstPointerValue(&integer),
+        constIntConstPointerNull(nullptr), constIntConstPointerToBecomeNull(&integer), constIntConstPointerValue(&integer),
+        genericValue(), intVector(), composedObj({}), integerString(0), enumInt(EnumIntEnum::none), boolean(false),
+        str(), emptyTuple({}), singleTuple({}), doubleTuple({}), tripleTuple({}), pair({}),
+        primitiveKey(), complexKey(), intIntArrayTuple({}), intIntKeyableTuple({}), intIntTupleTuple({}) {}
+        
+
     CustomizeTypeFullySpecialized customized;
     
     std::shared_ptr<Json::Value> genericNonNull;
@@ -1232,6 +1243,18 @@ struct VariousValues
 
     int* regularPointerToBecomeNull;
     int* regularPointerValue;
+    
+    const int* constIntPointerNull;
+    const int* constIntPointerToBecomeNull;
+    const int* constIntPointerValue;
+    
+    int* const intConstPointerNull;
+    int* const intConstPointerToBecomeNull;
+    int* const intConstPointerValue;
+    
+    const int* const constIntConstPointerNull;
+    const int* const constIntConstPointerToBecomeNull;
+    const int* const constIntConstPointerValue;
 
     Json::Object genericValue;
     std::vector<int> intVector;
@@ -1257,6 +1280,9 @@ struct VariousValues
 
     REFLECT(VariousValues, customized, genericNonNull, genericNull, sharedPointerNull, uniquePointerNull,
         regularPointerNull, regularPointerToBecomeNull, regularPointerValue,
+        constIntPointerNull, constIntPointerToBecomeNull, constIntPointerValue,
+        intConstPointerNull, intConstPointerToBecomeNull, intConstPointerValue,
+        constIntConstPointerNull, constIntConstPointerToBecomeNull, constIntConstPointerValue,
         genericValue, intVector, composedObj, integerString, enumInt, boolean, constant, str,
         emptyTuple, singleTuple, doubleTuple, tripleTuple, pair, primitiveKey, complexKey, intIntArrayTuple,
         intIntKeyableTuple, intIntTupleTuple)
@@ -1267,7 +1293,7 @@ TEST_HEADER(JsonInputRead, Value)
     char c = '\0';
     int anInt = 0;
 
-    VariousValues v = {};
+    VariousValues v(anInt);
     v.genericNonNull = Json::Bool::Make(false);
     v.genericNull = nullptr;
     v.sharedPointerNull = nullptr;
@@ -1275,6 +1301,10 @@ TEST_HEADER(JsonInputRead, Value)
     v.regularPointerNull = nullptr;
     v.regularPointerToBecomeNull = &anInt;
     v.regularPointerValue = &anInt;
+    
+    v.constIntPointerNull = nullptr;
+    v.constIntPointerToBecomeNull = &anInt;
+    v.constIntPointerValue = &anInt;
 
     v.composedObj.a = 0;
     v.integerString = 0;
@@ -1339,6 +1369,56 @@ TEST_HEADER(JsonInputRead, Value)
     Json::Read::Value<true, VariousValues::Class::regularPointerValue_::Field, int*, VariousValues>(
         regularPtrValue, Json::context, c, v, v.regularPointerValue);
     EXPECT_EQ(999, anInt);
+
+
+
+    std::stringstream constIntPtrNullptr("null,");
+    Json::Read::Value<true, VariousValues::Class::constIntPointerNull_::Field, const int*, VariousValues>(
+        constIntPtrNullptr, Json::context, c, v, v.constIntPointerNull);
+    EXPECT_TRUE(v.constIntPointerNull == nullptr);
+
+    std::stringstream constIntPtrToBecomeNull("null,");
+    Json::Read::Value<true, VariousValues::Class::constIntPointerToBecomeNull_::Field, const int*, VariousValues>(
+        constIntPtrToBecomeNull, Json::context, c, v, v.constIntPointerToBecomeNull);
+    EXPECT_TRUE(v.constIntPointerToBecomeNull == nullptr);
+
+    std::stringstream constIntPtrValue("998,");
+    Json::Read::Value<true, VariousValues::Class::constIntPointerValue_::Field, const int*, VariousValues>(
+        constIntPtrValue, Json::context, c, v, v.constIntPointerValue);
+    EXPECT_EQ(999, anInt); // Value should not change
+
+
+    std::stringstream intConstPtrNullptr("null,");
+    Json::Read::Value<true, VariousValues::Class::intConstPointerNull_::Field, int* const, VariousValues>(
+        intConstPtrNullptr, Json::context, c, v, v.intConstPointerNull);
+    EXPECT_TRUE(v.intConstPointerNull == nullptr);
+
+    std::stringstream intConstPtrToBecomeNull("null,");
+    Json::Read::Value<true, VariousValues::Class::intConstPointerToBecomeNull_::Field, int* const, VariousValues>(
+        intConstPtrToBecomeNull, Json::context, c, v, v.intConstPointerToBecomeNull);
+    EXPECT_FALSE(v.intConstPointerToBecomeNull == nullptr); // Pointer should not change
+
+    std::stringstream intConstPtrValue("997,");
+    Json::Read::Value<true, VariousValues::Class::intConstPointerValue_::Field, int* const, VariousValues>(
+        intConstPtrValue, Json::context, c, v, v.intConstPointerValue);
+    EXPECT_EQ(997, anInt); // Value should change
+
+
+    std::stringstream constIntConstPtrNullptr("null,");
+    Json::Read::Value<true, VariousValues::Class::constIntConstPointerNull_::Field, const int* const, VariousValues>(
+        constIntConstPtrNullptr, Json::context, c, v, v.constIntConstPointerNull);
+    EXPECT_TRUE(v.constIntConstPointerNull == nullptr);
+
+    std::stringstream constIntConstPtrToBecomeNull("null,");
+    Json::Read::Value<true, VariousValues::Class::constIntConstPointerToBecomeNull_::Field, const int* const, VariousValues>(
+        constIntConstPtrToBecomeNull, Json::context, c, v, v.constIntConstPointerToBecomeNull);
+    EXPECT_FALSE(v.constIntConstPointerToBecomeNull == nullptr); // Pointer should not change
+
+    std::stringstream constIntConstPtrValue("996,");
+    Json::Read::Value<true, VariousValues::Class::constIntConstPointerValue_::Field, const int* const, VariousValues>(
+        constIntConstPtrValue, Json::context, c, v, v.constIntConstPointerValue);
+    EXPECT_EQ(997, anInt); // Value shoud not change
+
 
     std::stringstream composedObjStream("{\"a\": 1}");
     Json::Read::Value<true, VariousValues::Class::composedObj_::Field, ComposedObj, VariousValues>(
@@ -1466,7 +1546,7 @@ TEST_HEADER(JsonInputRead, Tuple)
     char c = '\0';
     int anInt = 0;
 
-    VariousValues v = {};
+    VariousValues v(anInt);
     v.genericNonNull = Json::Bool::Make(false);
     v.genericNull = nullptr;
     v.sharedPointerNull = nullptr;

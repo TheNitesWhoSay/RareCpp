@@ -250,16 +250,19 @@ namespace ExtendedTypeSupport
     { using type = typename std::pair<K, T>; };
     template <typename K, typename T, typename H, typename E, typename A> struct element_type<std::unordered_multimap<K, T, H, E, A>>
     { using type = typename std::pair<K, T>; };
-    
-    template <typename T> struct remove_pointer { using type = typename std::remove_pointer<T>::type; };
-    template <typename T> struct remove_pointer<const T> { using type = const typename remove_pointer<T>::type; };
-    template <typename T> struct remove_pointer<std::unique_ptr<T>> { using type = T; };
-    template <typename T> struct remove_pointer<std::shared_ptr<T>> { using type = T; };
 
     template <typename T> struct is_pointable { static constexpr bool value = std::is_pointer<T>::value; };
-    template <typename T> struct is_pointable<const T> { static constexpr bool value = is_pointable<T>::value; };
     template <typename T> struct is_pointable<std::unique_ptr<T>> { static constexpr bool value = true; };
     template <typename T> struct is_pointable<std::shared_ptr<T>> { static constexpr bool value = true; };
+    template <typename T> struct is_pointable<std::weak_ptr<T>> { static constexpr bool value = true; };
+    template <typename T> struct is_pointable<const T> { static constexpr bool value = is_pointable<T>::value; };
+    
+    template <typename T> struct remove_pointer { using type = typename std::remove_pointer<T>::type; };
+    template <typename T> struct remove_pointer<std::unique_ptr<T>> { using type = T; };
+    template <typename T> struct remove_pointer<std::shared_ptr<T>> { using type = T; };
+    template <typename T> struct remove_pointer<std::weak_ptr<T>> { using type = T; };
+    template <typename T> struct remove_pointer<const T>
+    { using type = std::conditional_t<is_pointable<T>::value, typename remove_pointer<T>::type, const T>; };
 
     template <typename T> struct static_array_size { static constexpr size_t value = 0; };
     template <typename T, size_t N> struct static_array_size<T[N]> { static constexpr size_t value = N; };
