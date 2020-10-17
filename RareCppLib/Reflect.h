@@ -848,6 +848,25 @@ namespace Reflect
         };
     }
 
+    struct Unproxied {};
+
+    template <typename T>
+    struct Proxy : public Unproxied {};
+
+    struct AutoProxy {};
+
+    struct Private_struct {};
+    static constexpr Private_struct Private = Private_struct{};
+
+    template <typename T>
+    struct is_proxied
+    {
+        static constexpr bool value = !std::is_base_of<Unproxied, Proxy<T>>::value;
+    };
+    
+    template <typename Type> struct unproxy { using T = Type; };
+    template <typename Type> struct unproxy<Proxy<Type>> { using T = Type; };
+
 #define GET_FIELD_NAME(x) x,
 
 #ifdef __clang__
@@ -866,8 +885,8 @@ namespace Reflect
     template <typename T> static constexpr ExtendedTypeSupport::TypePair<decltype(T::x), decltype(&T::x)> identify(int); \
     template <typename T> static constexpr ExtendedTypeSupport::TypePair<decltype(T::x), std::nullptr_t> identify(unsigned int); \
     template <typename T> static constexpr ExtendedTypeSupport::TypePair<decltype(&T::x), decltype(&T::x)> identify(...); \
-    using Type = decltype(identify<ClassType>(0))::Left; \
-    using Pointer = decltype(identify<ClassType>(0))::Right; \
+    using Type = decltype(identify<ProxyType>(0))::Left; \
+    using Pointer = decltype(identify<ProxyType>(0))::Right; \
     template <typename T, bool IsReference> struct GetPointer { static constexpr auto value = &T::x; }; \
     template <typename T> struct GetPointer<T, true> { static constexpr std::nullptr_t value = nullptr; }; \
     static constexpr auto nameStr = ConstexprStr::substr<std::string_view(#x).size()>(&#x[0]); \
@@ -876,10 +895,10 @@ namespace Reflect
     template <typename T> static constexpr decltype(Class::NoNote) idNote(...); \
     template <typename T, bool NoNote> struct GetNote { static constexpr auto & value = Class::NoNote; }; \
     template <typename T> struct GetNote<T, false> { static constexpr auto & value = T::x##_note; }; \
-    using NoteType = decltype(idNote<ClassType>(0)); \
+    using NoteType = decltype(idNote<ProxyType>(0)); \
     using Field = Reflect::Fields::Field<Type, Pointer, IndexOf::x, NoteType>; \
-    static constexpr Field field = { &nameStr.value[0], &typeStr.value[0], GetPointer<ClassType, std::is_reference_v<Type>>::value, \
-        GetNote<ClassType, std::is_same_v<decltype(Class::NoNote), NoteType>>::value }; \
+    static constexpr Field field = { &nameStr.value[0], &typeStr.value[0], GetPointer<ProxyType, std::is_reference_v<Type>>::value, \
+        GetNote<ProxyType, std::is_same_v<decltype(Class::NoNote), NoteType>>::value }; \
     CLANG_ONLY(x) \
 };
 
@@ -895,7 +914,8 @@ namespace Reflect
 /// e.g. REFLECT(MyObj, myInt, myString, myOtherObj)
 #define REFLECT(objectType, ...) \
 struct Class { \
-    using ClassType = objectType; \
+    using ProxyType = objectType; \
+    using ClassType = Reflect::unproxy<ProxyType>::T; \
     enum_t(IndexOf, size_t, { FOR_EACH(GET_FIELD_NAME, __VA_ARGS__) }); \
     static constexpr Reflect::NoAnnotation NoNote {}; \
     using Annotations = decltype(NoNote); \
@@ -905,11 +925,11 @@ struct Class { \
     static constexpr size_t TotalStaticFields = 0 FOR_EACH(ADD_IF_STATIC, __VA_ARGS__); \
     static constexpr Reflect::Fields::Field<> Fields[TotalFields] = { FOR_EACH(GET_FIELD, __VA_ARGS__) }; \
     template <typename Function> constexpr static void ForEachField(Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
-    template <typename Function> static void ForEachField(objectType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
-    template <typename Function> static void ForEachField(const objectType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
+    template <typename Function> static void ForEachField(ClassType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
+    template <typename Function> static void ForEachField(const ClassType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
     template <typename Function> constexpr static void FieldAt(size_t fieldIndex, Function function) { \
         switch ( fieldIndex ) { FOR_EACH(USE_FIELD_AT, __VA_ARGS__) } } \
-    template <typename Function> static void FieldAt(objectType & object, size_t fieldIndex, Function function) { \
+    template <typename Function> static void FieldAt(ClassType & object, size_t fieldIndex, Function function) { \
         switch ( fieldIndex ) { FOR_EACH(USE_FIELD_VALUE_AT, __VA_ARGS__) } } \
 }; \
 using Supers = Reflect::Inherit<Class::ClassType, Class::Annotations>;
@@ -918,7 +938,8 @@ using Supers = Reflect::Inherit<Class::ClassType, Class::Annotations>;
 /// REFLECT_NOTED is exactly the same as REFLECT except this signals that objectType itself is annotated
 #define REFLECT_NOTED(objectType, ...) \
 struct Class { \
-    using ClassType = objectType; \
+    using ProxyType = objectType; \
+    using ClassType = Reflect::unproxy<ProxyType>::T; \
     enum_t(IndexOf, size_t, { FOR_EACH(GET_FIELD_NAME, __VA_ARGS__) }); \
     static constexpr Reflect::NoAnnotation NoNote {}; \
     using Annotations = decltype(objectType##_note); \
@@ -928,11 +949,11 @@ struct Class { \
     static constexpr size_t TotalStaticFields = 0 FOR_EACH(ADD_IF_STATIC, __VA_ARGS__); \
     static constexpr Reflect::Fields::Field<> Fields[TotalFields] = { FOR_EACH(GET_FIELD, __VA_ARGS__) }; \
     template <typename Function> constexpr static void ForEachField(Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
-    template <typename Function> static void ForEachField(objectType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
-    template <typename Function> static void ForEachField(const objectType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
+    template <typename Function> static void ForEachField(ClassType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
+    template <typename Function> static void ForEachField(const ClassType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
     template <typename Function> constexpr static void FieldAt(size_t fieldIndex, Function function) { \
         switch ( fieldIndex ) { FOR_EACH(USE_FIELD_AT, __VA_ARGS__) } } \
-    template <typename Function> static void FieldAt(objectType & object, size_t fieldIndex, Function function) { \
+    template <typename Function> static void FieldAt(ClassType & object, size_t fieldIndex, Function function) { \
         switch ( fieldIndex ) { FOR_EACH(USE_FIELD_VALUE_AT, __VA_ARGS__) } } \
 }; \
 using Supers = Reflect::Inherit<Class::ClassType, Class::Annotations>;
@@ -941,26 +962,35 @@ using Supers = Reflect::Inherit<Class::ClassType, Class::Annotations>;
 /// REFLECT_EMPTY is used to reflect an annotated class with no reflected fields
 #define REFLECT_EMPTY(objectType) \
 struct Class { \
-    using ClassType = objectType; \
+    using ProxyType = objectType; \
+    using ClassType = Reflect::unproxy<ProxyType>::T; \
     using Annotations = decltype(objectType##_note); \
     static constexpr Annotations & annotations = objectType##_note; \
     static constexpr size_t TotalFields = 0; \
     static constexpr size_t TotalStaticFields = 0; \
     static constexpr Reflect::Fields::Field<> Fields[1] = { { "", "" } }; \
     template <typename Function> constexpr static void ForEachField(Function function) {} \
-    template <typename Function> static void ForEachField(objectType & object, Function function) {} \
-    template <typename Function> static void ForEachField(const objectType & object, Function function) { } \
+    template <typename Function> static void ForEachField(ClassType & object, Function function) {} \
+    template <typename Function> static void ForEachField(const ClassType & object, Function function) { } \
     template <typename Function> constexpr static void FieldAt(size_t fieldIndex, Function function) {} \
-    template <typename Function> static void FieldAt(objectType & object, size_t fieldIndex, Function function) {} \
+    template <typename Function> static void FieldAt(ClassType & object, size_t fieldIndex, Function function) {} \
 }; \
 using Supers = Reflect::Inherit<Class::ClassType, Class::Annotations>;
-
 
     template <typename T, typename = decltype(T::Class::TotalFields)> static constexpr std::true_type typeHasReflection(int);
     template <typename T> static constexpr std::false_type typeHasReflection(unsigned int);
     
     template <typename T> struct is_reflected { static constexpr bool value = decltype(typeHasReflection<T>(0))::value; };
     template <typename T> struct is_reflected<const T> { static constexpr bool value = is_reflected<T>::value; };
+
+    template <typename Type> struct reflected_type
+    { using T = typename std::conditional_t<is_proxied<Type>::value, typename Proxy<Type>, typename Type>; };
+
+    template <typename Type> struct clazz { using T = typename reflected_type<Type>::T::Class; };
+    template <typename Type> using class_t = typename clazz<Type>::T;
+
+    template <typename Type> struct supers { using T = typename reflected_type<Type>::T::Supers; };
+    template <typename Type> using supers_t = typename supers<Type>::T;
 }
 
 #endif

@@ -3,6 +3,7 @@
 #include <typeinfo>
 #include <memory>
 using Reflect::is_reflected;
+using Reflect::class_t;
 using Json::Statics;
 
 int A::second = 0;
@@ -398,8 +399,41 @@ struct State : public Point, public Another
 
 Status State::status;
 
+struct OwnedObject
+{
+    int a;
+    int b;
+
+    REFLECT(OwnedObject, a, b)
+};
+
+struct UnownedObject
+{
+    int a;
+    int b;
+};
+
+template <> struct Reflect::Proxy<UnownedObject> : public UnownedObject
+{
+    REFLECT(Reflect::Proxy<UnownedObject>, a, b)
+};
+
 int main()
 {
+    OwnedObject objModel { 1, 2 };
+    UnownedObject objDao {};
+
+    class_t<OwnedObject>::ForEachField(objModel, [&](auto & firstField, auto & firstValue) {
+        class_t<UnownedObject>::ForEachField(objDao, [&](auto & secondField, auto & secondValue) {
+            if constexpr ( std::is_assignable_v<decltype(secondValue), decltype(firstValue)> )
+            {
+                if ( strcmp(firstField.name, secondField.name) == 0 )
+                    secondValue = firstValue;
+            }
+        });
+    });
+    std::cout << objDao.b << std::endl;
+
     Car car = outputExamples();
     std::cout << std::endl << Json::out(car) << std::endl << std::endl;
 
