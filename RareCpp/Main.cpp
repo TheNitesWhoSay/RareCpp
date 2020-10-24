@@ -1,5 +1,6 @@
 #include "Main.h"
 #include "../RareCppLib/Reflect.h"
+#include "WorkingAnnotate.h"
 #include <typeinfo>
 #include <memory>
 using Reflect::is_reflected;
@@ -358,6 +359,18 @@ struct Point
     REFLECT(Point, latitude, longitude)
 };
 
+ANNOTATE(AltPoint, Json::Name{"altyPointy"})
+struct AltPoint
+{
+    ANNOTATE(latitude, Json::Name{"lat"})
+    double latitude;
+
+    ANNOTATE(longitude, Json::Name{"long"})
+    double longitude;
+
+    REFLECTED(AltPoint, latitude, longitude)
+};
+
 struct Another
 {
     constexpr static int anything = 0;
@@ -400,6 +413,9 @@ Status State::status;
 
 int main()
 {
+    putAnnotateTests();
+    std::cout << std::get<0>(AltPoint::Class::annotations).value << std::endl;
+
     Car car = outputExamples();
     std::cout << std::endl << Json::out(car) << std::endl << std::endl;
 

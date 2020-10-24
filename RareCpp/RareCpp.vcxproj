@@ -156,7 +156,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="AnnotateDupeLine.h" />
     <ClInclude Include="Main.h" />
+    <ClInclude Include="WorkingAnnotate.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Main.cpp" />
