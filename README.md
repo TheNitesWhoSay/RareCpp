@@ -1,7 +1,7 @@
 # RareCpp
 ***C++** **R**andom **A**ccess **R**eflection & **E**xtensions: adding a simple, intuitive means of reflection to C++ and leveraging it to create powerful extensions.*
 
-To include reflection in your project you simply need to copy the [Reflect.h](https://github.com/jjf28/RareCpp/blob/master/RareCppLib/Reflect.h) file into your project and (optionally) use the Reflect namespace; then within the class(es) you're looking to reflect you place the REFLECT macro.
+To include reflection in your project you simply need to copy the [Reflect.h](https://github.com/TheNitesWhoSay/RareCpp/blob/master/RareCppLib/Reflect.h) file into your project and (optionally) use the Reflect namespace; then within the class(es) you're looking to reflect you place the REFLECT macro.
 
 ```C++
 #include "Reflect.h"
@@ -117,7 +117,7 @@ Extended type support also provides several other pieces of functionality includ
 - A TypeToStr method to retrieve a string representation of a type
 
 
-See [Json.h](https://github.com/jjf28/RareCpp/blob/master/RareCppLib/Json.h) for where all of this gets put together to traverse fairly complex objects - in the case of JSON serialization and deserialization is split into three main methods: get[Object]/put[Object], getIterable/putIterable, and getValue/putValue.
+See [Json.h](https://github.com/TheNitesWhoSay/RareCpp/blob/master/RareCppLib/Json.h) for where all of this gets put together to traverse fairly complex objects - in the case of JSON serialization and deserialization is split into three main methods: get[Object]/put[Object], getIterable/putIterable, and getValue/putValue.
 
 
 ## Field
@@ -272,7 +272,7 @@ The REFLECT macro takes in the name of the class you're adding reflection to, fo
 
 Another sub-class called "Supers" is added after this using the Class::ClassType and Class::Annotations which has similar static and instance ForEach and At methods to loop through any super-classes, as well as a "TotalSupers" member.
 
-See [Reflect.h](https://github.com/jjf28/RareCpp/blob/master/RareCppLib/Reflect.h) for the full implementation of macro loops and the REFLECT macro.
+See [Reflect.h](https://github.com/TheNitesWhoSay/RareCpp/blob/master/RareCppLib/Reflect.h) for the full implementation of macro loops and the REFLECT macro.
 
 
 ## Compatibility
