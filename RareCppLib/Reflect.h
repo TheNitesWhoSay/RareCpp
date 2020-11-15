@@ -196,20 +196,6 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
 
 };
 
-/// Contains methods required for manipulating strings at compile time
-namespace ConstexprStr
-{
-    template <size_t N> struct substr {
-        constexpr substr(const char* s) : value() {
-            for ( size_t i = 0; i < N; i++ )
-                value[i] = s[i];
-
-            value[N] = '\0';
-        }
-        char value[N + 1];
-    };
-};
-
 namespace ExtendedTypeSupport
 {
     template <typename T> struct promote_char { using type = T; };
@@ -809,17 +795,18 @@ namespace Reflect
 
     namespace Fields
     {
-        template <typename T = void, typename FieldPointer = std::nullptr_t, size_t FieldIndex = 0, typename Annotations = NoAnnotation>
+        template <typename T = void, typename FieldPointer = std::nullptr_t, size_t FieldIndex = 0, typename Annotations = NoAnnotation, const char* FieldName = nullptr>
         struct Field;
     
         template <>
-        struct Field<void, std::nullptr_t, 0, NoAnnotation> {
+        struct Field<void, std::nullptr_t, 0, NoAnnotation, nullptr> {
             const char* name;
             const char* typeStr;
         };
 
-        template <typename T, typename FieldPointer, size_t FieldIndex, typename FieldAnnotations>
+        template <typename T, typename FieldPointer, size_t FieldIndex, typename FieldAnnotations, const char* FieldName>
         struct Field {
+            static constexpr const char* Name = FieldName;
             const char* name;
             const char* typeStr;
 
@@ -889,15 +876,15 @@ namespace Reflect
     using Pointer = decltype(identify<ProxyType>(0))::Right; \
     template <typename T, bool IsReference> struct GetPointer { static constexpr auto value = &T::x; }; \
     template <typename T> struct GetPointer<T, true> { static constexpr std::nullptr_t value = nullptr; }; \
-    static constexpr auto nameStr = ConstexprStr::substr<std::string_view(#x).size()>(&#x[0]); \
+    static constexpr const char nameStr[] = #x; \
     static constexpr auto typeStr = ExtendedTypeSupport::TypeName<Type>(); \
     template <typename T> static constexpr decltype(T::x##_note) idNote(int); \
     template <typename T> static constexpr decltype(Class::NoNote) idNote(...); \
     template <typename T, bool NoNote> struct GetNote { static constexpr auto & value = Class::NoNote; }; \
     template <typename T> struct GetNote<T, false> { static constexpr auto & value = T::x##_note; }; \
     using NoteType = decltype(idNote<ProxyType>(0)); \
-    using Field = Reflect::Fields::Field<Type, Pointer, IndexOf::x, NoteType>; \
-    static constexpr Field field = { &nameStr.value[0], &typeStr.value[0], GetPointer<ProxyType, std::is_reference_v<Type>>::value, \
+    using Field = Reflect::Fields::Field<Type, Pointer, IndexOf::x, NoteType, nameStr>; \
+    static constexpr Field field = { nameStr, &typeStr.value[0], GetPointer<ProxyType, std::is_reference_v<Type>>::value, \
         GetNote<ProxyType, std::is_same_v<decltype(Class::NoNote), NoteType>>::value }; \
     CLANG_ONLY(x) \
 };
@@ -983,8 +970,7 @@ using Supers = Reflect::Inherit<Class::ClassType, Class::Annotations>;
     template <typename T> struct is_reflected { static constexpr bool value = decltype(typeHasReflection<T>(0))::value; };
     template <typename T> struct is_reflected<const T> { static constexpr bool value = is_reflected<T>::value; };
 
-    template <typename Type> struct reflected_type
-    { using T = typename std::conditional_t<is_proxied<Type>::value, typename Proxy<Type>, typename Type>; };
+    template <typename Type> struct reflected_type { using T = typename std::conditional_t<is_proxied<Type>::value, typename Proxy<Type>, typename Type>; };
 
     template <typename Type> struct clazz { using T = typename reflected_type<Type>::T::Class; };
     template <typename Type> using class_t = typename clazz<Type>::T;
@@ -992,5 +978,22 @@ using Supers = Reflect::Inherit<Class::ClassType, Class::Annotations>;
     template <typename Type> struct supers { using T = typename reflected_type<Type>::T::Supers; };
     template <typename Type> using supers_t = typename supers<Type>::T;
 }
+
+namespace ObjectMapper
+{
+    template <typename Source, typename Destination>
+    static constexpr void map_default(const Source & source, Destination & destination)
+    {
+        Reflect::class_t<Destination>::ForEachField(destination, [&](auto & lField, auto & l) {
+            Reflect::class_t<Source>::ForEachField(source, [&](auto & rField, auto & r) {
+                if constexpr ( std::is_assignable_v<decltype(l), decltype(r)> && std::string_view(lField.Name) == std::string_view(rField.Name) )
+                    l = r;
+            });
+        });
+    }
+
+    template <typename Source, typename Destination>
+    static constexpr void map(const Source & source, Destination & destination) { map_default(source, destination); }
+};
 
 #endif

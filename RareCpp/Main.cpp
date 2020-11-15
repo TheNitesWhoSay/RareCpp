@@ -411,28 +411,26 @@ struct UnownedObject
 {
     int a;
     int b;
+    int c;
 };
 
 template <> struct Reflect::Proxy<UnownedObject> : public UnownedObject
 {
-    REFLECT(Reflect::Proxy<UnownedObject>, a, b)
+    REFLECT(Reflect::Proxy<UnownedObject>, a, b, c)
 };
+
+template<> static constexpr void ObjectMapper::map<>(const OwnedObject & src, UnownedObject & dest) {
+    ObjectMapper::map_default(src, dest);
+    dest.c = 9001;
+}
 
 int main()
 {
     OwnedObject objModel { 1, 2 };
     UnownedObject objDao {};
 
-    class_t<OwnedObject>::ForEachField(objModel, [&](auto & firstField, auto & firstValue) {
-        class_t<UnownedObject>::ForEachField(objDao, [&](auto & secondField, auto & secondValue) {
-            if constexpr ( std::is_assignable_v<decltype(secondValue), decltype(firstValue)> )
-            {
-                if ( strcmp(firstField.name, secondField.name) == 0 )
-                    secondValue = firstValue;
-            }
-        });
-    });
-    std::cout << objDao.b << std::endl;
+    ObjectMapper::map(objModel, objDao);
+    std::cout << "objDao: { " << objDao.a << ", " << objDao.b << ", " << objDao.c << " }" << std::endl;
 
     Car car = outputExamples();
     std::cout << std::endl << Json::out(car) << std::endl << std::endl;
