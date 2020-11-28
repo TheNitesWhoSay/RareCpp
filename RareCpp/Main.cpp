@@ -419,7 +419,28 @@ template <> struct Reflect::Proxy<UnownedObject> : public UnownedObject
     REFLECT(Reflect::Proxy<UnownedObject>, a, b, c)
 };
 
-template<> static constexpr void ObjectMapper::map<>(const OwnedObject & src, UnownedObject & dest) {
+namespace ObjectMapper
+{
+    template <typename Source, typename Destination>
+    constexpr inline void map_default(const Source & source, Destination & destination)
+    {
+        if constexpr ( is_reflected<class_t<Source>>::value && is_reflected<class_t<Destination>>::value )
+        {
+            Reflect::class_t<Destination>::ForEachField(destination, [&](auto & lField, auto & l) {
+                Reflect::class_t<Source>::ForEachField(source, [&](auto & rField, auto & r) {
+                    if constexpr ( std::is_assignable_v<decltype(l), decltype(r)> && std::string_view(lField.Name) == std::string_view(rField.Name) )
+                        l = r;
+                });
+            });
+        }
+    }
+
+    template <typename Source, typename Destination>
+    constexpr inline void map(const Source & source, Destination & destination) { map_default(source, destination); }
+};
+
+template<> constexpr inline void ObjectMapper::map<>(const OwnedObject & src, UnownedObject & dest)
+{
     ObjectMapper::map_default(src, dest);
     dest.c = 9001;
 }

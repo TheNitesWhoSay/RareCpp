@@ -39,138 +39,138 @@ namespace MacroLoops
 {
 /// ArgMax: 125 (derived from the C spec limiting macros to 126 arguments and the COUNT_ARGUMENTS helper macro "ML_M" requiring ArgMax+1 arguments)
 
-/// Extractor_Expand
-#define EO_E(x) x
+/// MacroLoop_Expand
+#define ML_E(x) x
 
-/// Extractor_Concatenate
-#define EO_C(x,y) x##y
+/// MacroLoop_Concatenate
+#define ML_C(x,y) x##y
 
 /// MacroLoop_ForEach[1, ..., ArgMax]
 #define ML_1(f,a,...) f(a)
-#define ML_2(f,a,...) f(a) EO_E(ML_1(f,__VA_ARGS__))
-#define ML_3(f,a,...) f(a) EO_E(ML_2(f,__VA_ARGS__))
-#define ML_4(f,a,...) f(a) EO_E(ML_3(f,__VA_ARGS__))
-#define ML_5(f,a,...) f(a) EO_E(ML_4(f,__VA_ARGS__))
-#define ML_6(f,a,...) f(a) EO_E(ML_5(f,__VA_ARGS__))
-#define ML_7(f,a,...) f(a) EO_E(ML_6(f,__VA_ARGS__))
-#define ML_8(f,a,...) f(a) EO_E(ML_7(f,__VA_ARGS__))
-#define ML_9(f,a,...) f(a) EO_E(ML_8(f,__VA_ARGS__))
-#define ML_10(f,a,...) f(a) EO_E(ML_9(f,__VA_ARGS__))
-#define ML_11(f,a,...) f(a) EO_E(ML_10(f,__VA_ARGS__))
-#define ML_12(f,a,...) f(a) EO_E(ML_11(f,__VA_ARGS__))
-#define ML_13(f,a,...) f(a) EO_E(ML_12(f,__VA_ARGS__))
-#define ML_14(f,a,...) f(a) EO_E(ML_13(f,__VA_ARGS__))
-#define ML_15(f,a,...) f(a) EO_E(ML_14(f,__VA_ARGS__))
-#define ML_16(f,a,...) f(a) EO_E(ML_15(f,__VA_ARGS__))
-#define ML_17(f,a,...) f(a) EO_E(ML_16(f,__VA_ARGS__))
-#define ML_18(f,a,...) f(a) EO_E(ML_17(f,__VA_ARGS__))
-#define ML_19(f,a,...) f(a) EO_E(ML_18(f,__VA_ARGS__))
-#define ML_20(f,a,...) f(a) EO_E(ML_19(f,__VA_ARGS__))
-#define ML_21(f,a,...) f(a) EO_E(ML_20(f,__VA_ARGS__))
-#define ML_22(f,a,...) f(a) EO_E(ML_21(f,__VA_ARGS__))
-#define ML_23(f,a,...) f(a) EO_E(ML_22(f,__VA_ARGS__))
-#define ML_24(f,a,...) f(a) EO_E(ML_23(f,__VA_ARGS__))
-#define ML_25(f,a,...) f(a) EO_E(ML_24(f,__VA_ARGS__))
-#define ML_26(f,a,...) f(a) EO_E(ML_25(f,__VA_ARGS__))
-#define ML_27(f,a,...) f(a) EO_E(ML_26(f,__VA_ARGS__))
-#define ML_28(f,a,...) f(a) EO_E(ML_27(f,__VA_ARGS__))
-#define ML_29(f,a,...) f(a) EO_E(ML_28(f,__VA_ARGS__))
-#define ML_30(f,a,...) f(a) EO_E(ML_29(f,__VA_ARGS__))
-#define ML_31(f,a,...) f(a) EO_E(ML_30(f,__VA_ARGS__))
-#define ML_32(f,a,...) f(a) EO_E(ML_31(f,__VA_ARGS__))
-#define ML_33(f,a,...) f(a) EO_E(ML_32(f,__VA_ARGS__))
-#define ML_34(f,a,...) f(a) EO_E(ML_33(f,__VA_ARGS__))
-#define ML_35(f,a,...) f(a) EO_E(ML_34(f,__VA_ARGS__))
-#define ML_36(f,a,...) f(a) EO_E(ML_35(f,__VA_ARGS__))
-#define ML_37(f,a,...) f(a) EO_E(ML_36(f,__VA_ARGS__))
-#define ML_38(f,a,...) f(a) EO_E(ML_37(f,__VA_ARGS__))
-#define ML_39(f,a,...) f(a) EO_E(ML_38(f,__VA_ARGS__))
-#define ML_40(f,a,...) f(a) EO_E(ML_39(f,__VA_ARGS__))
-#define ML_41(f,a,...) f(a) EO_E(ML_40(f,__VA_ARGS__))
-#define ML_42(f,a,...) f(a) EO_E(ML_41(f,__VA_ARGS__))
-#define ML_43(f,a,...) f(a) EO_E(ML_42(f,__VA_ARGS__))
-#define ML_44(f,a,...) f(a) EO_E(ML_43(f,__VA_ARGS__))
-#define ML_45(f,a,...) f(a) EO_E(ML_44(f,__VA_ARGS__))
-#define ML_46(f,a,...) f(a) EO_E(ML_45(f,__VA_ARGS__))
-#define ML_47(f,a,...) f(a) EO_E(ML_46(f,__VA_ARGS__))
-#define ML_48(f,a,...) f(a) EO_E(ML_47(f,__VA_ARGS__))
-#define ML_49(f,a,...) f(a) EO_E(ML_48(f,__VA_ARGS__))
-#define ML_50(f,a,...) f(a) EO_E(ML_49(f,__VA_ARGS__))
-#define ML_51(f,a,...) f(a) EO_E(ML_50(f,__VA_ARGS__))
-#define ML_52(f,a,...) f(a) EO_E(ML_51(f,__VA_ARGS__))
-#define ML_53(f,a,...) f(a) EO_E(ML_52(f,__VA_ARGS__))
-#define ML_54(f,a,...) f(a) EO_E(ML_53(f,__VA_ARGS__))
-#define ML_55(f,a,...) f(a) EO_E(ML_54(f,__VA_ARGS__))
-#define ML_56(f,a,...) f(a) EO_E(ML_55(f,__VA_ARGS__))
-#define ML_57(f,a,...) f(a) EO_E(ML_56(f,__VA_ARGS__))
-#define ML_58(f,a,...) f(a) EO_E(ML_57(f,__VA_ARGS__))
-#define ML_59(f,a,...) f(a) EO_E(ML_58(f,__VA_ARGS__))
-#define ML_60(f,a,...) f(a) EO_E(ML_59(f,__VA_ARGS__))
-#define ML_61(f,a,...) f(a) EO_E(ML_60(f,__VA_ARGS__))
-#define ML_62(f,a,...) f(a) EO_E(ML_61(f,__VA_ARGS__))
-#define ML_63(f,a,...) f(a) EO_E(ML_62(f,__VA_ARGS__))
-#define ML_64(f,a,...) f(a) EO_E(ML_63(f,__VA_ARGS__))
-#define ML_65(f,a,...) f(a) EO_E(ML_64(f,__VA_ARGS__))
-#define ML_66(f,a,...) f(a) EO_E(ML_65(f,__VA_ARGS__))
-#define ML_67(f,a,...) f(a) EO_E(ML_66(f,__VA_ARGS__))
-#define ML_68(f,a,...) f(a) EO_E(ML_67(f,__VA_ARGS__))
-#define ML_69(f,a,...) f(a) EO_E(ML_68(f,__VA_ARGS__))
-#define ML_70(f,a,...) f(a) EO_E(ML_69(f,__VA_ARGS__))
-#define ML_71(f,a,...) f(a) EO_E(ML_70(f,__VA_ARGS__))
-#define ML_72(f,a,...) f(a) EO_E(ML_71(f,__VA_ARGS__))
-#define ML_73(f,a,...) f(a) EO_E(ML_72(f,__VA_ARGS__))
-#define ML_74(f,a,...) f(a) EO_E(ML_73(f,__VA_ARGS__))
-#define ML_75(f,a,...) f(a) EO_E(ML_74(f,__VA_ARGS__))
-#define ML_76(f,a,...) f(a) EO_E(ML_75(f,__VA_ARGS__))
-#define ML_77(f,a,...) f(a) EO_E(ML_76(f,__VA_ARGS__))
-#define ML_78(f,a,...) f(a) EO_E(ML_77(f,__VA_ARGS__))
-#define ML_79(f,a,...) f(a) EO_E(ML_78(f,__VA_ARGS__))
-#define ML_80(f,a,...) f(a) EO_E(ML_79(f,__VA_ARGS__))
-#define ML_81(f,a,...) f(a) EO_E(ML_80(f,__VA_ARGS__))
-#define ML_82(f,a,...) f(a) EO_E(ML_81(f,__VA_ARGS__))
-#define ML_83(f,a,...) f(a) EO_E(ML_82(f,__VA_ARGS__))
-#define ML_84(f,a,...) f(a) EO_E(ML_83(f,__VA_ARGS__))
-#define ML_85(f,a,...) f(a) EO_E(ML_84(f,__VA_ARGS__))
-#define ML_86(f,a,...) f(a) EO_E(ML_85(f,__VA_ARGS__))
-#define ML_87(f,a,...) f(a) EO_E(ML_86(f,__VA_ARGS__))
-#define ML_88(f,a,...) f(a) EO_E(ML_87(f,__VA_ARGS__))
-#define ML_89(f,a,...) f(a) EO_E(ML_88(f,__VA_ARGS__))
-#define ML_90(f,a,...) f(a) EO_E(ML_89(f,__VA_ARGS__))
-#define ML_91(f,a,...) f(a) EO_E(ML_90(f,__VA_ARGS__))
-#define ML_92(f,a,...) f(a) EO_E(ML_91(f,__VA_ARGS__))
-#define ML_93(f,a,...) f(a) EO_E(ML_92(f,__VA_ARGS__))
-#define ML_94(f,a,...) f(a) EO_E(ML_93(f,__VA_ARGS__))
-#define ML_95(f,a,...) f(a) EO_E(ML_94(f,__VA_ARGS__))
-#define ML_96(f,a,...) f(a) EO_E(ML_95(f,__VA_ARGS__))
-#define ML_97(f,a,...) f(a) EO_E(ML_96(f,__VA_ARGS__))
-#define ML_98(f,a,...) f(a) EO_E(ML_97(f,__VA_ARGS__))
-#define ML_99(f,a,...) f(a) EO_E(ML_98(f,__VA_ARGS__))
-#define ML_100(f,a,...) f(a) EO_E(ML_99(f,__VA_ARGS__))
-#define ML_101(f,a,...) f(a) EO_E(ML_100(f,__VA_ARGS__))
-#define ML_102(f,a,...) f(a) EO_E(ML_101(f,__VA_ARGS__))
-#define ML_103(f,a,...) f(a) EO_E(ML_102(f,__VA_ARGS__))
-#define ML_104(f,a,...) f(a) EO_E(ML_103(f,__VA_ARGS__))
-#define ML_105(f,a,...) f(a) EO_E(ML_104(f,__VA_ARGS__))
-#define ML_106(f,a,...) f(a) EO_E(ML_105(f,__VA_ARGS__))
-#define ML_107(f,a,...) f(a) EO_E(ML_106(f,__VA_ARGS__))
-#define ML_108(f,a,...) f(a) EO_E(ML_107(f,__VA_ARGS__))
-#define ML_109(f,a,...) f(a) EO_E(ML_108(f,__VA_ARGS__))
-#define ML_110(f,a,...) f(a) EO_E(ML_109(f,__VA_ARGS__))
-#define ML_111(f,a,...) f(a) EO_E(ML_110(f,__VA_ARGS__))
-#define ML_112(f,a,...) f(a) EO_E(ML_111(f,__VA_ARGS__))
-#define ML_113(f,a,...) f(a) EO_E(ML_112(f,__VA_ARGS__))
-#define ML_114(f,a,...) f(a) EO_E(ML_113(f,__VA_ARGS__))
-#define ML_115(f,a,...) f(a) EO_E(ML_114(f,__VA_ARGS__))
-#define ML_116(f,a,...) f(a) EO_E(ML_115(f,__VA_ARGS__))
-#define ML_117(f,a,...) f(a) EO_E(ML_116(f,__VA_ARGS__))
-#define ML_118(f,a,...) f(a) EO_E(ML_117(f,__VA_ARGS__))
-#define ML_119(f,a,...) f(a) EO_E(ML_118(f,__VA_ARGS__))
-#define ML_120(f,a,...) f(a) EO_E(ML_119(f,__VA_ARGS__))
-#define ML_121(f,a,...) f(a) EO_E(ML_120(f,__VA_ARGS__))
-#define ML_122(f,a,...) f(a) EO_E(ML_121(f,__VA_ARGS__))
-#define ML_123(f,a,...) f(a) EO_E(ML_122(f,__VA_ARGS__))
-#define ML_124(f,a,...) f(a) EO_E(ML_123(f,__VA_ARGS__))
-#define ML_125(f,a,...) f(a) EO_E(ML_124(f,__VA_ARGS__))
+#define ML_2(f,a,...) f(a) ML_E(ML_1(f,__VA_ARGS__))
+#define ML_3(f,a,...) f(a) ML_E(ML_2(f,__VA_ARGS__))
+#define ML_4(f,a,...) f(a) ML_E(ML_3(f,__VA_ARGS__))
+#define ML_5(f,a,...) f(a) ML_E(ML_4(f,__VA_ARGS__))
+#define ML_6(f,a,...) f(a) ML_E(ML_5(f,__VA_ARGS__))
+#define ML_7(f,a,...) f(a) ML_E(ML_6(f,__VA_ARGS__))
+#define ML_8(f,a,...) f(a) ML_E(ML_7(f,__VA_ARGS__))
+#define ML_9(f,a,...) f(a) ML_E(ML_8(f,__VA_ARGS__))
+#define ML_10(f,a,...) f(a) ML_E(ML_9(f,__VA_ARGS__))
+#define ML_11(f,a,...) f(a) ML_E(ML_10(f,__VA_ARGS__))
+#define ML_12(f,a,...) f(a) ML_E(ML_11(f,__VA_ARGS__))
+#define ML_13(f,a,...) f(a) ML_E(ML_12(f,__VA_ARGS__))
+#define ML_14(f,a,...) f(a) ML_E(ML_13(f,__VA_ARGS__))
+#define ML_15(f,a,...) f(a) ML_E(ML_14(f,__VA_ARGS__))
+#define ML_16(f,a,...) f(a) ML_E(ML_15(f,__VA_ARGS__))
+#define ML_17(f,a,...) f(a) ML_E(ML_16(f,__VA_ARGS__))
+#define ML_18(f,a,...) f(a) ML_E(ML_17(f,__VA_ARGS__))
+#define ML_19(f,a,...) f(a) ML_E(ML_18(f,__VA_ARGS__))
+#define ML_20(f,a,...) f(a) ML_E(ML_19(f,__VA_ARGS__))
+#define ML_21(f,a,...) f(a) ML_E(ML_20(f,__VA_ARGS__))
+#define ML_22(f,a,...) f(a) ML_E(ML_21(f,__VA_ARGS__))
+#define ML_23(f,a,...) f(a) ML_E(ML_22(f,__VA_ARGS__))
+#define ML_24(f,a,...) f(a) ML_E(ML_23(f,__VA_ARGS__))
+#define ML_25(f,a,...) f(a) ML_E(ML_24(f,__VA_ARGS__))
+#define ML_26(f,a,...) f(a) ML_E(ML_25(f,__VA_ARGS__))
+#define ML_27(f,a,...) f(a) ML_E(ML_26(f,__VA_ARGS__))
+#define ML_28(f,a,...) f(a) ML_E(ML_27(f,__VA_ARGS__))
+#define ML_29(f,a,...) f(a) ML_E(ML_28(f,__VA_ARGS__))
+#define ML_30(f,a,...) f(a) ML_E(ML_29(f,__VA_ARGS__))
+#define ML_31(f,a,...) f(a) ML_E(ML_30(f,__VA_ARGS__))
+#define ML_32(f,a,...) f(a) ML_E(ML_31(f,__VA_ARGS__))
+#define ML_33(f,a,...) f(a) ML_E(ML_32(f,__VA_ARGS__))
+#define ML_34(f,a,...) f(a) ML_E(ML_33(f,__VA_ARGS__))
+#define ML_35(f,a,...) f(a) ML_E(ML_34(f,__VA_ARGS__))
+#define ML_36(f,a,...) f(a) ML_E(ML_35(f,__VA_ARGS__))
+#define ML_37(f,a,...) f(a) ML_E(ML_36(f,__VA_ARGS__))
+#define ML_38(f,a,...) f(a) ML_E(ML_37(f,__VA_ARGS__))
+#define ML_39(f,a,...) f(a) ML_E(ML_38(f,__VA_ARGS__))
+#define ML_40(f,a,...) f(a) ML_E(ML_39(f,__VA_ARGS__))
+#define ML_41(f,a,...) f(a) ML_E(ML_40(f,__VA_ARGS__))
+#define ML_42(f,a,...) f(a) ML_E(ML_41(f,__VA_ARGS__))
+#define ML_43(f,a,...) f(a) ML_E(ML_42(f,__VA_ARGS__))
+#define ML_44(f,a,...) f(a) ML_E(ML_43(f,__VA_ARGS__))
+#define ML_45(f,a,...) f(a) ML_E(ML_44(f,__VA_ARGS__))
+#define ML_46(f,a,...) f(a) ML_E(ML_45(f,__VA_ARGS__))
+#define ML_47(f,a,...) f(a) ML_E(ML_46(f,__VA_ARGS__))
+#define ML_48(f,a,...) f(a) ML_E(ML_47(f,__VA_ARGS__))
+#define ML_49(f,a,...) f(a) ML_E(ML_48(f,__VA_ARGS__))
+#define ML_50(f,a,...) f(a) ML_E(ML_49(f,__VA_ARGS__))
+#define ML_51(f,a,...) f(a) ML_E(ML_50(f,__VA_ARGS__))
+#define ML_52(f,a,...) f(a) ML_E(ML_51(f,__VA_ARGS__))
+#define ML_53(f,a,...) f(a) ML_E(ML_52(f,__VA_ARGS__))
+#define ML_54(f,a,...) f(a) ML_E(ML_53(f,__VA_ARGS__))
+#define ML_55(f,a,...) f(a) ML_E(ML_54(f,__VA_ARGS__))
+#define ML_56(f,a,...) f(a) ML_E(ML_55(f,__VA_ARGS__))
+#define ML_57(f,a,...) f(a) ML_E(ML_56(f,__VA_ARGS__))
+#define ML_58(f,a,...) f(a) ML_E(ML_57(f,__VA_ARGS__))
+#define ML_59(f,a,...) f(a) ML_E(ML_58(f,__VA_ARGS__))
+#define ML_60(f,a,...) f(a) ML_E(ML_59(f,__VA_ARGS__))
+#define ML_61(f,a,...) f(a) ML_E(ML_60(f,__VA_ARGS__))
+#define ML_62(f,a,...) f(a) ML_E(ML_61(f,__VA_ARGS__))
+#define ML_63(f,a,...) f(a) ML_E(ML_62(f,__VA_ARGS__))
+#define ML_64(f,a,...) f(a) ML_E(ML_63(f,__VA_ARGS__))
+#define ML_65(f,a,...) f(a) ML_E(ML_64(f,__VA_ARGS__))
+#define ML_66(f,a,...) f(a) ML_E(ML_65(f,__VA_ARGS__))
+#define ML_67(f,a,...) f(a) ML_E(ML_66(f,__VA_ARGS__))
+#define ML_68(f,a,...) f(a) ML_E(ML_67(f,__VA_ARGS__))
+#define ML_69(f,a,...) f(a) ML_E(ML_68(f,__VA_ARGS__))
+#define ML_70(f,a,...) f(a) ML_E(ML_69(f,__VA_ARGS__))
+#define ML_71(f,a,...) f(a) ML_E(ML_70(f,__VA_ARGS__))
+#define ML_72(f,a,...) f(a) ML_E(ML_71(f,__VA_ARGS__))
+#define ML_73(f,a,...) f(a) ML_E(ML_72(f,__VA_ARGS__))
+#define ML_74(f,a,...) f(a) ML_E(ML_73(f,__VA_ARGS__))
+#define ML_75(f,a,...) f(a) ML_E(ML_74(f,__VA_ARGS__))
+#define ML_76(f,a,...) f(a) ML_E(ML_75(f,__VA_ARGS__))
+#define ML_77(f,a,...) f(a) ML_E(ML_76(f,__VA_ARGS__))
+#define ML_78(f,a,...) f(a) ML_E(ML_77(f,__VA_ARGS__))
+#define ML_79(f,a,...) f(a) ML_E(ML_78(f,__VA_ARGS__))
+#define ML_80(f,a,...) f(a) ML_E(ML_79(f,__VA_ARGS__))
+#define ML_81(f,a,...) f(a) ML_E(ML_80(f,__VA_ARGS__))
+#define ML_82(f,a,...) f(a) ML_E(ML_81(f,__VA_ARGS__))
+#define ML_83(f,a,...) f(a) ML_E(ML_82(f,__VA_ARGS__))
+#define ML_84(f,a,...) f(a) ML_E(ML_83(f,__VA_ARGS__))
+#define ML_85(f,a,...) f(a) ML_E(ML_84(f,__VA_ARGS__))
+#define ML_86(f,a,...) f(a) ML_E(ML_85(f,__VA_ARGS__))
+#define ML_87(f,a,...) f(a) ML_E(ML_86(f,__VA_ARGS__))
+#define ML_88(f,a,...) f(a) ML_E(ML_87(f,__VA_ARGS__))
+#define ML_89(f,a,...) f(a) ML_E(ML_88(f,__VA_ARGS__))
+#define ML_90(f,a,...) f(a) ML_E(ML_89(f,__VA_ARGS__))
+#define ML_91(f,a,...) f(a) ML_E(ML_90(f,__VA_ARGS__))
+#define ML_92(f,a,...) f(a) ML_E(ML_91(f,__VA_ARGS__))
+#define ML_93(f,a,...) f(a) ML_E(ML_92(f,__VA_ARGS__))
+#define ML_94(f,a,...) f(a) ML_E(ML_93(f,__VA_ARGS__))
+#define ML_95(f,a,...) f(a) ML_E(ML_94(f,__VA_ARGS__))
+#define ML_96(f,a,...) f(a) ML_E(ML_95(f,__VA_ARGS__))
+#define ML_97(f,a,...) f(a) ML_E(ML_96(f,__VA_ARGS__))
+#define ML_98(f,a,...) f(a) ML_E(ML_97(f,__VA_ARGS__))
+#define ML_99(f,a,...) f(a) ML_E(ML_98(f,__VA_ARGS__))
+#define ML_100(f,a,...) f(a) ML_E(ML_99(f,__VA_ARGS__))
+#define ML_101(f,a,...) f(a) ML_E(ML_100(f,__VA_ARGS__))
+#define ML_102(f,a,...) f(a) ML_E(ML_101(f,__VA_ARGS__))
+#define ML_103(f,a,...) f(a) ML_E(ML_102(f,__VA_ARGS__))
+#define ML_104(f,a,...) f(a) ML_E(ML_103(f,__VA_ARGS__))
+#define ML_105(f,a,...) f(a) ML_E(ML_104(f,__VA_ARGS__))
+#define ML_106(f,a,...) f(a) ML_E(ML_105(f,__VA_ARGS__))
+#define ML_107(f,a,...) f(a) ML_E(ML_106(f,__VA_ARGS__))
+#define ML_108(f,a,...) f(a) ML_E(ML_107(f,__VA_ARGS__))
+#define ML_109(f,a,...) f(a) ML_E(ML_108(f,__VA_ARGS__))
+#define ML_110(f,a,...) f(a) ML_E(ML_109(f,__VA_ARGS__))
+#define ML_111(f,a,...) f(a) ML_E(ML_110(f,__VA_ARGS__))
+#define ML_112(f,a,...) f(a) ML_E(ML_111(f,__VA_ARGS__))
+#define ML_113(f,a,...) f(a) ML_E(ML_112(f,__VA_ARGS__))
+#define ML_114(f,a,...) f(a) ML_E(ML_113(f,__VA_ARGS__))
+#define ML_115(f,a,...) f(a) ML_E(ML_114(f,__VA_ARGS__))
+#define ML_116(f,a,...) f(a) ML_E(ML_115(f,__VA_ARGS__))
+#define ML_117(f,a,...) f(a) ML_E(ML_116(f,__VA_ARGS__))
+#define ML_118(f,a,...) f(a) ML_E(ML_117(f,__VA_ARGS__))
+#define ML_119(f,a,...) f(a) ML_E(ML_118(f,__VA_ARGS__))
+#define ML_120(f,a,...) f(a) ML_E(ML_119(f,__VA_ARGS__))
+#define ML_121(f,a,...) f(a) ML_E(ML_120(f,__VA_ARGS__))
+#define ML_122(f,a,...) f(a) ML_E(ML_121(f,__VA_ARGS__))
+#define ML_123(f,a,...) f(a) ML_E(ML_122(f,__VA_ARGS__))
+#define ML_124(f,a,...) f(a) ML_E(ML_123(f,__VA_ARGS__))
+#define ML_125(f,a,...) f(a) ML_E(ML_124(f,__VA_ARGS__))
 
 /// MacroLoop_ArgumentCounts [ArgMax ... 0]
 #define ML_G() 125,124,123,122,121,120,119,118,117,116,115,114,113,112,111,110,109,108,107,106,105,104,103,102,101,100,99,98,97,96,\
@@ -183,10 +183,10 @@ d0,d1,d2,d3,d4,d5,d6,d7,d8,d9,e0,e1,e2,e3,e4,e5,e6,e7,e8,e9,f0,f1,f2,f3,f4,f5,f6
 i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtArgMax
 
 /// MacroLoop_Expand_Select_Argument_At_Argument_Max (necessary due to bugs in VS macro handling)
-#define ML_S(...) EO_E(ML_M(__VA_ARGS__))
+#define ML_S(...) ML_E(ML_M(__VA_ARGS__))
 
 /// MacroLoop_ForEach_N
-#define ML_N(N,f,...) EO_E(EO_C(ML_,N)(f,__VA_ARGS__))
+#define ML_N(N,f,...) ML_E(ML_C(ML_,N)(f,__VA_ARGS__))
 
 /// Selects the count of varadic arguments
 #define COUNT_ARGUMENTS(...) ML_S(__VA_ARGS__,ML_G())
@@ -840,11 +840,6 @@ namespace Reflect
     template <typename T>
     struct Proxy : public Unproxied {};
 
-    struct AutoProxy {};
-
-    struct Private_struct {};
-    static constexpr Private_struct Private = Private_struct{};
-
     template <typename T>
     struct is_proxied
     {
@@ -967,10 +962,10 @@ using Supers = Reflect::Inherit<Class::ClassType, Class::Annotations>;
     template <typename T, typename = decltype(T::Class::TotalFields)> static constexpr std::true_type typeHasReflection(int);
     template <typename T> static constexpr std::false_type typeHasReflection(unsigned int);
     
-    template <typename T> struct is_reflected { static constexpr bool value = decltype(typeHasReflection<T>(0))::value; };
+    template <typename T> struct is_reflected { static constexpr bool value = is_proxied<T>::value || decltype(typeHasReflection<T>(0))::value; };
     template <typename T> struct is_reflected<const T> { static constexpr bool value = is_reflected<T>::value; };
 
-    template <typename Type> struct reflected_type { using T = typename std::conditional_t<is_proxied<Type>::value, typename Proxy<Type>, typename Type>; };
+    template <typename Type> struct reflected_type { using T = typename std::conditional_t<is_proxied<Type>::value, Proxy<Type>, Type>; };
 
     template <typename Type> struct clazz { using T = typename reflected_type<Type>::T::Class; };
     template <typename Type> using class_t = typename clazz<Type>::T;
@@ -978,22 +973,5 @@ using Supers = Reflect::Inherit<Class::ClassType, Class::Annotations>;
     template <typename Type> struct supers { using T = typename reflected_type<Type>::T::Supers; };
     template <typename Type> using supers_t = typename supers<Type>::T;
 }
-
-namespace ObjectMapper
-{
-    template <typename Source, typename Destination>
-    static constexpr void map_default(const Source & source, Destination & destination)
-    {
-        Reflect::class_t<Destination>::ForEachField(destination, [&](auto & lField, auto & l) {
-            Reflect::class_t<Source>::ForEachField(source, [&](auto & rField, auto & r) {
-                if constexpr ( std::is_assignable_v<decltype(l), decltype(r)> && std::string_view(lField.Name) == std::string_view(rField.Name) )
-                    l = r;
-            });
-        });
-    }
-
-    template <typename Source, typename Destination>
-    static constexpr void map(const Source & source, Destination & destination) { map_default(source, destination); }
-};
 
 #endif

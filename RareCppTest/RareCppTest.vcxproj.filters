@@ -34,16 +34,10 @@
     <ClCompile Include="TestMain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ConstexprStrTest.cpp">
-      <Filter>Source Files\ReflectTest</Filter>
-    </ClCompile>
     <ClCompile Include="ExtendedTypeSupportTest.cpp">
       <Filter>Source Files\ReflectTest</Filter>
     </ClCompile>
     <ClCompile Include="FieldTest.cpp">
-      <Filter>Source Files\ReflectTest</Filter>
-    </ClCompile>
-    <ClCompile Include="GenericMacroTest.cpp">
       <Filter>Source Files\ReflectTest</Filter>
     </ClCompile>
     <ClCompile Include="ReflectTest.cpp">
@@ -71,6 +65,9 @@
       <Filter>Source Files\JsonTest\Definition</Filter>
     </ClCompile>
     <ClCompile Include="InheritTest.cpp">
+      <Filter>Source Files\ReflectTest</Filter>
+    </ClCompile>
+    <ClCompile Include="GenericMacroTest.cpp">
       <Filter>Source Files\ReflectTest</Filter>
     </ClCompile>
   </ItemGroup>

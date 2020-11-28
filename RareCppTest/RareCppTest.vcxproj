@@ -166,7 +166,6 @@
     <ClInclude Include="JsonTest.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ConstexprStrTest.cpp" />
     <ClCompile Include="ExtendedTypeSupportTest.cpp" />
     <ClCompile Include="FieldTest.cpp" />
     <ClCompile Include="GenericMacroTest.cpp" />
