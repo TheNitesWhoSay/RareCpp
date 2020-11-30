@@ -399,47 +399,30 @@ struct State : public Point, public Another
 
 Status State::status;
 
-struct OwnedObject
-{
-    int a;
-    int b;
-
-    REFLECT(OwnedObject, a, b)
-};
 
 struct UnownedObject
 {
     int a;
     int b;
     int c;
+    std::map<int, int> d;
+};
+
+struct OwnedObject
+{
+    int a;
+    int b;
+    std::map<int, int> d;
+
+    REFLECT(OwnedObject, a, b, d)
 };
 
 template <> struct Reflect::Proxy<UnownedObject> : public UnownedObject
 {
-    REFLECT(Reflect::Proxy<UnownedObject>, a, b, c)
+    REFLECT(Reflect::Proxy<UnownedObject>, a, b, c, d)
 };
 
-namespace ObjectMapper
-{
-    template <typename Source, typename Destination>
-    constexpr inline void map_default(const Source & source, Destination & destination)
-    {
-        if constexpr ( is_reflected<class_t<Source>>::value && is_reflected<class_t<Destination>>::value )
-        {
-            Reflect::class_t<Destination>::ForEachField(destination, [&](auto & lField, auto & l) {
-                Reflect::class_t<Source>::ForEachField(source, [&](auto & rField, auto & r) {
-                    if constexpr ( std::is_assignable_v<decltype(l), decltype(r)> && std::string_view(lField.Name) == std::string_view(rField.Name) )
-                        l = r;
-                });
-            });
-        }
-    }
-
-    template <typename Source, typename Destination>
-    constexpr inline void map(const Source & source, Destination & destination) { map_default(source, destination); }
-};
-
-template<> constexpr inline void ObjectMapper::map<>(const OwnedObject & src, UnownedObject & dest)
+template <> constexpr inline void ObjectMapper::map(const OwnedObject & src, UnownedObject & dest)
 {
     ObjectMapper::map_default(src, dest);
     dest.c = 9001;
@@ -447,11 +430,14 @@ template<> constexpr inline void ObjectMapper::map<>(const OwnedObject & src, Un
 
 int main()
 {
-    OwnedObject objModel { 1, 2 };
+    OwnedObject objModel { 1, 2, {{3, 4}, {5, 6}} };
     UnownedObject objDao {};
 
     ObjectMapper::map(objModel, objDao);
+
     std::cout << "objDao: { " << objDao.a << ", " << objDao.b << ", " << objDao.c << " }" << std::endl;
+    for ( auto & pair : objDao.d )
+        std::cout << "{ " << pair.first << ", " << pair.second << " }" << std::endl;
 
     Car car = outputExamples();
     std::cout << std::endl << Json::out(car) << std::endl << std::endl;
