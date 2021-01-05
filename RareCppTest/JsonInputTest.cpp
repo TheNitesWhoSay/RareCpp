@@ -1123,7 +1123,7 @@ TEST_HEADER(JsonInputRead, GenericArray)
     std::stringstream boolArray("[true, false, false, true]");
     std::stringstream numberArray("[12, 13, 13.5, 15, -12.322, -5, 6]");
     std::stringstream stringArray("[\"asdf\",\"qwerty\"]");
-    std::stringstream objectArray("[{}, {\"field\":true}, {\"str\":\"hello world\",\"num\":42}]");
+    std::stringstream objectArray("[{}, {\"field\":true}, {\"str\":\"hello world\",\"null\":null,\"num\":42}]");
     std::stringstream mixedArray("[null, false]");
     std::stringstream nestedArrays("[ [[true, false], [null, null]], [[\"as\"], [{\"df\":\"qw\"}]] ]");
 
@@ -1166,6 +1166,7 @@ TEST_HEADER(JsonInputRead, GenericArray)
     EXPECT_TRUE(assigner->get()->objectArray()[0].empty());
     EXPECT_TRUE(assigner->get()->objectArray()[1].find("field")->second->boolean());
     EXPECT_STREQ("hello world", assigner->get()->objectArray()[2].find("str")->second->string().c_str());
+    EXPECT_TRUE(assigner->get()->objectArray()[2].find("null")->second == nullptr);
     EXPECT_STREQ("42", assigner->get()->objectArray()[2].find("num")->second->number().c_str());
 
     assigner = Json::Read::GenericArray<true>(mixedArray, Json::context, c);
@@ -1190,12 +1191,13 @@ TEST_HEADER(JsonInputRead, GenericObject)
     std::shared_ptr<Json::Value::Assigner> assigner = nullptr;
 
     std::stringstream emptyObject("{}");
-    std::stringstream basicObject("{\"one\":1,\"two\":2}");
+    std::stringstream basicObject("{\"null\":null,\"one\":1,\"two\":2}");
     
     assigner = Json::Read::GenericObject(emptyObject, Json::context, c);
     EXPECT_TRUE(assigner->get()->object().empty());
 
     assigner = Json::Read::GenericObject(basicObject, Json::context, c);
+    EXPECT_TRUE(assigner->get()->object().find("null")->second == nullptr);
     EXPECT_STREQ("1", assigner->get()->object().find("one")->second->number().c_str());
     EXPECT_STREQ("2", assigner->get()->object().find("two")->second->number().c_str());
 }
@@ -1294,7 +1296,7 @@ TEST_HEADER(JsonInputRead, Value)
     int anInt = 0;
 
     VariousValues v(anInt);
-    v.genericNonNull = Json::Bool::Make(false);
+    v.genericNonNull = std::make_shared<Json::Bool>(false);
     v.genericNull = nullptr;
     v.sharedPointerNull = nullptr;
     v.uniquePointerNull = nullptr;
@@ -1547,7 +1549,7 @@ TEST_HEADER(JsonInputRead, Tuple)
     int anInt = 0;
 
     VariousValues v(anInt);
-    v.genericNonNull = Json::Bool::Make(false);
+    v.genericNonNull = std::make_shared<Json::Bool>(false);
     v.genericNull = nullptr;
     v.sharedPointerNull = nullptr;
     v.uniquePointerNull = nullptr;

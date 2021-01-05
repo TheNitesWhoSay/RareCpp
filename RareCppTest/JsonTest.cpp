@@ -523,13 +523,13 @@ TEST_HEADER(JsonGenericTest, Bool)
     Json::Bool copyConstruct(valueConstruct);
     EXPECT_TRUE(copyConstruct.boolean());
 
-    auto ctorMake = Json::Bool::Make();
+    auto ctorMake = std::make_shared<Json::Bool>();
     EXPECT_FALSE(ctorMake->boolean());
 
-    auto valueMake = Json::Bool::Make(true);
+    auto valueMake = std::make_shared<Json::Bool>(true);
     EXPECT_TRUE(valueMake->boolean());
 
-    auto copyMake = Json::Bool::Make(valueConstruct);
+    auto copyMake = std::make_shared<Json::Bool>(valueConstruct);
     EXPECT_TRUE(copyMake->boolean());
 
     Json::Bool other(false);
@@ -578,20 +578,32 @@ TEST_HEADER(JsonGenericTest, Number)
     Json::Number copyConstruct(valueConstruct);
     EXPECT_STREQ(numericValue.c_str(), copyConstruct.number().c_str());
 
-    auto ctorMake = Json::Number::Make();
+    auto ctorMake = std::make_shared<Json::Number>();
     EXPECT_STREQ("0", ctorMake->number().c_str());
 
-    auto constCharMake = Json::Number::Make("66.7");
+    const char charArrayParam[] = "qwerty";
+    auto charArrayMake = std::make_shared<Json::Number>(charArrayParam);
+    EXPECT_STREQ("qwerty", charArrayMake->number().c_str());
+
+    const char* charPtrParam = &charArrayParam[0];
+    auto charPtrMake = std::make_shared<Json::Number>(charPtrParam);
+    EXPECT_STREQ("qwerty", charPtrMake->number().c_str());
+
+    const std::string strParam = "uiop";
+    auto stringMake = std::make_shared<Json::Number>(strParam);
+    EXPECT_STREQ("uiop", stringMake->number().c_str());
+
+    auto constCharMake = std::make_shared<Json::Number>("66.7");
     EXPECT_STREQ("66.7", constCharMake->number().c_str());
 
-    auto valueMake = Json::Number::Make(numericValue);
+    auto valueMake = std::make_shared<Json::Number>(numericValue);
     EXPECT_STREQ(numericValue.c_str(), valueMake->number().c_str());
 
-    auto copyMake = Json::Number::Make(valueConstruct);
+    auto copyMake = std::make_shared<Json::Number>(valueConstruct);
     EXPECT_STREQ(numericValue.c_str(), copyMake->number().c_str());
 
     short number = 553;
-    auto numberCastMake = Json::Number::Make(number);
+    auto numberCastMake = std::make_shared<Json::Number>(number);
     EXPECT_STREQ(std::to_string(number).c_str(), numberCastMake->number().c_str());
 
     Json::Number other = valueConstruct;
@@ -640,13 +652,13 @@ TEST_HEADER(JsonGenericTest, String)
     Json::String copyConstruct(valueConstruct);
     EXPECT_STREQ(stringValue.c_str(), copyConstruct.string().c_str());
 
-    auto ctorMake = Json::String::Make();
+    auto ctorMake = std::make_shared<Json::String>();
     EXPECT_STREQ("", ctorMake->string().c_str());
 
-    auto valueMake = Json::String::Make(stringValue);
+    auto valueMake = std::make_shared<Json::String>(stringValue);
     EXPECT_STREQ(stringValue.c_str(), valueMake->string().c_str());
 
-    auto copyMake = Json::String::Make(valueConstruct);
+    auto copyMake = std::make_shared<Json::String>(valueConstruct);
     EXPECT_STREQ(stringValue.c_str(), copyMake->string().c_str());
 
     Json::String other = valueConstruct;
@@ -689,8 +701,8 @@ TEST_HEADER(JsonGenericTest, Object)
     EXPECT_TRUE(obj.object().empty());
 
     std::map<std::string, std::shared_ptr<Json::Value>> value;
-    value.insert(std::pair("first", Json::Bool::Make(false)));
-    value.insert(std::pair("second", Json::String::Make("asdf")));
+    value.insert(std::pair("first", std::make_shared<Json::Bool>(false)));
+    value.insert(std::pair("second", std::make_shared<Json::String>("asdf")));
     Json::Object objectValue(value);
     auto first = objectValue.object().find("first");
     auto second = objectValue.object().find("second");
@@ -699,10 +711,10 @@ TEST_HEADER(JsonGenericTest, Object)
     EXPECT_FALSE(first->second->boolean());
     EXPECT_STREQ("asdf", second->second->string().c_str());
 
-    auto ctorMake = Json::Object::Make();
+    auto ctorMake = std::make_shared<Json::Object>();
     EXPECT_TRUE(ctorMake->object().empty());
 
-    auto valueMake = Json::Object::Make(value);
+    auto valueMake = std::make_shared<Json::Object>(value);
     first = valueMake->object().find("first");
     second = valueMake->object().find("second");
     EXPECT_STREQ("first", first->first.c_str());
@@ -768,15 +780,15 @@ TEST_HEADER(JsonGenericTest, NullArray)
     EXPECT_EQ(2, copyConstruct.arraySize());
     EXPECT_EQ(2, copyConstruct.nullArray());
 
-    auto ctorMake = Json::NullArray::Make();
+    auto ctorMake = std::make_shared<Json::NullArray>();
     EXPECT_EQ(0, ctorMake->arraySize());
     EXPECT_EQ(0, ctorMake->nullArray());
 
-    auto valueMake = Json::NullArray::Make(5);
+    auto valueMake = std::make_shared<Json::NullArray>(5);
     EXPECT_EQ(5, valueMake->arraySize());
     EXPECT_EQ(5, valueMake->nullArray());
 
-    auto copyMake = Json::NullArray::Make(nullArray);
+    auto copyMake = std::make_shared<Json::NullArray>(nullArray);
     EXPECT_EQ(2, copyMake->arraySize());
     EXPECT_EQ(2, copyMake->nullArray());
 
@@ -833,17 +845,17 @@ TEST_HEADER(JsonGenericTest, BoolArray)
     EXPECT_EQ(true, copyConstruct.boolArray()[1]);
     EXPECT_EQ(false, copyConstruct.boolArray()[2]);
 
-    auto ctorMake = Json::BoolArray::Make();
+    auto ctorMake = std::make_shared<Json::BoolArray>();
     EXPECT_EQ(0, ctorMake->arraySize());
     EXPECT_TRUE(ctorMake->boolArray().empty());
 
-    auto valueMake = Json::BoolArray::Make(values);
+    auto valueMake = std::make_shared<Json::BoolArray>(values);
     EXPECT_EQ(3, valueMake->arraySize());
     EXPECT_EQ(true, valueMake->boolArray()[0]);
     EXPECT_EQ(true, valueMake->boolArray()[1]);
     EXPECT_EQ(false, valueMake->boolArray()[2]);
 
-    auto copyMake = Json::BoolArray::Make(valueConstruct);
+    auto copyMake = std::make_shared<Json::BoolArray>(valueConstruct);
     EXPECT_EQ(3, copyMake->arraySize());
     EXPECT_EQ(true, copyMake->boolArray()[0]);
     EXPECT_EQ(true, copyMake->boolArray()[1]);
@@ -905,17 +917,17 @@ TEST_HEADER(JsonGenericTest, NumberArray)
     EXPECT_STREQ("1", copyConstruct.numberArray()[1].c_str());
     EXPECT_STREQ("45", copyConstruct.numberArray()[2].c_str());
 
-    auto ctorMake = Json::NumberArray::Make();
+    auto ctorMake = std::make_shared<Json::NumberArray>();
     EXPECT_TRUE(ctorMake->numberArray().empty());
     EXPECT_EQ(0, ctorMake->arraySize());
 
-    auto valueMake = Json::NumberArray::Make(values);
+    auto valueMake = std::make_shared<Json::NumberArray>(values);
     EXPECT_EQ(3, valueMake->arraySize());
     EXPECT_STREQ("0", valueMake->numberArray()[0].c_str());
     EXPECT_STREQ("1", valueMake->numberArray()[1].c_str());
     EXPECT_STREQ("45", valueMake->numberArray()[2].c_str());
 
-    auto copyMake = Json::NumberArray::Make(values);
+    auto copyMake = std::make_shared<Json::NumberArray>(values);
     EXPECT_EQ(3, copyMake->arraySize());
     EXPECT_STREQ("0", copyMake->numberArray()[0].c_str());
     EXPECT_STREQ("1", copyMake->numberArray()[1].c_str());
@@ -976,17 +988,17 @@ TEST_HEADER(JsonGenericTest, StringArray)
     EXPECT_STREQ("some string", copyConstruct.stringArray()[1].c_str());
     EXPECT_STREQ("1234", copyConstruct.stringArray()[2].c_str());
 
-    auto ctorMake = Json::StringArray::Make();
+    auto ctorMake = std::make_shared<Json::StringArray>();
     EXPECT_EQ(0, ctorMake->arraySize());
     EXPECT_TRUE(ctorMake->stringArray().empty());
 
-    auto valueMake = Json::StringArray::Make(values);
+    auto valueMake = std::make_shared<Json::StringArray>(values);
     EXPECT_EQ(3, valueMake->arraySize());
     EXPECT_STREQ("asdf", valueMake->stringArray()[0].c_str());
     EXPECT_STREQ("some string", valueMake->stringArray()[1].c_str());
     EXPECT_STREQ("1234", valueMake->stringArray()[2].c_str());
 
-    auto copyMake = Json::StringArray::Make(valueConstruct);
+    auto copyMake = std::make_shared<Json::StringArray>(valueConstruct);
     EXPECT_EQ(3, copyMake->arraySize());
     EXPECT_STREQ("asdf", copyMake->stringArray()[0].c_str());
     EXPECT_STREQ("some string", copyMake->stringArray()[1].c_str());
@@ -1030,10 +1042,10 @@ TEST_HEADER(JsonGenericTest, ObjectArray)
     std::map<std::string, std::shared_ptr<Json::Value>> firstObj;
     std::map<std::string, std::shared_ptr<Json::Value>> secondObj;
     std::map<std::string, std::shared_ptr<Json::Value>> thirdObj;
-    firstObj.insert(std::pair("firstOne", Json::Bool::Make(false)));
-    firstObj.insert(std::pair("firstTwo", Json::Number::Make("1234")));
-    firstObj.insert(std::pair("firstThree", Json::String::Make("asdf")));
-    thirdObj.insert(std::pair("thirdThree", Json::Object::Make()));
+    firstObj.insert(std::pair("firstOne", std::make_shared<Json::Bool>(false)));
+    firstObj.insert(std::pair("firstTwo", std::make_shared<Json::Number>("1234")));
+    firstObj.insert(std::pair("firstThree", std::make_shared<Json::String>("asdf")));
+    thirdObj.insert(std::pair("thirdThree", std::make_shared<Json::Object>()));
     objects.push_back(firstObj);
     objects.push_back(secondObj);
     objects.push_back(thirdObj);
@@ -1068,11 +1080,11 @@ TEST_HEADER(JsonGenericTest, ObjectArray)
     third = copyConstruct.objectArray()[2];
     EXPECT_EQ(Json::Value::Type::Object, third.find("thirdThree")->second->type());
 
-    auto ctorMake = Json::ObjectArray::Make();
+    auto ctorMake = std::make_shared<Json::ObjectArray>();
     EXPECT_EQ(0, ctorMake->arraySize());
     EXPECT_TRUE(ctorMake->objectArray().empty());
 
-    auto valueMake = Json::ObjectArray::Make(objects);
+    auto valueMake = std::make_shared<Json::ObjectArray>(objects);
     EXPECT_EQ(3, valueMake->arraySize());
     EXPECT_EQ(3, valueMake->objectArray().size());
     first = valueMake->objectArray()[0];
@@ -1087,7 +1099,7 @@ TEST_HEADER(JsonGenericTest, ObjectArray)
     third = valueMake->objectArray()[2];
     EXPECT_EQ(Json::Value::Type::Object, third.find("thirdThree")->second->type());
 
-    auto copyMake = Json::ObjectArray::Make(valueConstruct);
+    auto copyMake = std::make_shared<Json::ObjectArray>(valueConstruct);
     EXPECT_EQ(3, copyMake->arraySize());
     EXPECT_EQ(3, copyMake->objectArray().size());
     first = copyMake->objectArray()[0];
@@ -1150,15 +1162,15 @@ TEST_HEADER(JsonGenericTest, MixedArray)
     EXPECT_EQ(0, ctor.arraySize());
     EXPECT_TRUE(ctor.mixedArray().empty());
 
-    std::vector<std::shared_ptr<Json::Value>> nestedMixedArrayValues = { nullptr, Json::Number::Make("1234") };
-    std::shared_ptr<Json::Value> nestedMixedArrayValue = std::shared_ptr<Json::Value>(new Json::MixedArray(nestedMixedArrayValues));
+    std::vector<std::shared_ptr<Json::Value>> nestedMixedArrayValues = { nullptr, std::make_shared<Json::Number>("1234") };
+    std::shared_ptr<Json::Value> nestedMixedArrayValue = std::make_shared<Json::MixedArray>(nestedMixedArrayValues);
 
     std::vector<bool> nestedBoolArrayValues = { true, false, true };
-    std::shared_ptr<Json::Value> nestedBoolArrayValue = std::shared_ptr<Json::Value>(new Json::BoolArray(nestedBoolArrayValues));
+    std::shared_ptr<Json::Value> nestedBoolArrayValue = std::make_shared<Json::BoolArray>(nestedBoolArrayValues);
 
-    std::shared_ptr<Json::Object> objValue = std::shared_ptr<Json::Object>(new Json::Object());
-    objValue->put("some", Json::String::Make("field"));
-    objValue->put("someother", Json::String::Make("field"));
+    std::shared_ptr<Json::Object> objValue = std::make_shared<Json::Object>();
+    objValue->put("some", std::make_shared<Json::String>("field"));
+    objValue->put("someother", std::make_shared<Json::String>("field"));
     
     std::vector<std::shared_ptr<Json::Value>> values = { nestedMixedArrayValue, nestedBoolArrayValue, objValue };
     Json::MixedArray valueConstruct(values);
@@ -1203,11 +1215,11 @@ TEST_HEADER(JsonGenericTest, MixedArray)
     EXPECT_STREQ("field", nestedObj->object().find("some")->second->string().c_str());
     EXPECT_STREQ("field", nestedObj->object().find("someother")->second->string().c_str());
 
-    auto ctorMake = Json::MixedArray::Make();
+    auto ctorMake = std::make_shared<Json::MixedArray>();
     EXPECT_EQ(0, ctorMake->arraySize());
     EXPECT_TRUE(ctorMake->mixedArray().empty());
     
-    auto valueMake = Json::MixedArray::Make(values);
+    auto valueMake = std::make_shared<Json::MixedArray>(values);
     EXPECT_EQ(3, valueMake->arraySize());
     EXPECT_EQ(3, valueMake->mixedArray().size());
     nestedMixedArray = valueMake->mixedArray()[0];
@@ -1228,7 +1240,7 @@ TEST_HEADER(JsonGenericTest, MixedArray)
     EXPECT_STREQ("field", nestedObj->object().find("some")->second->string().c_str());
     EXPECT_STREQ("field", nestedObj->object().find("someother")->second->string().c_str());
 
-    auto copyMake = Json::MixedArray::Make(valueConstruct);
+    auto copyMake = std::make_shared<Json::MixedArray>(valueConstruct);
     EXPECT_EQ(3, copyMake->arraySize());
     EXPECT_EQ(3, copyMake->mixedArray().size());
     nestedMixedArray = copyMake->mixedArray()[0];
@@ -1303,8 +1315,8 @@ TEST_HEADER(JsonGenericTest, FieldCluster)
     EXPECT_TRUE(ctor.object().empty());
 
     std::map<std::string, std::shared_ptr<Json::Value>> value;
-    value.insert(std::pair("first", Json::Bool::Make(false)));
-    value.insert(std::pair("second", Json::String::Make("asdf")));
+    value.insert(std::pair("first", std::make_shared<Json::Bool>(false)));
+    value.insert(std::pair("second", std::make_shared<Json::String>("asdf")));
     Json::FieldCluster fieldClusterValue(value);
     auto first = fieldClusterValue.object().find("first");
     auto second = fieldClusterValue.object().find("second");
@@ -1313,10 +1325,10 @@ TEST_HEADER(JsonGenericTest, FieldCluster)
     EXPECT_FALSE(first->second->boolean());
     EXPECT_STREQ("asdf", second->second->string().c_str());
 
-    auto ctorMake = Json::FieldCluster::Make();
+    auto ctorMake = std::make_shared<Json::FieldCluster>();
     EXPECT_TRUE(ctorMake->object().empty());
 
-    auto valueMake = Json::FieldCluster::Make(value);
+    auto valueMake = std::make_shared<Json::FieldCluster>(value);
     first = valueMake->object().find("first");
     second = valueMake->object().find("second");
     EXPECT_STREQ("first", first->first.c_str());
@@ -1365,9 +1377,9 @@ TEST_HEADER(JsonGenericTest, GenericValueAssigner)
     Json::Value::Assigner nullAssigner(nullptr);
     EXPECT_EQ(nullptr, nullAssigner.get());
 
-    Json::Value::Assigner falseBool(new Json::Bool(false));
+    Json::Value::Assigner falseBool(std::make_unique<Json::Bool>(false));
     EXPECT_FALSE(falseBool.get()->boolean());
-    Json::Value::Assigner trueBool = Json::Value::Assigner(new Json::Bool(true));
+    Json::Value::Assigner trueBool = Json::Value::Assigner(std::make_unique<Json::Bool>(true));
     EXPECT_TRUE(trueBool.get()->boolean());
     
     int genericValueInstance = 0;
@@ -1380,61 +1392,61 @@ TEST_HEADER(JsonGenericTest, GenericValueAssigner)
     nullAssigner.into(genericValuePtr);
     EXPECT_TRUE(genericValuePtr == nullptr);
 
-    std::unique_ptr<Json::Value> genericValueUniquePtr = std::unique_ptr<Json::Value>(new Json::Bool(false));
+    std::unique_ptr<Json::Value> genericValueUniquePtr = std::make_unique<Json::Bool>(false);
     nullAssigner.into(genericValueUniquePtr);
     EXPECT_TRUE(genericValueUniquePtr == nullptr);
 
-    std::shared_ptr<Json::Value> genericValueSharedPtr = std::shared_ptr<Json::Value>(new Json::Bool(true));
+    std::shared_ptr<Json::Value> genericValueSharedPtr = std::make_shared<Json::Bool>(true);
     nullAssigner.into(genericValueSharedPtr);
     EXPECT_TRUE(genericValueSharedPtr == nullptr);
 
     // All cases where allocatedValue != nullptr and type matches
-    Json::Value::Assigner boolInstanceAssigner(new Json::Bool(true));
+    Json::Value::Assigner boolInstanceAssigner(std::make_unique<Json::Bool>(true));
     Json::Bool boolInstanceReceivable;
     boolInstanceAssigner.into(boolInstanceReceivable);
     EXPECT_TRUE(boolInstanceReceivable.boolean());
 
-    Json::Value::Assigner boolPtrAssigner(new Json::Bool(true));
+    Json::Value::Assigner boolPtrAssigner(std::make_unique<Json::Bool>(true));
     Json::Bool* boolPtrUnreceivable = nullptr;
     EXPECT_THROW(boolPtrAssigner.into(boolPtrUnreceivable), Json::Exception);
 
-    Json::Value::Assigner boolUniqueAssigner(new Json::Bool(true));
+    Json::Value::Assigner boolUniqueAssigner(std::make_unique<Json::Bool>(true));
     std::unique_ptr<Json::Bool> boolUniqueRecievable = nullptr;
     boolUniqueAssigner.into(boolUniqueRecievable);
     EXPECT_TRUE(boolUniqueRecievable->boolean());
 
-    Json::Value::Assigner boolSharedAssigner(new Json::Bool(true));
+    Json::Value::Assigner boolSharedAssigner(std::make_unique<Json::Bool>(true));
     std::shared_ptr<Json::Bool> boolSharedReceivable = nullptr;
     boolSharedAssigner.into(boolSharedReceivable);
     EXPECT_TRUE(boolSharedReceivable->boolean());
 
     // All cases where allocatedValue != nullptr and type mismatches
-    Json::Value::Assigner numberNonAssigner(new Json::Number("1"));
+    Json::Value::Assigner numberNonAssigner(std::make_unique<Json::Number>("1"));
     Json::String stringUnassignable;
     EXPECT_THROW(numberNonAssigner.into(stringUnassignable), Json::Value::TypeMismatch);
 
-    Json::Value::Assigner numberNullptrAssigner(new Json::Number("2"));
+    Json::Value::Assigner numberNullptrAssigner(std::make_unique<Json::Number>("2"));
     Json::String* stringNullptr = nullptr;
     EXPECT_THROW(numberNullptrAssigner.into(stringNullptr), Json::Exception);
 
-    Json::Value::Assigner numberPtrAssigner(new Json::Number("3"));
+    Json::Value::Assigner numberPtrAssigner(std::make_unique<Json::Number>("3"));
     Json::String* stringPtrUnassignable = &stringUnassignable;
     EXPECT_THROW(numberPtrAssigner.into(stringPtrUnassignable), Json::Value::TypeMismatch);
 
-    Json::Value::Assigner numberUniqueNullAssigner(new Json::Number("4"));
+    Json::Value::Assigner numberUniqueNullAssigner(std::make_unique<Json::Number>("4"));
     std::unique_ptr<Json::String> stringUniqueNullptr = nullptr;
     EXPECT_THROW(numberUniqueNullAssigner.into(stringUniqueNullptr), Json::Exception);
 
-    Json::Value::Assigner numberUniquePtrAssigner(new Json::Number("5"));
-    std::unique_ptr<Json::String> stringUniquePtr = std::unique_ptr<Json::String>(new Json::String("asdf"));
+    Json::Value::Assigner numberUniquePtrAssigner(std::make_unique<Json::Number>("5"));
+    std::unique_ptr<Json::String> stringUniquePtr = std::make_unique<Json::String>("asdf");
     EXPECT_THROW(numberUniquePtrAssigner.into(stringUniquePtr), Json::Value::TypeMismatch);
 
-    Json::Value::Assigner numberSharedNullAssigner(new Json::Number("6"));
+    Json::Value::Assigner numberSharedNullAssigner(std::make_unique<Json::Number>("6"));
     std::shared_ptr<Json::String> stringSharedNullptr = nullptr;
     EXPECT_THROW(numberSharedNullAssigner.into(stringSharedNullptr), Json::Exception);
 
-    Json::Value::Assigner numberSharedPtrAssigner(new Json::Number("7"));
-    std::shared_ptr<Json::String> stringSharedPtr = std::unique_ptr<Json::String>(new Json::String("asdf"));
+    Json::Value::Assigner numberSharedPtrAssigner(std::make_unique<Json::Number>("7"));
+    std::shared_ptr<Json::String> stringSharedPtr = std::make_unique<Json::String>("asdf");
     EXPECT_THROW(numberSharedPtrAssigner.into(stringSharedPtr), Json::Value::TypeMismatch);
 }
 
@@ -2709,10 +2721,11 @@ TEST_HEADER(JsonOutputPut, GenericValue)
     EXPECT_STREQ("\"asd\\nf\"", strStream.str().c_str());
 
     Json::Object obj;
-    obj.put("astr", Json::String::Make("asdf"));
-    obj.put("number", Json::Number::Make("1234"));
+    obj.put("astr", std::make_shared<Json::String>("asdf"));
+    obj.put("null", nullptr);
+    obj.put("number", std::make_shared<Json::Number>("1234"));
     Json::Put::GenericValue<NoAnnotation, false, Json::twoSpaces, true>(objStream, Json::context, 0, 0, obj);
-    EXPECT_STREQ("{\"astr\":\"asdf\",\"number\":1234}", objStream.str().c_str());
+    EXPECT_STREQ("{\"astr\":\"asdf\",\"null\":null,\"number\":1234}", objStream.str().c_str());
 
     Json::NullArray nullArray(3);
     Json::Put::GenericValue<NoAnnotation, false, Json::twoSpaces, true>(nullArrayStream, Json::context, 0, 0, nullArray);
@@ -2740,21 +2753,22 @@ TEST_HEADER(JsonOutputPut, GenericValue)
 
     Json::ObjectArray objArray;
     Json::ObjectValue objElement;
-    objElement.insert(std::pair("astr", Json::String::Make("asdf")));
-    objElement.insert(std::pair("number", Json::Number::Make("1234")));
+    objElement.insert(std::pair("astr", std::make_shared<Json::String>("asdf")));
+    objElement.insert(std::pair("null", nullptr));
+    objElement.insert(std::pair("number", std::make_shared<Json::Number>("1234")));
     objArray.objectArray().push_back(objElement);
     Json::Put::GenericValue<NoAnnotation, false, Json::twoSpaces, true>(objArrayStream, Json::context, 0, 0, objArray);
-    EXPECT_STREQ("[{\"astr\":\"asdf\",\"number\":1234}]", objArrayStream.str().c_str());
+    EXPECT_STREQ("[{\"astr\":\"asdf\",\"null\":null,\"number\":1234}]", objArrayStream.str().c_str());
 
     Json::MixedArray mixedArray;
-    mixedArray.mixedArray().push_back(Json::Bool::Make(true));
+    mixedArray.mixedArray().push_back(std::make_shared<Json::Bool>(true));
     mixedArray.mixedArray().push_back(nullptr);
     Json::Put::GenericValue<NoAnnotation, false, Json::twoSpaces, true>(mixedArrayStream, Json::context, 0, 0, mixedArray);
     EXPECT_STREQ("[true,null]", mixedArrayStream.str().c_str());
 
     Json::FieldCluster fieldCluster;
-    fieldCluster.put("astr", Json::String::Make("asdf"));
-    fieldCluster.put("number", Json::Number::Make("1234"));
+    fieldCluster.put("astr", std::make_shared<Json::String>("asdf"));
+    fieldCluster.put("number", std::make_shared<Json::Number>("1234"));
     Json::Put::GenericValue<NoAnnotation, false, Json::twoSpaces, true>(fieldClusterStream, Json::context, 0, 0, fieldCluster);
     EXPECT_STREQ("\"astr\":\"asdf\",\"number\":1234", fieldClusterStream.str().c_str());
 }
@@ -2770,8 +2784,8 @@ TEST_HEADER(JsonOutputPut, GenericIterable)
         mixedArrayStream;
 
     Json::Object obj;
-    obj.put("astr", Json::String::Make("asdf"));
-    obj.put("number", Json::Number::Make("1234"));
+    obj.put("astr", std::make_shared<Json::String>("asdf"));
+    obj.put("number", std::make_shared<Json::Number>("1234"));
     Json::Put::GenericIterable<NoAnnotation, false, Json::twoSpaces>(objStream, Json::context, 3, 3, obj);
     EXPECT_STREQ("{\"astr\":\"asdf\",\"number\":1234}", objStream.str().c_str());
 
@@ -2801,14 +2815,14 @@ TEST_HEADER(JsonOutputPut, GenericIterable)
 
     Json::ObjectArray objArray;
     Json::ObjectValue objElement;
-    objElement.insert(std::pair("astr", Json::String::Make("asdf")));
-    objElement.insert(std::pair("number", Json::Number::Make("1234")));
+    objElement.insert(std::pair("astr", std::make_shared<Json::String>("asdf")));
+    objElement.insert(std::pair("number", std::make_shared<Json::Number>("1234")));
     objArray.objectArray().push_back(objElement);
     Json::Put::GenericIterable<NoAnnotation, false, Json::twoSpaces>(objArrayStream, Json::context, 3, 3, objArray);
     EXPECT_STREQ("[{\"astr\":\"asdf\",\"number\":1234}]", objArrayStream.str().c_str());
 
     Json::MixedArray mixedArray;
-    mixedArray.mixedArray().push_back(Json::Bool::Make(true));
+    mixedArray.mixedArray().push_back(std::make_shared<Json::Bool>(true));
     mixedArray.mixedArray().push_back(nullptr);
     Json::Put::GenericIterable<NoAnnotation, false, Json::twoSpaces>(mixedArrayStream, Json::context, 3, 3, mixedArray);
     EXPECT_STREQ("[true,null]", mixedArrayStream.str().c_str());
@@ -3190,7 +3204,7 @@ TEST_HEADER(JsonOutputPut, Field)
     EXPECT_STREQ("", putRegularEmptyCluster.str().c_str());
 
     TestStreamType putRegularCluster;
-    regularFields.regularFieldCluster.put("aField", Json::String::Make("aString"));
+    regularFields.regularFieldCluster.put("aField", std::make_shared<Json::String>("aString"));
     Json::Put::Field<NoAnnotation, RegularFields::Class::regularFieldCluster_::Field, Json::Statics::Excluded, false, 0, Json::twoSpaces, RegularFields>(
         putRegularCluster, Json::context, regularFields, "regularFieldCluster", regularFields.regularFieldCluster);
     EXPECT_STREQ(",\"aField\":\"aString\"", putRegularCluster.str().c_str());
@@ -3225,14 +3239,14 @@ TEST_HEADER(JsonOutputPut, Field)
     EXPECT_STREQ("", putClusterNullPointer.str().c_str());
 
     TestStreamType putClusterPointerEmpty;
-    fieldClusterPointer.fieldClusterPointer = std::unique_ptr<Json::FieldCluster>(new Json::FieldCluster());
+    fieldClusterPointer.fieldClusterPointer = std::make_unique<Json::FieldCluster>();
     Json::Put::Field<NoAnnotation, FieldClusterPointer::Class::fieldClusterPointer_::Field, Json::Statics::Excluded, false, 0, Json::twoSpaces, FieldClusterPointer>(
         putClusterPointerEmpty, Json::context, fieldClusterPointer, "fieldClusterPointer", fieldClusterPointer.fieldClusterPointer);
     EXPECT_STREQ("", putClusterPointerEmpty.str().c_str());
 
     TestStreamType putClusterPointerNonEmpty;
     fieldClusterPointer.fieldClusterPointer->put("one", nullptr);
-    fieldClusterPointer.fieldClusterPointer->put("two", Json::Bool::Make(true));
+    fieldClusterPointer.fieldClusterPointer->put("two", std::make_shared<Json::Bool>(true));
     Json::Put::Field<NoAnnotation, FieldClusterPointer::Class::fieldClusterPointer_::Field, Json::Statics::Excluded, false, 0, Json::twoSpaces, FieldClusterPointer>(
         putClusterPointerNonEmpty, Json::context, fieldClusterPointer, "fieldClusterPointer", fieldClusterPointer.fieldClusterPointer);
     EXPECT_STREQ(",\"one\":null,\"two\":true", putClusterPointerNonEmpty.str().c_str());
@@ -3247,7 +3261,7 @@ TEST_HEADER(JsonOutputPut, Fields)
     EXPECT_STREQ("\"regular\":1,\"regular2\":2", putRegularFields.str().c_str());
 
     TestStreamType putMultipleRegularFields;
-    regularFields.regularFieldCluster.put("unknown", Json::String::Make("field"));
+    regularFields.regularFieldCluster.put("unknown", std::make_shared<Json::String>("field"));
     Json::Put::Fields<NoAnnotation, Json::Statics::Excluded, false, 0, Json::twoSpaces, RegularFields>(
         putMultipleRegularFields, Json::context, regularFields);
     EXPECT_STREQ("\"regular\":1,\"regular2\":2,\"unknown\":\"field\"", putMultipleRegularFields.str().c_str());

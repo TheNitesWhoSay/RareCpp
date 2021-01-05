@@ -89,15 +89,14 @@ public:
 
     REFLECT(CupHolder, width, height, occupied)
 };
-using CupHolderPtr = std::shared_ptr<CupHolder>;
 
 class Car {
 public:
     Car() : milesPerGallon(0.0f) {}
     Car(Wheel frontLeft, Wheel frontRight, Wheel backLeft, Wheel backRight, const std::string &driver, const std::string &passenger,
         const std::vector<std::vector<std::vector<std::string>>> & testNest, const std::map<std::string, std::vector<std::vector<std::string>>> & testMapNest,
-        const std::map<std::string, std::string> & occupantId, std::map<std::string, CupHolderPtr> occupantCupHolderUsage,
-        const std::vector<CupHolderPtr> & cupHolders, const FuelTank &fuelTank, float milesPerGallon)
+        const std::map<std::string, std::string> & occupantId, std::map<std::string, std::shared_ptr<CupHolder>> occupantCupHolderUsage,
+        const std::vector<std::shared_ptr<CupHolder>> & cupHolders, const FuelTank &fuelTank, float milesPerGallon)
         : testNest(testNest), testMapNest(testMapNest), occupantId(occupantId), occupantCupHolderUsage(occupantCupHolderUsage), cupHolders(cupHolders),
         fuelTank(fuelTank), milesPerGallon(milesPerGallon)
     {
@@ -114,8 +113,8 @@ public:
     std::vector<std::vector<std::vector<std::string>>> testNest;
     std::map<std::string, std::vector<std::vector<std::string>>> testMapNest;
     std::map<std::string, std::string> occupantId;
-    std::map<std::string, CupHolderPtr> occupantCupHolderUsage;
-    std::vector<CupHolderPtr> cupHolders;
+    std::map<std::string, std::shared_ptr<CupHolder>> occupantCupHolderUsage;
+    std::vector<std::shared_ptr<CupHolder>> cupHolders;
     FuelTank fuelTank;
     float milesPerGallon;
     
@@ -233,9 +232,9 @@ Car outputExamples()
         std::cout << "}" << std::endl;
     });
 
-    std::vector<CupHolderPtr> cupHolders;
+    std::vector<std::shared_ptr<CupHolder>> cupHolders;
     std::map<std::string, std::string> occupantId;
-    std::map<std::string, CupHolderPtr> occupantCupHolderUsage;
+    std::map<std::string, std::shared_ptr<CupHolder>> occupantCupHolderUsage;
     Wheel frontLeft(Wheel::Rim::Regular, 14, 32.2f), frontRight(Wheel::Rim::Regular, 14, 31.9f), backLeft(Wheel::Rim::Spinner, 15, 33.0f), backRight(Wheel::Rim::Spinner, 15, 30.9f);
     std::string driver = "Fred";
     std::string passenger = "Bob";
@@ -249,10 +248,10 @@ Car outputExamples()
     };
     occupantId.insert(std::pair<std::string, std::string>(driver, "B252-123-839-244"));
     occupantId.insert(std::pair<std::string, std::string>(passenger, "B252-612-321-245"));
-    cupHolders.push_back(CupHolderPtr(new CupHolder(3, 3, true)));
-    cupHolders.push_back(CupHolderPtr(new CupHolder(2, 2, false)));
-    occupantCupHolderUsage.insert(std::pair<std::string, CupHolderPtr>(driver, cupHolders[0]));
-    occupantCupHolderUsage.insert(std::pair<std::string, CupHolderPtr>(passenger, cupHolders[1]));
+    cupHolders.push_back(std::make_shared<CupHolder>(3, 3, true));
+    cupHolders.push_back(std::make_shared<CupHolder>(2, 2, false));
+    occupantCupHolderUsage.insert(std::pair<std::string, std::shared_ptr<CupHolder>>(driver, cupHolders[0]));
+    occupantCupHolderUsage.insert(std::pair<std::string, std::shared_ptr<CupHolder>>(passenger, cupHolders[1]));
     FuelTank fuelTank(15.0f, 14.6f, 1.0f, 7.5f);
     Car car(frontLeft, frontRight, backLeft, backRight, driver, passenger, testNest, testMapNest, occupantId, occupantCupHolderUsage, cupHolders, fuelTank, 22.5f);
     
@@ -400,12 +399,27 @@ struct State : public Point, public Another
 Status State::status;
 
 
+struct OwnedObject1
+{
+    int a;
+
+    REFLECT(OwnedObject1, a)
+};
+
+struct OwnedObject2
+{
+    int a;
+
+    REFLECT(OwnedObject2, a)
+};
+
 struct UnownedObject
 {
     int a;
     int b;
     int c;
     std::map<int, int> d;
+    std::vector<OwnedObject2> e;
 };
 
 struct OwnedObject
@@ -413,13 +427,14 @@ struct OwnedObject
     int a;
     int b;
     std::map<int, int> d;
+    std::vector<OwnedObject1> e;
 
-    REFLECT(OwnedObject, a, b, d)
+    REFLECT(OwnedObject, a, b, d, e)
 };
 
 template <> struct Reflect::Proxy<UnownedObject> : public UnownedObject
 {
-    REFLECT(Reflect::Proxy<UnownedObject>, a, b, c, d)
+    REFLECT(Reflect::Proxy<UnownedObject>, a, b, c, d, e)
 };
 
 template <> constexpr inline void ObjectMapper::map(const OwnedObject & src, UnownedObject & dest)
@@ -428,14 +443,20 @@ template <> constexpr inline void ObjectMapper::map(const OwnedObject & src, Uno
     dest.c = 9001;
 }
 
+template <> void ObjectMapper::map(const OwnedObject1 & src, OwnedObject2 & dest)
+{
+    ObjectMapper::map_default(src, dest);
+    dest.a = 9002;
+}
+
 int main()
 {
-    OwnedObject objModel { 1, 2, {{3, 4}, {5, 6}} };
+    OwnedObject objModel { 1, 2, {{3, 4}, {5, 6}}, {{7}} };
     UnownedObject objDao {};
 
     ObjectMapper::map(objModel, objDao);
 
-    std::cout << "objDao: { " << objDao.a << ", " << objDao.b << ", " << objDao.c << " }" << std::endl;
+    std::cout << "objDao: { " << objDao.a << ", " << objDao.b << ", " << objDao.c << ", " << objDao.e[0].a << " }" << std::endl;
     for ( auto & pair : objDao.d )
         std::cout << "{ " << pair.first << ", " << pair.second << " }" << std::endl;
 
@@ -479,7 +500,7 @@ int main()
             Json::putClassFieldCache(std::cout);
             std::cout << "..." << std::endl;
         }
-        std::cout << "Read in: " << Json::pretty<Statics::Included>(a, EnhancedContext::Make(1337)) << std::endl;
+        std::cout << "Read in: " << Json::pretty<Statics::Included>(a, std::make_shared<EnhancedContext>(1337)) << std::endl;
         std::cout << "..." << std::endl;
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
@@ -489,6 +510,5 @@ int main()
     std::cin.clear();
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     std::cin.get();
-
     return 0;
 }

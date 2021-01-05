@@ -284,12 +284,13 @@ namespace Json
             class Assigner
             {
             public:
-                Assigner(Value* allocatedValue) : allocatedValue(allocatedValue) {}
-                ~Assigner() { if ( allocatedValue != nullptr ) delete allocatedValue; }
+                Assigner(std::unique_ptr<Value> && allocatedValue) : allocatedValue(std::move(allocatedValue)) {}
 
-                static std::shared_ptr<Assigner> Make(Value* allocatedValue) { return std::shared_ptr<Assigner>(new Assigner(allocatedValue)); }
+                template <typename Value, typename... Args>
+                static std::shared_ptr<Assigner> Make(Args &&... args) { return std::make_shared<Assigner>(std::move(std::make_unique<Value>(args...))); }
+                static std::shared_ptr<Assigner> Make(std::nullptr_t) { return std::make_shared<Assigner>(nullptr); }
                 
-                Value* get() { return allocatedValue; };
+                Value* get() { return allocatedValue.get(); }
 
                 /// Assigns the stored Json::Generic::Value to the value passed to the method, then discards the stored Json::Generic::Value
                 template <typename T>
@@ -302,7 +303,7 @@ namespace Json
                             using Dereferenced = typename remove_pointer<T>::type;
                             if ( value == nullptr )
                             {
-                                Dereferenced* casted = dynamic_cast<Dereferenced*>(allocatedValue);
+                                Dereferenced* casted = dynamic_cast<Dereferenced*>(allocatedValue.get());
                                 if ( casted == nullptr )
                                     throw TypeMismatch(Value::Type::None, allocatedValue->type());
                                 else if constexpr ( std::is_same<std::shared_ptr<Dereferenced>, T>::value )
@@ -315,16 +316,16 @@ namespace Json
                             else if ( value->type() != allocatedValue->type() ) // value != nullptr
                                 throw TypeMismatch(value->type(), allocatedValue->type());
                             else if constexpr ( std::is_same<std::shared_ptr<Dereferenced>, T>::value ) // && value != nullptr && types match
-                                value = std::shared_ptr<Dereferenced>(dynamic_cast<Dereferenced*>(allocatedValue));
+                                value = std::shared_ptr<Dereferenced>(dynamic_cast<Dereferenced*>(allocatedValue.get()));
                             else if constexpr ( std::is_same<std::unique_ptr<Dereferenced>, T>::value ) // && value != nullptr && types match
-                                value = std::unique_ptr<Dereferenced>(dynamic_cast<Dereferenced*>(allocatedValue));
+                                value = std::unique_ptr<Dereferenced>(dynamic_cast<Dereferenced*>(allocatedValue.get()));
                             else // value != nullptr && value->type() == allocatedValue->type()
                             {
                                 *value = *allocatedValue; // Non-null but not a smart pointer you can trust to perform cleanup, use value assignment
-                                delete allocatedValue;
+                                allocatedValue = nullptr;
                             }
 
-                            allocatedValue = nullptr;
+                            allocatedValue.release();
                         }
                         else if ( value != nullptr ) // allocatedValue == nullptr
                             value = nullptr;
@@ -345,15 +346,10 @@ namespace Json
                         throw Exception("Cannot assign generic value to any type except Json::Value");
                 }
 
-                std::shared_ptr<Value> out()
-                {
-                    std::shared_ptr<Value> output = std::shared_ptr<Value>(allocatedValue);
-                    allocatedValue = nullptr;
-                    return output;
-                }
+                std::shared_ptr<Value> out() { return std::shared_ptr(std::move(allocatedValue)); }
 
             private:
-                Value* allocatedValue;
+                std::unique_ptr<Value> allocatedValue;
             };
 
             virtual ~Value() {};
@@ -400,7 +396,6 @@ namespace Json
         };
         
         using ObjectValue = std::map<std::string, std::shared_ptr<Value>>;
-        using ObjectValuePtr = std::shared_ptr<ObjectValue>;
 
         class Bool : public Value {
         public:
@@ -408,10 +403,6 @@ namespace Json
             Bool(bool value) : value(value) {}
             Bool(const Bool & other) : value(other.value) {}
             virtual ~Bool() {}
-            
-            static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new Bool()); }
-            static std::shared_ptr<Value> Make(bool value) { return std::shared_ptr<Value>(new Bool(value)); }
-            static std::shared_ptr<Value> Make(const Bool & other) { return std::shared_ptr<Value>(new Bool(other)); }
             
             Bool & operator=(const Value & other) { value = other.boolean(); return *this; }
 
@@ -459,13 +450,10 @@ namespace Json
             Number() : value("0") {}
             Number(const std::string & value) : value(value) {}
             Number(const Number & other) : value(other.value) {}
+            Number(const char* value) : value(value) {}
+            template <size_t N> Number(const char(&value)[N]) : value(value, N) {}
+            template <typename T> Number(const T & value) : value(std::to_string(value)) {}
             virtual ~Number() {}
-            
-            static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new Number()); }
-            static std::shared_ptr<Value> Make(const char* value) { return std::shared_ptr<Value>(new Number(value)); }
-            static std::shared_ptr<Value> Make(const std::string & value) { return std::shared_ptr<Value>(new Number(value)); }
-            static std::shared_ptr<Value> Make(const Number & other) { return std::shared_ptr<Value>(new Number(other)); }
-            template <typename T> static std::shared_ptr<Value> Make(const T & number) { return std::shared_ptr<Value>(new Number(std::to_string(number))); }
             
             Number & operator=(const Value & other) { value = other.number(); return *this; }
             
@@ -515,10 +503,6 @@ namespace Json
             String(const String & other) : value(other.value) {}
             virtual ~String() {}
             
-            static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new String()); }
-            static std::shared_ptr<Value> Make(const std::string & value) { return std::shared_ptr<Value>(new String(value)); }
-            static std::shared_ptr<Value> Make(const String & other) { return std::shared_ptr<Value>(new String(other)); }
-            
             String & operator=(const Value & other) { value = other.string(); return *this; }
             
             virtual Type type() const { return Value::Type::String; }
@@ -566,12 +550,6 @@ namespace Json
             Object(const std::map<std::string, std::shared_ptr<Value>> & value) : value(value) {}
             Object(const Object & other) : value(other.value) {}
             virtual ~Object() {}
-            
-            static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new Object()); }
-            static std::shared_ptr<Value> Make(const std::map<std::string, std::shared_ptr<Value>> & value) {
-                return std::shared_ptr<Value>(new Object(value));
-            }
-            static std::shared_ptr<Value> Make(const Object & other) { return std::shared_ptr<Value>(new Object(other)); }
             
             Object & operator=(const Value & other) { value = other.object(); return *this; }
             
@@ -625,10 +603,6 @@ namespace Json
             NullArray(const NullArray & other) : nullCount(other.nullCount) {}
             virtual ~NullArray() {}
             
-            static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new NullArray()); }
-            static std::shared_ptr<Value> Make(size_t nullCount) { return std::shared_ptr<Value>(new NullArray(nullCount)); }
-            static std::shared_ptr<Value> Make(const NullArray & other) { return std::shared_ptr<Value>(new NullArray(other)); }
-            
             NullArray & operator=(const Value & other) { nullCount = other.nullArray(); return *this; }
             
             virtual Type type() const { return Value::Type::NullArray; }
@@ -680,10 +654,6 @@ namespace Json
             BoolArray(const std::vector<bool> & values) : values(values) {}
             BoolArray(const BoolArray & other) : values(other.values) {}
             virtual ~BoolArray() {}
-            
-            static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new BoolArray()); }
-            static std::shared_ptr<Value> Make(const std::vector<bool> & values) { return std::shared_ptr<Value>(new BoolArray(values)); }
-            static std::shared_ptr<Value> Make(const BoolArray & other) { return std::shared_ptr<Value>(new BoolArray(other)); }
             
             BoolArray & operator=(const Value & other) { values = other.boolArray(); return *this; }
 
@@ -737,10 +707,6 @@ namespace Json
             NumberArray(const NumberArray & other) : values(other.values) {}
             virtual ~NumberArray() {}
             
-            static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new NumberArray()); }
-            static std::shared_ptr<Value> Make(const std::vector<std::string> & values) { return std::shared_ptr<Value>(new NumberArray(values)); }
-            static std::shared_ptr<Value> Make(const NumberArray & other) { return std::shared_ptr<Value>(new NumberArray(other)); }
-            
             NumberArray & operator=(const Value & other) { values = other.numberArray(); return *this; }
             
             virtual Type type() const { return Value::Type::NumberArray; }
@@ -790,10 +756,6 @@ namespace Json
             StringArray(const std::vector<std::string> & other) : values(other) {}
             StringArray(const StringArray & other) : values(other.values) {}
             virtual ~StringArray() {}
-            
-            static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new StringArray()); }
-            static std::shared_ptr<Value> Make(const std::vector<std::string> & values) { return std::shared_ptr<Value>(new StringArray(values)); }
-            static std::shared_ptr<Value> Make(const StringArray & other) { return std::shared_ptr<Value>(new StringArray(other)); }
             
             StringArray & operator=(const Value & other) { values = other.stringArray(); return *this; }
             
@@ -845,12 +807,6 @@ namespace Json
             ObjectArray(const ObjectArray & other) : values(other.values) {}
             virtual ~ObjectArray() {}
             
-            static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new ObjectArray()); }
-            static std::shared_ptr<Value> Make(const std::vector<std::map<std::string, std::shared_ptr<Value>>> & values) {
-                return std::shared_ptr<Value>(new ObjectArray(values));
-            }
-            static std::shared_ptr<Value> Make(const ObjectArray & other) { return std::shared_ptr<Value>(new ObjectArray(other)); }
-            
             ObjectArray & operator=(const Value & other) { values = other.objectArray(); return *this; }
             
             virtual Type type() const { return Value::Type::ObjectArray; }
@@ -898,10 +854,6 @@ namespace Json
             MixedArray(const std::vector<std::shared_ptr<Value>> & values) : values(values) {}
             MixedArray(const MixedArray & other) : values(other.values) {}
             virtual ~MixedArray() {}
-            
-            static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new MixedArray()); }
-            static std::shared_ptr<Value> Make(const std::vector<std::shared_ptr<Value>> & values) { return std::shared_ptr<Value>(new MixedArray(values)); }
-            static std::shared_ptr<Value> Make(const MixedArray & other) { return std::shared_ptr<Value>(new MixedArray(other)); }
             
             MixedArray & operator=(const Value & other) { values = other.mixedArray(); return *this; }
             
@@ -954,12 +906,6 @@ namespace Json
             FieldCluster(const std::map<std::string, std::shared_ptr<Value>> & value) : Object(value) {}
             FieldCluster(const FieldCluster & other) : Object(other) {}
             virtual ~FieldCluster() {}
-            
-            static std::shared_ptr<Value> Make() { return std::shared_ptr<Value>(new FieldCluster()); }
-            static std::shared_ptr<Value> Make(const std::map<std::string, std::shared_ptr<Value>> & value) {
-                return std::shared_ptr<Value>(new FieldCluster(value));
-            }
-            static std::shared_ptr<Value> Make(const FieldCluster & other) { return std::shared_ptr<Value>(new FieldCluster(other)); }
             
             FieldCluster & operator=(const Value & other) { object() = other.object(); return *this; }
             
@@ -1587,8 +1533,13 @@ namespace Json
                             Put::FieldPrefix<PrettyPrint, indent>(os, isFirst, indentLevel+totalParentIterables+1);
                             Put::String(os, field.first);
                             os << FieldNameValueSeparator<PrettyPrint>;
-                            Put::GenericValue<Annotations, PrettyPrint, indent, false>(
-                                os, context, 0, indentLevel+totalParentIterables+1, (Generic::Value &)*field.second);
+                            if ( field.second == nullptr )
+                                os << "null";
+                            else
+                            {
+                                Put::GenericValue<Annotations, PrettyPrint, indent, false>(
+                                    os, context, 0, indentLevel+totalParentIterables+1, (Generic::Value &)*field.second);
+                            }
                             isFirst = false;
                         }
                     }
@@ -1645,8 +1596,13 @@ namespace Json
                                 Put::FieldPrefix<PrettyPrint, indent>(os, isFirst, totalParentIterables+indentLevel+2);
                                 Put::String(os, field.first);
                                 os << FieldNameValueSeparator<PrettyPrint>;
-                                Put::GenericValue<Annotations, PrettyPrint, indent, false>(
-                                    os, context, totalParentIterables+1, indentLevel, (Generic::Value &)*field.second);
+                                if ( field.second == nullptr )
+                                    os << "null";
+                                else
+                                {
+                                    Put::GenericValue<Annotations, PrettyPrint, indent, false>(
+                                        os, context, totalParentIterables+1, indentLevel, (Generic::Value &)*field.second);
+                                }
                                 isFirst = false;
                             }
                             Put::ObjectSuffix<PrettyPrint, indent>(os, obj.empty(), totalParentIterables+indentLevel+1);
@@ -1960,7 +1916,7 @@ namespace Json
             constexpr OutStreamType & put(OutStreamType & os)
             {
                 if ( context == nullptr )
-                    context = std::shared_ptr<Context>(new Context());
+                    context = std::make_shared<Context>();
 
                 Put::Value<Annotations, ReflectedField<Object>, statics, PrettyPrint, 0, IndentLevel, indent, Object, true, Object>(os, *context, obj, obj);
                 return os;
@@ -3107,14 +3063,14 @@ namespace Json
                 Checked::peek(is, c, "completion of field value");
                 switch ( c )
                 {
-                    case '\"': return Generic::Value::Assigner::Make(new Generic::String(Read::String(is, c))); // String or error
+                    case '\"': return Generic::Value::Assigner::Make<Generic::String>(Read::String(is, c)); // String or error
                     case '{': return Read::GenericObject(is, context, c); // JSON object or error
                     case '[': return Read::GenericArray<InArray>(is, context, c); // JSON array or error
-                    case 't': return Generic::Value::Assigner::Make(new Generic::Bool(Read::True<InArray>(is, c))); // "true" or error
-                    case 'f': return Generic::Value::Assigner::Make(new Generic::Bool(Read::False<InArray>(is, c))); // "false" or error
+                    case 't': return Generic::Value::Assigner::Make<Generic::Bool>(Read::True<InArray>(is, c)); // "true" or error
+                    case 'f': return Generic::Value::Assigner::Make<Generic::Bool>(Read::False<InArray>(is, c)); // "false" or error
                     case '-': case '0': case '1': case '2': case '3': case '4': case '5':
                     case '6': case '7': case '8': case '9':
-                        return Generic::Value::Assigner::Make(new Generic::Number(Read::Number<InArray>(is, c))); // Number or error
+                        return Generic::Value::Assigner::Make<Generic::Number>(Read::Number<InArray>(is, c)); // Number or error
                     case 'n':
                         Consume::Null<InArray>(is, c);
                         return Generic::Value::Assigner::Make(nullptr); // "null" or error
@@ -3144,7 +3100,7 @@ namespace Json
             {
                 Read::ArrayPrefix(is, c);
                 if ( Read::TryArraySuffix(is) )
-                    return Generic::Value::Assigner::Make(new Generic::NullArray());
+                    return Generic::Value::Assigner::Make<Generic::NullArray>();
 
                 Checked::consumeWhitespace(is, "completion of field value");
                 Checked::peek(is, c, "completion of field value");
@@ -3154,12 +3110,12 @@ namespace Json
                 std::shared_ptr<Generic::Value::Assigner> result = nullptr;
                 switch ( arrayElementType )
                 {
-                    case Generic::Value::Type::Null: result = Generic::Value::Assigner::Make(new Generic::NullArray()); break;
-                    case Generic::Value::Type::Boolean: result = Generic::Value::Assigner::Make(new Generic::BoolArray()); break;
-                    case Generic::Value::Type::Number: result = Generic::Value::Assigner::Make(new Generic::NumberArray()); break;
-                    case Generic::Value::Type::String: result = Generic::Value::Assigner::Make(new Generic::StringArray()); break;
-                    case Generic::Value::Type::Object: result = Generic::Value::Assigner::Make(new Generic::ObjectArray()); break;
-                    case Generic::Value::Type::Array: result = Generic::Value::Assigner::Make(new Generic::MixedArray()); break;
+                    case Generic::Value::Type::Null: result = Generic::Value::Assigner::Make<Generic::NullArray>(); break;
+                    case Generic::Value::Type::Boolean: result = Generic::Value::Assigner::Make<Generic::BoolArray>(); break;
+                    case Generic::Value::Type::Number: result = Generic::Value::Assigner::Make<Generic::NumberArray>(); break;
+                    case Generic::Value::Type::String: result = Generic::Value::Assigner::Make<Generic::StringArray>(); break;
+                    case Generic::Value::Type::Object: result = Generic::Value::Assigner::Make<Generic::ObjectArray>(); break;
+                    case Generic::Value::Type::Array: result = Generic::Value::Assigner::Make<Generic::MixedArray>(); break;
                 }
 
                 Generic::Value::Type elementType = Generic::Value::Type::None;
@@ -3171,7 +3127,7 @@ namespace Json
 
                     if ( elementType != arrayElementType && arrayElementType != Generic::Value::Type::Array ) // Promote to mixed array
                     {
-                        std::shared_ptr<Generic::Value::Assigner> newResult = Generic::Value::Assigner::Make(new Generic::MixedArray());
+                        std::shared_ptr<Generic::Value::Assigner> newResult = Generic::Value::Assigner::Make<Generic::MixedArray>();
                         std::vector<std::shared_ptr<Generic::Value>> & mixedArray = newResult->get()->mixedArray();
                         switch ( arrayElementType )
                         {
@@ -3185,28 +3141,28 @@ namespace Json
                             {
                                 const std::vector<bool> & boolArray = result->get()->boolArray();
                                 for ( size_t i=0; i<boolArray.size(); i++ )
-                                    mixedArray.push_back(Generic::Bool::Make(boolArray[i]));
+                                    mixedArray.push_back(std::make_shared<Generic::Bool>(boolArray[i]));
                             }
                             break;
                             case Generic::Value::Type::Number:
                             {
                                 const std::vector<std::string> & numberArray = result->get()->numberArray();
                                 for ( size_t i=0; i<numberArray.size(); i++ )
-                                    mixedArray.push_back(Generic::Number::Make(numberArray[i]));
+                                    mixedArray.push_back(std::make_shared<Generic::Number>(numberArray[i]));
                             }
                             break;
                             case Generic::Value::Type::String:
                             {
                                 const std::vector<std::string> & stringArray = result->get()->stringArray();
                                 for ( size_t i=0; i<stringArray.size(); i++ )
-                                    mixedArray.push_back(Generic::String::Make(stringArray[i]));
+                                    mixedArray.push_back(std::make_shared<Generic::String>(stringArray[i]));
                             }
                             break;
                             case Generic::Value::Type::Object:
                             {
                                 const std::vector<std::map<std::string, std::shared_ptr<Generic::Value>>> & objectArray = result->get()->objectArray();
                                 for ( size_t i=0; i<objectArray.size(); i++ )
-                                    mixedArray.push_back(Generic::Object::Make(objectArray[i]));
+                                    mixedArray.push_back(std::make_shared<Generic::Object>(objectArray[i]));
                             }
                             break;
                         }
@@ -3219,9 +3175,12 @@ namespace Json
                         switch ( elementType )
                         {
                             case Generic::Value::Type::Null: Consume::Null<true>(is, c); result->get()->mixedArray().push_back(nullptr); break;
-                            case Generic::Value::Type::Boolean: result->get()->mixedArray().push_back(Generic::Bool::Make(Read::Bool<true>(is, c))); break;
-                            case Generic::Value::Type::Number: result->get()->mixedArray().push_back(Generic::Number::Make(Read::Number<true>(is, c))); break;
-                            case Generic::Value::Type::String: result->get()->mixedArray().push_back(Generic::String::Make(Read::String(is, c))); break;
+                            case Generic::Value::Type::Boolean:
+                                result->get()->mixedArray().push_back(std::make_shared<Generic::Bool>(Read::Bool<true>(is, c))); break;
+                            case Generic::Value::Type::Number:
+                                result->get()->mixedArray().push_back(std::make_shared<Generic::Number>(Read::Number<true>(is, c))); break;
+                            case Generic::Value::Type::String:
+                                result->get()->mixedArray().push_back(std::make_shared<Generic::String>(Read::String(is, c))); break;
                             case Generic::Value::Type::Object: result->get()->mixedArray().push_back(Read::GenericObject(is, context, c)->out()); break;
                             case Generic::Value::Type::Array: result->get()->mixedArray().push_back(Read::GenericArray<true>(is, context, c)->out()); break;
                         }
@@ -3247,7 +3206,7 @@ namespace Json
             
             static std::shared_ptr<Generic::Value::Assigner> GenericObject(std::istream & is, Context & context, char & c)
             {
-                std::shared_ptr<Generic::Value::Assigner> result = Generic::Value::Assigner::Make(new Generic::Object());
+                std::shared_ptr<Generic::Value::Assigner> result = std::make_shared<Generic::Value::Assigner>(std::make_unique<Generic::Object>());
                 auto & obj = result->get()->object();
 
                 Read::ObjectPrefix(is, c);
@@ -3315,12 +3274,12 @@ namespace Json
                     {
                         if constexpr ( std::is_same<std::shared_ptr<Dereferenced>, T>::value )
                         {
-                            value = std::shared_ptr<Dereferenced>(new Dereferenced());
+                            value = std::make_shared<Dereferenced>();
                             Read::Value<InArray, Field>(is, context, c, object, *value);
                         }
                         else if constexpr ( std::is_same<std::unique_ptr<Dereferenced>, T>::value )
                         {
-                            value = std::unique_ptr<Dereferenced>(new Dereferenced());
+                            value = std::make_unique<Dereferenced>();
                             Read::Value<InArray, Field>(is, context, c, object, *value);
                         }
                         else // Value pointed to is a nullptr and value is not a smart pointer or generic, only valid value is null
@@ -3565,9 +3524,9 @@ namespace Json
                                 {
                                     using Dereferenced = typename remove_pointer<ValueType>::type;
                                     if constexpr ( std::is_same<std::shared_ptr<Dereferenced>, ValueType>::value )
-                                        value = std::shared_ptr<Dereferenced>(new Dereferenced());
+                                        value = std::make_shared<Dereferenced>();
                                     else if constexpr ( std::is_same<std::unique_ptr<Dereferenced>, ValueType>::value )
-                                        value = std::unique_ptr<Dereferenced>(new Dereferenced());
+                                        value = std::make_unique<Dereferenced>();
                                     else
                                     {
                                         throw Exception(
@@ -3616,7 +3575,7 @@ namespace Json
             std::istream & get(std::istream & is)
             {
                 if ( context == nullptr )
-                    context = std::shared_ptr<Context>(new Context());
+                    context = std::make_shared<Context>();
 
                 char c = '\0';
                 Read::Value<false, ReflectedField<T>>(is, *context, c, obj, obj);

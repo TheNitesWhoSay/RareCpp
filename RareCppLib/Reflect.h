@@ -976,9 +976,6 @@ using Supers = Reflect::Inherit<Class::ClassType, Class::Annotations>;
 
 namespace ObjectMapper
 {
-    using namespace Reflect;
-    using namespace ExtendedTypeSupport;
-
     template <typename Source, typename Destination>
     constexpr inline void map_default(const Source & source, Destination & destination);
 
@@ -1003,14 +1000,14 @@ namespace ObjectMapper
     {
         if constexpr ( std::is_const_v<Destination> )
             return;
-        else if constexpr ( is_pointable<Destination>::value )
+        else if constexpr ( ExtendedTypeSupport::is_pointable<Destination>::value )
         {
-            using DestinationDereferenced = typename remove_pointer<Destination>::type;
+            using DestinationDereferenced = typename ExtendedTypeSupport::remove_pointer<Destination>::type;
             if ( destination == nullptr )
             {
-                if constexpr ( is_pointable<Source>::value )
+                if constexpr ( ExtendedTypeSupport::is_pointable<Source>::value )
                 {
-                    using SourceDereferenced = typename remove_pointer<Source>::type;
+                    using SourceDereferenced = typename ExtendedTypeSupport::remove_pointer<Source>::type;
                     if ( source == nullptr )
                         return;
                     else if constexpr ( std::is_same_v<std::shared_ptr<DestinationDereferenced>, Destination> )
@@ -1019,32 +1016,32 @@ namespace ObjectMapper
                             destination = source; // Share shared pointer
                         else
                         {
-                            destination = std::shared_ptr(new Destination());
+                            destination = std::make_shared<DestinationDereferenced>();
                             ObjectMapper::map(*source, *destination);
                         }
                     }
                     else if constexpr ( std::is_same_v<std::unique_ptr<DestinationDereferenced>, Destination> )
                     {
-                        destination = std::unique_ptr(new Destination());
+                        destination = std::make_unique<DestinationDereferenced>();
                         ObjectMapper::map(*source, *destination);
                     }
                 }
                 else if constexpr ( std::is_same_v<std::shared_ptr<DestinationDereferenced>, Destination> )
                 {
-                    destination = std::shared_ptr(new Destination());
+                    destination = std::make_shared<DestinationDereferenced>();
                     ObjectMapper::map(source, *destination);
                 }
                 else if constexpr ( std::is_same_v<std::unique_ptr<DestinationDereferenced>, Destination> )
                 {
-                    destination = std::unique_ptr(new Destination());
+                    destination = std::make_unique<DestinationDereferenced>();
                     ObjectMapper::map(source, *destination);
                 }
             }
             else // destination != nullptr
             {
-                if constexpr ( is_pointable<Source>::value )
+                if constexpr ( ExtendedTypeSupport::is_pointable<Source>::value )
                 {
-                    using SourceDereferenced = typename remove_pointer<Source>::type;
+                    using SourceDereferenced = typename ExtendedTypeSupport::remove_pointer<Source>::type;
                     if ( source == nullptr )
                         destination = nullptr;
                     else
@@ -1054,42 +1051,47 @@ namespace ObjectMapper
                     ObjectMapper::map(source, *destination);
             }
         }
-        else if constexpr ( is_pair<Destination>::value && is_pair<Source>::value )
+        else if constexpr ( ExtendedTypeSupport::is_pointable<Source>::value )
+        {
+            if ( source != nullptr )
+                ObjectMapper::map(*source, destination);
+        }
+        else if constexpr ( ExtendedTypeSupport::is_pair<Destination>::value && ExtendedTypeSupport::is_pair<Source>::value )
         {
             ObjectMapper::map(source.first, destination.first);
             ObjectMapper::map(source.second, destination.second);
         }
-        else if constexpr ( is_tuple<Destination>::value && is_tuple<Source>::value )
+        else if constexpr ( ExtendedTypeSupport::is_tuple<Destination>::value && ExtendedTypeSupport::is_tuple<Source>::value )
         {
             ObjectMapper::map_tuple<0>(source, destination);
         }
-        else if constexpr ( is_iterable<Destination>::value && is_iterable<Source>::value )
+        else if constexpr ( ExtendedTypeSupport::is_iterable<Destination>::value && ExtendedTypeSupport::is_iterable<Source>::value )
         {
-            using SourceElementType = typename element_type<Source>::type;
-            using DestinationElementType = typename element_type<Destination>::type;
-            if constexpr ( (is_stl_iterable<Source>::value || is_adaptor<Source>::value) &&
-                (is_stl_iterable<Destination>::value || is_adaptor<Destination>::value) )
+            using SourceElementType = typename ExtendedTypeSupport::element_type<Source>::type;
+            using DestinationElementType = typename ExtendedTypeSupport::element_type<Destination>::type;
+            if constexpr ( (ExtendedTypeSupport::is_stl_iterable<Source>::value || ExtendedTypeSupport::is_adaptor<Source>::value) &&
+                (ExtendedTypeSupport::is_stl_iterable<Destination>::value || ExtendedTypeSupport::is_adaptor<Destination>::value) )
             {
-                Clear(destination);
+                ExtendedTypeSupport::Clear(destination);
                 for ( auto & sourceElement : source )
                 {
                     DestinationElementType destinationElement;
                     ObjectMapper::map(sourceElement, destinationElement);
-                    Append(destination, destinationElement);
+                    ExtendedTypeSupport::Append(destination, destinationElement);
                 }
             }
-            else if constexpr ( is_static_array<Source>::value && static_array_size<Source>::value > 0 )
+            else if constexpr ( ExtendedTypeSupport::is_static_array<Source>::value && ExtendedTypeSupport::static_array_size<Source>::value > 0 )
             {
-                if constexpr ( is_static_array<Destination>::value && static_array_size<Destination>::value > 0 )
+                if constexpr ( ExtendedTypeSupport::is_static_array<Destination>::value && ExtendedTypeSupport::static_array_size<Destination>::value > 0 )
                 {
-                    constexpr size_t limit = std::min(static_array_size<Destination>::value, static_array_size<Source>::value);
+                    constexpr size_t limit = std::min(ExtendedTypeSupport::static_array_size<Destination>::value, ExtendedTypeSupport::static_array_size<Source>::value);
                     for ( size_t i=0; i<limit; i++ )
                         ObjectMapper::map(source[i], destination[i]);
                 }
                 else
                 {
                     Clear(destination);
-                    for ( size_t i=0; i<static_array_size<Source>::value; i++ )
+                    for ( size_t i=0; i<ExtendedTypeSupport::static_array_size<Source>::value; i++ )
                     {
                         DestinationElementType destinationElement;
                         ObjectMapper::map(source[i], destinationElement);
@@ -1097,29 +1099,27 @@ namespace ObjectMapper
                     }
                 }
             }
-            else if constexpr ( is_static_array<Destination>::value && static_array_size<Destination>::value > 0 )
+            else if constexpr ( ExtendedTypeSupport::is_static_array<Destination>::value && ExtendedTypeSupport::static_array_size<Destination>::value > 0 )
             {
                 size_t i=0;
                 for ( auto & element : source )
                 {
                     ObjectMapper::map(element, destination[i]);
-                    if ( ++i == static_array_size<Destination>::value )
+                    if ( ++i == ExtendedTypeSupport::static_array_size<Destination>::value )
                         break;
                 }
             }
         }
-        else if constexpr ( is_reflected<Destination>::value && is_reflected<Source>::value )
+        else if constexpr ( Reflect::is_reflected<Destination>::value && Reflect::is_reflected<Source>::value )
         {
             Reflect::class_t<Destination>::ForEachField(destination, [&](auto & lField, auto & l) {
                 Reflect::class_t<Source>::ForEachField(source, [&](auto & rField, auto & r) {
-                    if constexpr ( std::string_view(lField.Name) == std::string_view(rField.Name) )\
+                    if constexpr ( std::string_view(lField.Name) == std::string_view(rField.Name) )
                         ObjectMapper::map(r, l);
                 });
             });
         }
-        else if constexpr ( std::is_same_v<
-            std::remove_cv_t<std::remove_reference_t<decltype(destination)>>,
-            std::remove_cv_t<std::remove_reference_t<decltype(source)>>> )
+        else if constexpr ( std::is_assignable_v<decltype(destination), decltype(source)> )
         {
             destination = source;
         }
