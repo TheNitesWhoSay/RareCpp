@@ -9,6 +9,7 @@
 #include <charconv>
 #include <system_error>
 #include <ios>
+#include <functional>
 
 namespace BufferedStream
 {
@@ -774,7 +775,7 @@ namespace BufferedStream
     class BasicStringBufferPtr<std::iostream>
     {
         public:
-            BasicStringBufferPtr(StringBuffer & sb) : sb(&sb), os(nullptr) {}
+            BasicStringBufferPtr(StringBuffer & sb) : sb(&sb, [](StringBuffer*){}), os(nullptr) {}
             BasicStringBufferPtr(std::istream & is) : sb(std::make_unique<StringBuffer>(is)), os(nullptr)
             {
                 *sb << is.rdbuf();
@@ -791,8 +792,6 @@ namespace BufferedStream
             {
                 if ( os != nullptr )
                     *os << *sb;
-                else
-                    sb.release();
             }
 
             inline StringBuffer & operator*() const
@@ -814,7 +813,7 @@ namespace BufferedStream
             }
 
         private:
-            mutable std::unique_ptr<StringBuffer> sb;
+            mutable std::unique_ptr<StringBuffer, std::function<void(StringBuffer*)>> sb;
             mutable std::ostream* os;
     };
 
@@ -822,7 +821,7 @@ namespace BufferedStream
     class BasicStringBufferPtr<std::ostream>
     {
         public:
-            BasicStringBufferPtr(OStringBuffer & sb) : sb(&sb), os(nullptr) {}
+            BasicStringBufferPtr(OStringBuffer & sb) : sb(&sb, [](OStringBuffer*){}), os(nullptr) {}
             BasicStringBufferPtr(StringBuffer & sb) : sb(std::make_unique<OStringBuffer>()), os(&sb) {}
             BasicStringBufferPtr(std::ostream & os) : sb(std::make_unique<OStringBuffer>()), os(&os) {}
             BasicStringBufferPtr(std::iostream & ios) : sb(std::make_unique<OStringBuffer>()), os(&ios) {}
@@ -831,8 +830,6 @@ namespace BufferedStream
             {
                 if ( os != nullptr )
                     *os << *sb;
-                else
-                    sb.release();
             }
 
             inline OStringBuffer & operator*() const
@@ -854,7 +851,7 @@ namespace BufferedStream
             }
 
         private:
-            mutable std::unique_ptr<OStringBuffer> sb;
+            mutable std::unique_ptr<OStringBuffer, std::function<void(OStringBuffer*)>> sb;
             mutable std::ostream* os;
     };
 
@@ -862,29 +859,24 @@ namespace BufferedStream
     class BasicStringBufferPtr<std::istream>
     {
         public:
-            BasicStringBufferPtr(IStringBuffer & sb) : sb(&sb), release(true) {}
-            BasicStringBufferPtr(StringBuffer & sb) : sb(std::make_unique<IStringBuffer>((std::istream &)sb)), release(false)
+            BasicStringBufferPtr(IStringBuffer & sb) : sb(&sb, [](IStringBuffer*){}) {}
+            BasicStringBufferPtr(StringBuffer & sb) : sb(std::make_unique<IStringBuffer>((std::istream &)sb))
             {
                 *this->sb << sb.rdbuf();
                 ((std::basic_ios<char>*)this->sb.get())->clear();
             }
-            BasicStringBufferPtr(std::istream & is) : sb(std::make_unique<IStringBuffer>(is)), release(false)
+            BasicStringBufferPtr(std::istream & is) : sb(std::make_unique<IStringBuffer>(is))
             {
                 *sb << is.rdbuf();
                 ((std::basic_ios<char>*)sb.get())->clear();
             }
-            BasicStringBufferPtr(std::iostream & ios) : sb(std::make_unique<IStringBuffer>(ios)), release(false)
+            BasicStringBufferPtr(std::iostream & ios) : sb(std::make_unique<IStringBuffer>(ios))
             {
                 *sb << ios.rdbuf();
-                int i = 5;
                 ((std::basic_ios<char>*)sb.get())->clear();
             }
 
-            virtual ~BasicStringBufferPtr()
-            {
-                if ( release )
-                    sb.release();
-            }
+            virtual ~BasicStringBufferPtr() {}
 
             inline IStringBuffer & operator*() const
             {
@@ -896,8 +888,7 @@ namespace BufferedStream
             }
 
         private:
-            mutable std::unique_ptr<IStringBuffer> sb;
-            bool release;
+            mutable std::unique_ptr<IStringBuffer, std::function<void(IStringBuffer*)>> sb;
     };
 
     /// Functions accepting StringBufferPtr allow you to pass a reference to one of...
