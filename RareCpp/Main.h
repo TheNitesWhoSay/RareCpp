@@ -104,8 +104,6 @@ struct EnhancedContext : public Json::Context
 
     EnhancedContext(int enhanced) : enhanced(enhanced) {}
 
-    static std::shared_ptr<EnhancedContext> Make(int enhanced) { return std::shared_ptr<EnhancedContext>(new EnhancedContext(enhanced)); }
-
     int enhanced;
 };
 

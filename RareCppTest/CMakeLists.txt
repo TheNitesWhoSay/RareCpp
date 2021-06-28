@@ -7,7 +7,6 @@ set(Headers
   JsonTest.h
 )
 set(Sources
-  ConstexprStrTest.cpp
   ExtendedTypeSupportTest.cpp
   FieldTest.cpp
   GenericMacroTest.cpp
@@ -18,6 +17,7 @@ set(Sources
   JsonTest.cpp
   JsonTestRunBuffered.cpp
   JsonTestRunUnbuffered.cpp
+  ObjectMapperTest.cpp
   ReflectTest.cpp
   StringBufferTest.cpp
   TestMain.cpp

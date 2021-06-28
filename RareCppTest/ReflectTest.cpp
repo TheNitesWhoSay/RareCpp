@@ -106,6 +106,76 @@ TEST(ReflectTest, NoAnnotationType)
     EXPECT_TRUE(isSame);
 }
 
+struct UnreflectedObj {};
+
+struct UnownedObj1
+{
+    int a;
+    int b;
+};
+
+class UnownedObj2
+{
+public:
+    int a;
+    int b;
+
+protected:
+    int c;
+
+private:
+    int d;
+};
+
+struct OwnedObj
+{
+    int a;
+    int b;
+
+    REFLECT(OwnedObj, a, b)
+};
+
+template <> struct Reflect::Proxy<UnownedObj1> : public UnownedObj1
+{
+    REFLECT(Reflect::Proxy<UnownedObj1>, a, b)
+};
+
+template <> struct Reflect::Proxy<UnownedObj2> : public UnownedObj2
+{
+    REFLECT(Reflect::Proxy<UnownedObj2>, a, b, c)
+};
+
+template <> struct Reflect::Proxy<OwnedObj> : public OwnedObj
+{
+    REFLECT(Reflect::Proxy<OwnedObj>, a, b)
+};
+
+TEST(ReflectTest, IsProxied)
+{
+    EXPECT_FALSE(is_proxied<UnreflectedObj>::value);
+    EXPECT_TRUE(is_proxied<UnownedObj1>::value);
+    EXPECT_TRUE(is_proxied<UnownedObj2>::value);
+    EXPECT_TRUE(is_proxied<OwnedObj>::value);
+}
+
+TEST(ReflectTest, Unproxy)
+{
+    bool isSame = std::is_same_v<Reflect::unproxy<UnreflectedObj>::T, UnreflectedObj>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<Reflect::unproxy<UnownedObj1>::T, UnownedObj1>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<Reflect::unproxy<UnownedObj2>::T, UnownedObj2>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<Reflect::unproxy<OwnedObj>::T, OwnedObj>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<Reflect::unproxy<Reflect::Proxy<UnownedObj1>>::T, UnownedObj1>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<Reflect::unproxy<Reflect::Proxy<UnownedObj2>>::T, UnownedObj2>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<Reflect::unproxy<Reflect::Proxy<OwnedObj>>::T, OwnedObj>;
+    EXPECT_TRUE(isSame);
+}
+
 TEST(ReflectTest, RfMacroGetFieldName)
 {
     class Obj {
@@ -305,6 +375,7 @@ public:
     static void staticMethod() {}
 
     struct Class {
+        using ProxyType = DescribeFieldTest;
         using ClassType = DescribeFieldTest;
         enum_t(IndexOf, size_t, { memberValue, staticValue, memberValueReference, staticValueReference, memberMethod, staticMethod });
         static constexpr NoAnnotation NoNote {};
@@ -386,12 +457,12 @@ TEST(ReflectTest, RfMacroDescribeField)
     EXPECT_EQ(&DescribeFieldTest::memberMethod, memberMethodPointer);
     EXPECT_EQ(&DescribeFieldTest::staticMethod, staticMethodPointer);
 
-    EXPECT_STREQ("memberValue", &DescribeFieldTest::Class::memberValue_::nameStr.value[0]);
-    EXPECT_STREQ("staticValue", &DescribeFieldTest::Class::staticValue_::nameStr.value[0]);
-    EXPECT_STREQ("memberValueReference", &DescribeFieldTest::Class::memberValueReference_::nameStr.value[0]);
-    EXPECT_STREQ("staticValueReference", &DescribeFieldTest::Class::staticValueReference_::nameStr.value[0]);
-    EXPECT_STREQ("memberMethod", &DescribeFieldTest::Class::memberMethod_::nameStr.value[0]);
-    EXPECT_STREQ("staticMethod", &DescribeFieldTest::Class::staticMethod_::nameStr.value[0]);
+    EXPECT_STREQ("memberValue", DescribeFieldTest::Class::memberValue_::nameStr);
+    EXPECT_STREQ("staticValue", DescribeFieldTest::Class::staticValue_::nameStr);
+    EXPECT_STREQ("memberValueReference", DescribeFieldTest::Class::memberValueReference_::nameStr);
+    EXPECT_STREQ("staticValueReference", DescribeFieldTest::Class::staticValueReference_::nameStr);
+    EXPECT_STREQ("memberMethod", DescribeFieldTest::Class::memberMethod_::nameStr);
+    EXPECT_STREQ("staticMethod", DescribeFieldTest::Class::staticMethod_::nameStr);
     
     std::string memberValueTypeStr(&DescribeFieldTest::Class::memberValue_::typeStr.value[0]);
     std::string staticValueTypeStr(&DescribeFieldTest::Class::staticValue_::typeStr.value[0]);
@@ -460,13 +531,13 @@ TEST(ReflectTest, RfMacroDescribeField)
     using StaticValueReferenceField = DescribeFieldTest::Class::staticValueReference_::Field;
     using MemberMethodField = DescribeFieldTest::Class::memberMethod_::Field;
     using StaticMethodField = DescribeFieldTest::Class::staticMethod_::Field;
-    
-    using ExpectedMemberValueField = Fields::Field<decltype(DescribeFieldTest::memberValue), decltype(&DescribeFieldTest::memberValue), 0, decltype(DescribeFieldTest::Class::NoNote)>;
-    using ExpectedStaticValueField = Fields::Field<decltype(DescribeFieldTest::staticValue), decltype(&DescribeFieldTest::staticValue), 1, decltype(DescribeFieldTest::Class::NoNote)>;
-    using ExpectedMemberValueReferenceField = Fields::Field<decltype(DescribeFieldTest::memberValueReference), std::nullptr_t, 2, decltype(DescribeFieldTest::memberValueReference_note)>;
-    using ExpectedStaticValueReferenceField = Fields::Field<decltype(DescribeFieldTest::staticValueReference), decltype(&DescribeFieldTest::staticValueReference), 3, decltype(DescribeFieldTest::staticValueReference_note)>;
-    using ExpectedMemberMethodField = Fields::Field<decltype(&DescribeFieldTest::memberMethod), decltype(&DescribeFieldTest::memberMethod), 4, decltype(DescribeFieldTest::Class::NoNote)>;
-    using ExpectedStaticMethodField = Fields::Field<decltype(DescribeFieldTest::staticMethod), decltype(&DescribeFieldTest::staticMethod), 5, decltype(DescribeFieldTest::Class::NoNote)>;
+
+    using ExpectedMemberValueField = Fields::Field<decltype(DescribeFieldTest::memberValue), decltype(&DescribeFieldTest::memberValue), 0, decltype(DescribeFieldTest::Class::NoNote), DescribeFieldTest::Class::memberValue_::nameStr>;
+    using ExpectedStaticValueField = Fields::Field<decltype(DescribeFieldTest::staticValue), decltype(&DescribeFieldTest::staticValue), 1, decltype(DescribeFieldTest::Class::NoNote), DescribeFieldTest::Class::staticValue_::nameStr>;
+    using ExpectedMemberValueReferenceField = Fields::Field<decltype(DescribeFieldTest::memberValueReference), std::nullptr_t, 2, decltype(DescribeFieldTest::memberValueReference_note), DescribeFieldTest::Class::memberValueReference_::nameStr>;
+    using ExpectedStaticValueReferenceField = Fields::Field<decltype(DescribeFieldTest::staticValueReference), decltype(&DescribeFieldTest::staticValueReference), 3, decltype(DescribeFieldTest::staticValueReference_note), DescribeFieldTest::Class::staticValueReference_::nameStr>;
+    using ExpectedMemberMethodField = Fields::Field<decltype(&DescribeFieldTest::memberMethod), decltype(&DescribeFieldTest::memberMethod), 4, decltype(DescribeFieldTest::Class::NoNote), DescribeFieldTest::Class::memberMethod_::nameStr>;
+    using ExpectedStaticMethodField = Fields::Field<decltype(DescribeFieldTest::staticMethod), decltype(&DescribeFieldTest::staticMethod), 5, decltype(DescribeFieldTest::Class::NoNote), DescribeFieldTest::Class::staticMethod_::nameStr>;
     
     isSame = std::is_same_v<ExpectedMemberValueField, MemberValueField>;
     EXPECT_TRUE(isSame);
@@ -715,6 +786,7 @@ public:
     float second;
 
     struct Class {
+        using ProxyType = CumulativeMacroTest;
         using ClassType = CumulativeMacroTest;
         enum_t(IndexOf, size_t, {
             FOR_EACH(GET_FIELD_NAME, first, second)
@@ -806,6 +878,10 @@ TEST(ExtendedTypeSupportTest, IsReflected)
     EXPECT_TRUE(is_reflected<is_reflected_REFLECT>::value);
     EXPECT_TRUE(is_reflected<is_reflected_REFLECT_NOTED>::value);
     EXPECT_TRUE(is_reflected<is_reflected_REFLECT_EMPTY>::value);
+    EXPECT_FALSE(is_reflected<UnreflectedObj>::value);
+    EXPECT_TRUE(is_reflected<UnownedObj1>::value);
+    EXPECT_TRUE(is_reflected<UnownedObj2>::value);
+    EXPECT_TRUE(is_reflected<OwnedObj>::value);
 }
 
 class ReflectSuperObj {
@@ -863,17 +939,17 @@ TEST(ReflectTest, RfMacroReflectNoted)
     EXPECT_EQ(9, ReflectObj::Class::IndexOf::memberMethod);
     EXPECT_EQ(10, ReflectObj::Class::IndexOf::staticMethod);
     
-    EXPECT_STREQ("primitive", ReflectObj::Class::primitive_::nameStr.value);
-    EXPECT_STREQ("object", ReflectObj::Class::object_::nameStr.value);
-    EXPECT_STREQ("primitiveArray", ReflectObj::Class::primitiveArray_::nameStr.value);
-    EXPECT_STREQ("map", ReflectObj::Class::map_::nameStr.value);
-    EXPECT_STREQ("objCollection", ReflectObj::Class::objCollection_::nameStr.value);
-    EXPECT_STREQ("stack", ReflectObj::Class::stack_::nameStr.value);
-    EXPECT_STREQ("staticPrimitive", ReflectObj::Class::staticPrimitive_::nameStr.value);
-    EXPECT_STREQ("primitiveReference", ReflectObj::Class::primitiveReference_::nameStr.value);
-    EXPECT_STREQ("staticPrimitiveReference", ReflectObj::Class::staticPrimitiveReference_::nameStr.value);
-    EXPECT_STREQ("memberMethod", ReflectObj::Class::memberMethod_::nameStr.value);
-    EXPECT_STREQ("staticMethod", ReflectObj::Class::staticMethod_::nameStr.value);
+    EXPECT_STREQ("primitive", ReflectObj::Class::primitive_::nameStr);
+    EXPECT_STREQ("object", ReflectObj::Class::object_::nameStr);
+    EXPECT_STREQ("primitiveArray", ReflectObj::Class::primitiveArray_::nameStr);
+    EXPECT_STREQ("map", ReflectObj::Class::map_::nameStr);
+    EXPECT_STREQ("objCollection", ReflectObj::Class::objCollection_::nameStr);
+    EXPECT_STREQ("stack", ReflectObj::Class::stack_::nameStr);
+    EXPECT_STREQ("staticPrimitive", ReflectObj::Class::staticPrimitive_::nameStr);
+    EXPECT_STREQ("primitiveReference", ReflectObj::Class::primitiveReference_::nameStr);
+    EXPECT_STREQ("staticPrimitiveReference", ReflectObj::Class::staticPrimitiveReference_::nameStr);
+    EXPECT_STREQ("memberMethod", ReflectObj::Class::memberMethod_::nameStr);
+    EXPECT_STREQ("staticMethod", ReflectObj::Class::staticMethod_::nameStr);
 
     EXPECT_EQ(11, ReflectObj::Class::TotalFields);
     EXPECT_EQ(3, ReflectObj::Class::TotalStaticFields);
@@ -1146,4 +1222,36 @@ TEST(ReflectTest, RfMacroReflectReferences)
         visited = true;
     });
     EXPECT_TRUE(visited);
+}
+
+TEST(ReflectTest, ReflectedType)
+{
+    bool isSame = std::is_same_v<Reflect::reflected_type<UnreflectedObj>::T, UnreflectedObj>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<Reflect::reflected_type<UnownedObj1>::T, Reflect::Proxy<UnownedObj1>>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<Reflect::reflected_type<UnownedObj2>::T, Reflect::Proxy<UnownedObj2>>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<Reflect::reflected_type<OwnedObj>::T, Reflect::Proxy<OwnedObj>>;
+    EXPECT_TRUE(isSame);
+}
+
+TEST(ReflectTest, ClassT)
+{
+    bool isSame = std::is_same_v<Reflect::class_t<UnownedObj1>, Reflect::Proxy<UnownedObj1>::Class>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<Reflect::class_t<UnownedObj2>, Reflect::Proxy<UnownedObj2>::Class>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<Reflect::class_t<OwnedObj>, Reflect::Proxy<OwnedObj>::Class>;
+    EXPECT_TRUE(isSame);
+}
+
+TEST(ReflectTest, SupersT)
+{
+    bool isSame = std::is_same_v<Reflect::supers_t<UnownedObj1>, Reflect::Proxy<UnownedObj1>::Supers>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<Reflect::supers_t<UnownedObj2>, Reflect::Proxy<UnownedObj2>::Supers>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<Reflect::supers_t<OwnedObj>, Reflect::Proxy<OwnedObj>::Supers>;
+    EXPECT_TRUE(isSame);
 }
