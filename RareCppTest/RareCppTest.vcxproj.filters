@@ -70,5 +70,8 @@
     <ClCompile Include="GenericMacroTest.cpp">
       <Filter>Source Files\ReflectTest</Filter>
     </ClCompile>
+    <ClCompile Include="ObjectMapperTest.cpp">
+      <Filter>Source Files\ReflectTest</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

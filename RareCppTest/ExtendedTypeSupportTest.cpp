@@ -883,6 +883,254 @@ TEST(ExtendedTypeSupportTest, Clear)
     EXPECT_TRUE(unorderedMultimap.empty());
 }
 
+TEST(ExtendedTypeSupportTest, IsAssignable)
+{
+    struct R1
+    {
+        int a;
+    };
+    struct L1
+    {
+        int a;
+        L1 & operator=(const R1 & rhs) { a = rhs.a; return *this; }
+    };
+    L1 l1 { 0 };
+    R1 r1 { 1 };
+    EXPECT_EQ(l1.a, 0);
+    EXPECT_EQ(r1.a, 1);
+    l1 = r1;
+    EXPECT_EQ(l1.a, 1);
+    EXPECT_EQ(r1.a, 1);
+
+    bool isAssignable = ExtendedTypeSupport::IsAssignable<L1, R1>;
+    EXPECT_TRUE(isAssignable); // Assignment operator should signal assignability
+    isAssignable = ExtendedTypeSupport::IsAssignable<R1, L1>;
+    EXPECT_FALSE(isAssignable);
+
+    struct R2
+    {
+        int a;
+    };
+    struct L2
+    {
+        int a;
+        L2 & operator=(const R2 && rhs) { a = rhs.a; return *this; };
+    };
+
+    L2 l2 { 0 };
+    R2 r2 { 0 };
+    isAssignable = ExtendedTypeSupport::IsAssignable<L2, R2>;
+    EXPECT_FALSE(isAssignable); // Move-assignment operator should not signal assignability
+    isAssignable = ExtendedTypeSupport::IsAssignable<R2, L2>;
+    EXPECT_FALSE(isAssignable);
+
+    struct R3
+    {
+        int a;
+    };
+    struct L3
+    {
+        int a;
+        L3() : a(0) {};
+        L3(const R3 &) { a = 2; };
+    };
+
+    L3 l3;
+    EXPECT_EQ(l3.a, 0);
+    R3 r3{1};
+    isAssignable = ExtendedTypeSupport::IsAssignable<L3, R3>;
+    EXPECT_TRUE(isAssignable); // Converting-constructor should signal assignability
+    l3 = r3;
+    EXPECT_EQ(l3.a, 2);
+    isAssignable = ExtendedTypeSupport::IsAssignable<R3, L3>;
+    EXPECT_FALSE(isAssignable);
+
+    struct R4
+    {
+        int a;
+    };
+    struct L4
+    {
+        int a;
+        L4() : a(0) {};
+        L4(const R4 &&) { a = 2; };
+    };
+
+    L4 l4;
+    R4 r4{ 1 };
+    isAssignable = ExtendedTypeSupport::IsAssignable<L4, R4>;
+    EXPECT_FALSE(isAssignable); // Move-constructor should not signal assignability
+    isAssignable = ExtendedTypeSupport::IsAssignable<R4, L4>;
+    EXPECT_FALSE(isAssignable);
+
+    struct L5
+    {
+        int a;
+    };
+    struct R5
+    {
+        int a;
+        operator L5() const { return L5{ a }; }
+    };
+
+    L5 l5{ 0 };
+    R5 r5{ 1 };
+    EXPECT_EQ(l5.a, 0);
+    EXPECT_EQ(r5.a, 1);
+
+    isAssignable = ExtendedTypeSupport::IsAssignable<L5, R5>;
+    EXPECT_TRUE(isAssignable); // Conversion op should signal assignability
+    isAssignable = ExtendedTypeSupport::IsAssignable<R5, L5>;
+    EXPECT_FALSE(isAssignable);
+    l5 = r5;
+    EXPECT_EQ(l5.a, 1);
+    EXPECT_EQ(r5.a, 1);
+
+    struct L6
+    {
+        int a;
+    };
+    struct R6
+    {
+        int a;
+        explicit operator L6() const { return L6{ a }; }
+    };
+
+    L6 l6{ 0 };
+    R6 r6{ 1 };
+    EXPECT_EQ(l6.a, 0);
+    EXPECT_EQ(r6.a, 1);
+
+    isAssignable = ExtendedTypeSupport::IsAssignable<L6, R6>;
+    EXPECT_FALSE(isAssignable); // Explicit conversion op should not signal assignability
+    isAssignable = ExtendedTypeSupport::IsAssignable<R6, L6>;
+    EXPECT_FALSE(isAssignable);
+}
+
+TEST(ExtendedTypeSupportTest, IsStaticCastAssignable)
+{
+    struct R1
+    {
+        int a;
+    };
+    struct L1
+    {
+        int a;
+        L1 & operator=(const R1 & rhs) { a = rhs.a; return *this; }
+    };
+    L1 l1 { 0 };
+    R1 r1 { 1 };
+    EXPECT_EQ(l1.a, 0);
+    EXPECT_EQ(r1.a, 1);
+
+    bool isAssignable = ExtendedTypeSupport::IsStaticCastAssignable<L1, R1>;
+    EXPECT_FALSE(isAssignable); // Assignment operator should not signal castability
+    isAssignable = ExtendedTypeSupport::IsStaticCastAssignable<R1, L1>;
+    EXPECT_FALSE(isAssignable);
+
+    struct R2
+    {
+        int a;
+    };
+    struct L2
+    {
+        int a;
+        L2 & operator=(const R2 && rhs) { a = rhs.a; return *this; };
+    };
+
+    L2 l2 { 0 };
+    R2 r2 { 0 };
+    isAssignable = ExtendedTypeSupport::IsStaticCastAssignable<L2, R2>;
+    EXPECT_FALSE(isAssignable); // Move-assignment operator should not signal castability
+    isAssignable = ExtendedTypeSupport::IsStaticCastAssignable<R2, L2>;
+    EXPECT_FALSE(isAssignable);
+
+    struct R3
+    {
+        int a;
+    };
+    struct L3
+    {
+        int a;
+        L3() : a(0) {};
+        L3(const R3 &) { a = 2; };
+    };
+
+    L3 l3;
+    EXPECT_EQ(l3.a, 0);
+    R3 r3{1};
+    isAssignable = ExtendedTypeSupport::IsStaticCastAssignable<L3, R3>;
+    EXPECT_TRUE(isAssignable); // Converting-constructor should signal static-cast assignability
+    l3 = static_cast<L3>(r3);
+    EXPECT_EQ(l3.a, 2);
+    isAssignable = ExtendedTypeSupport::IsStaticCastAssignable<R3, L3>;
+    EXPECT_FALSE(isAssignable);
+
+    struct R4
+    {
+        int a;
+    };
+    struct L4
+    {
+        int a;
+        L4() : a(0) {};
+        L4(const R4 &&) { a = 2; };
+    };
+
+    L4 l4;
+    R4 r4{ 1 };
+    isAssignable = ExtendedTypeSupport::IsStaticCastAssignable<L4, R4>;
+    EXPECT_FALSE(isAssignable); // Move-constructor should not signal castability
+    isAssignable = ExtendedTypeSupport::IsStaticCastAssignable<R4, L4>;
+    EXPECT_FALSE(isAssignable);
+
+    struct L5
+    {
+        int a;
+    };
+    struct R5
+    {
+        int a;
+        operator L5() const { return L5{ a }; }
+    };
+
+    L5 l5{ 0 };
+    R5 r5{ 1 };
+    EXPECT_EQ(l5.a, 0);
+    EXPECT_EQ(r5.a, 1);
+
+    isAssignable = ExtendedTypeSupport::IsStaticCastAssignable<L5, R5>;
+    EXPECT_TRUE(isAssignable); // Conversion op should signal static_cast assignability
+    isAssignable = ExtendedTypeSupport::IsStaticCastAssignable<R5, L5>;
+    EXPECT_FALSE(isAssignable);
+    l5 = static_cast<L5>(r5);
+    EXPECT_EQ(l5.a, 1);
+    EXPECT_EQ(r5.a, 1);
+
+    struct L6
+    {
+        int a;
+    };
+    struct R6
+    {
+        int a;
+        explicit operator L6() const { return L6{ a }; }
+    };
+
+    L6 l6{ 0 };
+    R6 r6{ 1 };
+    EXPECT_EQ(l6.a, 0);
+    EXPECT_EQ(r6.a, 1);
+
+    isAssignable = ExtendedTypeSupport::IsStaticCastAssignable<L6, R6>;
+    EXPECT_TRUE(isAssignable); // Explicit conversion op should signal static-cast assignability
+    isAssignable = ExtendedTypeSupport::IsStaticCastAssignable<R6, L6>;
+    EXPECT_FALSE(isAssignable);
+    l6 = static_cast<L6>(r6);
+    EXPECT_EQ(l6.a, 1);
+    EXPECT_EQ(r6.a, 1);
+}
+
 TEST(ExtendedTypeSupportTest, TypePair)
 {
     using IntFloat = TypePair<int, float>;

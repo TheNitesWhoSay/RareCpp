@@ -398,67 +398,128 @@ struct State : public Point, public Another
 
 Status State::status;
 
+struct UnownedEncapsulator
+{
+public:
+    UnownedEncapsulator(int a) : a(a) {}
+    int getA() const { return a; }
+    void setA(int a) { this->a = a; }
+
+private:
+    int a;
+};
+
+struct ProxiedObjectMapping
+{
+    int a = 0;
+};
+
+struct MacroMapping
+{
+    int b = 0;
+    int c = 0;
+};
+
+struct SpecializationMapping
+{
+    int a = 0;
+};
 
 struct OwnedObject1
 {
-    int a;
-
+    int a = 0;
+    int c = 0;
     REFLECT(OwnedObject1, a)
+
+    void map_to(UnownedEncapsulator & o) const { o.setA(this->a); }
+    void map_from(const UnownedEncapsulator & o) { this->a = o.getA(); }
+
+    MAP_WITH(MacroMapping,
+        (a, b),
+        (c, c)
+    )
 };
+
+template <>
+void ObjectMapper::map(SpecializationMapping & to, const OwnedObject1 & from)
+{
+    to.a = from.a;
+}
 
 struct OwnedObject2
 {
-    int a;
-
+    int a = 0;
     REFLECT(OwnedObject2, a)
 };
 
-struct UnownedObject
+template <> struct Reflect::Proxy<ProxiedObjectMapping> : public ProxiedObjectMapping
+{
+    REFLECT(Reflect::Proxy<ProxiedObjectMapping>, a)
+};
+
+struct UnownedObjDao
 {
     int a;
     int b;
     int c;
     std::map<int, int> d;
     std::vector<OwnedObject2> e;
+
+    UnownedObjDao() : a(0), b(0), c(0), d({}), e({}) {}
 };
 
-struct OwnedObject
+struct OwnedObjectModel
 {
     int a;
     int b;
-    std::map<int, int> d;
-    std::vector<OwnedObject1> e;
+    std::map<int, int> c;
+    std::vector<OwnedObject1> d;
 
-    REFLECT(OwnedObject, a, b, d, e)
+    MAP_WITH(UnownedObjDao,
+        (a, a),
+        (b, b),
+        (c, d),
+        (d, e)
+    )
+
+    REFLECT(OwnedObjectModel, a, b, c, d)
 };
 
-template <> struct Reflect::Proxy<UnownedObject> : public UnownedObject
+void objectMapperExamples()
 {
-    REFLECT(Reflect::Proxy<UnownedObject>, a, b, c, d, e)
-};
+    OwnedObjectModel objModel { 1, 2, {{3, 4}, {5, 6}}, {{7}} };
+    UnownedObjDao objDao {};
 
-template <> constexpr inline void ObjectMapper::map(const OwnedObject & src, UnownedObject & dest)
-{
-    ObjectMapper::map_default(src, dest);
-    dest.c = 9001;
-}
+    ObjectMapper::map(objDao, objModel);
 
-template <> void ObjectMapper::map(const OwnedObject1 & src, OwnedObject2 & dest)
-{
-    ObjectMapper::map_default(src, dest);
-    dest.a = 9002;
+    std::cout << "objDao: { " << objDao.a << ", " << objDao.b << ", " << objDao.c << ", " << objDao.e[0].a << " }" << std::endl;
+    for ( auto & pair : objDao.d )
+        std::cout << "objDao.d[]: { " << pair.first << ", " << pair.second << " }" << std::endl;
+
+    OwnedObject1 ownedObject { 1337, 9001 };
+
+    // When you can't add add REFLECT to an object, you can proxy reflect public fields to the same effect
+    ProxiedObjectMapping unownedObject1 = ObjectMapper::map<ProxiedObjectMapping>(ownedObject);
+    std::cout << "unownedObject1: { " << unownedObject1.a << " }" << std::endl;
+
+    // Or use MAP_WITH/MAP_TO/MAP_FROM macros...
+    MacroMapping unownedObject2 = ObjectMapper::map<MacroMapping>(ownedObject);
+    std::cout << "unownedObject2: { " << unownedObject2.b << ", " << unownedObject2.c << " }" << std::endl;
+
+    // Or use specializations of ObjectMapper::map...
+    SpecializationMapping unownedObject3 = ObjectMapper::map<SpecializationMapping>(ownedObject);
+    std::cout << "unownedObject3: { " << unownedObject3.a << " }" << std::endl;
+
+    // Or define map_to/map_from methods within a class/struct you do control
+    UnownedEncapsulator unownedEncapsulator(5);
+    ObjectMapper::map<UnownedEncapsulator>(unownedEncapsulator, ownedObject);
+    std::cout << "unownedEncapsulator: { " << unownedEncapsulator.getA() << " }" << std::endl;
 }
 
 int main()
 {
-    OwnedObject objModel { 1, 2, {{3, 4}, {5, 6}}, {{7}} };
-    UnownedObject objDao {};
-
-    ObjectMapper::map(objModel, objDao);
-
-    std::cout << "objDao: { " << objDao.a << ", " << objDao.b << ", " << objDao.c << ", " << objDao.e[0].a << " }" << std::endl;
-    for ( auto & pair : objDao.d )
-        std::cout << "{ " << pair.first << ", " << pair.second << " }" << std::endl;
+    objectMapperExamples();
+    std::cout << std::endl;
 
     Car car = outputExamples();
     std::cout << std::endl << Json::out(car) << std::endl << std::endl;

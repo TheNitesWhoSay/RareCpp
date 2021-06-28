@@ -402,6 +402,24 @@ namespace ExtendedTypeSupport
             }
         }
     }
+
+    inline namespace OpDetection {
+        namespace OpDetectImpl {
+            template <class AlwaysVoid, template<class...> class Op, class... Args> struct OpExists { static constexpr bool value = false; };
+            template <template<class...> class Op, class... Args> struct OpExists<std::void_t<Op<Args...>>, Op, Args...> { static constexpr bool value = true; };
+
+            template <typename L, typename R> using AssignmentOp = decltype(std::declval<L>() = std::declval<const R &>());
+            template <typename L, typename R> using StaticCastAssignmentOp = decltype(
+                std::declval<L>() = static_cast<std::remove_reference_t<L>>(std::declval<const R &>()));
+            template <typename L, typename R> using MapToOp = decltype(std::declval<L>().map_to(std::declval<R &>()));
+            template <typename L, typename R> using MapFromOp = decltype(std::declval<L>().map_from(std::declval<const R &>()));
+        }
+
+        template <typename L, typename R> static constexpr bool IsAssignable = OpDetectImpl::OpExists<void, OpDetectImpl::AssignmentOp, L, R>::value;
+        template <typename L, typename R> static constexpr bool IsStaticCastAssignable = OpDetectImpl::OpExists<void, OpDetectImpl::StaticCastAssignmentOp, L, R>::value;
+        template <typename L, typename R> static constexpr bool HasMapTo = OpDetectImpl::OpExists<void, OpDetectImpl::MapToOp, L, R>::value;
+        template <typename L, typename R> static constexpr bool HasMapFrom = OpDetectImpl::OpExists<void, OpDetectImpl::MapFromOp, L, R>::value;
+    };
     
     template <typename L, typename R>
     struct TypePair {
@@ -976,154 +994,190 @@ using Supers = Reflect::Inherit<Class::ClassType, Class::Annotations>;
 
 namespace ObjectMapper
 {
-    template <typename Source, typename Destination>
-    constexpr inline void map_default(const Source & source, Destination & destination);
+#define OM_R(l,r) ObjectMapper::map(o.r,this->l);
+#define OM_S(l,r) ObjectMapper::map(this->l,o.r);
+#define OM_O(a) OM_R a
+#define OM_T(a) OM_S a
 
-    template <typename Source, typename Destination>
-    constexpr inline void map(const Source & source, Destination & destination)
+/// Defines a mapping from "this" to objectType
+/// After the objectType there needs to be at least 1 and at most 124 parenthesized field mappings ("this" fields on left, objectType fields on right)
+/// e.g. MAP_TO(target, (a, a), (b, c), (d, d))
+#define MAP_TO(objectType, ...) void map_to(objectType & o) const { FOR_EACH(OM_O, __VA_ARGS__) }
+
+/// Defines a mapping from objectType to "this"
+/// After the objectType there needs to be at least 1 and at most 124 parenthesized field mappings ("this" fields on left, objectType fields on right)
+/// e.g. MAP_FROM(target, (a, a), (b, c), (d, d))
+#define MAP_FROM(objectType, ...) void map_from(const objectType & o) { FOR_EACH(OM_T, __VA_ARGS__) }
+
+/// Defines a bi-directional mapping between "this" and objectType
+/// After the objectType there needs to be at least 1 and at most 124 parenthesized field mappings ("this" fields on left, objectType fields on right)
+/// e.g. MAP_WITH(target, (a, a), (b, c), (d, d))
+#define MAP_WITH(objectType, ...) MAP_TO(objectType, __VA_ARGS__) MAP_FROM(objectType, __VA_ARGS__)
+
+    template <typename To, typename From>
+    constexpr inline void map_default(To &, const From &); // Default mapping implementation, can be called by map specializations
+
+    template <typename To, typename From>
+    constexpr inline void map(To & to, const From & from) // May be specialized
     {
-        ObjectMapper::map_default(source, destination);
+        if constexpr ( ExtendedTypeSupport::HasMapFrom<To, From> )
+            to.map_from(from);
+        else if constexpr ( ExtendedTypeSupport::HasMapTo<From, To> )
+            from.map_to(to);
+        else
+            ObjectMapper::map_default(to, from);
     }
 
-    template <size_t Index, typename ...Source, typename ...Destination>
-    constexpr inline void map_tuple(const std::tuple<Source...> & source, std::tuple<Destination...> & destination)
+    template <typename To, typename From>
+    constexpr inline To map(const From & from) // Should not be specialized
     {
-        if constexpr ( Index < sizeof...(Source) && Index < sizeof...(Destination) )
+        To to;
+        ObjectMapper::map(to, from);
+        return to;
+    }
+
+    template <size_t Index, typename ...To, typename ...From>
+    constexpr inline void map_tuple(std::tuple<To...> & to, const std::tuple<From...> & from)
+    {
+        if constexpr ( Index < sizeof...(To) && Index < sizeof...(From) )
         {
-            ObjectMapper::map(std::get<Index>(source), std::get<Index>(destination));
-            ObjectMapper::map_tuple<Index+1>(source, destination);
+            ObjectMapper::map(std::get<Index>(to), std::get<Index>(from));
+            ObjectMapper::map_tuple<Index+1>(to, from);
         }
     }
 
-    template <typename Source, typename Destination>
-    constexpr inline void map_default(const Source & source, Destination & destination)
+    template <typename To, typename From>
+    constexpr inline void map_default(To & to, const From & from)
     {
-        if constexpr ( std::is_const_v<Destination> )
+        if constexpr ( std::is_const_v<To> )
             return;
-        else if constexpr ( ExtendedTypeSupport::is_pointable<Destination>::value )
+        else if constexpr ( ExtendedTypeSupport::is_pointable<To>::value )
         {
-            using DestinationDereferenced = typename ExtendedTypeSupport::remove_pointer<Destination>::type;
-            if ( destination == nullptr )
+            using ToDereferenced = typename ExtendedTypeSupport::remove_pointer<To>::type;
+            if ( to == nullptr )
             {
-                if constexpr ( ExtendedTypeSupport::is_pointable<Source>::value )
+                if constexpr ( ExtendedTypeSupport::is_pointable<From>::value )
                 {
-                    using SourceDereferenced = typename ExtendedTypeSupport::remove_pointer<Source>::type;
-                    if ( source == nullptr )
+                    if ( from == nullptr )
                         return;
-                    else if constexpr ( std::is_same_v<std::shared_ptr<DestinationDereferenced>, Destination> )
+                    else if constexpr ( std::is_same_v<std::shared_ptr<ToDereferenced>, To> )
                     {
-                        if constexpr ( std::is_same_v<Source, Destination> )
-                            destination = source; // Share shared pointer
+                        if constexpr ( std::is_same_v<From, To> )
+                            to = from; // Share shared pointer
                         else
                         {
-                            destination = std::make_shared<DestinationDereferenced>();
-                            ObjectMapper::map(*source, *destination);
+                            to = std::make_shared<ToDereferenced>();
+                            ObjectMapper::map(*to, *from);
                         }
                     }
-                    else if constexpr ( std::is_same_v<std::unique_ptr<DestinationDereferenced>, Destination> )
+                    else if constexpr ( std::is_same_v<std::unique_ptr<ToDereferenced>, To> )
                     {
-                        destination = std::make_unique<DestinationDereferenced>();
-                        ObjectMapper::map(*source, *destination);
+                        to = std::make_unique<ToDereferenced>();
+                        ObjectMapper::map(*to, *from);
                     }
                 }
-                else if constexpr ( std::is_same_v<std::shared_ptr<DestinationDereferenced>, Destination> )
+                else if constexpr ( std::is_same_v<std::shared_ptr<ToDereferenced>, To> )
                 {
-                    destination = std::make_shared<DestinationDereferenced>();
-                    ObjectMapper::map(source, *destination);
+                    to = std::make_shared<ToDereferenced>();
+                    ObjectMapper::map(*to, from);
                 }
-                else if constexpr ( std::is_same_v<std::unique_ptr<DestinationDereferenced>, Destination> )
+                else if constexpr ( std::is_same_v<std::unique_ptr<ToDereferenced>, To> )
                 {
-                    destination = std::make_unique<DestinationDereferenced>();
-                    ObjectMapper::map(source, *destination);
+                    to = std::make_unique<ToDereferenced>();
+                    ObjectMapper::map(*to, from);
                 }
             }
-            else // destination != nullptr
+            else // to != nullptr
             {
-                if constexpr ( ExtendedTypeSupport::is_pointable<Source>::value )
+                if constexpr ( ExtendedTypeSupport::is_pointable<From>::value )
                 {
-                    using SourceDereferenced = typename ExtendedTypeSupport::remove_pointer<Source>::type;
-                    if ( source == nullptr )
-                        destination = nullptr;
+                    if ( from == nullptr )
+                        to = nullptr;
                     else
-                        ObjectMapper::map(*source, *destination);
+                        ObjectMapper::map(*to, *from);
                 }
                 else
-                    ObjectMapper::map(source, *destination);
+                    ObjectMapper::map(*to, from);
             }
         }
-        else if constexpr ( ExtendedTypeSupport::is_pointable<Source>::value )
+        else if constexpr ( ExtendedTypeSupport::is_pointable<From>::value )
         {
-            if ( source != nullptr )
-                ObjectMapper::map(*source, destination);
+            if ( from != nullptr )
+                ObjectMapper::map(to, *from);
         }
-        else if constexpr ( ExtendedTypeSupport::is_pair<Destination>::value && ExtendedTypeSupport::is_pair<Source>::value )
+        else if constexpr ( ExtendedTypeSupport::IsAssignable<decltype(to), decltype(from)> )
         {
-            ObjectMapper::map(source.first, destination.first);
-            ObjectMapper::map(source.second, destination.second);
+            to = from;
         }
-        else if constexpr ( ExtendedTypeSupport::is_tuple<Destination>::value && ExtendedTypeSupport::is_tuple<Source>::value )
+        else if constexpr ( ExtendedTypeSupport::IsStaticCastAssignable<decltype(to), decltype(from)> )
         {
-            ObjectMapper::map_tuple<0>(source, destination);
+            to = static_cast<To>(from);
         }
-        else if constexpr ( ExtendedTypeSupport::is_iterable<Destination>::value && ExtendedTypeSupport::is_iterable<Source>::value )
+        else if constexpr ( ExtendedTypeSupport::is_pair<To>::value && ExtendedTypeSupport::is_pair<From>::value )
         {
-            using SourceElementType = typename ExtendedTypeSupport::element_type<Source>::type;
-            using DestinationElementType = typename ExtendedTypeSupport::element_type<Destination>::type;
-            if constexpr ( (ExtendedTypeSupport::is_stl_iterable<Source>::value || ExtendedTypeSupport::is_adaptor<Source>::value) &&
-                (ExtendedTypeSupport::is_stl_iterable<Destination>::value || ExtendedTypeSupport::is_adaptor<Destination>::value) )
+            ObjectMapper::map(to.first, from.first);
+            ObjectMapper::map(to.second, from.second);
+        }
+        else if constexpr ( ExtendedTypeSupport::is_tuple<To>::value && ExtendedTypeSupport::is_tuple<From>::value )
+        {
+            ObjectMapper::map_tuple<0>(to, from);
+        }
+        else if constexpr ( ExtendedTypeSupport::is_iterable<To>::value && ExtendedTypeSupport::is_iterable<From>::value )
+        {
+            using ToElementType = typename ExtendedTypeSupport::element_type<To>::type;
+            using FromElementType = typename ExtendedTypeSupport::element_type<From>::type;
+            if constexpr ( (ExtendedTypeSupport::is_stl_iterable<To>::value || ExtendedTypeSupport::is_adaptor<To>::value) &&
+                (ExtendedTypeSupport::is_stl_iterable<From>::value || ExtendedTypeSupport::is_adaptor<From>::value) )
             {
-                ExtendedTypeSupport::Clear(destination);
-                for ( auto & sourceElement : source )
+                ExtendedTypeSupport::Clear(to);
+                for ( auto & fromElement : from )
                 {
-                    DestinationElementType destinationElement;
-                    ObjectMapper::map(sourceElement, destinationElement);
-                    ExtendedTypeSupport::Append(destination, destinationElement);
+                    ToElementType toElement;
+                    ObjectMapper::map(toElement, fromElement);
+                    ExtendedTypeSupport::Append(to, toElement);
                 }
             }
-            else if constexpr ( ExtendedTypeSupport::is_static_array<Source>::value && ExtendedTypeSupport::static_array_size<Source>::value > 0 )
+            else if constexpr ( ExtendedTypeSupport::is_static_array<From>::value && ExtendedTypeSupport::static_array_size<From>::value > 0 )
             {
-                if constexpr ( ExtendedTypeSupport::is_static_array<Destination>::value && ExtendedTypeSupport::static_array_size<Destination>::value > 0 )
+                if constexpr ( ExtendedTypeSupport::is_static_array<To>::value && ExtendedTypeSupport::static_array_size<To>::value > 0 )
                 {
-                    constexpr size_t limit = std::min(ExtendedTypeSupport::static_array_size<Destination>::value, ExtendedTypeSupport::static_array_size<Source>::value);
+                    constexpr size_t limit = std::min(ExtendedTypeSupport::static_array_size<To>::value, ExtendedTypeSupport::static_array_size<From>::value);
                     for ( size_t i=0; i<limit; i++ )
-                        ObjectMapper::map(source[i], destination[i]);
+                        ObjectMapper::map(to[i], from[i]);
                 }
                 else
                 {
-                    Clear(destination);
-                    for ( size_t i=0; i<ExtendedTypeSupport::static_array_size<Source>::value; i++ )
+                    Clear(to);
+                    for ( size_t i=0; i<ExtendedTypeSupport::static_array_size<From>::value; i++ )
                     {
-                        DestinationElementType destinationElement;
-                        ObjectMapper::map(source[i], destinationElement);
-                        Append(destination, destinationElement);
+                        ToElementType toElement;
+                        ObjectMapper::map(toElement, from[i]);
+                        Append(to, toElement);
                     }
                 }
             }
-            else if constexpr ( ExtendedTypeSupport::is_static_array<Destination>::value && ExtendedTypeSupport::static_array_size<Destination>::value > 0 )
+            else if constexpr ( ExtendedTypeSupport::is_static_array<To>::value && ExtendedTypeSupport::static_array_size<To>::value > 0 )
             {
                 size_t i=0;
-                for ( auto & element : source )
+                for ( auto & element : from )
                 {
-                    ObjectMapper::map(element, destination[i]);
-                    if ( ++i == ExtendedTypeSupport::static_array_size<Destination>::value )
+                    ObjectMapper::map(to[i], element);
+                    if ( ++i == ExtendedTypeSupport::static_array_size<To>::value )
                         break;
                 }
             }
         }
-        else if constexpr ( Reflect::is_reflected<Destination>::value && Reflect::is_reflected<Source>::value )
+        else if constexpr ( Reflect::is_reflected<To>::value && Reflect::is_reflected<From>::value )
         {
-            Reflect::class_t<Destination>::ForEachField(destination, [&](auto & lField, auto & l) {
-                Reflect::class_t<Source>::ForEachField(source, [&](auto & rField, auto & r) {
-                    if constexpr ( std::string_view(lField.Name) == std::string_view(rField.Name) )
-                        ObjectMapper::map(r, l);
+            Reflect::class_t<To>::ForEachField(to, [&](auto & toField, auto & toValue) {
+                Reflect::class_t<From>::ForEachField(from, [&](auto & fromField, auto & fromValue) {
+                    if constexpr (std::string_view(toField.Name) == std::string_view(fromField.Name))
+                        ObjectMapper::map(toValue, fromValue);
                 });
             });
         }
-        else if constexpr ( std::is_assignable_v<decltype(destination), decltype(source)> )
-        {
-            destination = source;
-        }
     }
+
 };
 
 #endif
