@@ -166,7 +166,6 @@
     <ClInclude Include="JsonTest.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ConstexprStrTest.cpp" />
     <ClCompile Include="ExtendedTypeSupportTest.cpp" />
     <ClCompile Include="FieldTest.cpp" />
     <ClCompile Include="GenericMacroTest.cpp" />
@@ -177,6 +176,7 @@
     <ClCompile Include="JsonTest.cpp" />
     <ClCompile Include="JsonTestRunBuffered.cpp" />
     <ClCompile Include="JsonTestRunUnbuffered.cpp" />
+    <ClCompile Include="ObjectMapperTest.cpp" />
     <ClCompile Include="ReflectTest.cpp" />
     <ClCompile Include="StringBufferTest.cpp" />
     <ClCompile Include="TestMain.cpp" />

@@ -7,7 +7,6 @@ set(Headers
   JsonTest.h
 )
 set(Sources
-  ConstexprStrTest.cpp
   ExtendedTypeSupportTest.cpp
   FieldTest.cpp
   GenericMacroTest.cpp

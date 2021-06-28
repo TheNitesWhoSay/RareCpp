@@ -39,138 +39,138 @@ namespace MacroLoops
 {
 /// ArgMax: 125 (derived from the C spec limiting macros to 126 arguments and the COUNT_ARGUMENTS helper macro "ML_M" requiring ArgMax+1 arguments)
 
-/// Extractor_Expand
-#define EO_E(x) x
+/// MacroLoop_Expand
+#define ML_E(x) x
 
-/// Extractor_Concatenate
-#define EO_C(x,y) x##y
+/// MacroLoop_Concatenate
+#define ML_C(x,y) x##y
 
 /// MacroLoop_ForEach[1, ..., ArgMax]
 #define ML_1(f,a,...) f(a)
-#define ML_2(f,a,...) f(a) EO_E(ML_1(f,__VA_ARGS__))
-#define ML_3(f,a,...) f(a) EO_E(ML_2(f,__VA_ARGS__))
-#define ML_4(f,a,...) f(a) EO_E(ML_3(f,__VA_ARGS__))
-#define ML_5(f,a,...) f(a) EO_E(ML_4(f,__VA_ARGS__))
-#define ML_6(f,a,...) f(a) EO_E(ML_5(f,__VA_ARGS__))
-#define ML_7(f,a,...) f(a) EO_E(ML_6(f,__VA_ARGS__))
-#define ML_8(f,a,...) f(a) EO_E(ML_7(f,__VA_ARGS__))
-#define ML_9(f,a,...) f(a) EO_E(ML_8(f,__VA_ARGS__))
-#define ML_10(f,a,...) f(a) EO_E(ML_9(f,__VA_ARGS__))
-#define ML_11(f,a,...) f(a) EO_E(ML_10(f,__VA_ARGS__))
-#define ML_12(f,a,...) f(a) EO_E(ML_11(f,__VA_ARGS__))
-#define ML_13(f,a,...) f(a) EO_E(ML_12(f,__VA_ARGS__))
-#define ML_14(f,a,...) f(a) EO_E(ML_13(f,__VA_ARGS__))
-#define ML_15(f,a,...) f(a) EO_E(ML_14(f,__VA_ARGS__))
-#define ML_16(f,a,...) f(a) EO_E(ML_15(f,__VA_ARGS__))
-#define ML_17(f,a,...) f(a) EO_E(ML_16(f,__VA_ARGS__))
-#define ML_18(f,a,...) f(a) EO_E(ML_17(f,__VA_ARGS__))
-#define ML_19(f,a,...) f(a) EO_E(ML_18(f,__VA_ARGS__))
-#define ML_20(f,a,...) f(a) EO_E(ML_19(f,__VA_ARGS__))
-#define ML_21(f,a,...) f(a) EO_E(ML_20(f,__VA_ARGS__))
-#define ML_22(f,a,...) f(a) EO_E(ML_21(f,__VA_ARGS__))
-#define ML_23(f,a,...) f(a) EO_E(ML_22(f,__VA_ARGS__))
-#define ML_24(f,a,...) f(a) EO_E(ML_23(f,__VA_ARGS__))
-#define ML_25(f,a,...) f(a) EO_E(ML_24(f,__VA_ARGS__))
-#define ML_26(f,a,...) f(a) EO_E(ML_25(f,__VA_ARGS__))
-#define ML_27(f,a,...) f(a) EO_E(ML_26(f,__VA_ARGS__))
-#define ML_28(f,a,...) f(a) EO_E(ML_27(f,__VA_ARGS__))
-#define ML_29(f,a,...) f(a) EO_E(ML_28(f,__VA_ARGS__))
-#define ML_30(f,a,...) f(a) EO_E(ML_29(f,__VA_ARGS__))
-#define ML_31(f,a,...) f(a) EO_E(ML_30(f,__VA_ARGS__))
-#define ML_32(f,a,...) f(a) EO_E(ML_31(f,__VA_ARGS__))
-#define ML_33(f,a,...) f(a) EO_E(ML_32(f,__VA_ARGS__))
-#define ML_34(f,a,...) f(a) EO_E(ML_33(f,__VA_ARGS__))
-#define ML_35(f,a,...) f(a) EO_E(ML_34(f,__VA_ARGS__))
-#define ML_36(f,a,...) f(a) EO_E(ML_35(f,__VA_ARGS__))
-#define ML_37(f,a,...) f(a) EO_E(ML_36(f,__VA_ARGS__))
-#define ML_38(f,a,...) f(a) EO_E(ML_37(f,__VA_ARGS__))
-#define ML_39(f,a,...) f(a) EO_E(ML_38(f,__VA_ARGS__))
-#define ML_40(f,a,...) f(a) EO_E(ML_39(f,__VA_ARGS__))
-#define ML_41(f,a,...) f(a) EO_E(ML_40(f,__VA_ARGS__))
-#define ML_42(f,a,...) f(a) EO_E(ML_41(f,__VA_ARGS__))
-#define ML_43(f,a,...) f(a) EO_E(ML_42(f,__VA_ARGS__))
-#define ML_44(f,a,...) f(a) EO_E(ML_43(f,__VA_ARGS__))
-#define ML_45(f,a,...) f(a) EO_E(ML_44(f,__VA_ARGS__))
-#define ML_46(f,a,...) f(a) EO_E(ML_45(f,__VA_ARGS__))
-#define ML_47(f,a,...) f(a) EO_E(ML_46(f,__VA_ARGS__))
-#define ML_48(f,a,...) f(a) EO_E(ML_47(f,__VA_ARGS__))
-#define ML_49(f,a,...) f(a) EO_E(ML_48(f,__VA_ARGS__))
-#define ML_50(f,a,...) f(a) EO_E(ML_49(f,__VA_ARGS__))
-#define ML_51(f,a,...) f(a) EO_E(ML_50(f,__VA_ARGS__))
-#define ML_52(f,a,...) f(a) EO_E(ML_51(f,__VA_ARGS__))
-#define ML_53(f,a,...) f(a) EO_E(ML_52(f,__VA_ARGS__))
-#define ML_54(f,a,...) f(a) EO_E(ML_53(f,__VA_ARGS__))
-#define ML_55(f,a,...) f(a) EO_E(ML_54(f,__VA_ARGS__))
-#define ML_56(f,a,...) f(a) EO_E(ML_55(f,__VA_ARGS__))
-#define ML_57(f,a,...) f(a) EO_E(ML_56(f,__VA_ARGS__))
-#define ML_58(f,a,...) f(a) EO_E(ML_57(f,__VA_ARGS__))
-#define ML_59(f,a,...) f(a) EO_E(ML_58(f,__VA_ARGS__))
-#define ML_60(f,a,...) f(a) EO_E(ML_59(f,__VA_ARGS__))
-#define ML_61(f,a,...) f(a) EO_E(ML_60(f,__VA_ARGS__))
-#define ML_62(f,a,...) f(a) EO_E(ML_61(f,__VA_ARGS__))
-#define ML_63(f,a,...) f(a) EO_E(ML_62(f,__VA_ARGS__))
-#define ML_64(f,a,...) f(a) EO_E(ML_63(f,__VA_ARGS__))
-#define ML_65(f,a,...) f(a) EO_E(ML_64(f,__VA_ARGS__))
-#define ML_66(f,a,...) f(a) EO_E(ML_65(f,__VA_ARGS__))
-#define ML_67(f,a,...) f(a) EO_E(ML_66(f,__VA_ARGS__))
-#define ML_68(f,a,...) f(a) EO_E(ML_67(f,__VA_ARGS__))
-#define ML_69(f,a,...) f(a) EO_E(ML_68(f,__VA_ARGS__))
-#define ML_70(f,a,...) f(a) EO_E(ML_69(f,__VA_ARGS__))
-#define ML_71(f,a,...) f(a) EO_E(ML_70(f,__VA_ARGS__))
-#define ML_72(f,a,...) f(a) EO_E(ML_71(f,__VA_ARGS__))
-#define ML_73(f,a,...) f(a) EO_E(ML_72(f,__VA_ARGS__))
-#define ML_74(f,a,...) f(a) EO_E(ML_73(f,__VA_ARGS__))
-#define ML_75(f,a,...) f(a) EO_E(ML_74(f,__VA_ARGS__))
-#define ML_76(f,a,...) f(a) EO_E(ML_75(f,__VA_ARGS__))
-#define ML_77(f,a,...) f(a) EO_E(ML_76(f,__VA_ARGS__))
-#define ML_78(f,a,...) f(a) EO_E(ML_77(f,__VA_ARGS__))
-#define ML_79(f,a,...) f(a) EO_E(ML_78(f,__VA_ARGS__))
-#define ML_80(f,a,...) f(a) EO_E(ML_79(f,__VA_ARGS__))
-#define ML_81(f,a,...) f(a) EO_E(ML_80(f,__VA_ARGS__))
-#define ML_82(f,a,...) f(a) EO_E(ML_81(f,__VA_ARGS__))
-#define ML_83(f,a,...) f(a) EO_E(ML_82(f,__VA_ARGS__))
-#define ML_84(f,a,...) f(a) EO_E(ML_83(f,__VA_ARGS__))
-#define ML_85(f,a,...) f(a) EO_E(ML_84(f,__VA_ARGS__))
-#define ML_86(f,a,...) f(a) EO_E(ML_85(f,__VA_ARGS__))
-#define ML_87(f,a,...) f(a) EO_E(ML_86(f,__VA_ARGS__))
-#define ML_88(f,a,...) f(a) EO_E(ML_87(f,__VA_ARGS__))
-#define ML_89(f,a,...) f(a) EO_E(ML_88(f,__VA_ARGS__))
-#define ML_90(f,a,...) f(a) EO_E(ML_89(f,__VA_ARGS__))
-#define ML_91(f,a,...) f(a) EO_E(ML_90(f,__VA_ARGS__))
-#define ML_92(f,a,...) f(a) EO_E(ML_91(f,__VA_ARGS__))
-#define ML_93(f,a,...) f(a) EO_E(ML_92(f,__VA_ARGS__))
-#define ML_94(f,a,...) f(a) EO_E(ML_93(f,__VA_ARGS__))
-#define ML_95(f,a,...) f(a) EO_E(ML_94(f,__VA_ARGS__))
-#define ML_96(f,a,...) f(a) EO_E(ML_95(f,__VA_ARGS__))
-#define ML_97(f,a,...) f(a) EO_E(ML_96(f,__VA_ARGS__))
-#define ML_98(f,a,...) f(a) EO_E(ML_97(f,__VA_ARGS__))
-#define ML_99(f,a,...) f(a) EO_E(ML_98(f,__VA_ARGS__))
-#define ML_100(f,a,...) f(a) EO_E(ML_99(f,__VA_ARGS__))
-#define ML_101(f,a,...) f(a) EO_E(ML_100(f,__VA_ARGS__))
-#define ML_102(f,a,...) f(a) EO_E(ML_101(f,__VA_ARGS__))
-#define ML_103(f,a,...) f(a) EO_E(ML_102(f,__VA_ARGS__))
-#define ML_104(f,a,...) f(a) EO_E(ML_103(f,__VA_ARGS__))
-#define ML_105(f,a,...) f(a) EO_E(ML_104(f,__VA_ARGS__))
-#define ML_106(f,a,...) f(a) EO_E(ML_105(f,__VA_ARGS__))
-#define ML_107(f,a,...) f(a) EO_E(ML_106(f,__VA_ARGS__))
-#define ML_108(f,a,...) f(a) EO_E(ML_107(f,__VA_ARGS__))
-#define ML_109(f,a,...) f(a) EO_E(ML_108(f,__VA_ARGS__))
-#define ML_110(f,a,...) f(a) EO_E(ML_109(f,__VA_ARGS__))
-#define ML_111(f,a,...) f(a) EO_E(ML_110(f,__VA_ARGS__))
-#define ML_112(f,a,...) f(a) EO_E(ML_111(f,__VA_ARGS__))
-#define ML_113(f,a,...) f(a) EO_E(ML_112(f,__VA_ARGS__))
-#define ML_114(f,a,...) f(a) EO_E(ML_113(f,__VA_ARGS__))
-#define ML_115(f,a,...) f(a) EO_E(ML_114(f,__VA_ARGS__))
-#define ML_116(f,a,...) f(a) EO_E(ML_115(f,__VA_ARGS__))
-#define ML_117(f,a,...) f(a) EO_E(ML_116(f,__VA_ARGS__))
-#define ML_118(f,a,...) f(a) EO_E(ML_117(f,__VA_ARGS__))
-#define ML_119(f,a,...) f(a) EO_E(ML_118(f,__VA_ARGS__))
-#define ML_120(f,a,...) f(a) EO_E(ML_119(f,__VA_ARGS__))
-#define ML_121(f,a,...) f(a) EO_E(ML_120(f,__VA_ARGS__))
-#define ML_122(f,a,...) f(a) EO_E(ML_121(f,__VA_ARGS__))
-#define ML_123(f,a,...) f(a) EO_E(ML_122(f,__VA_ARGS__))
-#define ML_124(f,a,...) f(a) EO_E(ML_123(f,__VA_ARGS__))
-#define ML_125(f,a,...) f(a) EO_E(ML_124(f,__VA_ARGS__))
+#define ML_2(f,a,...) f(a) ML_E(ML_1(f,__VA_ARGS__))
+#define ML_3(f,a,...) f(a) ML_E(ML_2(f,__VA_ARGS__))
+#define ML_4(f,a,...) f(a) ML_E(ML_3(f,__VA_ARGS__))
+#define ML_5(f,a,...) f(a) ML_E(ML_4(f,__VA_ARGS__))
+#define ML_6(f,a,...) f(a) ML_E(ML_5(f,__VA_ARGS__))
+#define ML_7(f,a,...) f(a) ML_E(ML_6(f,__VA_ARGS__))
+#define ML_8(f,a,...) f(a) ML_E(ML_7(f,__VA_ARGS__))
+#define ML_9(f,a,...) f(a) ML_E(ML_8(f,__VA_ARGS__))
+#define ML_10(f,a,...) f(a) ML_E(ML_9(f,__VA_ARGS__))
+#define ML_11(f,a,...) f(a) ML_E(ML_10(f,__VA_ARGS__))
+#define ML_12(f,a,...) f(a) ML_E(ML_11(f,__VA_ARGS__))
+#define ML_13(f,a,...) f(a) ML_E(ML_12(f,__VA_ARGS__))
+#define ML_14(f,a,...) f(a) ML_E(ML_13(f,__VA_ARGS__))
+#define ML_15(f,a,...) f(a) ML_E(ML_14(f,__VA_ARGS__))
+#define ML_16(f,a,...) f(a) ML_E(ML_15(f,__VA_ARGS__))
+#define ML_17(f,a,...) f(a) ML_E(ML_16(f,__VA_ARGS__))
+#define ML_18(f,a,...) f(a) ML_E(ML_17(f,__VA_ARGS__))
+#define ML_19(f,a,...) f(a) ML_E(ML_18(f,__VA_ARGS__))
+#define ML_20(f,a,...) f(a) ML_E(ML_19(f,__VA_ARGS__))
+#define ML_21(f,a,...) f(a) ML_E(ML_20(f,__VA_ARGS__))
+#define ML_22(f,a,...) f(a) ML_E(ML_21(f,__VA_ARGS__))
+#define ML_23(f,a,...) f(a) ML_E(ML_22(f,__VA_ARGS__))
+#define ML_24(f,a,...) f(a) ML_E(ML_23(f,__VA_ARGS__))
+#define ML_25(f,a,...) f(a) ML_E(ML_24(f,__VA_ARGS__))
+#define ML_26(f,a,...) f(a) ML_E(ML_25(f,__VA_ARGS__))
+#define ML_27(f,a,...) f(a) ML_E(ML_26(f,__VA_ARGS__))
+#define ML_28(f,a,...) f(a) ML_E(ML_27(f,__VA_ARGS__))
+#define ML_29(f,a,...) f(a) ML_E(ML_28(f,__VA_ARGS__))
+#define ML_30(f,a,...) f(a) ML_E(ML_29(f,__VA_ARGS__))
+#define ML_31(f,a,...) f(a) ML_E(ML_30(f,__VA_ARGS__))
+#define ML_32(f,a,...) f(a) ML_E(ML_31(f,__VA_ARGS__))
+#define ML_33(f,a,...) f(a) ML_E(ML_32(f,__VA_ARGS__))
+#define ML_34(f,a,...) f(a) ML_E(ML_33(f,__VA_ARGS__))
+#define ML_35(f,a,...) f(a) ML_E(ML_34(f,__VA_ARGS__))
+#define ML_36(f,a,...) f(a) ML_E(ML_35(f,__VA_ARGS__))
+#define ML_37(f,a,...) f(a) ML_E(ML_36(f,__VA_ARGS__))
+#define ML_38(f,a,...) f(a) ML_E(ML_37(f,__VA_ARGS__))
+#define ML_39(f,a,...) f(a) ML_E(ML_38(f,__VA_ARGS__))
+#define ML_40(f,a,...) f(a) ML_E(ML_39(f,__VA_ARGS__))
+#define ML_41(f,a,...) f(a) ML_E(ML_40(f,__VA_ARGS__))
+#define ML_42(f,a,...) f(a) ML_E(ML_41(f,__VA_ARGS__))
+#define ML_43(f,a,...) f(a) ML_E(ML_42(f,__VA_ARGS__))
+#define ML_44(f,a,...) f(a) ML_E(ML_43(f,__VA_ARGS__))
+#define ML_45(f,a,...) f(a) ML_E(ML_44(f,__VA_ARGS__))
+#define ML_46(f,a,...) f(a) ML_E(ML_45(f,__VA_ARGS__))
+#define ML_47(f,a,...) f(a) ML_E(ML_46(f,__VA_ARGS__))
+#define ML_48(f,a,...) f(a) ML_E(ML_47(f,__VA_ARGS__))
+#define ML_49(f,a,...) f(a) ML_E(ML_48(f,__VA_ARGS__))
+#define ML_50(f,a,...) f(a) ML_E(ML_49(f,__VA_ARGS__))
+#define ML_51(f,a,...) f(a) ML_E(ML_50(f,__VA_ARGS__))
+#define ML_52(f,a,...) f(a) ML_E(ML_51(f,__VA_ARGS__))
+#define ML_53(f,a,...) f(a) ML_E(ML_52(f,__VA_ARGS__))
+#define ML_54(f,a,...) f(a) ML_E(ML_53(f,__VA_ARGS__))
+#define ML_55(f,a,...) f(a) ML_E(ML_54(f,__VA_ARGS__))
+#define ML_56(f,a,...) f(a) ML_E(ML_55(f,__VA_ARGS__))
+#define ML_57(f,a,...) f(a) ML_E(ML_56(f,__VA_ARGS__))
+#define ML_58(f,a,...) f(a) ML_E(ML_57(f,__VA_ARGS__))
+#define ML_59(f,a,...) f(a) ML_E(ML_58(f,__VA_ARGS__))
+#define ML_60(f,a,...) f(a) ML_E(ML_59(f,__VA_ARGS__))
+#define ML_61(f,a,...) f(a) ML_E(ML_60(f,__VA_ARGS__))
+#define ML_62(f,a,...) f(a) ML_E(ML_61(f,__VA_ARGS__))
+#define ML_63(f,a,...) f(a) ML_E(ML_62(f,__VA_ARGS__))
+#define ML_64(f,a,...) f(a) ML_E(ML_63(f,__VA_ARGS__))
+#define ML_65(f,a,...) f(a) ML_E(ML_64(f,__VA_ARGS__))
+#define ML_66(f,a,...) f(a) ML_E(ML_65(f,__VA_ARGS__))
+#define ML_67(f,a,...) f(a) ML_E(ML_66(f,__VA_ARGS__))
+#define ML_68(f,a,...) f(a) ML_E(ML_67(f,__VA_ARGS__))
+#define ML_69(f,a,...) f(a) ML_E(ML_68(f,__VA_ARGS__))
+#define ML_70(f,a,...) f(a) ML_E(ML_69(f,__VA_ARGS__))
+#define ML_71(f,a,...) f(a) ML_E(ML_70(f,__VA_ARGS__))
+#define ML_72(f,a,...) f(a) ML_E(ML_71(f,__VA_ARGS__))
+#define ML_73(f,a,...) f(a) ML_E(ML_72(f,__VA_ARGS__))
+#define ML_74(f,a,...) f(a) ML_E(ML_73(f,__VA_ARGS__))
+#define ML_75(f,a,...) f(a) ML_E(ML_74(f,__VA_ARGS__))
+#define ML_76(f,a,...) f(a) ML_E(ML_75(f,__VA_ARGS__))
+#define ML_77(f,a,...) f(a) ML_E(ML_76(f,__VA_ARGS__))
+#define ML_78(f,a,...) f(a) ML_E(ML_77(f,__VA_ARGS__))
+#define ML_79(f,a,...) f(a) ML_E(ML_78(f,__VA_ARGS__))
+#define ML_80(f,a,...) f(a) ML_E(ML_79(f,__VA_ARGS__))
+#define ML_81(f,a,...) f(a) ML_E(ML_80(f,__VA_ARGS__))
+#define ML_82(f,a,...) f(a) ML_E(ML_81(f,__VA_ARGS__))
+#define ML_83(f,a,...) f(a) ML_E(ML_82(f,__VA_ARGS__))
+#define ML_84(f,a,...) f(a) ML_E(ML_83(f,__VA_ARGS__))
+#define ML_85(f,a,...) f(a) ML_E(ML_84(f,__VA_ARGS__))
+#define ML_86(f,a,...) f(a) ML_E(ML_85(f,__VA_ARGS__))
+#define ML_87(f,a,...) f(a) ML_E(ML_86(f,__VA_ARGS__))
+#define ML_88(f,a,...) f(a) ML_E(ML_87(f,__VA_ARGS__))
+#define ML_89(f,a,...) f(a) ML_E(ML_88(f,__VA_ARGS__))
+#define ML_90(f,a,...) f(a) ML_E(ML_89(f,__VA_ARGS__))
+#define ML_91(f,a,...) f(a) ML_E(ML_90(f,__VA_ARGS__))
+#define ML_92(f,a,...) f(a) ML_E(ML_91(f,__VA_ARGS__))
+#define ML_93(f,a,...) f(a) ML_E(ML_92(f,__VA_ARGS__))
+#define ML_94(f,a,...) f(a) ML_E(ML_93(f,__VA_ARGS__))
+#define ML_95(f,a,...) f(a) ML_E(ML_94(f,__VA_ARGS__))
+#define ML_96(f,a,...) f(a) ML_E(ML_95(f,__VA_ARGS__))
+#define ML_97(f,a,...) f(a) ML_E(ML_96(f,__VA_ARGS__))
+#define ML_98(f,a,...) f(a) ML_E(ML_97(f,__VA_ARGS__))
+#define ML_99(f,a,...) f(a) ML_E(ML_98(f,__VA_ARGS__))
+#define ML_100(f,a,...) f(a) ML_E(ML_99(f,__VA_ARGS__))
+#define ML_101(f,a,...) f(a) ML_E(ML_100(f,__VA_ARGS__))
+#define ML_102(f,a,...) f(a) ML_E(ML_101(f,__VA_ARGS__))
+#define ML_103(f,a,...) f(a) ML_E(ML_102(f,__VA_ARGS__))
+#define ML_104(f,a,...) f(a) ML_E(ML_103(f,__VA_ARGS__))
+#define ML_105(f,a,...) f(a) ML_E(ML_104(f,__VA_ARGS__))
+#define ML_106(f,a,...) f(a) ML_E(ML_105(f,__VA_ARGS__))
+#define ML_107(f,a,...) f(a) ML_E(ML_106(f,__VA_ARGS__))
+#define ML_108(f,a,...) f(a) ML_E(ML_107(f,__VA_ARGS__))
+#define ML_109(f,a,...) f(a) ML_E(ML_108(f,__VA_ARGS__))
+#define ML_110(f,a,...) f(a) ML_E(ML_109(f,__VA_ARGS__))
+#define ML_111(f,a,...) f(a) ML_E(ML_110(f,__VA_ARGS__))
+#define ML_112(f,a,...) f(a) ML_E(ML_111(f,__VA_ARGS__))
+#define ML_113(f,a,...) f(a) ML_E(ML_112(f,__VA_ARGS__))
+#define ML_114(f,a,...) f(a) ML_E(ML_113(f,__VA_ARGS__))
+#define ML_115(f,a,...) f(a) ML_E(ML_114(f,__VA_ARGS__))
+#define ML_116(f,a,...) f(a) ML_E(ML_115(f,__VA_ARGS__))
+#define ML_117(f,a,...) f(a) ML_E(ML_116(f,__VA_ARGS__))
+#define ML_118(f,a,...) f(a) ML_E(ML_117(f,__VA_ARGS__))
+#define ML_119(f,a,...) f(a) ML_E(ML_118(f,__VA_ARGS__))
+#define ML_120(f,a,...) f(a) ML_E(ML_119(f,__VA_ARGS__))
+#define ML_121(f,a,...) f(a) ML_E(ML_120(f,__VA_ARGS__))
+#define ML_122(f,a,...) f(a) ML_E(ML_121(f,__VA_ARGS__))
+#define ML_123(f,a,...) f(a) ML_E(ML_122(f,__VA_ARGS__))
+#define ML_124(f,a,...) f(a) ML_E(ML_123(f,__VA_ARGS__))
+#define ML_125(f,a,...) f(a) ML_E(ML_124(f,__VA_ARGS__))
 
 /// MacroLoop_ArgumentCounts [ArgMax ... 0]
 #define ML_G() 125,124,123,122,121,120,119,118,117,116,115,114,113,112,111,110,109,108,107,106,105,104,103,102,101,100,99,98,97,96,\
@@ -183,10 +183,10 @@ d0,d1,d2,d3,d4,d5,d6,d7,d8,d9,e0,e1,e2,e3,e4,e5,e6,e7,e8,e9,f0,f1,f2,f3,f4,f5,f6
 i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtArgMax
 
 /// MacroLoop_Expand_Select_Argument_At_Argument_Max (necessary due to bugs in VS macro handling)
-#define ML_S(...) EO_E(ML_M(__VA_ARGS__))
+#define ML_S(...) ML_E(ML_M(__VA_ARGS__))
 
 /// MacroLoop_ForEach_N
-#define ML_N(N,f,...) EO_E(EO_C(ML_,N)(f,__VA_ARGS__))
+#define ML_N(N,f,...) ML_E(ML_C(ML_,N)(f,__VA_ARGS__))
 
 /// Selects the count of varadic arguments
 #define COUNT_ARGUMENTS(...) ML_S(__VA_ARGS__,ML_G())
@@ -194,20 +194,6 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
 /// Call "f" for each argument
 #define FOR_EACH(f,...) ML_N(COUNT_ARGUMENTS(__VA_ARGS__),f,__VA_ARGS__)
 
-};
-
-/// Contains methods required for manipulating strings at compile time
-namespace ConstexprStr
-{
-    template <size_t N> struct substr {
-        constexpr substr(const char* s) : value() {
-            for ( size_t i = 0; i < N; i++ )
-                value[i] = s[i];
-
-            value[N] = '\0';
-        }
-        char value[N + 1];
-    };
 };
 
 namespace ExtendedTypeSupport
@@ -416,6 +402,24 @@ namespace ExtendedTypeSupport
             }
         }
     }
+
+    inline namespace OpDetection {
+        namespace OpDetectImpl {
+            template <class AlwaysVoid, template<class...> class Op, class... Args> struct OpExists { static constexpr bool value = false; };
+            template <template<class...> class Op, class... Args> struct OpExists<std::void_t<Op<Args...>>, Op, Args...> { static constexpr bool value = true; };
+
+            template <typename L, typename R> using AssignmentOp = decltype(std::declval<L>() = std::declval<const R &>());
+            template <typename L, typename R> using StaticCastAssignmentOp = decltype(
+                std::declval<L>() = static_cast<std::remove_reference_t<L>>(std::declval<const R &>()));
+            template <typename L, typename R> using MapToOp = decltype(std::declval<L>().map_to(std::declval<R &>()));
+            template <typename L, typename R> using MapFromOp = decltype(std::declval<L>().map_from(std::declval<const R &>()));
+        }
+
+        template <typename L, typename R> static constexpr bool IsAssignable = OpDetectImpl::OpExists<void, OpDetectImpl::AssignmentOp, L, R>::value;
+        template <typename L, typename R> static constexpr bool IsStaticCastAssignable = OpDetectImpl::OpExists<void, OpDetectImpl::StaticCastAssignmentOp, L, R>::value;
+        template <typename L, typename R> static constexpr bool HasMapTo = OpDetectImpl::OpExists<void, OpDetectImpl::MapToOp, L, R>::value;
+        template <typename L, typename R> static constexpr bool HasMapFrom = OpDetectImpl::OpExists<void, OpDetectImpl::MapFromOp, L, R>::value;
+    };
     
     template <typename L, typename R>
     struct TypePair {
@@ -809,17 +813,18 @@ namespace Reflect
 
     namespace Fields
     {
-        template <typename T = void, typename FieldPointer = std::nullptr_t, size_t FieldIndex = 0, typename Annotations = NoAnnotation>
+        template <typename T = void, typename FieldPointer = std::nullptr_t, size_t FieldIndex = 0, typename Annotations = NoAnnotation, const char* FieldName = nullptr>
         struct Field;
     
         template <>
-        struct Field<void, std::nullptr_t, 0, NoAnnotation> {
+        struct Field<void, std::nullptr_t, 0, NoAnnotation, nullptr> {
             const char* name;
             const char* typeStr;
         };
 
-        template <typename T, typename FieldPointer, size_t FieldIndex, typename FieldAnnotations>
+        template <typename T, typename FieldPointer, size_t FieldIndex, typename FieldAnnotations, const char* FieldName>
         struct Field {
+            static constexpr const char* Name = FieldName;
             const char* name;
             const char* typeStr;
 
@@ -848,6 +853,20 @@ namespace Reflect
         };
     }
 
+    struct Unproxied {};
+
+    template <typename T>
+    struct Proxy : public Unproxied {};
+
+    template <typename T>
+    struct is_proxied
+    {
+        static constexpr bool value = !std::is_base_of<Unproxied, Proxy<T>>::value;
+    };
+    
+    template <typename Type> struct unproxy { using T = Type; };
+    template <typename Type> struct unproxy<Proxy<Type>> { using T = Type; };
+
 #define GET_FIELD_NAME(x) x,
 
 #ifdef __clang__
@@ -866,20 +885,20 @@ namespace Reflect
     template <typename T> static constexpr ExtendedTypeSupport::TypePair<decltype(T::x), decltype(&T::x)> identify(int); \
     template <typename T> static constexpr ExtendedTypeSupport::TypePair<decltype(T::x), std::nullptr_t> identify(unsigned int); \
     template <typename T> static constexpr ExtendedTypeSupport::TypePair<decltype(&T::x), decltype(&T::x)> identify(...); \
-    using Type = decltype(identify<ClassType>(0))::Left; \
-    using Pointer = decltype(identify<ClassType>(0))::Right; \
+    using Type = decltype(identify<ProxyType>(0))::Left; \
+    using Pointer = decltype(identify<ProxyType>(0))::Right; \
     template <typename T, bool IsReference> struct GetPointer { static constexpr auto value = &T::x; }; \
     template <typename T> struct GetPointer<T, true> { static constexpr std::nullptr_t value = nullptr; }; \
-    static constexpr auto nameStr = ConstexprStr::substr<std::string_view(#x).size()>(&#x[0]); \
+    static constexpr const char nameStr[] = #x; \
     static constexpr auto typeStr = ExtendedTypeSupport::TypeName<Type>(); \
     template <typename T> static constexpr decltype(T::x##_note) idNote(int); \
     template <typename T> static constexpr decltype(Class::NoNote) idNote(...); \
     template <typename T, bool NoNote> struct GetNote { static constexpr auto & value = Class::NoNote; }; \
     template <typename T> struct GetNote<T, false> { static constexpr auto & value = T::x##_note; }; \
-    using NoteType = decltype(idNote<ClassType>(0)); \
-    using Field = Reflect::Fields::Field<Type, Pointer, IndexOf::x, NoteType>; \
-    static constexpr Field field = { &nameStr.value[0], &typeStr.value[0], GetPointer<ClassType, std::is_reference_v<Type>>::value, \
-        GetNote<ClassType, std::is_same_v<decltype(Class::NoNote), NoteType>>::value }; \
+    using NoteType = decltype(idNote<ProxyType>(0)); \
+    using Field = Reflect::Fields::Field<Type, Pointer, IndexOf::x, NoteType, nameStr>; \
+    static constexpr Field field = { nameStr, &typeStr.value[0], GetPointer<ProxyType, std::is_reference_v<Type>>::value, \
+        GetNote<ProxyType, std::is_same_v<decltype(Class::NoNote), NoteType>>::value }; \
     CLANG_ONLY(x) \
 };
 
@@ -895,7 +914,8 @@ namespace Reflect
 /// e.g. REFLECT(MyObj, myInt, myString, myOtherObj)
 #define REFLECT(objectType, ...) \
 struct Class { \
-    using ClassType = objectType; \
+    using ProxyType = objectType; \
+    using ClassType = Reflect::unproxy<ProxyType>::T; \
     enum_t(IndexOf, size_t, { FOR_EACH(GET_FIELD_NAME, __VA_ARGS__) }); \
     static constexpr Reflect::NoAnnotation NoNote {}; \
     using Annotations = decltype(NoNote); \
@@ -905,11 +925,11 @@ struct Class { \
     static constexpr size_t TotalStaticFields = 0 FOR_EACH(ADD_IF_STATIC, __VA_ARGS__); \
     static constexpr Reflect::Fields::Field<> Fields[TotalFields] = { FOR_EACH(GET_FIELD, __VA_ARGS__) }; \
     template <typename Function> constexpr static void ForEachField(Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
-    template <typename Function> static void ForEachField(objectType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
-    template <typename Function> static void ForEachField(const objectType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
+    template <typename Function> static void ForEachField(ClassType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
+    template <typename Function> static void ForEachField(const ClassType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
     template <typename Function> constexpr static void FieldAt(size_t fieldIndex, Function function) { \
         switch ( fieldIndex ) { FOR_EACH(USE_FIELD_AT, __VA_ARGS__) } } \
-    template <typename Function> static void FieldAt(objectType & object, size_t fieldIndex, Function function) { \
+    template <typename Function> static void FieldAt(ClassType & object, size_t fieldIndex, Function function) { \
         switch ( fieldIndex ) { FOR_EACH(USE_FIELD_VALUE_AT, __VA_ARGS__) } } \
 }; \
 using Supers = Reflect::Inherit<Class::ClassType, Class::Annotations>;
@@ -918,7 +938,8 @@ using Supers = Reflect::Inherit<Class::ClassType, Class::Annotations>;
 /// REFLECT_NOTED is exactly the same as REFLECT except this signals that objectType itself is annotated
 #define REFLECT_NOTED(objectType, ...) \
 struct Class { \
-    using ClassType = objectType; \
+    using ProxyType = objectType; \
+    using ClassType = Reflect::unproxy<ProxyType>::T; \
     enum_t(IndexOf, size_t, { FOR_EACH(GET_FIELD_NAME, __VA_ARGS__) }); \
     static constexpr Reflect::NoAnnotation NoNote {}; \
     using Annotations = decltype(objectType##_note); \
@@ -928,11 +949,11 @@ struct Class { \
     static constexpr size_t TotalStaticFields = 0 FOR_EACH(ADD_IF_STATIC, __VA_ARGS__); \
     static constexpr Reflect::Fields::Field<> Fields[TotalFields] = { FOR_EACH(GET_FIELD, __VA_ARGS__) }; \
     template <typename Function> constexpr static void ForEachField(Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
-    template <typename Function> static void ForEachField(objectType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
-    template <typename Function> static void ForEachField(const objectType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
+    template <typename Function> static void ForEachField(ClassType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
+    template <typename Function> static void ForEachField(const ClassType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
     template <typename Function> constexpr static void FieldAt(size_t fieldIndex, Function function) { \
         switch ( fieldIndex ) { FOR_EACH(USE_FIELD_AT, __VA_ARGS__) } } \
-    template <typename Function> static void FieldAt(objectType & object, size_t fieldIndex, Function function) { \
+    template <typename Function> static void FieldAt(ClassType & object, size_t fieldIndex, Function function) { \
         switch ( fieldIndex ) { FOR_EACH(USE_FIELD_VALUE_AT, __VA_ARGS__) } } \
 }; \
 using Supers = Reflect::Inherit<Class::ClassType, Class::Annotations>;
@@ -941,26 +962,222 @@ using Supers = Reflect::Inherit<Class::ClassType, Class::Annotations>;
 /// REFLECT_EMPTY is used to reflect an annotated class with no reflected fields
 #define REFLECT_EMPTY(objectType) \
 struct Class { \
-    using ClassType = objectType; \
+    using ProxyType = objectType; \
+    using ClassType = Reflect::unproxy<ProxyType>::T; \
     using Annotations = decltype(objectType##_note); \
     static constexpr Annotations & annotations = objectType##_note; \
     static constexpr size_t TotalFields = 0; \
     static constexpr size_t TotalStaticFields = 0; \
     static constexpr Reflect::Fields::Field<> Fields[1] = { { "", "" } }; \
     template <typename Function> constexpr static void ForEachField(Function function) {} \
-    template <typename Function> static void ForEachField(objectType & object, Function function) {} \
-    template <typename Function> static void ForEachField(const objectType & object, Function function) { } \
+    template <typename Function> static void ForEachField(ClassType & object, Function function) {} \
+    template <typename Function> static void ForEachField(const ClassType & object, Function function) { } \
     template <typename Function> constexpr static void FieldAt(size_t fieldIndex, Function function) {} \
-    template <typename Function> static void FieldAt(objectType & object, size_t fieldIndex, Function function) {} \
+    template <typename Function> static void FieldAt(ClassType & object, size_t fieldIndex, Function function) {} \
 }; \
 using Supers = Reflect::Inherit<Class::ClassType, Class::Annotations>;
-
 
     template <typename T, typename = decltype(T::Class::TotalFields)> static constexpr std::true_type typeHasReflection(int);
     template <typename T> static constexpr std::false_type typeHasReflection(unsigned int);
     
-    template <typename T> struct is_reflected { static constexpr bool value = decltype(typeHasReflection<T>(0))::value; };
+    template <typename T> struct is_reflected { static constexpr bool value = is_proxied<T>::value || decltype(typeHasReflection<T>(0))::value; };
     template <typename T> struct is_reflected<const T> { static constexpr bool value = is_reflected<T>::value; };
+
+    template <typename Type> struct reflected_type { using T = typename std::conditional_t<is_proxied<Type>::value, Proxy<Type>, Type>; };
+
+    template <typename Type> struct clazz { using T = typename reflected_type<Type>::T::Class; };
+    template <typename Type> using class_t = typename clazz<Type>::T;
+
+    template <typename Type> struct supers { using T = typename reflected_type<Type>::T::Supers; };
+    template <typename Type> using supers_t = typename supers<Type>::T;
 }
+
+namespace ObjectMapper
+{
+#define OM_R(l,r) ObjectMapper::map(o.r,this->l);
+#define OM_S(l,r) ObjectMapper::map(this->l,o.r);
+#define OM_O(a) OM_R a
+#define OM_T(a) OM_S a
+
+/// Defines a mapping from "this" to objectType
+/// After the objectType there needs to be at least 1 and at most 124 parenthesized field mappings ("this" fields on left, objectType fields on right)
+/// e.g. MAP_TO(target, (a, a), (b, c), (d, d))
+#define MAP_TO(objectType, ...) void map_to(objectType & o) const { FOR_EACH(OM_O, __VA_ARGS__) }
+
+/// Defines a mapping from objectType to "this"
+/// After the objectType there needs to be at least 1 and at most 124 parenthesized field mappings ("this" fields on left, objectType fields on right)
+/// e.g. MAP_FROM(target, (a, a), (b, c), (d, d))
+#define MAP_FROM(objectType, ...) void map_from(const objectType & o) { FOR_EACH(OM_T, __VA_ARGS__) }
+
+/// Defines a bi-directional mapping between "this" and objectType
+/// After the objectType there needs to be at least 1 and at most 124 parenthesized field mappings ("this" fields on left, objectType fields on right)
+/// e.g. MAP_WITH(target, (a, a), (b, c), (d, d))
+#define MAP_WITH(objectType, ...) MAP_TO(objectType, __VA_ARGS__) MAP_FROM(objectType, __VA_ARGS__)
+
+    template <typename To, typename From>
+    constexpr inline void map_default(To &, const From &); // Default mapping implementation, can be called by map specializations
+
+    template <typename To, typename From>
+    constexpr inline void map(To & to, const From & from) // May be specialized
+    {
+        if constexpr ( ExtendedTypeSupport::HasMapFrom<To, From> )
+            to.map_from(from);
+        else if constexpr ( ExtendedTypeSupport::HasMapTo<From, To> )
+            from.map_to(to);
+        else
+            ObjectMapper::map_default(to, from);
+    }
+
+    template <typename To, typename From>
+    constexpr inline To map(const From & from) // Should not be specialized
+    {
+        To to;
+        ObjectMapper::map(to, from);
+        return to;
+    }
+
+    template <size_t Index, typename ...To, typename ...From>
+    constexpr inline void map_tuple(std::tuple<To...> & to, const std::tuple<From...> & from)
+    {
+        if constexpr ( Index < sizeof...(To) && Index < sizeof...(From) )
+        {
+            ObjectMapper::map(std::get<Index>(to), std::get<Index>(from));
+            ObjectMapper::map_tuple<Index+1>(to, from);
+        }
+    }
+
+    template <typename To, typename From>
+    constexpr inline void map_default(To & to, const From & from)
+    {
+        if constexpr ( std::is_const_v<To> )
+            return;
+        else if constexpr ( ExtendedTypeSupport::is_pointable<To>::value )
+        {
+            using ToDereferenced = typename ExtendedTypeSupport::remove_pointer<To>::type;
+            if ( to == nullptr )
+            {
+                if constexpr ( ExtendedTypeSupport::is_pointable<From>::value )
+                {
+                    if ( from == nullptr )
+                        return;
+                    else if constexpr ( std::is_same_v<std::shared_ptr<ToDereferenced>, To> )
+                    {
+                        if constexpr ( std::is_same_v<From, To> )
+                            to = from; // Share shared pointer
+                        else
+                        {
+                            to = std::make_shared<ToDereferenced>();
+                            ObjectMapper::map(*to, *from);
+                        }
+                    }
+                    else if constexpr ( std::is_same_v<std::unique_ptr<ToDereferenced>, To> )
+                    {
+                        to = std::make_unique<ToDereferenced>();
+                        ObjectMapper::map(*to, *from);
+                    }
+                }
+                else if constexpr ( std::is_same_v<std::shared_ptr<ToDereferenced>, To> )
+                {
+                    to = std::make_shared<ToDereferenced>();
+                    ObjectMapper::map(*to, from);
+                }
+                else if constexpr ( std::is_same_v<std::unique_ptr<ToDereferenced>, To> )
+                {
+                    to = std::make_unique<ToDereferenced>();
+                    ObjectMapper::map(*to, from);
+                }
+            }
+            else // to != nullptr
+            {
+                if constexpr ( ExtendedTypeSupport::is_pointable<From>::value )
+                {
+                    if ( from == nullptr )
+                        to = nullptr;
+                    else
+                        ObjectMapper::map(*to, *from);
+                }
+                else
+                    ObjectMapper::map(*to, from);
+            }
+        }
+        else if constexpr ( ExtendedTypeSupport::is_pointable<From>::value )
+        {
+            if ( from != nullptr )
+                ObjectMapper::map(to, *from);
+        }
+        else if constexpr ( ExtendedTypeSupport::IsAssignable<decltype(to), decltype(from)> )
+        {
+            to = from;
+        }
+        else if constexpr ( ExtendedTypeSupport::IsStaticCastAssignable<decltype(to), decltype(from)> )
+        {
+            to = static_cast<To>(from);
+        }
+        else if constexpr ( ExtendedTypeSupport::is_pair<To>::value && ExtendedTypeSupport::is_pair<From>::value )
+        {
+            ObjectMapper::map(to.first, from.first);
+            ObjectMapper::map(to.second, from.second);
+        }
+        else if constexpr ( ExtendedTypeSupport::is_tuple<To>::value && ExtendedTypeSupport::is_tuple<From>::value )
+        {
+            ObjectMapper::map_tuple<0>(to, from);
+        }
+        else if constexpr ( ExtendedTypeSupport::is_iterable<To>::value && ExtendedTypeSupport::is_iterable<From>::value )
+        {
+            using ToElementType = typename ExtendedTypeSupport::element_type<To>::type;
+            using FromElementType = typename ExtendedTypeSupport::element_type<From>::type;
+            if constexpr ( (ExtendedTypeSupport::is_stl_iterable<To>::value || ExtendedTypeSupport::is_adaptor<To>::value) &&
+                (ExtendedTypeSupport::is_stl_iterable<From>::value || ExtendedTypeSupport::is_adaptor<From>::value) )
+            {
+                ExtendedTypeSupport::Clear(to);
+                for ( auto & fromElement : from )
+                {
+                    ToElementType toElement;
+                    ObjectMapper::map(toElement, fromElement);
+                    ExtendedTypeSupport::Append(to, toElement);
+                }
+            }
+            else if constexpr ( ExtendedTypeSupport::is_static_array<From>::value && ExtendedTypeSupport::static_array_size<From>::value > 0 )
+            {
+                if constexpr ( ExtendedTypeSupport::is_static_array<To>::value && ExtendedTypeSupport::static_array_size<To>::value > 0 )
+                {
+                    constexpr size_t limit = std::min(ExtendedTypeSupport::static_array_size<To>::value, ExtendedTypeSupport::static_array_size<From>::value);
+                    for ( size_t i=0; i<limit; i++ )
+                        ObjectMapper::map(to[i], from[i]);
+                }
+                else
+                {
+                    Clear(to);
+                    for ( size_t i=0; i<ExtendedTypeSupport::static_array_size<From>::value; i++ )
+                    {
+                        ToElementType toElement;
+                        ObjectMapper::map(toElement, from[i]);
+                        Append(to, toElement);
+                    }
+                }
+            }
+            else if constexpr ( ExtendedTypeSupport::is_static_array<To>::value && ExtendedTypeSupport::static_array_size<To>::value > 0 )
+            {
+                size_t i=0;
+                for ( auto & element : from )
+                {
+                    ObjectMapper::map(to[i], element);
+                    if ( ++i == ExtendedTypeSupport::static_array_size<To>::value )
+                        break;
+                }
+            }
+        }
+        else if constexpr ( Reflect::is_reflected<To>::value && Reflect::is_reflected<From>::value )
+        {
+            Reflect::class_t<To>::ForEachField(to, [&](auto & toField, auto & toValue) {
+                Reflect::class_t<From>::ForEachField(from, [&](auto & fromField, auto & fromValue) {
+                    if constexpr (std::string_view(toField.Name) == std::string_view(fromField.Name))
+                        ObjectMapper::map(toValue, fromValue);
+                });
+            });
+        }
+    }
+
+};
 
 #endif
