@@ -17,6 +17,7 @@ set(Sources
   JsonTest.cpp
   JsonTestRunBuffered.cpp
   JsonTestRunUnbuffered.cpp
+  ObjectMapperTest.cpp
   ReflectTest.cpp
   StringBufferTest.cpp
   TestMain.cpp

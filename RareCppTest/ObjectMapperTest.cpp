@@ -26,7 +26,7 @@ namespace Reflected
         REFLECT(Source_stringA, a)
     };
     struct Dest_intA {
-        int a;
+        int a = 0;
         REFLECT(Dest_intA, a)
     };
     struct Source_intAB {
