@@ -31,7 +31,7 @@ Json::OutStreamType & operator<<(Json::OutStreamType & os, const A::TestEnum & t
 
 std::istream & operator>>(std::istream & is, A::TestEnum & testEnum)
 {
-    std::string input = Json::Read::String(is);
+    std::string input = Json::Read::String<>(is);
     auto found = A::TestEnumCache.find(input);
     if ( found != A::TestEnumCache.end() )
         testEnum = found->second;

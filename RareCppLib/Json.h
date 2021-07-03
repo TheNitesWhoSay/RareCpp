@@ -2312,6 +2312,24 @@ namespace Json
                 }
             }
 
+            template <bool IgnoreWhitespace = true>
+            static inline bool tryGetEnd(std::istream& is, char& c, const char* expectedDescription)
+            {
+                if constexpr ( IgnoreWhitespace )
+                    is >> c;
+                else
+                    is.get(c);
+
+                if ( !is.good() )
+                {
+                    if ( is.eof() )
+                        return true;
+                    else
+                        throw StreamReadFail();
+                }
+                return false;
+            }
+
             template <bool usePrimary>
             static constexpr inline void get(std::istream & is, char & c, const char* expectedDescription, const char* secondaryDescription)
             {
@@ -2941,12 +2959,18 @@ namespace Json
                 return ss.str();
             }
 
+            template <bool ExpectQuotes = true>
             static void String(std::istream & is, char & c, std::stringstream & ss)
             {
-                Checked::get(is, c, '\"', "string value open quote");
+                if constexpr ( ExpectQuotes )
+                    Checked::get(is, c, '\"', "string value open quote");
                 do
                 {
-                    Checked::get<false>(is, c, "string value close quote");
+                    if constexpr ( ExpectQuotes )
+                        Checked::get<false>(is, c, "string value close quote");
+                    else if ( Checked::tryGetEnd<false>(is, c, "string character or end of string") )
+                        return;
+
                     switch ( c )
                     {
                         case '\\': // Escape sequence
@@ -2996,37 +3020,40 @@ namespace Json
                         case '\"': break; // Closing quote
                         default: ss.put(c); break;
                     }
-                } while ( c != '\"' );
+                } while ( c != '\"' && !is.eof() );
             }
 
+            template <bool ExpectQuotes = true>
             static void String(std::istream & is, char & c, std::string & str)
             {
                 std::stringstream ss;
-                Read::String(is, c, ss);
+                Read::String<ExpectQuotes>(is, c, ss);
                 str = ss.str();
             }
 
-            template <typename T>
+            template <typename T, bool ExpectQuotes = true>
             static void String(std::istream & is, char & c, T & t)
             {
                 std::stringstream ss;
-                Read::String(is, c, ss);
+                Read::String<ExpectQuotes>(is, c, ss);
                 if constexpr ( !std::is_const<T>::value )
                     ss >> t;
             }
         
+            template <bool ExpectQuotes = true>
             static std::string String(std::istream & is, char & c)
             {
                 std::string str;
-                Read::String(is, c, str);
+                Read::String<ExpectQuotes>(is, c, str);
                 return str;
             }
         
+            template <bool ExpectQuotes = true>
             static std::string String(std::istream & is)
             {
                 char c = '\0';
                 std::string str;
-                Read::String(is, c, str);
+                Read::String<ExpectQuotes>(is, c, str);
                 return str;
             }
 
@@ -3044,7 +3071,7 @@ namespace Json
             {
                 std::string fieldName;
                 try {
-                    Read::String(is, c, fieldName);
+                    Read::String<>(is, c, fieldName);
                 } catch ( UnexpectedLineEnding & e) {
                     throw FieldNameUnexpectedLineEnding(e);
                 }
@@ -3063,7 +3090,7 @@ namespace Json
                 Checked::peek(is, c, "completion of field value");
                 switch ( c )
                 {
-                    case '\"': return Generic::Value::Assigner::Make<Generic::String>(Read::String(is, c)); // String or error
+                    case '\"': return Generic::Value::Assigner::Make<Generic::String>(Read::String<>(is, c)); // String or error
                     case '{': return Read::GenericObject(is, context, c); // JSON object or error
                     case '[': return Read::GenericArray<InArray>(is, context, c); // JSON array or error
                     case 't': return Generic::Value::Assigner::Make<Generic::Bool>(Read::True<InArray>(is, c)); // "true" or error
@@ -3180,7 +3207,7 @@ namespace Json
                             case Generic::Value::Type::Number:
                                 result->get()->mixedArray().push_back(std::make_shared<Generic::Number>(Read::Number<true>(is, c))); break;
                             case Generic::Value::Type::String:
-                                result->get()->mixedArray().push_back(std::make_shared<Generic::String>(Read::String(is, c))); break;
+                                result->get()->mixedArray().push_back(std::make_shared<Generic::String>(Read::String<>(is, c))); break;
                             case Generic::Value::Type::Object: result->get()->mixedArray().push_back(Read::GenericObject(is, context, c)->out()); break;
                             case Generic::Value::Type::Array: result->get()->mixedArray().push_back(Read::GenericArray<true>(is, context, c)->out()); break;
                         }
@@ -3192,7 +3219,7 @@ namespace Json
                             case Generic::Value::Type::Null: Consume::Null<true>(is, c); result->get()->nullArray()++; break;
                             case Generic::Value::Type::Boolean: result->get()->boolArray().push_back(Read::Bool<true>(is, c)); break;
                             case Generic::Value::Type::Number: result->get()->numberArray().push_back(Read::Number<true>(is, c)); break;
-                            case Generic::Value::Type::String: result->get()->stringArray().push_back(Read::String(is, c)); break;
+                            case Generic::Value::Type::String: result->get()->stringArray().push_back(Read::String<>(is, c)); break;
                             case Generic::Value::Type::Object: result->get()->objectArray().push_back(Read::GenericObject(is, context, c)->out()->object());
                                 break;
                             case Generic::Value::Type::Array: result->get()->mixedArray().push_back(Read::GenericArray<true>(is, context, c)->out()); break;
@@ -3236,7 +3263,7 @@ namespace Json
             template <typename T>
             static void Object(std::istream & is, Context & context, char & c, T & t);
 
-            template <bool InArray, typename Field, typename T, typename Object, bool AllowCustomization = true>
+            template <bool InArray, typename Field, typename T, typename Object, bool AllowCustomization = true, bool ExpectQuotes = true>
             static void Value(std::istream & is, Context & context, char & c, Object & object, T & value)
             {
                 if constexpr ( AllowCustomization && Customizers::HaveSpecialization<Object, T, Field::Index, NoAnnotation, Field> ) // Input is specialized
@@ -3335,7 +3362,7 @@ namespace Json
                 else if constexpr ( is_reflected<T>::value )
                     Read::Object(is, context, c, value);
                 else if constexpr ( Field::template HasAnnotation<Json::StringifyType> )
-                    Read::String(is, c, value);
+                    Read::String<T, ExpectQuotes>(is, c, value);
                 else if constexpr ( Field::template HasAnnotation<Json::EnumIntType> )
                     Read::EnumInt<T>(is, value);
                 else if constexpr ( is_bool<T>::value )
@@ -3343,7 +3370,7 @@ namespace Json
                 else if constexpr ( std::is_const<T>::value )
                     Consume::Value<InArray>(is, c);
                 else if constexpr ( is_string<T>::value && !Field::template HasAnnotation<Json::UnstringType> )
-                    Read::String(is, c, value);
+                    Read::String<T, ExpectQuotes>(is, c, value);
                 else
                     is >> value;
             }
@@ -3415,8 +3442,8 @@ namespace Json
             static void FieldPair(std::istream & is, Context & context, char & c, Object & object, Key & key, T & value)
             {
                 std::stringstream ss;
-                Read::String(is, c, ss);
-                Read::Value<false, Field>(ss, context, c, object, key);
+                Read::String<>(is, c, ss);
+                Read::Value<false, Field, Key, Object, true, false>(ss, context, c, object, key);
                 Read::FieldNameValueSeparator(is, c);
                 Read::Value<false, Field>(is, context, c, object, value);
             }
@@ -3444,13 +3471,13 @@ namespace Json
                                     if ( i >= static_array_size<T>::value )
                                         throw ArraySizeExceeded();
                                     else
-                                        Read::FieldPair<Field, Object>(is, context, c, object, std::get<0>(iterable[i]), std::get<1>(iterable[i]));
+                                        Read::FieldPair<Field>(is, context, c, object, std::get<0>(iterable[i]), std::get<1>(iterable[i]));
                                     i++;
                                 }
                                 else // Appendable STL container
                                 {
                                     typename element_type<T>::type value;
-                                    Read::FieldPair<Field, Object>(is, context, c, object, std::get<0>(value), std::get<1>(value));
+                                    Read::FieldPair<Field>(is, context, c, object, std::get<0>(value), std::get<1>(value));
                                     Append<T, typename element_type<T>::type>(iterable, value);
                                 }
                             }
