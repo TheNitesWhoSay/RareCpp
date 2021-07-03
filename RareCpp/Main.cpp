@@ -516,13 +516,34 @@ void objectMapperExamples()
     std::cout << "unownedEncapsulator: { " << unownedEncapsulator.getA() << " }" << std::endl;
 }
 
+struct B
+{
+    int a;
+
+    REFLECT(B, a)
+};
+
+struct C
+{
+    std::map<int, std::map<int, int>> b;
+
+    REFLECT(C, b)
+};
+
 int main()
 {
+    std::map<int, int> mp { {1, 2}, {3, 4}, {5, 6} };
+    std::cout << Json::pretty(mp) << std::endl;
+
+    C c = {{{1, {{2, 3}}}}};
+    std::cout << Json::pretty(c) << std::endl;
+
     objectMapperExamples();
     std::cout << std::endl;
 
     Car car = outputExamples();
     std::cout << std::endl << Json::out(car) << std::endl << std::endl;
+    std::cout << std::endl << Json::pretty(car) << std::endl << std::endl;
 
     StaticCluster s;
     std::cout << std::endl << Json::pretty<Statics::Included>(s) << std::endl << std::endl;

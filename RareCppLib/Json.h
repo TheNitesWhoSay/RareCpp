@@ -149,9 +149,6 @@ namespace Json
         constexpr size_t NoFieldIndex = std::numeric_limits<size_t>::max();
         using NoField = Fields::Field<>;
 
-        template <typename T>
-        using ReflectedField = Fields::Field<T, std::nullptr_t, 0, IsRoot>;
-
         struct Context
         {
             virtual ~Context() {}
@@ -1918,7 +1915,16 @@ namespace Json
                 if ( context == nullptr )
                     context = std::make_shared<Context>();
 
-                Put::Value<Annotations, ReflectedField<Object>, statics, PrettyPrint, 0, IndentLevel, indent, Object, true, Object>(os, *context, obj, obj);
+                if constexpr ( Reflect::is_reflected<Object>::value )
+                {
+                    Put::Value<Annotations, Fields::Field<Object, std::nullptr_t, 0, IsRoot>,
+                        statics, PrettyPrint, 0, IndentLevel, indent, Object, true, Object>(os, *context, obj, obj);
+                }
+                else
+                {
+                    Put::Value<Annotations, Fields::Field<Object, std::nullptr_t, 0, NoAnnotation>,
+                        statics, PrettyPrint, 0, IndentLevel, indent, Object, true, Object>(os, *context, obj, obj);
+                }
                 return os;
             }
         };
@@ -3605,7 +3611,7 @@ namespace Json
                     context = std::make_shared<Context>();
 
                 char c = '\0';
-                Read::Value<false, ReflectedField<T>>(is, *context, c, obj, obj);
+                Read::Value<false, Fields::Field<T, std::nullptr_t, 0, IsRoot>>(is, *context, c, obj, obj);
                 return is;
             }
         };
