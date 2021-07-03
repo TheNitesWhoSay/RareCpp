@@ -114,7 +114,7 @@ struct Json::Input::Customize<A, A::TestEnum, FieldIndex>
 {
     static bool As(std::istream & is, Context & context, const A & object, A::TestEnum & value)
     {
-        std::string input = Json::Read::String(is);
+        std::string input = Json::Read::String<>(is);
         auto found = A::TestEnumCacheCustom.find(input);
         if ( found != A::TestEnumCacheCustom.end() )
         {
