@@ -25,9 +25,9 @@ struct CustomizeFullySpecialized
 };
 
 template <size_t FieldIndex, typename OpAnnotations, typename Field, Json::Statics statics,
-    bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent>
+    bool PrettyPrint, size_t IndentLevel, const char* indent>
 struct Json::Output::Customize<CustomizeFullySpecialized, int, FieldIndex, OpAnnotations, Field, statics,
-    PrettyPrint, TotalParentIterables, IndentLevel, indent>
+    PrettyPrint, IndentLevel, indent>
 {
     static bool As(Json::OutStreamType & output, Json::Context & context, const CustomizeFullySpecialized & object, const int & value)
     {
@@ -205,8 +205,8 @@ struct ContainsFullySpecialized
 };
 
 template <typename OpAnnotations, typename Field, Json::Statics statics,
-    bool PrettyPrint, size_t TotalParentIterables, size_t IndentLevel, const char* indent>
-struct Json::Output::CustomizeType<FullySpecializedType, OpAnnotations, Field, statics, PrettyPrint, TotalParentIterables, IndentLevel, indent>
+    bool PrettyPrint, size_t IndentLevel, const char* indent>
+struct Json::Output::CustomizeType<FullySpecializedType, OpAnnotations, Field, statics, PrettyPrint, IndentLevel, indent>
 {
     static bool As(Json::OutStreamType & output, Json::Context & context, const FullySpecializedType & value)
     {
