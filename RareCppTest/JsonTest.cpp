@@ -1603,17 +1603,17 @@ TEST_HEADER(JsonOutputCustomizersTest, CustomizeNoSpecialization)
     CustomizeNoSpecialization noSpecialization;
 
     bool isSpecialized = Json::Output::Customize<CustomizeNoSpecialization, int, CustomizeNoSpecialization::Class::IndexOf::integer,
-        NoAnnotation, CustomizeNoSpecialization::Class::integer_::Field, Json::Statics::Included, true, 0, 0, Json::twoSpaces>
+        NoAnnotation, CustomizeNoSpecialization::Class::integer_::Field, Json::Statics::Included, true, 0, Json::twoSpaces>
         ::As(os, Json::context, noSpecialization, noSpecialization.integer);
     EXPECT_FALSE(isSpecialized);
 
     isSpecialized = Json::Output::Customize<CustomizeNoSpecialization, char, CustomizeNoSpecialization::Class::IndexOf::character,
-        NoAnnotation, CustomizeNoSpecialization::Class::character_::Field, Json::Statics::Included, true, 0, 0, Json::twoSpaces>
+        NoAnnotation, CustomizeNoSpecialization::Class::character_::Field, Json::Statics::Included, true, 0, Json::twoSpaces>
         ::As(os, Json::context, noSpecialization, noSpecialization.character);
     EXPECT_FALSE(isSpecialized);
 
     isSpecialized = Json::Output::HaveSpecialization<CustomizeNoSpecialization, int, CustomizeNoSpecialization::Class::IndexOf::integer,
-        NoAnnotation, CustomizeNoSpecialization::Class::integer_::Field, Json::Statics::Included, true, 0, 0, Json::twoSpaces>;
+        NoAnnotation, CustomizeNoSpecialization::Class::integer_::Field, Json::Statics::Included, true, 0, Json::twoSpaces>;
     EXPECT_FALSE(isSpecialized);
 }
 
@@ -1622,27 +1622,27 @@ TEST_HEADER(JsonOutputCustomizersTest, CustomizeFullySpecialized)
     CustomizeFullySpecialized fullySpecialized;
 
     bool isSpecialized = Json::Output::Customize<CustomizeFullySpecialized, int, CustomizeFullySpecialized::Class::IndexOf::firstField,
-        NoAnnotation, CustomizeFullySpecialized::Class::firstField_::Field, Json::Statics::Included, true, 0, 0, Json::twoSpaces>
+        NoAnnotation, CustomizeFullySpecialized::Class::firstField_::Field, Json::Statics::Included, true, 0, Json::twoSpaces>
         ::As(os, Json::context, fullySpecialized, fullySpecialized.firstField);
     EXPECT_TRUE(isSpecialized);
     isSpecialized = Json::Output::HaveSpecialization<CustomizeFullySpecialized, int, CustomizeFullySpecialized::Class::IndexOf::firstField,
-        NoAnnotation, CustomizeFullySpecialized::Class::firstField_::Field, Json::Statics::Included, true, 0, 0, Json::twoSpaces>;
+        NoAnnotation, CustomizeFullySpecialized::Class::firstField_::Field, Json::Statics::Included, true, 0, Json::twoSpaces>;
     EXPECT_TRUE(isSpecialized);
 
     isSpecialized = Json::Output::Customize<CustomizeFullySpecialized, int, CustomizeFullySpecialized::Class::IndexOf::secondField,
-        NoAnnotation, CustomizeFullySpecialized::Class::secondField_::Field, Json::Statics::Included, true, 0, 0, Json::twoSpaces>
+        NoAnnotation, CustomizeFullySpecialized::Class::secondField_::Field, Json::Statics::Included, true, 0, Json::twoSpaces>
         ::As(os, Json::context, fullySpecialized, fullySpecialized.secondField);
     EXPECT_TRUE(isSpecialized);
     isSpecialized = Json::Output::HaveSpecialization<CustomizeFullySpecialized, int, CustomizeFullySpecialized::Class::IndexOf::secondField,
-        NoAnnotation, CustomizeFullySpecialized::Class::secondField_::Field, Json::Statics::Included, true, 0, 0, Json::twoSpaces>;
+        NoAnnotation, CustomizeFullySpecialized::Class::secondField_::Field, Json::Statics::Included, true, 0, Json::twoSpaces>;
     EXPECT_TRUE(isSpecialized);
 
     isSpecialized = Json::Output::Customize<CustomizeFullySpecialized, char, CustomizeFullySpecialized::Class::IndexOf::unspecialized,
-        NoAnnotation, CustomizeFullySpecialized::Class::unspecialized_::Field, Json::Statics::Included, true, 0, 0, Json::twoSpaces>
+        NoAnnotation, CustomizeFullySpecialized::Class::unspecialized_::Field, Json::Statics::Included, true, 0, Json::twoSpaces>
         ::As(os, Json::context, fullySpecialized, fullySpecialized.unspecialized);
     EXPECT_FALSE(isSpecialized);
     isSpecialized = Json::Output::HaveSpecialization<CustomizeFullySpecialized, char, CustomizeFullySpecialized::Class::IndexOf::unspecialized,
-        NoAnnotation, CustomizeFullySpecialized::Class::unspecialized_::Field, Json::Statics::Included, true, 0, 0, Json::twoSpaces>;
+        NoAnnotation, CustomizeFullySpecialized::Class::unspecialized_::Field, Json::Statics::Included, true, 0, Json::twoSpaces>;
     EXPECT_FALSE(isSpecialized);
 }
 
@@ -1859,10 +1859,10 @@ TEST_HEADER(JsonOutputCustomizersTest, CustomizeTypeUnspecialized)
     ContainsUnspecialized containsUnspecialized;
 
     bool isSpecialized = Json::Output::CustomizeType<UnspecializedType, NoAnnotation, ContainsUnspecialized::Class::unspecializedType_::Field,
-        Json::Statics::Included, true, 0, 0, Json::twoSpaces>::As(os, Json::context, containsUnspecialized.unspecializedType);
+        Json::Statics::Included, true, 0, Json::twoSpaces>::As(os, Json::context, containsUnspecialized.unspecializedType);
     EXPECT_FALSE(isSpecialized);
     isSpecialized = Json::Output::HaveSpecialization<ContainsUnspecialized, UnspecializedType, ContainsUnspecialized::Class::IndexOf::unspecializedType, NoAnnotation, ContainsUnspecialized::Class::unspecializedType_::Field,
-        Json::Statics::Included, true, 0, 0, Json::twoSpaces>;
+        Json::Statics::Included, true, 0, Json::twoSpaces>;
     EXPECT_FALSE(isSpecialized);
 }
 
@@ -1871,10 +1871,10 @@ TEST_HEADER(JsonOutputCustomizersTest, CustomizeTypeFullySpecialized)
     ContainsFullySpecialized containsFullySpecialized;
 
     bool isSpecialized = Json::Output::CustomizeType<FullySpecializedType, NoAnnotation, ContainsFullySpecialized::Class::fullySpecializedType_::Field,
-        Json::Statics::Included, true, 0, 0, Json::twoSpaces>::As(os, Json::context, containsFullySpecialized.fullySpecializedType);
+        Json::Statics::Included, true, 0, Json::twoSpaces>::As(os, Json::context, containsFullySpecialized.fullySpecializedType);
     EXPECT_TRUE(isSpecialized);
     isSpecialized = Json::Output::HaveSpecialization<ContainsFullySpecialized, FullySpecializedType, ContainsFullySpecialized::Class::IndexOf::fullySpecializedType, NoAnnotation, ContainsFullySpecialized::Class::fullySpecializedType_::Field,
-        Json::Statics::Included, true, 0, 0, Json::twoSpaces>;
+        Json::Statics::Included, true, 0, Json::twoSpaces>;
     EXPECT_TRUE(isSpecialized);
 }
 
@@ -1971,7 +1971,7 @@ TEST_HEADER(JsonOutputStaticAffixTest, StaticArrayPrefix)
     EXPECT_STREQ("[ ", primitivePrettyPrint.str().c_str());
 
     TestStreamType nonPrimitivePrettyCompare;
-    nonPrimitivePrettyCompare << "[" << osEndl << Json::Indent<true, 3, Json::twoSpaces>;
+    nonPrimitivePrettyCompare << "[" << osEndl << Json::Indent<true, 4, Json::twoSpaces>;
     TestStreamType nonPrimitivePretty;
     nonPrimitivePretty << Json::ArrayPrefix<true, false, 3, Json::twoSpaces>;
     EXPECT_STREQ(nonPrimitivePrettyCompare.str().c_str(), nonPrimitivePretty.str().c_str());
@@ -2247,7 +2247,7 @@ TEST_HEADER(JsonOutputPutAffixTest, ArrayPrefix)
 
     TestStreamType prettyNonPrimitivesCompare;
     prettyNonPrimitivesCompare << "[" << osEndl;
-    Json::Put::Indent<true, Json::twoSpaces>(prettyNonPrimitivesCompare, 3);
+    Json::Put::Indent<true, Json::twoSpaces>(prettyNonPrimitivesCompare, 4);
 
     TestStreamType prettyNonPrimitives;
     Json::Put::ArrayPrefix<true, false, Json::twoSpaces>(prettyNonPrimitives, 3);
@@ -2555,88 +2555,88 @@ TEST_HEADER(JsonOutputPut, Customization)
     int objectPlaceholder;
     using Field = CustomizeNoSpecialization::Class::integer_::Field;
     CustomizeNoSpecialization customizeNoSpecialization;
-    bool customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+    bool customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, Json::twoSpaces>(
         os, Json::context, customizeNoSpecialization, objectPlaceholder);
     EXPECT_FALSE(customized);
 
     CustomizeFullySpecialized customizeFullySpecialized;
-    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, Json::twoSpaces>(
         os, Json::context, customizeFullySpecialized, objectPlaceholder);
     EXPECT_TRUE(customized);
 
     Customize5ArgSpecialized customize5ArgSpecialized;
-    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, Json::twoSpaces>(
         os, Json::context, customize5ArgSpecialized, objectPlaceholder);
     EXPECT_TRUE(customized);
 
     Customize4ArgSpecialized customize4ArgSpecialized;
-    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, Json::twoSpaces>(
         os, Json::context, customize4ArgSpecialized, objectPlaceholder);
     EXPECT_TRUE(customized);
 
     Customize3ArgSpecialized customize3ArgSpecialized;
-    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, Json::twoSpaces>(
         os, Json::context, customize3ArgSpecialized, objectPlaceholder);
     EXPECT_TRUE(customized);
 
     Customize2ArgSpecialized customize2ArgSpecialized;
-    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, Json::twoSpaces>(
         os, Json::context, customize2ArgSpecialized, objectPlaceholder);
     EXPECT_TRUE(customized);
 
     Customize5ArgSpecialized_OpAnnotationsDefaulted customize5ArgSpecialized_opAnnotationsDefaulted;
-    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, Json::twoSpaces>(
         os, Json::context, customize5ArgSpecialized_opAnnotationsDefaulted, objectPlaceholder);
     EXPECT_TRUE(customized);
 
     Customize5ArgSpecialized_FieldIndexDefaulted customize5ArgSpecialized_fieldIndexDefaulted;
-    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, Json::twoSpaces>(
         os, Json::context, customize5ArgSpecialized_fieldIndexDefaulted, objectPlaceholder);
     EXPECT_TRUE(customized);
 
     Customize5ArgSpecialized_BothDefaulted customize5ArgSpecialized_bothDefaulted;
-    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, Json::twoSpaces>(
         os, Json::context, customize5ArgSpecialized_bothDefaulted, objectPlaceholder);
     EXPECT_TRUE(customized);
 
     Customize4ArgSpecialized_FieldIndexDefaulted customize4ArgSpecialized_fieldIndexDefaulted;
-    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, Json::twoSpaces>(
         os, Json::context, customize4ArgSpecialized_fieldIndexDefaulted, objectPlaceholder);
     EXPECT_TRUE(customized);
 
     UnspecializedType unspecializedType;
     ContainsUnspecialized containsUnspecialized;
-    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, Json::twoSpaces>(
         os, Json::context, containsUnspecialized, unspecializedType);
     EXPECT_FALSE(customized);
 
     FullySpecializedType fullySpecializedType;
     ContainsFullySpecialized containsFullySpecialized;
-    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, Json::twoSpaces>(
         os, Json::context, containsFullySpecialized, fullySpecializedType);
     EXPECT_TRUE(customized);
 
     ThreeArgSpecializedType threeArgSpecializedType;
     ContainsThreeArgSpecialized containsThreeArgSpecialized;
-    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, Json::twoSpaces>(
         os, Json::context, containsThreeArgSpecialized, threeArgSpecializedType);
     EXPECT_TRUE(customized);
 
     TwoArgSpecializedType twoArgSpecializedType;
     ContainsTwoArgSpecialized containsTwoArgSpecialized;
-    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, Json::twoSpaces>(
         os, Json::context, containsTwoArgSpecialized, twoArgSpecializedType);
     EXPECT_TRUE(customized);
 
     OneArgSpecializedType oneArgSpecializedType;
     ContainsOneArgSpecialized containsOneArgSpecialized;
-    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, Json::twoSpaces>(
         os, Json::context, containsOneArgSpecialized, oneArgSpecializedType);
     EXPECT_TRUE(customized);
 
     ThreeArgSpecializedType_OpAnnotationsDefaulted threeArgSpecializedType_opAnnotationsDefaulted;
     ContainsThreeArgSpecializedType_OpAnnotationsDefaulted containsThreeArgSpecializedType_opAnnotationDefaulted;
-    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, 3, Json::twoSpaces>(
+    customized = Json::Put::Customization<Notate, Field, Json::Statics::Included, true, 3, Json::twoSpaces>(
         os, Json::context, containsThreeArgSpecializedType_opAnnotationDefaulted, threeArgSpecializedType_opAnnotationsDefaulted);
     EXPECT_TRUE(customized);
 }
@@ -2709,46 +2709,46 @@ TEST_HEADER(JsonOutputPut, GenericValue)
         fieldClusterStream;
 
     Json::Bool boolean(true);
-    Json::Put::GenericValue<NoAnnotation, false, Json::twoSpaces, true>(booleanStream, Json::context, 0, 0, boolean);
+    Json::Put::GenericValue<NoAnnotation, false, Json::twoSpaces, true>(booleanStream, Json::context, 0, boolean);
     EXPECT_STREQ("true", booleanStream.str().c_str());
 
     Json::Number number("123.456");
-    Json::Put::GenericValue<NoAnnotation, false, Json::twoSpaces, true>(numberStream, Json::context, 0, 0, number);
+    Json::Put::GenericValue<NoAnnotation, false, Json::twoSpaces, true>(numberStream, Json::context, 0, number);
     EXPECT_STREQ("123.456", numberStream.str().c_str());
 
     Json::String str("asd\nf");
-    Json::Put::GenericValue<NoAnnotation, false, Json::twoSpaces, true>(strStream, Json::context, 0, 0, str);
+    Json::Put::GenericValue<NoAnnotation, false, Json::twoSpaces, true>(strStream, Json::context, 0, str);
     EXPECT_STREQ("\"asd\\nf\"", strStream.str().c_str());
 
     Json::Object obj;
     obj.put("astr", std::make_shared<Json::String>("asdf"));
     obj.put("null", nullptr);
     obj.put("number", std::make_shared<Json::Number>("1234"));
-    Json::Put::GenericValue<NoAnnotation, false, Json::twoSpaces, true>(objStream, Json::context, 0, 0, obj);
+    Json::Put::GenericValue<NoAnnotation, false, Json::twoSpaces, true>(objStream, Json::context, 0, obj);
     EXPECT_STREQ("{\"astr\":\"asdf\",\"null\":null,\"number\":1234}", objStream.str().c_str());
 
     Json::NullArray nullArray(3);
-    Json::Put::GenericValue<NoAnnotation, false, Json::twoSpaces, true>(nullArrayStream, Json::context, 0, 0, nullArray);
+    Json::Put::GenericValue<NoAnnotation, false, Json::twoSpaces, true>(nullArrayStream, Json::context, 0, nullArray);
     EXPECT_STREQ("[null,null,null]", nullArrayStream.str().c_str());
 
     Json::BoolArray boolArray;
     boolArray.boolArray().push_back(true);
     boolArray.boolArray().push_back(true);
     boolArray.boolArray().push_back(false);
-    Json::Put::GenericValue<NoAnnotation, false, Json::twoSpaces, true>(boolArrayStream, Json::context, 0, 0, boolArray);
+    Json::Put::GenericValue<NoAnnotation, false, Json::twoSpaces, true>(boolArrayStream, Json::context, 0, boolArray);
     EXPECT_STREQ("[true,true,false]", boolArrayStream.str().c_str());
 
     Json::NumberArray numberArray;
     numberArray.numberArray().push_back("2");
     numberArray.numberArray().push_back("1");
     numberArray.numberArray().push_back("0.5");
-    Json::Put::GenericValue<NoAnnotation, false, Json::twoSpaces, true>(numberArrayStream, Json::context, 0, 0, numberArray);
+    Json::Put::GenericValue<NoAnnotation, false, Json::twoSpaces, true>(numberArrayStream, Json::context, 0, numberArray);
     EXPECT_STREQ("[2,1,0.5]", numberArrayStream.str().c_str());
 
     Json::StringArray strArray;
     strArray.stringArray().push_back("as");
     strArray.stringArray().push_back("df");
-    Json::Put::GenericValue<NoAnnotation, false, Json::twoSpaces, true>(strArrayStream, Json::context, 0, 0, strArray);
+    Json::Put::GenericValue<NoAnnotation, false, Json::twoSpaces, true>(strArrayStream, Json::context, 0, strArray);
     EXPECT_STREQ("[\"as\",\"df\"]", strArrayStream.str().c_str());
 
     Json::ObjectArray objArray;
@@ -2757,19 +2757,19 @@ TEST_HEADER(JsonOutputPut, GenericValue)
     objElement.insert(std::pair("null", nullptr));
     objElement.insert(std::pair("number", std::make_shared<Json::Number>("1234")));
     objArray.objectArray().push_back(objElement);
-    Json::Put::GenericValue<NoAnnotation, false, Json::twoSpaces, true>(objArrayStream, Json::context, 0, 0, objArray);
+    Json::Put::GenericValue<NoAnnotation, false, Json::twoSpaces, true>(objArrayStream, Json::context, 0, objArray);
     EXPECT_STREQ("[{\"astr\":\"asdf\",\"null\":null,\"number\":1234}]", objArrayStream.str().c_str());
 
     Json::MixedArray mixedArray;
     mixedArray.mixedArray().push_back(std::make_shared<Json::Bool>(true));
     mixedArray.mixedArray().push_back(nullptr);
-    Json::Put::GenericValue<NoAnnotation, false, Json::twoSpaces, true>(mixedArrayStream, Json::context, 0, 0, mixedArray);
+    Json::Put::GenericValue<NoAnnotation, false, Json::twoSpaces, true>(mixedArrayStream, Json::context, 0, mixedArray);
     EXPECT_STREQ("[true,null]", mixedArrayStream.str().c_str());
 
     Json::FieldCluster fieldCluster;
     fieldCluster.put("astr", std::make_shared<Json::String>("asdf"));
     fieldCluster.put("number", std::make_shared<Json::Number>("1234"));
-    Json::Put::GenericValue<NoAnnotation, false, Json::twoSpaces, true>(fieldClusterStream, Json::context, 0, 0, fieldCluster);
+    Json::Put::GenericValue<NoAnnotation, false, Json::twoSpaces, true>(fieldClusterStream, Json::context, 0, fieldCluster);
     EXPECT_STREQ("\"astr\":\"asdf\",\"number\":1234", fieldClusterStream.str().c_str());
 }
 
@@ -2786,31 +2786,31 @@ TEST_HEADER(JsonOutputPut, GenericIterable)
     Json::Object obj;
     obj.put("astr", std::make_shared<Json::String>("asdf"));
     obj.put("number", std::make_shared<Json::Number>("1234"));
-    Json::Put::GenericIterable<NoAnnotation, false, Json::twoSpaces>(objStream, Json::context, 3, 3, obj);
+    Json::Put::GenericIterable<NoAnnotation, false, Json::twoSpaces>(objStream, Json::context, 3, obj);
     EXPECT_STREQ("{\"astr\":\"asdf\",\"number\":1234}", objStream.str().c_str());
 
     Json::NullArray nullArray(3);
-    Json::Put::GenericIterable<NoAnnotation, false, Json::twoSpaces>(nullArrayStream, Json::context, 3, 3, nullArray);
+    Json::Put::GenericIterable<NoAnnotation, false, Json::twoSpaces>(nullArrayStream, Json::context, 3, nullArray);
     EXPECT_STREQ("[null,null,null]", nullArrayStream.str().c_str());
 
     Json::BoolArray boolArray;
     boolArray.boolArray().push_back(true);
     boolArray.boolArray().push_back(true);
     boolArray.boolArray().push_back(false);
-    Json::Put::GenericIterable<NoAnnotation, false, Json::twoSpaces>(boolArrayStream, Json::context, 3, 3, boolArray);
+    Json::Put::GenericIterable<NoAnnotation, false, Json::twoSpaces>(boolArrayStream, Json::context, 3, boolArray);
     EXPECT_STREQ("[true,true,false]", boolArrayStream.str().c_str());
 
     Json::NumberArray numberArray;
     numberArray.numberArray().push_back("2");
     numberArray.numberArray().push_back("1");
     numberArray.numberArray().push_back("0.5");
-    Json::Put::GenericIterable<NoAnnotation, false, Json::twoSpaces>(numberArrayStream, Json::context, 3, 3, numberArray);
+    Json::Put::GenericIterable<NoAnnotation, false, Json::twoSpaces>(numberArrayStream, Json::context, 3, numberArray);
     EXPECT_STREQ("[2,1,0.5]", numberArrayStream.str().c_str());
 
     Json::StringArray stringArray;
     stringArray.stringArray().push_back("as");
     stringArray.stringArray().push_back("df");
-    Json::Put::GenericIterable<NoAnnotation, false, Json::twoSpaces>(strArrayStream, Json::context, 3, 3, stringArray);
+    Json::Put::GenericIterable<NoAnnotation, false, Json::twoSpaces>(strArrayStream, Json::context, 3, stringArray);
     EXPECT_STREQ("[\"as\",\"df\"]", strArrayStream.str().c_str());
 
     Json::ObjectArray objArray;
@@ -2818,13 +2818,13 @@ TEST_HEADER(JsonOutputPut, GenericIterable)
     objElement.insert(std::pair("astr", std::make_shared<Json::String>("asdf")));
     objElement.insert(std::pair("number", std::make_shared<Json::Number>("1234")));
     objArray.objectArray().push_back(objElement);
-    Json::Put::GenericIterable<NoAnnotation, false, Json::twoSpaces>(objArrayStream, Json::context, 3, 3, objArray);
+    Json::Put::GenericIterable<NoAnnotation, false, Json::twoSpaces>(objArrayStream, Json::context, 3, objArray);
     EXPECT_STREQ("[{\"astr\":\"asdf\",\"number\":1234}]", objArrayStream.str().c_str());
 
     Json::MixedArray mixedArray;
     mixedArray.mixedArray().push_back(std::make_shared<Json::Bool>(true));
     mixedArray.mixedArray().push_back(nullptr);
-    Json::Put::GenericIterable<NoAnnotation, false, Json::twoSpaces>(mixedArrayStream, Json::context, 3, 3, mixedArray);
+    Json::Put::GenericIterable<NoAnnotation, false, Json::twoSpaces>(mixedArrayStream, Json::context, 3, mixedArray);
     EXPECT_STREQ("[true,null]", mixedArrayStream.str().c_str());
 }
 
@@ -2876,70 +2876,70 @@ TEST_HEADER(JsonOutputPut, Value)
     CustomizeFullySpecialized customized;
     customized.firstField = 1337;
     Json::Put::Value<NoAnnotation, CustomizeFullySpecialized::Class::firstField_::Field,
-        Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, CustomizeFullySpecialized, true>
+        Json::Statics::Excluded, false, 0, Json::twoSpaces, CustomizeFullySpecialized, true>
         (customizedStream, Json::context, customized, customized.firstField);
     EXPECT_STREQ("\"Customized1337\"", customizedStream.str().c_str());
 
     int* nullPointer = nullptr;
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(nullPointerStream, Json::context, placeholderObj, nullPointer);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(nullPointerStream, Json::context, placeholderObj, nullPointer);
     EXPECT_STREQ("null", nullPointerStream.str().c_str());
 
     int anInt = 555;
     int* intPointer = &anInt;
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intPointerStream, Json::context, placeholderObj, intPointer);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(intPointerStream, Json::context, placeholderObj, intPointer);
     EXPECT_STREQ("555", intPointerStream.str().c_str());
 
     anInt = 556;
     const int* constIntPointer = &anInt;
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(constIntPointerStream, Json::context, placeholderObj, constIntPointer);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(constIntPointerStream, Json::context, placeholderObj, constIntPointer);
     EXPECT_STREQ("556", constIntPointerStream.str().c_str());
     
     anInt = 557;
     int* const intConstPointer = &anInt;
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intConstPointerStream, Json::context, placeholderObj, intConstPointer);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(intConstPointerStream, Json::context, placeholderObj, intConstPointer);
     EXPECT_STREQ("557", intConstPointerStream.str().c_str());
     
     anInt = 558;
     const int* const constIntConstPointer = &anInt;
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(constIntConstPointerStream, Json::context, placeholderObj, constIntConstPointer);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(constIntConstPointerStream, Json::context, placeholderObj, constIntConstPointer);
     EXPECT_STREQ("558", constIntConstPointerStream.str().c_str());
 
     Json::Number number("123.456");
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(genericNumberStream, Json::context, placeholderObj, number);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(genericNumberStream, Json::context, placeholderObj, number);
     EXPECT_STREQ("123.456", genericNumberStream.str().c_str());
 
     std::vector<int> intVector = { 1, 2, 3 };
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intVectorStream, Json::context, placeholderObj, intVector);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(intVectorStream, Json::context, placeholderObj, intVector);
     EXPECT_STREQ("[1,2,3]", intVectorStream.str().c_str());
 
     std::map<int, int> intMap = { {1, 2}, {3, 4}, {5, 6} };
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intMapStream, Json::context, placeholderObj, intMap);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(intMapStream, Json::context, placeholderObj, intMap);
     EXPECT_STREQ("{\"1\":2,\"3\":4,\"5\":6}", intMapStream.str().c_str());
 
     InstanceField rootObj;
     rootObj.a = 5;
-    Json::Put::Value<NoAnnotation, Fields::Field<InstanceField, void*, 0, NoAnnotation>, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(rootObjStream, Json::context, placeholderObj, rootObj);
+    Json::Put::Value<NoAnnotation, Fields::Field<InstanceField, void*, 0, NoAnnotation>, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(rootObjStream, Json::context, placeholderObj, rootObj);
     EXPECT_STREQ("{\"a\":5}", rootObjStream.str().c_str());
 
     InstanceField obj;
     obj.a = 6;
-    Json::Put::Value<NoAnnotation, Fields::Field<InstanceField, void*, 0, NoAnnotation>, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(reflectedObjStream, Json::context, placeholderObj, obj);
+    Json::Put::Value<NoAnnotation, Fields::Field<InstanceField, void*, 0, NoAnnotation>, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(reflectedObjStream, Json::context, placeholderObj, obj);
     EXPECT_STREQ("{\"a\":6}", reflectedObjStream.str().c_str());
 
     std::string str = "asdf";
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(strStream, Json::context, placeholderObj, str);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(strStream, Json::context, placeholderObj, str);
     EXPECT_STREQ("\"asdf\"", strStream.str().c_str());
 
     AnEnum enumInt = AnEnum::first;
-    Json::Put::Value<NoAnnotation, Fields::Field<AnEnum, void*, 0, Json::EnumIntType>, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(enumIntStream, Json::context, placeholderObj, enumInt);
+    Json::Put::Value<NoAnnotation, Fields::Field<AnEnum, void*, 0, Json::EnumIntType>, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(enumIntStream, Json::context, placeholderObj, enumInt);
     EXPECT_STREQ("0", enumIntStream.str().c_str());
 
     bool boolean = false;
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(booleanStream, Json::context, placeholderObj, boolean);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(booleanStream, Json::context, placeholderObj, boolean);
     EXPECT_STREQ("false", booleanStream.str().c_str());
 
     short shortInt = 22222;
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(shortIntStream, Json::context, placeholderObj, shortInt);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(shortIntStream, Json::context, placeholderObj, shortInt);
     EXPECT_STREQ("22222", shortIntStream.str().c_str());
 
     
@@ -2958,47 +2958,47 @@ TEST_HEADER(JsonOutputPut, Value)
     Keyable otherKey { 1 };
 
     std::tuple<> shouldBeNull;
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(emptyTupleStream, Json::context, placeholderObj, shouldBeNull);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(emptyTupleStream, Json::context, placeholderObj, shouldBeNull);
     EXPECT_STREQ("null", emptyTupleStream.str().c_str());
 
     std::tuple<int> shouldBeInt { 1337 };
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intTupleStream, Json::context, placeholderObj, shouldBeInt);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(intTupleStream, Json::context, placeholderObj, shouldBeInt);
     EXPECT_STREQ("1337", intTupleStream.str().c_str());
 
     std::tuple<int, int> shouldBe2Array { 1, 2 };
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intIntTupleStream, Json::context, placeholderObj, shouldBe2Array);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(intIntTupleStream, Json::context, placeholderObj, shouldBe2Array);
     EXPECT_STREQ("[1,2]", intIntTupleStream.str().c_str());
 
     std::tuple<int, int, int> shouldBe3Array { 1, 2, 3 };
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intIntIntTupleStream, Json::context, placeholderObj, shouldBe3Array);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(intIntIntTupleStream, Json::context, placeholderObj, shouldBe3Array);
     EXPECT_STREQ("[1,2,3]", intIntIntTupleStream.str().c_str());
 
     std::pair<int, int> pair { 9000, 9001 };
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intIntPairStream, Json::context, placeholderObj, pair);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(intIntPairStream, Json::context, placeholderObj, pair);
     EXPECT_STREQ("[9000,9001]", intIntPairStream.str().c_str());
 
     std::map<int, int> basicMap;
     basicMap.insert(std::make_pair(1, 2));
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intIntMapStream, Json::context, placeholderObj, basicMap);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(intIntMapStream, Json::context, placeholderObj, basicMap);
     EXPECT_STREQ("{\"1\":2}", intIntMapStream.str().c_str());
 
     std::map<int, Keyable> primitiveObjMap;
     primitiveObjMap.insert(std::make_pair(1, keyable));
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intKeyableMapStream, Json::context, placeholderObj, primitiveObjMap);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(intKeyableMapStream, Json::context, placeholderObj, primitiveObjMap);
     EXPECT_STREQ("{\"1\":{\"a\":0}}", intKeyableMapStream.str().c_str());
 
     std::map<Keyable, int> compKey;
     compKey.insert(std::make_pair(keyable, 1));
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(keyableIntMapStream, Json::context, placeholderObj, compKey);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(keyableIntMapStream, Json::context, placeholderObj, compKey);
     EXPECT_STREQ("[{\"key\":{\"a\":0},\"value\":1}]", keyableIntMapStream.str().c_str());
 
     std::map<Keyable, Keyable> compMap;
     compMap.insert(std::make_pair(keyable, otherKey));
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(keyableKeyableMapStream, Json::context, placeholderObj, compMap);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(keyableKeyableMapStream, Json::context, placeholderObj, compMap);
     EXPECT_STREQ("[{\"key\":{\"a\":0},\"value\":{\"a\":1}}]", keyableKeyableMapStream.str().c_str());
 
     std::tuple<std::tuple<int, int>, int> tup { {1, 2}, 3 };
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intIntTupleIntTupleStream, Json::context, placeholderObj, tup);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(intIntTupleIntTupleStream, Json::context, placeholderObj, tup);
     EXPECT_STREQ("[[1,2],3]", intIntTupleIntTupleStream.str().c_str());
 }
 
@@ -3017,31 +3017,31 @@ TEST_HEADER(JsonOutputPut, Tuple)
     int placeholderObj = 0;
 
     std::tuple<> shouldBeNull;
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(emptyTupleStream, Json::context, placeholderObj, shouldBeNull);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(emptyTupleStream, Json::context, placeholderObj, shouldBeNull);
     EXPECT_STREQ("null", emptyTupleStream.str().c_str());
 
     std::tuple<int> shouldBeInt { 1337 };
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intTupleStream, Json::context, placeholderObj, shouldBeInt);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(intTupleStream, Json::context, placeholderObj, shouldBeInt);
     EXPECT_STREQ("1337", intTupleStream.str().c_str());
 
     std::tuple<int, int> shouldBe2Array { 1, 2 };
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intIntTupleStream, Json::context, placeholderObj, shouldBe2Array);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(intIntTupleStream, Json::context, placeholderObj, shouldBe2Array);
     EXPECT_STREQ("[1,2]", intIntTupleStream.str().c_str());
 
     std::tuple<int, int, int> shouldBe3Array { 1, 2, 3 };
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intIntIntTupleStream, Json::context, placeholderObj, shouldBe3Array);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(intIntIntTupleStream, Json::context, placeholderObj, shouldBe3Array);
     EXPECT_STREQ("[1,2,3]", intIntIntTupleStream.str().c_str());
 
     std::tuple<std::tuple<int, int>, int> tup { {1, 2}, 3 };
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intIntTupleIntTupleStream, Json::context, placeholderObj, tup);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(intIntTupleIntTupleStream, Json::context, placeholderObj, tup);
     EXPECT_STREQ("[[1,2],3]", intIntTupleIntTupleStream.str().c_str());
 
     std::tuple<int, std::vector<int>> intVectorTuple { 1, {2, 3, 4} };
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intVectorTupleStream, Json::context, placeholderObj, intVectorTuple);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(intVectorTupleStream, Json::context, placeholderObj, intVectorTuple);
     EXPECT_STREQ("[1,[2,3,4]]", intVectorTupleStream.str().c_str());
 
     std::tuple<int, Keyable> intObjectTuple { 1, {2} };
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intObjectTupleStream, Json::context, placeholderObj, intObjectTuple);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(intObjectTupleStream, Json::context, placeholderObj, intObjectTuple);
     EXPECT_STREQ("[1,{\"a\":2}]", intObjectTupleStream.str().c_str());
 }
 
@@ -3057,19 +3057,19 @@ TEST_HEADER(JsonOutputPut, Pair)
     int placeholderObj = 0;
     
     std::pair<int, int> intIntPair { 0, 1 };
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intIntPairStream, Json::context, placeholderObj, intIntPair);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(intIntPairStream, Json::context, placeholderObj, intIntPair);
     EXPECT_STREQ("[0,1]", intIntPairStream.str().c_str());
 
     std::pair<int, std::vector<int>> intVectorPair { 0, {1, 2, 3} };
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intVectorPairStream, Json::context, placeholderObj, intVectorPair);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(intVectorPairStream, Json::context, placeholderObj, intVectorPair);
     EXPECT_STREQ("[0,[1,2,3]]", intVectorPairStream.str().c_str());
 
     std::pair<int, Keyable> intObjectPair { 0, {1} };
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intObjectPairStream, Json::context, placeholderObj, intObjectPair);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(intObjectPairStream, Json::context, placeholderObj, intObjectPair);
     EXPECT_STREQ("[0,{\"a\":1}]", intObjectPairStream.str().c_str());
 
     std::pair<int, std::pair<int, int>> intPairPair { 0, {1, 2} };
-    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intPairPairStream, Json::context, placeholderObj, intPairPair);
+    Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(intPairPairStream, Json::context, placeholderObj, intPairPair);
     EXPECT_STREQ("[0,[1,2]]", intPairPairStream.str().c_str());
 }
 
@@ -3083,11 +3083,11 @@ TEST_HEADER(JsonOutputPut, KeyValueObject)
     int placeholderObj = 0;
 
     std::pair<int, int> intIntPair { 0, 1 };
-    Json::Put::KeyValueObject<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intIntPairStream, Json::context, placeholderObj, intIntPair);
+    Json::Put::KeyValueObject<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(intIntPairStream, Json::context, placeholderObj, intIntPair);
     EXPECT_STREQ("{\"key\":0,\"value\":1}", intIntPairStream.str().c_str());
 
     std::pair<Keyable, Keyable> objObjPair { {0}, {1} };
-    Json::Put::KeyValueObject<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(objObjPairStream, Json::context, placeholderObj, objObjPair);
+    Json::Put::KeyValueObject<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(objObjPairStream, Json::context, placeholderObj, objObjPair);
     EXPECT_STREQ("{\"key\":{\"a\":0},\"value\":{\"a\":1}}", objObjPairStream.str().c_str());
 }
 
@@ -3101,7 +3101,7 @@ TEST_HEADER(JsonOutputPut, FieldPair)
     int placeholderObj = 0;
 
     std::pair<int, int> intIntPair { 0, 1 };
-    Json::Put::FieldPair<NoAnnotation, AField, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, int, true>(intIntPairStream, Json::context, placeholderObj, intIntPair);
+    Json::Put::FieldPair<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(intIntPairStream, Json::context, placeholderObj, intIntPair);
     EXPECT_STREQ("\"0\":1", intIntPairStream.str().c_str());
 }
 
@@ -3128,15 +3128,15 @@ TEST_HEADER(JsonOutputPut, Iterable)
     containsIterables.intQueue.push(3);
     containsIterables.intQueue.push(4);
 
-    Json::Put::Iterable<NoAnnotation, ContainsIterables::Class::intVector_::Field, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, ContainsIterables>(
+    Json::Put::Iterable<NoAnnotation, ContainsIterables::Class::intVector_::Field, Json::Statics::Excluded, false, 0, Json::twoSpaces, ContainsIterables>(
         intVectorStream, Json::context, containsIterables, containsIterables.intVector);
     EXPECT_STREQ("[1,2,3]", intVectorStream.str().c_str());
 
-    Json::Put::Iterable<NoAnnotation, ContainsIterables::Class::intQueue_::Field, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, ContainsIterables>(
+    Json::Put::Iterable<NoAnnotation, ContainsIterables::Class::intQueue_::Field, Json::Statics::Excluded, false, 0, Json::twoSpaces, ContainsIterables>(
         intQueueStream, Json::context, containsIterables, containsIterables.intQueue);
     EXPECT_STREQ("[2,3,4]", intQueueStream.str().c_str());
 
-    Json::Put::Iterable<NoAnnotation, ContainsIterables::Class::intArray_::Field, Json::Statics::Excluded, false, 0, 0, Json::twoSpaces, ContainsIterables>(
+    Json::Put::Iterable<NoAnnotation, ContainsIterables::Class::intArray_::Field, Json::Statics::Excluded, false, 0, Json::twoSpaces, ContainsIterables>(
         intArrayStream, Json::context, containsIterables, containsIterables.intArray);
     EXPECT_STREQ("[3,4,5]", intArrayStream.str().c_str());
 }

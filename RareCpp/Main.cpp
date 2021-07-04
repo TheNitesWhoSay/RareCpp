@@ -204,6 +204,13 @@ Car outputExamples()
     sub.otherVal = 2;
     sub.subVal = 3;
     std::cout << Json::pretty(sub) << std::endl;
+
+    std::map<std::string, int> myMap { {"myMap", 1}, {"a", 2} };
+    std::tuple<std::string, int> myTuple { "myTuple", 3 };
+    std::vector<std::string> myVector { "myVector", "b", "c", "d" };
+    std::cout << Json::pretty(myMap) << std::endl;
+    std::cout << Json::pretty(myTuple) << std::endl;
+    std::cout << Json::pretty(myVector) << std::endl;
     
     SubTest::Supers::ForEach(sub, [&](auto superInfo, auto & superObj) {
         using SuperInfo = decltype(superInfo);
