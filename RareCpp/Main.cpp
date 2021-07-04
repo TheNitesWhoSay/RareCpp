@@ -530,7 +530,6 @@ int main()
 
     Car car = outputExamples();
     std::cout << std::endl << Json::out(car) << std::endl << std::endl;
-    std::cout << std::endl << Json::pretty(car) << std::endl << std::endl;
 
     StaticCluster s;
     std::cout << std::endl << Json::pretty<Statics::Included>(s) << std::endl << std::endl;
