@@ -58,8 +58,6 @@ namespace Json
         {
             static constexpr bool value = !std::is_base_of<Unspecialized, T>::value;
         };
-
-        struct IsRoot {};
     }
     
     inline namespace Shared
@@ -1675,8 +1673,6 @@ namespace Json
                     Put::Pair<Annotations, Field, statics, PrettyPrint, IndentLevel, indent, Object, IsFirst>(os, context, obj, value);
                 else if constexpr ( is_iterable<T>::value )
                     Put::Iterable<Annotations, Field, statics, PrettyPrint, IndentLevel, indent, Object>(os, context, obj, value);
-                else if constexpr ( Field::template HasAnnotation<IsRoot> )
-                    Put::Object<Annotations, statics, PrettyPrint, IndentLevel, indent, T>(os, context, value);
                 else if constexpr ( is_reflected<T>::value )
                     Put::Object<Annotations, statics, PrettyPrint, IndentLevel, indent, T>(os, context, value);
                 else if constexpr ( Field::template HasAnnotation<Json::StringifyType> )
@@ -1918,16 +1914,9 @@ namespace Json
                 if ( context == nullptr )
                     context = std::make_shared<Context>();
 
-                if constexpr ( Reflect::is_reflected<Object>::value )
-                {
-                    Put::Value<Annotations, Fields::Field<Object, std::nullptr_t, 0, IsRoot>,
-                        statics, PrettyPrint, IndentLevel, indent, Object, true, Object>(os, *context, obj, obj);
-                }
-                else
-                {
-                    Put::Value<Annotations, Fields::Field<Object, std::nullptr_t, 0, NoAnnotation>,
-                        statics, PrettyPrint, IndentLevel, indent, Object, true, Object>(os, *context, obj, obj);
-                }
+                Put::Value<Annotations, Fields::Field<Object, std::nullptr_t, 0, NoAnnotation>,
+                    statics, PrettyPrint, IndentLevel, indent, Object, true, Object>(os, *context, obj, obj);
+
                 return os;
             }
         };
@@ -3363,8 +3352,6 @@ namespace Json
                     Read::Pair<Field>(is, context, c, object, value);
                 else if constexpr ( is_iterable<T>::value )
                     Read::Iterable<Field, T>(is, context, c, object, value);
-                else if constexpr ( Field::template HasAnnotation<IsRoot> )
-                    Read::Object<T>(is, context, c, value);
                 else if constexpr ( is_reflected<T>::value )
                     Read::Object(is, context, c, value);
                 else if constexpr ( Field::template HasAnnotation<Json::StringifyType> )
@@ -3611,7 +3598,7 @@ namespace Json
                     context = std::make_shared<Context>();
 
                 char c = '\0';
-                Read::Value<false, Fields::Field<T, std::nullptr_t, 0, IsRoot>>(is, *context, c, obj, obj);
+                Read::Value<false, Fields::Field<T>>(is, *context, c, obj, obj);
                 return is;
             }
         };
