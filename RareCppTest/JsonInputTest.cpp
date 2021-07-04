@@ -954,20 +954,76 @@ TEST_HEADER(JsonInputRead, StringToStream)
     std::stringstream tabStrReceiver;
     std::stringstream unicodeCharacterStrReceiver;
     std::stringstream everythingReceiver;
-    
-    Json::Read::String(emptyStr, c, emptyStrReceiver);
-    Json::Read::String(basicStr, c, basicStrReceiver);
-    Json::Read::String(quoteStr, c, quoteStrReceiver);
-    Json::Read::String(backslashStr, c, backslashStrReceiver);
-    Json::Read::String(forwardslashStr, c, forwardslashStrReceiver);
-    Json::Read::String(backspaceStr, c, backspaceStrReceiver);
-    Json::Read::String(formFeedStr, c, formFeedStrReceiver);
-    Json::Read::String(lineFeedStr, c, lineFeedStrReceiver);
-    Json::Read::String(carriageReturnStr, c, carriageReturnStrReceiver);
-    Json::Read::String(tabStr, c, tabStrReceiver);
-    Json::Read::String(unicodeCharacterStr, c, unicodeCharacterStrReceiver);
-    Json::Read::String(everything, c, everythingReceiver);
-    
+
+    Json::Read::String<>(emptyStr, c, emptyStrReceiver);
+    Json::Read::String<>(basicStr, c, basicStrReceiver);
+    Json::Read::String<>(quoteStr, c, quoteStrReceiver);
+    Json::Read::String<>(backslashStr, c, backslashStrReceiver);
+    Json::Read::String<>(forwardslashStr, c, forwardslashStrReceiver);
+    Json::Read::String<>(backspaceStr, c, backspaceStrReceiver);
+    Json::Read::String<>(formFeedStr, c, formFeedStrReceiver);
+    Json::Read::String<>(lineFeedStr, c, lineFeedStrReceiver);
+    Json::Read::String<>(carriageReturnStr, c, carriageReturnStrReceiver);
+    Json::Read::String<>(tabStr, c, tabStrReceiver);
+    Json::Read::String<>(unicodeCharacterStr, c, unicodeCharacterStrReceiver);
+    Json::Read::String<>(everything, c, everythingReceiver);
+
+    EXPECT_STREQ("", emptyStrReceiver.str().c_str());
+    EXPECT_STREQ("asdf", basicStrReceiver.str().c_str());
+    EXPECT_STREQ("\"", quoteStrReceiver.str().c_str());
+    EXPECT_STREQ("\\", backslashStrReceiver.str().c_str());
+    EXPECT_STREQ("/", forwardslashStrReceiver.str().c_str());
+    EXPECT_STREQ("\b", backspaceStrReceiver.str().c_str());
+    EXPECT_STREQ("\f", formFeedStrReceiver.str().c_str());
+    EXPECT_STREQ("\n", lineFeedStrReceiver.str().c_str());
+    EXPECT_STREQ("\r", carriageReturnStrReceiver.str().c_str());
+    EXPECT_STREQ("\t", tabStrReceiver.str().c_str());
+    EXPECT_STREQ("0", unicodeCharacterStrReceiver.str().c_str());
+    EXPECT_STREQ(" asdf \"\\/\b\f\n\r\t0 ", everythingReceiver.str().c_str());
+}
+
+TEST_HEADER(JsonInputRead, UnquotedStringToStream)
+{
+    char c = '\0';
+    std::stringstream emptyStr("");
+    std::stringstream basicStr("asdf");
+    std::stringstream quoteStr("\\\"");
+    std::stringstream backslashStr("\\\\");
+    std::stringstream forwardslashStr("\\/");
+    std::stringstream backspaceStr("\\b");
+    std::stringstream formFeedStr("\\f");
+    std::stringstream lineFeedStr("\\n");
+    std::stringstream carriageReturnStr("\\r");
+    std::stringstream tabStr("\\t");
+    std::stringstream unicodeCharacterStr("\\u0030");
+    std::stringstream everything(" asdf \\\"\\\\\\/\\b\\f\\n\\r\\t\\u0030 ");
+
+    std::stringstream emptyStrReceiver;
+    std::stringstream basicStrReceiver;
+    std::stringstream quoteStrReceiver;
+    std::stringstream backslashStrReceiver;
+    std::stringstream forwardslashStrReceiver;
+    std::stringstream backspaceStrReceiver;
+    std::stringstream formFeedStrReceiver;
+    std::stringstream lineFeedStrReceiver;
+    std::stringstream carriageReturnStrReceiver;
+    std::stringstream tabStrReceiver;
+    std::stringstream unicodeCharacterStrReceiver;
+    std::stringstream everythingReceiver;
+
+    Json::Read::String<false>(emptyStr, c, emptyStrReceiver);
+    Json::Read::String<false>(basicStr, c, basicStrReceiver);
+    Json::Read::String<false>(quoteStr, c, quoteStrReceiver);
+    Json::Read::String<false>(backslashStr, c, backslashStrReceiver);
+    Json::Read::String<false>(forwardslashStr, c, forwardslashStrReceiver);
+    Json::Read::String<false>(backspaceStr, c, backspaceStrReceiver);
+    Json::Read::String<false>(formFeedStr, c, formFeedStrReceiver);
+    Json::Read::String<false>(lineFeedStr, c, lineFeedStrReceiver);
+    Json::Read::String<false>(carriageReturnStr, c, carriageReturnStrReceiver);
+    Json::Read::String<false>(tabStr, c, tabStrReceiver);
+    Json::Read::String<false>(unicodeCharacterStr, c, unicodeCharacterStrReceiver);
+    Json::Read::String<false>(everything, c, everythingReceiver);
+
     EXPECT_STREQ("", emptyStrReceiver.str().c_str());
     EXPECT_STREQ("asdf", basicStrReceiver.str().c_str());
     EXPECT_STREQ("\"", quoteStrReceiver.str().c_str());
@@ -987,7 +1043,16 @@ TEST_HEADER(JsonInputRead, StringReference)
     char c = '\0';
     std::stringstream everything("\" asdf \\\"\\\\\\/\\b\\f\\n\\r\\t\\u0030 \"");
     std::string result;
-    Json::Read::String(everything, c, result);
+    Json::Read::String<>(everything, c, result);
+    EXPECT_STREQ(" asdf \"\\/\b\f\n\r\t0 ", result.c_str());
+}
+
+TEST_HEADER(JsonInputRead, StringReferenceUnquoted)
+{
+    char c = '\0';
+    std::stringstream everything(" asdf \\\"\\\\\\/\\b\\f\\n\\r\\t\\u0030 ");
+    std::string result;
+    Json::Read::String<false>(everything, c, result);
     EXPECT_STREQ(" asdf \"\\/\b\f\n\r\t0 ", result.c_str());
 }
 
@@ -996,7 +1061,16 @@ TEST_HEADER(JsonInputRead, StringTemplate)
     char c = '\0';
     std::stringstream integerStream("\"1234\"");
     int result = 0;
-    Json::Read::String(integerStream, c, result);
+    Json::Read::String<>(integerStream, c, result);
+    EXPECT_EQ(1234, result);
+}
+
+TEST_HEADER(JsonInputRead, StringTemplateUnquoted)
+{
+    char c = '\0';
+    std::stringstream integerStream("1234");
+    int result = 0;
+    Json::Read::String<int, false>(integerStream, c, result);
     EXPECT_EQ(1234, result);
 }
 
@@ -1004,14 +1078,29 @@ TEST_HEADER(JsonInputRead, StringCharReturned)
 {
     char c = '\0';
     std::stringstream everything("\" asdf \\\"\\\\\\/\\b\\f\\n\\r\\t\\u0030 \"");
-    std::string result = Json::Read::String(everything, c);
+    std::string result = Json::Read::String<>(everything, c);
+    EXPECT_STREQ(" asdf \"\\/\b\f\n\r\t0 ", result.c_str());
+}
+
+TEST_HEADER(JsonInputRead, StringCharReturnedUnquoted)
+{
+    char c = '\0';
+    std::stringstream everything(" asdf \\\"\\\\\\/\\b\\f\\n\\r\\t\\u0030 ");
+    std::string result = Json::Read::String<false>(everything, c);
     EXPECT_STREQ(" asdf \"\\/\b\f\n\r\t0 ", result.c_str());
 }
 
 TEST_HEADER(JsonInputRead, StringReturned)
 {
     std::stringstream everything("\" asdf \\\"\\\\\\/\\b\\f\\n\\r\\t\\u0030 \"");
-    std::string result = Json::Read::String(everything);
+    std::string result = Json::Read::String<>(everything);
+    EXPECT_STREQ(" asdf \"\\/\b\f\n\r\t0 ", result.c_str());
+}
+
+TEST_HEADER(JsonInputRead, StringReturnedUnquoted)
+{
+    std::stringstream everything(" asdf \\\"\\\\\\/\\b\\f\\n\\r\\t\\u0030 ");
+    std::string result = Json::Read::String<false>(everything);
     EXPECT_STREQ(" asdf \"\\/\b\f\n\r\t0 ", result.c_str());
 }
 
@@ -1667,8 +1756,9 @@ struct VariousMaps
     std::map<int, Keyable> intObjMap;
     std::map<Keyable, int> objIntMap;
     std::map<Keyable, Keyable> objObjMap;
+    std::map<std::string, std::string> stringStringMap;
 
-    REFLECT(VariousMaps, intIntMap, intObjMap, objIntMap, objObjMap)
+    REFLECT(VariousMaps, intIntMap, intObjMap, objIntMap, objObjMap, stringStringMap)
 };
 
 TEST_HEADER(JsonInputRead, KeyValueObject)
@@ -1680,6 +1770,7 @@ TEST_HEADER(JsonInputRead, KeyValueObject)
     v.intObjMap = { {0, {0}} };
     v.objIntMap = { {{0}, 0} };
     v.objObjMap = { {{0}, {0}} };
+    v.stringStringMap = { {"", ""}};
     
     std::stringstream intIntMapStream("{\"key\":1,\"value\":2},");
     std::pair<int, int> value = { 0, 0 };
@@ -1708,6 +1799,13 @@ TEST_HEADER(JsonInputRead, KeyValueObject)
         objObjMapStream, Json::context, c, v, objObjElement);
     EXPECT_EQ(1, std::get<0>(objObjElement).a);
     EXPECT_EQ(2, std::get<1>(objObjElement).a);
+
+    std::stringstream stringStringMapStream("{\"key\":\"1\",\"value\":\"2\"},");
+    std::pair<std::string, std::string> stringStringValue;
+    Json::Read::KeyValueObject<VariousMaps::Class::stringStringMap_::Field, VariousMaps>(
+        stringStringMapStream, Json::context, c, v, stringStringValue);
+    EXPECT_STREQ(std::get<0>(stringStringValue).c_str(), "1");
+    EXPECT_STREQ(std::get<1>(stringStringValue).c_str(), "2");
 }
 
 TEST_HEADER(JsonInputRead, FieldPair)
@@ -1719,6 +1817,7 @@ TEST_HEADER(JsonInputRead, FieldPair)
     v.intObjMap = { {0, {0}} };
     v.objIntMap = { {{0}, 0} };
     v.objObjMap = { {{0}, {0}} };
+    v.stringStringMap = { {"", ""}};
 
     std::stringstream intIntFieldPairStream("\"1\":2");
     std::pair<int, int> value;
@@ -1733,6 +1832,13 @@ TEST_HEADER(JsonInputRead, FieldPair)
         intObjFieldPairStream, Json::context, c, v, intObjValue.first, intObjValue.second);
     EXPECT_EQ(1, std::get<0>(intObjValue));
     EXPECT_EQ(2, std::get<1>(intObjValue).a);
+
+    std::stringstream stringStringFieldPairStream("\"1\":\"2\"");
+    std::pair<std::string, std::string> stringStringValue;
+    Json::Read::FieldPair<VariousMaps::Class::stringStringMap_::Field, VariousMaps>(
+        stringStringFieldPairStream, Json::context, c, v, stringStringValue.first, stringStringValue.second);
+    EXPECT_STREQ(std::get<0>(stringStringValue).c_str(), "1");
+    EXPECT_STREQ(std::get<1>(stringStringValue).c_str(), "2");
 }
 
 TEST_HEADER(JsonInputRead, Iterable)
