@@ -311,7 +311,15 @@ namespace Json
                                     throw Exception("Cannot assign a non-null value to a null pointer unless the type is std::shared_ptr or std::unique_ptr");
                             }
                             else if ( value->type() != allocatedValue->type() ) // value != nullptr
-                                throw TypeMismatch(value->type(), allocatedValue->type());
+                            {
+                                Dereferenced* casted = dynamic_cast<Dereferenced*>(allocatedValue.get());
+                                if constexpr ( std::is_same<std::shared_ptr<Dereferenced>, T>::value && std::is_same_v<Dereferenced, Json::Value> )
+                                    value = std::shared_ptr<Dereferenced>(casted); // Type mismatch, but reassignable
+                                else if constexpr ( std::is_same<std::unique_ptr<Dereferenced>, T>::value && std::is_same_v<Dereferenced, Json::Value> )
+                                    value = std::unique_ptr<Dereferenced>(casted); // Type mismatch, but reassignable
+                                else
+                                    throw TypeMismatch(value->type(), allocatedValue->type());
+                            }
                             else if constexpr ( std::is_same<std::shared_ptr<Dereferenced>, T>::value ) // && value != nullptr && types match
                                 value = std::shared_ptr<Dereferenced>(dynamic_cast<Dereferenced*>(allocatedValue.get()));
                             else if constexpr ( std::is_same<std::unique_ptr<Dereferenced>, T>::value ) // && value != nullptr && types match
@@ -3290,13 +3298,10 @@ namespace Json
                             if ( !std::is_const<T>::value )
                                 value = nullptr;
                         }
-                        else if ( value == nullptr )
-                        {
-                            if constexpr ( std::is_const<T>::value )
-                                Consume::Value<InArray>(is, c);
-                            else
-                                Read::GenericValue<InArray>(is, context, c)->into(value);
-                        }
+                        else if constexpr ( std::is_const<T>::value )
+                            Consume::Value<InArray>(is, c);
+                        else
+                            Read::GenericValue<InArray>(is, context, c)->into(value);
                     }
                     else if ( value == nullptr ) // Value is a nullptr and not a Json::Generic
                     {
