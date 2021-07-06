@@ -50,14 +50,6 @@ namespace Json
         {
              std::string_view value;
         };
-
-        struct Unspecialized {};
-
-        template <typename T>
-        struct is_specialized
-        {
-            static constexpr bool value = !std::is_base_of<Unspecialized, T>::value;
-        };
     }
     
     inline namespace Shared
