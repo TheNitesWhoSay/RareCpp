@@ -709,7 +709,50 @@ TEST(ObjectMapperTest, MapTuple)
 
 TEST(ObjectMapperTest, MapIterables)
 {
+    std::vector<int> srcVec { 0, 2, 4 };
+    auto destVec = ObjectMapper::map<std::vector<int>>(srcVec);
 
+    EXPECT_EQ(3, destVec.size());
+    EXPECT_EQ(0, destVec[0]);
+    EXPECT_EQ(2, destVec[1]);
+    EXPECT_EQ(4, destVec[2]);
+
+    std::map<int, int> srcMap {{1, 2}, {2, 4}, {3, 6}};
+    auto destMap = ObjectMapper::map<std::map<int, int>>(srcMap);
+    EXPECT_EQ(3, destMap.size());
+    auto firstMapEntry = destMap.find(1);
+    auto secondMapEntry = destMap.find(2);
+    auto thirdMapEntry = destMap.find(3);
+    EXPECT_TRUE(firstMapEntry != destMap.end());
+    EXPECT_TRUE(secondMapEntry != destMap.end());
+    EXPECT_TRUE(thirdMapEntry != destMap.end());
+    EXPECT_EQ(1, firstMapEntry->first);
+    EXPECT_EQ(2, secondMapEntry->first);
+    EXPECT_EQ(3, thirdMapEntry->first);
+    EXPECT_EQ(2, firstMapEntry->second);
+    EXPECT_EQ(4, secondMapEntry->second);
+    EXPECT_EQ(6, thirdMapEntry->second);
+
+    int srcRay[] = { 0, 2, 4 };
+    int destRay[] = { 0, 0, 0 };
+    ObjectMapper::map(destRay, srcRay);
+    EXPECT_EQ(0, destRay[0]);
+    EXPECT_EQ(2, destRay[1]);
+    EXPECT_EQ(4, destRay[2]);
+
+    auto rayVecDest = ObjectMapper::map<std::vector<int>>(srcRay);
+    EXPECT_EQ(3, rayVecDest.size());
+    EXPECT_EQ(0, rayVecDest[0]);
+    EXPECT_EQ(2, rayVecDest[1]);
+    EXPECT_EQ(4, rayVecDest[2]);
+
+    destRay[0] = 0;
+    destRay[1] = 0;
+    destRay[2] = 0;
+    ObjectMapper::map(destRay, srcVec);
+    EXPECT_EQ(0, destRay[0]);
+    EXPECT_EQ(2, destRay[1]);
+    EXPECT_EQ(4, destRay[2]);
 }
 
 struct MapSource
@@ -1017,4 +1060,88 @@ TEST(ObjectMapperTest, MapMacroLimit)
     EXPECT_NE(src.a124, dest.b124);
     EXPECT_EQ(src.a124, 124);
     EXPECT_EQ(dest.b124, 0);
+}
+
+TEST(ObjectMapperAnnotationsTest, MappedByAnnotation)
+{
+    auto mappedByNote = ObjectMapper::MappedBy<int>;
+    using MappedByNote = decltype(mappedByNote);
+    bool defaultMappingIsInt = std::is_same_v<int, typename MappedByNote::DefaultMapping>;
+    EXPECT_TRUE(defaultMappingIsInt);
+}
+
+TEST(ObjectMapperAnnotationsTest, UseMappingOpAnnotation)
+{
+    using OpUseMapping = ObjectMapper::UseMapping<int, float>;
+    bool objectIsInt = std::is_same_v<int, typename OpUseMapping::Object>;
+    EXPECT_TRUE(objectIsInt);
+    bool defaultMappingIsFloat = std::is_same_v<float, typename OpUseMapping::DefaultMapping>;
+    EXPECT_TRUE(defaultMappingIsFloat);
+}
+
+struct TypeMappedBy {};
+
+struct ObjWithoutMapping {};
+
+struct ObjMappedBySpecialization {};
+template <> struct ObjectMapper::SetTags<ObjMappedBySpecialization> : IsMappedBy<TypeMappedBy> {};
+
+struct ObjMappedByMacro {};
+SET_DEFAULT_OBJECT_MAPPING(ObjMappedByMacro, TypeMappedBy)
+
+NOTE(ObjMappedByClassNote, ObjectMapper::MappedBy<TypeMappedBy>)
+struct ObjMappedByClassNote { REFLECT_EMPTY(ObjMappedByClassNote) };
+
+TEST(ObjectMapperAnnotationsTest, Tags)
+{
+    bool isSame = std::is_same_v<TypeMappedBy, ObjectMapper::GetTags<ObjMappedBySpecialization>::DefaultMapping>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<TypeMappedBy, ObjectMapper::GetTags<ObjMappedByMacro>::DefaultMapping>;
+    EXPECT_TRUE(isSame);
+}
+
+TEST(ObjectMapperAnnotationsTest, HasDefaultMapping)
+{
+    bool hasDefaultMapping = ObjectMapper::HasDefaultMapping<TypeMappedBy>;
+    EXPECT_FALSE(hasDefaultMapping);
+    hasDefaultMapping = ObjectMapper::HasDefaultMapping<ObjMappedBySpecialization>;
+    EXPECT_TRUE(hasDefaultMapping);
+    hasDefaultMapping = ObjectMapper::HasDefaultMapping<ObjMappedByMacro>;
+    EXPECT_TRUE(hasDefaultMapping);
+    using ClassNote = Reflect::class_notes_t<ObjMappedByClassNote>;
+    hasDefaultMapping = ObjectMapper::HasDefaultMapping<ObjMappedByClassNote>;
+    EXPECT_TRUE(hasDefaultMapping);
+
+    auto classOrFieldNoteWithMapping = std::tuple { ObjectMapper::MappedBy<TypeMappedBy> };
+    using ClassOrFieldNoteWithMapping = decltype(classOrFieldNoteWithMapping);
+    using OpNoteWithMapping = std::tuple<ObjectMapper::UseMapping<ObjWithoutMapping, TypeMappedBy>>;
+    hasDefaultMapping = ObjectMapper::HasDefaultMapping<ObjWithoutMapping, ClassOrFieldNoteWithMapping>;
+    EXPECT_TRUE(hasDefaultMapping);
+    hasDefaultMapping = ObjectMapper::HasDefaultMapping<ObjWithoutMapping, void, OpNoteWithMapping>;
+    EXPECT_TRUE(hasDefaultMapping);
+    hasDefaultMapping = ObjectMapper::HasDefaultMapping<ObjWithoutMapping, ClassOrFieldNoteWithMapping, OpNoteWithMapping>;
+    EXPECT_TRUE(hasDefaultMapping);
+}
+
+TEST(ObjectMapperAnnotationsTest, GetDefaultMapping)
+{
+    bool isVoid = std::is_same_v<void, ObjectMapper::GetDefaultMapping<TypeMappedBy>>;
+    EXPECT_TRUE(isVoid);
+
+    bool isTypeMappedBy = std::is_same_v<TypeMappedBy, ObjectMapper::GetDefaultMapping<ObjMappedBySpecialization>>;
+    EXPECT_TRUE(isTypeMappedBy);
+    isTypeMappedBy = std::is_same_v<TypeMappedBy, ObjectMapper::GetDefaultMapping<ObjMappedByMacro>>;
+    EXPECT_TRUE(isTypeMappedBy);
+    isTypeMappedBy = std::is_same_v<TypeMappedBy, ObjectMapper::GetDefaultMapping<ObjMappedByClassNote>>;
+    EXPECT_TRUE(isTypeMappedBy);
+
+    auto classOrFieldNoteWithMapping = std::tuple { ObjectMapper::MappedBy<TypeMappedBy> };
+    using ClassOrFieldNoteWithMapping = decltype(classOrFieldNoteWithMapping);
+    using OpNoteWithMapping = std::tuple<ObjectMapper::UseMapping<ObjWithoutMapping, TypeMappedBy>>;
+    isTypeMappedBy = std::is_same_v<TypeMappedBy, ObjectMapper::GetDefaultMapping<ObjWithoutMapping, ClassOrFieldNoteWithMapping>>;
+    EXPECT_TRUE(isTypeMappedBy);
+    isTypeMappedBy = std::is_same_v<TypeMappedBy, ObjectMapper::GetDefaultMapping<ObjWithoutMapping, void, OpNoteWithMapping>>;
+    EXPECT_TRUE(isTypeMappedBy);
+    isTypeMappedBy = std::is_same_v<TypeMappedBy, ObjectMapper::GetDefaultMapping<ObjWithoutMapping, ClassOrFieldNoteWithMapping, OpNoteWithMapping>>;
+    EXPECT_TRUE(isTypeMappedBy);
 }

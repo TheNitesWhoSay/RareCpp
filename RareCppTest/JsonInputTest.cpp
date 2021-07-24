@@ -1310,6 +1310,20 @@ struct ComposedObj
     REFLECT(ComposedObj, a)
 };
 
+struct MappedFrom
+{
+    int a;
+
+    REFLECT(MappedFrom, a)
+};
+
+struct MappedTo
+{
+    int a;
+
+    MAP_WITH(MappedFrom, (a, a))
+};
+
 struct VariousValues
 {
     VariousValues(int & integer) : customized({}), genericNonNull(nullptr), genericNull(nullptr),
@@ -1319,7 +1333,7 @@ struct VariousValues
         intConstPointerNull(nullptr), intConstPointerToBecomeNull(&integer), intConstPointerValue(&integer),
         constIntConstPointerNull(nullptr), constIntConstPointerToBecomeNull(&integer), constIntConstPointerValue(&integer),
         genericValue(), intVector(), composedObj({}), integerString(0), enumInt(EnumIntEnum::none), boolean(false),
-        str(), emptyTuple({}), singleTuple({}), doubleTuple({}), tripleTuple({}), pair({}),
+        str(), mappedTo({}), emptyTuple({}), singleTuple({}), doubleTuple({}), tripleTuple({}), pair({}),
         primitiveKey(), complexKey(), intIntArrayTuple({}), intIntKeyableTuple({}), intIntTupleTuple({}) {}
         
 
@@ -1357,6 +1371,7 @@ struct VariousValues
     bool boolean;
     static constexpr const int constant = 0;
     std::string str;
+    MappedTo mappedTo;
     
     std::tuple<> emptyTuple;
     std::tuple<int> singleTuple;
@@ -1374,7 +1389,7 @@ struct VariousValues
         constIntPointerNull, constIntPointerToBecomeNull, constIntPointerValue,
         intConstPointerNull, intConstPointerToBecomeNull, intConstPointerValue,
         constIntConstPointerNull, constIntConstPointerToBecomeNull, constIntConstPointerValue,
-        genericValue, intVector, composedObj, integerString, enumInt, boolean, constant, str,
+        genericValue, intVector, composedObj, integerString, enumInt, boolean, constant, str, mappedTo,
         emptyTuple, singleTuple, doubleTuple, tripleTuple, pair, primitiveKey, complexKey, intIntArrayTuple,
         intIntKeyableTuple, intIntTupleTuple)
 };
@@ -1402,6 +1417,7 @@ TEST_HEADER(JsonInputRead, Value)
     v.enumInt = EnumIntEnum::none;
     v.boolean = false;
     v.str = "";
+    v.mappedTo = { 0 };
 
     v.emptyTuple = {};
     v.singleTuple = { 0 };
@@ -1419,181 +1435,187 @@ TEST_HEADER(JsonInputRead, Value)
     std::get<1>(std::get<2>(v.intIntTupleTuple)) = 0;
 
     std::stringstream customizedStream("1234,");
-    Json::Read::Value<true, VariousValues::Class::customized_::Field, CustomizeTypeFullySpecialized, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::customized_::Field, CustomizeTypeFullySpecialized, VariousValues>(
         customizedStream, Json::context, c, v, v.customized);
     EXPECT_EQ(1234, v.customized.firstField);
 
     std::stringstream genericNonNullNull("null,");
-    Json::Read::Value<true, VariousValues::Class::genericNonNull_::Field, std::shared_ptr<Json::Value>, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::genericNonNull_::Field, std::shared_ptr<Json::Value>, VariousValues>(
         genericNonNullNull, Json::context, c, v, v.genericNonNull);
     EXPECT_TRUE(v.genericNonNull == nullptr);
 
     std::stringstream genericNullNonNull("true,");
-    Json::Read::Value<true, VariousValues::Class::genericNull_::Field, std::shared_ptr<Json::Value>, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::genericNull_::Field, std::shared_ptr<Json::Value>, VariousValues>(
         genericNullNonNull, Json::context, c, v, v.genericNull);
     EXPECT_TRUE(v.genericNull != nullptr);
     EXPECT_EQ(Json::Value::Type::Boolean, v.genericNull->type());
 
     std::stringstream sharedPtrNullptr("111,");
-    Json::Read::Value<true, VariousValues::Class::sharedPointerNull_::Field, std::shared_ptr<int>, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::sharedPointerNull_::Field, std::shared_ptr<int>, VariousValues>(
         sharedPtrNullptr, Json::context, c, v, v.sharedPointerNull);
     EXPECT_TRUE(v.sharedPointerNull != nullptr);
     EXPECT_EQ(111, *v.sharedPointerNull);
 
     std::stringstream uniquePtrNullptr("222,");
-    Json::Read::Value<true, VariousValues::Class::uniquePointerNull_::Field, std::unique_ptr<int>, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::uniquePointerNull_::Field, std::unique_ptr<int>, VariousValues>(
         uniquePtrNullptr, Json::context, c, v, v.uniquePointerNull);
     EXPECT_TRUE(v.uniquePointerNull != nullptr);
     EXPECT_EQ(222, *v.uniquePointerNull);
 
     std::stringstream regularPtrNullptr("null,");
-    Json::Read::Value<true, VariousValues::Class::regularPointerNull_::Field, int*, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::regularPointerNull_::Field, int*, VariousValues>(
         regularPtrNullptr, Json::context, c, v, v.regularPointerNull);
     EXPECT_TRUE(v.regularPointerNull == nullptr);
 
     std::stringstream regularPtrToBecomeNull("null,");
-    Json::Read::Value<true, VariousValues::Class::regularPointerToBecomeNull_::Field, int*, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::regularPointerToBecomeNull_::Field, int*, VariousValues>(
         regularPtrToBecomeNull, Json::context, c, v, v.regularPointerToBecomeNull);
     EXPECT_TRUE(v.regularPointerToBecomeNull == nullptr);
 
     std::stringstream regularPtrValue("999,");
-    Json::Read::Value<true, VariousValues::Class::regularPointerValue_::Field, int*, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::regularPointerValue_::Field, int*, VariousValues>(
         regularPtrValue, Json::context, c, v, v.regularPointerValue);
     EXPECT_EQ(999, anInt);
 
 
 
     std::stringstream constIntPtrNullptr("null,");
-    Json::Read::Value<true, VariousValues::Class::constIntPointerNull_::Field, const int*, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::constIntPointerNull_::Field, const int*, VariousValues>(
         constIntPtrNullptr, Json::context, c, v, v.constIntPointerNull);
     EXPECT_TRUE(v.constIntPointerNull == nullptr);
 
     std::stringstream constIntPtrToBecomeNull("null,");
-    Json::Read::Value<true, VariousValues::Class::constIntPointerToBecomeNull_::Field, const int*, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::constIntPointerToBecomeNull_::Field, const int*, VariousValues>(
         constIntPtrToBecomeNull, Json::context, c, v, v.constIntPointerToBecomeNull);
     EXPECT_TRUE(v.constIntPointerToBecomeNull == nullptr);
 
     std::stringstream constIntPtrValue("998,");
-    Json::Read::Value<true, VariousValues::Class::constIntPointerValue_::Field, const int*, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::constIntPointerValue_::Field, const int*, VariousValues>(
         constIntPtrValue, Json::context, c, v, v.constIntPointerValue);
     EXPECT_EQ(999, anInt); // Value should not change
 
 
     std::stringstream intConstPtrNullptr("null,");
-    Json::Read::Value<true, VariousValues::Class::intConstPointerNull_::Field, int* const, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::intConstPointerNull_::Field, int* const, VariousValues>(
         intConstPtrNullptr, Json::context, c, v, v.intConstPointerNull);
     EXPECT_TRUE(v.intConstPointerNull == nullptr);
 
     std::stringstream intConstPtrToBecomeNull("null,");
-    Json::Read::Value<true, VariousValues::Class::intConstPointerToBecomeNull_::Field, int* const, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::intConstPointerToBecomeNull_::Field, int* const, VariousValues>(
         intConstPtrToBecomeNull, Json::context, c, v, v.intConstPointerToBecomeNull);
     EXPECT_FALSE(v.intConstPointerToBecomeNull == nullptr); // Pointer should not change
 
     std::stringstream intConstPtrValue("997,");
-    Json::Read::Value<true, VariousValues::Class::intConstPointerValue_::Field, int* const, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::intConstPointerValue_::Field, int* const, VariousValues>(
         intConstPtrValue, Json::context, c, v, v.intConstPointerValue);
     EXPECT_EQ(997, anInt); // Value should change
 
 
     std::stringstream constIntConstPtrNullptr("null,");
-    Json::Read::Value<true, VariousValues::Class::constIntConstPointerNull_::Field, const int* const, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::constIntConstPointerNull_::Field, const int* const, VariousValues>(
         constIntConstPtrNullptr, Json::context, c, v, v.constIntConstPointerNull);
     EXPECT_TRUE(v.constIntConstPointerNull == nullptr);
 
     std::stringstream constIntConstPtrToBecomeNull("null,");
-    Json::Read::Value<true, VariousValues::Class::constIntConstPointerToBecomeNull_::Field, const int* const, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::constIntConstPointerToBecomeNull_::Field, const int* const, VariousValues>(
         constIntConstPtrToBecomeNull, Json::context, c, v, v.constIntConstPointerToBecomeNull);
     EXPECT_FALSE(v.constIntConstPointerToBecomeNull == nullptr); // Pointer should not change
 
     std::stringstream constIntConstPtrValue("996,");
-    Json::Read::Value<true, VariousValues::Class::constIntConstPointerValue_::Field, const int* const, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::constIntConstPointerValue_::Field, const int* const, VariousValues>(
         constIntConstPtrValue, Json::context, c, v, v.constIntConstPointerValue);
     EXPECT_EQ(997, anInt); // Value shoud not change
 
 
     std::stringstream composedObjStream("{\"a\": 1}");
-    Json::Read::Value<true, VariousValues::Class::composedObj_::Field, ComposedObj, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::composedObj_::Field, ComposedObj, VariousValues>(
         composedObjStream, Json::context, c, v, v.composedObj);
     EXPECT_EQ(1, v.composedObj.a);
 
     std::stringstream integerStringStream("\"4567\"");
-    Json::Read::Value<true, VariousValues::Class::integerString_::Field, int, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::integerString_::Field, int, VariousValues>(
         integerStringStream, Json::context, c, v, v.integerString);
     EXPECT_EQ(4567, v.integerString);
 
     std::stringstream enumIntStream("1337,");
-    Json::Read::Value<true, VariousValues::Class::enumInt_::Field, EnumIntEnum, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::enumInt_::Field, EnumIntEnum, VariousValues>(
         enumIntStream, Json::context, c, v, v.enumInt);
     EXPECT_EQ(EnumIntEnum::leet, v.enumInt);
 
     std::stringstream booleanStream("true,");
-    Json::Read::Value<true, VariousValues::Class::boolean_::Field, bool, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::boolean_::Field, bool, VariousValues>(
         booleanStream, Json::context, c, v, v.boolean);
     EXPECT_TRUE(v.boolean);
     
     std::stringstream constInt("9001,");
-    Json::Read::Value<true, VariousValues::Class::constant_::Field, const int, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::constant_::Field, const int, VariousValues>(
         constInt, Json::context, c, v, v.constant);
     EXPECT_EQ(0, v.constant);
 
     std::stringstream strStream("\"asdf\",");
-    Json::Read::Value<true, VariousValues::Class::str_::Field, std::string, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::str_::Field, std::string, VariousValues>(
         strStream, Json::context, c, v, v.str);
     EXPECT_STREQ("asdf", v.str.c_str());
 
+    std::stringstream mappedToStream("{\"a\":1},");
+    using OpNoteWithMapping = std::tuple<ObjectMapper::UseMapping<MappedTo, MappedFrom>>;
+    Json::Read::Value<OpNoteWithMapping, true, VariousValues::Class::mappedTo_::Field, MappedTo, VariousValues>(
+        mappedToStream, Json::context, c, v, v.mappedTo);
+    EXPECT_EQ(1, v.mappedTo.a);
+
     std::stringstream nullTupleStream("null,");
-    Json::Read::Value<true, VariousValues::Class::emptyTuple_::Field, std::tuple<>, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::emptyTuple_::Field, std::tuple<>, VariousValues>(
         nullTupleStream, Json::context, c, v, v.emptyTuple);
     
     std::stringstream emptyArrayTupleStream("[],");
-    Json::Read::Value<true, VariousValues::Class::emptyTuple_::Field, std::tuple<>, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::emptyTuple_::Field, std::tuple<>, VariousValues>(
         emptyArrayTupleStream, Json::context, c, v, v.emptyTuple);
 
     std::stringstream singleTupleValueStream("1,");
-    Json::Read::Value<true, VariousValues::Class::singleTuple_::Field, std::tuple<int>, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::singleTuple_::Field, std::tuple<int>, VariousValues>(
         singleTupleValueStream, Json::context, c, v, v.singleTuple);
     EXPECT_EQ(1, std::get<0>(v.singleTuple));
 
     std::stringstream singleTupleArrayStream("[2],");
-    Json::Read::Value<true, VariousValues::Class::singleTuple_::Field, std::tuple<int>, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::singleTuple_::Field, std::tuple<int>, VariousValues>(
         singleTupleArrayStream, Json::context, c, v, v.singleTuple);
     EXPECT_EQ(2, std::get<0>(v.singleTuple));
 
     std::stringstream doubleTupleArrayStream("[1, 2],");
-    Json::Read::Value<true, VariousValues::Class::doubleTuple_::Field, std::tuple<int, int>, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::doubleTuple_::Field, std::tuple<int, int>, VariousValues>(
         doubleTupleArrayStream, Json::context, c, v, v.doubleTuple);
     EXPECT_EQ(1, std::get<0>(v.doubleTuple));
     EXPECT_EQ(2, std::get<1>(v.doubleTuple));
 
     std::stringstream tripleTupleArrayStream("[1, 2, 3],");
-    Json::Read::Value<true, VariousValues::Class::tripleTuple_::Field, std::tuple<int, int, int>, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::tripleTuple_::Field, std::tuple<int, int, int>, VariousValues>(
         tripleTupleArrayStream, Json::context, c, v, v.tripleTuple);
     EXPECT_EQ(1, std::get<0>(v.tripleTuple));
     EXPECT_EQ(2, std::get<1>(v.tripleTuple));
     EXPECT_EQ(3, std::get<2>(v.tripleTuple));
 
     std::stringstream pairStream("[1, 2],");
-    Json::Read::Value<true, VariousValues::Class::pair_::Field, std::pair<int, int>, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::pair_::Field, std::pair<int, int>, VariousValues>(
         pairStream, Json::context, c, v, v.pair);
     EXPECT_EQ(1, std::get<0>(v.pair));
     EXPECT_EQ(2, std::get<1>(v.pair));
 
     std::stringstream primitiveKeyStream("{\"1\": {\"a\":2}},");
-    Json::Read::Value<true, VariousValues::Class::primitiveKey_::Field, std::map<int, Keyable>, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::primitiveKey_::Field, std::map<int, Keyable>, VariousValues>(
         primitiveKeyStream, Json::context, c, v, v.primitiveKey);
     auto found = v.primitiveKey.find(1);
     EXPECT_TRUE(found != v.primitiveKey.end());
     EXPECT_EQ(2, found->second.a);
 
     std::stringstream primitiveKeyArrayStream("[[3, {\"a\":4}]],");
-    Json::Read::Value<true, VariousValues::Class::primitiveKey_::Field, std::map<int, Keyable>, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::primitiveKey_::Field, std::map<int, Keyable>, VariousValues>(
         primitiveKeyArrayStream, Json::context, c, v, v.primitiveKey);
     auto primitiveKeyArrayFound = v.primitiveKey.find(3);
     EXPECT_TRUE(primitiveKeyArrayFound != v.primitiveKey.end());
     EXPECT_EQ(4, primitiveKeyArrayFound->second.a);
 
     std::stringstream complexKeyStream("[{\"key\":{\"a\":1},\"value\":2}],");
-    Json::Read::Value<true, VariousValues::Class::complexKey_::Field, std::map<Keyable, int>, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::complexKey_::Field, std::map<Keyable, int>, VariousValues>(
         complexKeyStream, Json::context, c, v, v.complexKey);
     Keyable keyable { 1 };
     auto complexKeyFound = v.complexKey.find(keyable);
@@ -1601,7 +1623,7 @@ TEST_HEADER(JsonInputRead, Value)
     EXPECT_EQ(2, complexKeyFound->second);
 
     std::stringstream complexKeyArrayStream("[[{\"a\":3},4]],");
-    Json::Read::Value<true, VariousValues::Class::complexKey_::Field, std::map<Keyable, int>, VariousValues>(
+    Json::Read::Value<NoAnnotation, true, VariousValues::Class::complexKey_::Field, std::map<Keyable, int>, VariousValues>(
         complexKeyArrayStream, Json::context, c, v, v.complexKey);
     Keyable arrayKeyable { 3 };
     auto complexKeyArrayFound = v.complexKey.find(arrayKeyable);
@@ -1609,7 +1631,7 @@ TEST_HEADER(JsonInputRead, Value)
     EXPECT_EQ(4, complexKeyArrayFound->second);
 
     std::stringstream intIntArrayTupleStream("[1, 2, [3,4]],");
-    Json::Read::Tuple<VariousValues::Class::intIntArrayTuple_::Field, 0>(
+    Json::Read::Tuple<NoAnnotation, VariousValues::Class::intIntArrayTuple_::Field, 0>(
         intIntArrayTupleStream, Json::context, c, v, v.intIntArrayTuple);
     EXPECT_EQ(1, std::get<0>(v.intIntArrayTuple));
     EXPECT_EQ(2, std::get<1>(v.intIntArrayTuple));
@@ -1617,14 +1639,14 @@ TEST_HEADER(JsonInputRead, Value)
     EXPECT_EQ(4, std::get<2>(v.intIntArrayTuple)[1]);
 
     std::stringstream intIntKeyableTupleStream("[1, 2, {\"a\":3}],");
-    Json::Read::Tuple<VariousValues::Class::intIntKeyableTuple_::Field, 0>(
+    Json::Read::Tuple<NoAnnotation, VariousValues::Class::intIntKeyableTuple_::Field, 0>(
         intIntKeyableTupleStream, Json::context, c, v, v.intIntKeyableTuple);
     EXPECT_EQ(1, std::get<0>(v.intIntKeyableTuple));
     EXPECT_EQ(2, std::get<1>(v.intIntKeyableTuple));
     EXPECT_EQ(3, std::get<2>(v.intIntKeyableTuple).a);
 
     std::stringstream intIntTupleTupleStream("[1, 2, [3, 4]],");
-    Json::Read::Tuple<VariousValues::Class::intIntTupleTuple_::Field, 0>(
+    Json::Read::Tuple<NoAnnotation, VariousValues::Class::intIntTupleTuple_::Field, 0>(
         intIntTupleTupleStream, Json::context, c, v, v.intIntTupleTuple);
     EXPECT_EQ(1, std::get<0>(v.intIntTupleTuple));
     EXPECT_EQ(2, std::get<1>(v.intIntTupleTuple));
@@ -1668,20 +1690,20 @@ TEST_HEADER(JsonInputRead, Tuple)
     std::get<1>(std::get<2>(v.intIntTupleTuple)) = 0;
 
     std::stringstream doubleTupleArrayStream("[1, 2],");
-    Json::Read::Tuple<VariousValues::Class::doubleTuple_::Field, 0>(
+    Json::Read::Tuple<NoAnnotation, VariousValues::Class::doubleTuple_::Field, 0>(
         doubleTupleArrayStream, Json::context, c, v, v.doubleTuple);
     EXPECT_EQ(1, std::get<0>(v.doubleTuple));
     EXPECT_EQ(2, std::get<1>(v.doubleTuple));
 
     std::stringstream tripleTupleArrayStream("[1, 2, 3],");
-    Json::Read::Tuple<VariousValues::Class::tripleTuple_::Field, 0>(
+    Json::Read::Tuple<NoAnnotation, VariousValues::Class::tripleTuple_::Field, 0>(
         tripleTupleArrayStream, Json::context, c, v, v.tripleTuple);
     EXPECT_EQ(1, std::get<0>(v.tripleTuple));
     EXPECT_EQ(2, std::get<1>(v.tripleTuple));
     EXPECT_EQ(3, std::get<2>(v.tripleTuple));
 
     std::stringstream intIntArrayTupleStream("[1, 2, [3,4]],");
-    Json::Read::Tuple<VariousValues::Class::intIntArrayTuple_::Field, 0>(
+    Json::Read::Tuple<NoAnnotation, VariousValues::Class::intIntArrayTuple_::Field, 0>(
         intIntArrayTupleStream, Json::context, c, v, v.intIntArrayTuple);
     EXPECT_EQ(1, std::get<0>(v.intIntArrayTuple));
     EXPECT_EQ(2, std::get<1>(v.intIntArrayTuple));
@@ -1689,14 +1711,14 @@ TEST_HEADER(JsonInputRead, Tuple)
     EXPECT_EQ(4, std::get<2>(v.intIntArrayTuple)[1]);
 
     std::stringstream intIntKeyableTupleStream("[1, 2, {\"a\":3}],");
-    Json::Read::Tuple<VariousValues::Class::intIntKeyableTuple_::Field, 0>(
+    Json::Read::Tuple<NoAnnotation, VariousValues::Class::intIntKeyableTuple_::Field, 0>(
         intIntKeyableTupleStream, Json::context, c, v, v.intIntKeyableTuple);
     EXPECT_EQ(1, std::get<0>(v.intIntKeyableTuple));
     EXPECT_EQ(2, std::get<1>(v.intIntKeyableTuple));
     EXPECT_EQ(3, std::get<2>(v.intIntKeyableTuple).a);
 
     std::stringstream intIntTupleTupleStream("[1, 2, [3, 4]],");
-    Json::Read::Tuple<VariousValues::Class::intIntTupleTuple_::Field, 0>(
+    Json::Read::Tuple<NoAnnotation, VariousValues::Class::intIntTupleTuple_::Field, 0>(
         intIntTupleTupleStream, Json::context, c, v, v.intIntTupleTuple);
     EXPECT_EQ(1, std::get<0>(v.intIntTupleTuple));
     EXPECT_EQ(2, std::get<1>(v.intIntTupleTuple));
@@ -1725,25 +1747,25 @@ TEST_HEADER(JsonInputRead, Pair)
     v.intPairPair = { 0, {{0},{0}} };
 
     std::stringstream intIntPairStream("[1, 2],");
-    Json::Read::Pair<VariousPairs::Class::intIntPair_::Field, VariousPairs>(
+    Json::Read::Pair<NoAnnotation, VariousPairs::Class::intIntPair_::Field, VariousPairs>(
         intIntPairStream, Json::context, c, v, v.intIntPair);
     EXPECT_EQ(1, std::get<0>(v.intIntPair));
     EXPECT_EQ(2, std::get<1>(v.intIntPair));
 
     std::stringstream intObjPairStream("[1, {\"a\":2}],");
-    Json::Read::Pair<VariousPairs::Class::intObjPair_::Field, VariousPairs>(
+    Json::Read::Pair<NoAnnotation, VariousPairs::Class::intObjPair_::Field, VariousPairs>(
         intObjPairStream, Json::context, c, v, v.intObjPair);
     EXPECT_EQ(1, std::get<0>(v.intObjPair));
     EXPECT_EQ(2, std::get<1>(v.intObjPair).a);
 
     std::stringstream objIntPairStream("[{\"a\":1}, 2],");
-    Json::Read::Pair<VariousPairs::Class::objIntPair_::Field, VariousPairs>(
+    Json::Read::Pair<NoAnnotation, VariousPairs::Class::objIntPair_::Field, VariousPairs>(
         objIntPairStream, Json::context, c, v, v.objIntPair);
     EXPECT_EQ(1, std::get<0>(v.objIntPair).a);
     EXPECT_EQ(2, std::get<1>(v.objIntPair));
 
     std::stringstream intPairPairStream("[1, [{\"a\":2}, {\"a\":3}]],");
-    Json::Read::Pair<VariousPairs::Class::intPairPair_::Field, VariousPairs>(
+    Json::Read::Pair<NoAnnotation, VariousPairs::Class::intPairPair_::Field, VariousPairs>(
         intPairPairStream, Json::context, c, v, v.intPairPair);
     EXPECT_EQ(1, std::get<0>(v.intPairPair));
     EXPECT_EQ(2, std::get<0>(std::get<1>(v.intPairPair)).a);
@@ -1774,35 +1796,35 @@ TEST_HEADER(JsonInputRead, KeyValueObject)
     
     std::stringstream intIntMapStream("{\"key\":1,\"value\":2},");
     std::pair<int, int> value = { 0, 0 };
-    Json::Read::KeyValueObject<VariousMaps::Class::intIntMap_::Field, VariousMaps>(
+    Json::Read::KeyValueObject<NoAnnotation, VariousMaps::Class::intIntMap_::Field, VariousMaps>(
         intIntMapStream, Json::context, c, v, value);
     EXPECT_EQ(1, std::get<0>(value));
     EXPECT_EQ(2, std::get<1>(value));
     
     std::stringstream intObjMapStream("{\"key\":1,\"value\":{\"a\":2}},");
     std::pair<int, Keyable> intObjElement = { 0, {0} };
-    Json::Read::KeyValueObject<VariousMaps::Class::intObjMap_::Field, VariousMaps>(
+    Json::Read::KeyValueObject<NoAnnotation, VariousMaps::Class::intObjMap_::Field, VariousMaps>(
         intObjMapStream, Json::context, c, v, intObjElement);
     EXPECT_EQ(1, std::get<0>(intObjElement));
     EXPECT_EQ(2, std::get<1>(intObjElement).a);
     
     std::stringstream objIntMapStream("{\"key\":{\"a\":1},\"value\":2},");
     std::pair<Keyable, int> objIntElement = { {0}, 0 };
-    Json::Read::KeyValueObject<VariousMaps::Class::objIntMap_::Field, VariousMaps>(
+    Json::Read::KeyValueObject<NoAnnotation, VariousMaps::Class::objIntMap_::Field, VariousMaps>(
         objIntMapStream, Json::context, c, v, objIntElement);
     EXPECT_EQ(1, std::get<0>(objIntElement).a);
     EXPECT_EQ(2, std::get<1>(objIntElement));
     
     std::stringstream objObjMapStream("{\"key\":{\"a\":1},\"value\":{\"a\":2}},");
     std::pair<Keyable, Keyable> objObjElement = { {0}, {0} };
-    Json::Read::KeyValueObject<VariousMaps::Class::objObjMap_::Field, VariousMaps>(
+    Json::Read::KeyValueObject<NoAnnotation, VariousMaps::Class::objObjMap_::Field, VariousMaps>(
         objObjMapStream, Json::context, c, v, objObjElement);
     EXPECT_EQ(1, std::get<0>(objObjElement).a);
     EXPECT_EQ(2, std::get<1>(objObjElement).a);
 
     std::stringstream stringStringMapStream("{\"key\":\"1\",\"value\":\"2\"},");
     std::pair<std::string, std::string> stringStringValue;
-    Json::Read::KeyValueObject<VariousMaps::Class::stringStringMap_::Field, VariousMaps>(
+    Json::Read::KeyValueObject<NoAnnotation, VariousMaps::Class::stringStringMap_::Field, VariousMaps>(
         stringStringMapStream, Json::context, c, v, stringStringValue);
     EXPECT_STREQ(std::get<0>(stringStringValue).c_str(), "1");
     EXPECT_STREQ(std::get<1>(stringStringValue).c_str(), "2");
@@ -1821,21 +1843,21 @@ TEST_HEADER(JsonInputRead, FieldPair)
 
     std::stringstream intIntFieldPairStream("\"1\":2");
     std::pair<int, int> value;
-    Json::Read::FieldPair<VariousMaps::Class::intIntMap_::Field, VariousMaps>(
+    Json::Read::FieldPair<NoAnnotation, VariousMaps::Class::intIntMap_::Field, VariousMaps>(
         intIntFieldPairStream, Json::context, c, v, value.first, value.second);
     EXPECT_EQ(1, std::get<0>(value));
     EXPECT_EQ(2, std::get<1>(value));
 
     std::stringstream intObjFieldPairStream("\"1\":{\"a\":2}");
     std::pair<int, Keyable> intObjValue;
-    Json::Read::FieldPair<VariousMaps::Class::intObjMap_::Field, VariousMaps>(
+    Json::Read::FieldPair<NoAnnotation, VariousMaps::Class::intObjMap_::Field, VariousMaps>(
         intObjFieldPairStream, Json::context, c, v, intObjValue.first, intObjValue.second);
     EXPECT_EQ(1, std::get<0>(intObjValue));
     EXPECT_EQ(2, std::get<1>(intObjValue).a);
 
     std::stringstream stringStringFieldPairStream("\"1\":\"2\"");
     std::pair<std::string, std::string> stringStringValue;
-    Json::Read::FieldPair<VariousMaps::Class::stringStringMap_::Field, VariousMaps>(
+    Json::Read::FieldPair<NoAnnotation, VariousMaps::Class::stringStringMap_::Field, VariousMaps>(
         stringStringFieldPairStream, Json::context, c, v, stringStringValue.first, stringStringValue.second);
     EXPECT_STREQ(std::get<0>(stringStringValue).c_str(), "1");
     EXPECT_STREQ(std::get<1>(stringStringValue).c_str(), "2");
@@ -1849,7 +1871,7 @@ TEST_HEADER(JsonInputRead, Iterable)
     int staticArray[4] = { 0, 0, 0, 0 };
     std::stringstream staticArrayStream("[1,2,3,4]");
     using StaticArrayField = Fields::Field<decltype(staticArray)>;
-    Json::Read::Iterable<StaticArrayField>(staticArrayStream, Json::context, c, placeholderObj, staticArray);
+    Json::Read::Iterable<NoAnnotation, StaticArrayField>(staticArrayStream, Json::context, c, placeholderObj, staticArray);
     EXPECT_EQ(1, staticArray[0]);
     EXPECT_EQ(2, staticArray[1]);
     EXPECT_EQ(3, staticArray[2]);
@@ -1858,7 +1880,7 @@ TEST_HEADER(JsonInputRead, Iterable)
     std::vector<int> intVector;
     std::stringstream vectorStream("[2,3,4,5]");
     using VectorField = Fields::Field<decltype(intVector)>;
-    Json::Read::Iterable<VectorField>(vectorStream, Json::context, c, placeholderObj, intVector);
+    Json::Read::Iterable<NoAnnotation, VectorField>(vectorStream, Json::context, c, placeholderObj, intVector);
     EXPECT_EQ(2, intVector[0]);
     EXPECT_EQ(3, intVector[1]);
     EXPECT_EQ(4, intVector[2]);
@@ -1900,16 +1922,16 @@ TEST_HEADER(JsonInputRead, Field)
     std::stringstream superClassFieldStream(":{\"a\":888}");
     std::stringstream renamedFieldStream(":999");
 
-    Json::Read::Field<RegularField>(regularFieldStream, Json::context, c, regularField, "a");
-    Json::Read::Field<SuperClassField>(superClassFieldStream, Json::context, c, superClassField, Json::Shared::superTypeToJsonFieldName<RegularField>().c_str());
-    Json::Read::Field<RenamedField>(renamedFieldStream, Json::context, c, renamedField, "Custom Name");
+    Json::Read::Field<NoAnnotation, RegularField>(regularFieldStream, Json::context, c, regularField, "a");
+    Json::Read::Field<NoAnnotation, SuperClassField>(superClassFieldStream, Json::context, c, superClassField, Json::Shared::superTypeToJsonFieldName<RegularField>().c_str());
+    Json::Read::Field<NoAnnotation, RenamedField>(renamedFieldStream, Json::context, c, renamedField, "Custom Name");
 
     EXPECT_EQ(regularField.a, 777);
     EXPECT_EQ(superClassField.a, 888);
     EXPECT_EQ(renamedField.renamed, 999);
 
     std::stringstream unknownFieldStream(":222,");
-    EXPECT_NO_THROW(Json::Read::Field<RegularField>(unknownFieldStream, Json::context, c, regularField, "b"));
+    Json::Read::Field<NoAnnotation, RegularField>(unknownFieldStream, Json::context, c, regularField, "b");
 }
 
 struct ReadableObject
@@ -1930,7 +1952,7 @@ TEST_HEADER(JsonInputRead, Object)
     object.a = 0;
     object.b = 0;
 
-    Json::Read::Object<ReadableObject>(objectStream, Json::context, c, object);
+    Json::Read::Object<NoAnnotation, ReadableObject>(objectStream, Json::context, c, object);
     EXPECT_EQ(5, object.a);
     EXPECT_EQ(6, object.b);
 }
@@ -1942,7 +1964,7 @@ TEST_HEADER(JsonInput, ReflectedObject)
     object.a = 0;
     object.b = 0;
 
-    Json::Input::ReflectedObject<ReadableObject> reflectedObject(object, nullptr);
+    Json::Input::ReflectedObject<NoAnnotation, ReadableObject> reflectedObject(object, nullptr);
     objectStream >> reflectedObject;
     
     EXPECT_EQ(5, object.a);

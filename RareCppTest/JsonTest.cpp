@@ -2840,6 +2840,20 @@ struct AnObject
     char third;
 };
 
+struct MappedTo
+{
+    int a = 0;
+
+    REFLECT(MappedTo, a)
+};
+
+struct MappedFrom
+{
+    int a = 0;
+
+    MAP_WITH(MappedTo, (a, a))
+};
+
 struct Keyable
 {
     int a;
@@ -2855,6 +2869,7 @@ bool operator<(const Keyable & lhs, const Keyable & rhs)
 TEST_HEADER(JsonOutputPut, Value)
 {
     TestStreamType customizedStream,
+        mappedObjStream,
         nullPointerStream,
         intPointerStream,
         constIntPointerStream,
@@ -2879,6 +2894,11 @@ TEST_HEADER(JsonOutputPut, Value)
         Json::Statics::Excluded, false, 0, Json::twoSpaces, CustomizeFullySpecialized, true>
         (customizedStream, Json::context, customized, customized.firstField);
     EXPECT_STREQ("\"Customized1337\"", customizedStream.str().c_str());
+
+    MappedFrom mappedFrom { 1 };
+    using OpNoteWithMapping = std::tuple<ObjectMapper::UseMapping<MappedFrom, MappedTo>>;
+    Json::Put::Value<OpNoteWithMapping, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(mappedObjStream, Json::context, placeholderObj, mappedFrom);
+    EXPECT_STREQ("{\"a\":1}", mappedObjStream.str().c_str());
 
     int* nullPointer = nullptr;
     Json::Put::Value<NoAnnotation, AField, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(nullPointerStream, Json::context, placeholderObj, nullPointer);

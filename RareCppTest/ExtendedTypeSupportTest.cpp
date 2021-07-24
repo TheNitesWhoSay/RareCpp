@@ -1145,6 +1145,253 @@ TEST(ExtendedTypeSupportTest, TypePair)
     EXPECT_TRUE(isSame);
 }
 
+template <typename T> struct IsSpecTest { static constexpr bool IsPrimaryTemplate = true; };
+template <> struct IsSpecTest<int> { static constexpr bool IsPrimaryTemplate = false; };
+template <typename T> struct IsNotSpecTemplatedTest {};
+struct IsNotSpecStructTest {};
+
+TEST(ExtendedTypeSupportTest, IsSpecialization)
+{
+    bool isSpec = is_specialization<IsSpecTest<int>, IsSpecTest>::value;
+    EXPECT_TRUE(isSpec);
+    isSpec = is_specialization<IsSpecTest<float>, IsSpecTest>::value;
+    EXPECT_TRUE(isSpec);
+    isSpec = is_specialization<IsNotSpecTemplatedTest<int>, IsSpecTest>::value;
+    EXPECT_FALSE(isSpec);
+    isSpec = is_specialization<IsNotSpecTemplatedTest<float>, IsSpecTest>::value;
+    EXPECT_FALSE(isSpec);
+    isSpec = is_specialization<IsNotSpecStructTest, IsSpecTest>::value;
+    EXPECT_FALSE(isSpec);
+    isSpec = is_specialization<int, IsSpecTest>::value;
+    EXPECT_FALSE(isSpec);
+    isSpec = is_specialization<float, IsSpecTest>::value;
+    EXPECT_FALSE(isSpec);
+
+    isSpec = is_specialization_v<IsSpecTest<int>, IsSpecTest>;
+    EXPECT_TRUE(isSpec);
+    isSpec = is_specialization_v<IsSpecTest<float>, IsSpecTest>;
+    EXPECT_TRUE(isSpec);
+    isSpec = is_specialization_v<IsNotSpecTemplatedTest<int>, IsSpecTest>;
+    EXPECT_FALSE(isSpec);
+    isSpec = is_specialization_v<IsNotSpecTemplatedTest<float>, IsSpecTest>;
+    EXPECT_FALSE(isSpec);
+    isSpec = is_specialization_v<IsNotSpecStructTest, IsSpecTest>;
+    EXPECT_FALSE(isSpec);
+    isSpec = is_specialization_v<int, IsSpecTest>;
+    EXPECT_FALSE(isSpec);
+    isSpec = is_specialization_v<float, IsSpecTest>;
+    EXPECT_FALSE(isSpec);
+}
+
+TEST(ExtendedTypeSupportTest, TypeListHas)
+{
+    bool typeListHas = type_list<>::has<void>::value;
+    EXPECT_FALSE(typeListHas);
+    typeListHas = type_list<void>::has<void>::value;
+    EXPECT_TRUE(typeListHas);
+    typeListHas = type_list<void>::has<int>::value;
+    EXPECT_FALSE(typeListHas);
+    typeListHas = type_list<int>::has<void>::value;
+    EXPECT_FALSE(typeListHas);
+    typeListHas = type_list<int>::has<int>::value;
+    EXPECT_TRUE(typeListHas);
+    typeListHas = type_list<void, void>::has<void>::value;
+    EXPECT_TRUE(typeListHas);
+    typeListHas = type_list<void, void>::has<int>::value;
+    EXPECT_FALSE(typeListHas);
+    typeListHas = type_list<void, int>::has<void>::value;
+    EXPECT_TRUE(typeListHas);
+    typeListHas = type_list<void, int>::has<int>::value;
+    EXPECT_TRUE(typeListHas);
+    typeListHas = type_list<int, void>::has<void>::value;
+    EXPECT_TRUE(typeListHas);
+    typeListHas = type_list<int, void>::has<int>::value;
+    EXPECT_TRUE(typeListHas);
+    typeListHas = type_list<int, int>::has<void>::value;
+    EXPECT_FALSE(typeListHas);
+    typeListHas = type_list<int, int>::has<int>::value;
+    EXPECT_TRUE(typeListHas);
+
+    typeListHas = type_list<void>::has<IsSpecTest<float>>::value;
+    EXPECT_FALSE(typeListHas);
+    typeListHas = type_list<IsSpecTest<float>>::has<void>::value;
+    EXPECT_FALSE(typeListHas);
+    typeListHas = type_list<IsSpecTest<float>>::has<IsSpecTest<float>>::value;
+    EXPECT_TRUE(typeListHas);
+    typeListHas = type_list<IsSpecTest<float>>::has<IsSpecTest<int>>::value;
+    EXPECT_FALSE(typeListHas);
+
+    typeListHas = type_list<>::has_v<void>;
+    EXPECT_FALSE(typeListHas);
+    typeListHas = type_list<void>::has_v<void>;
+    EXPECT_TRUE(typeListHas);
+    typeListHas = type_list<void>::has_v<int>;
+    EXPECT_FALSE(typeListHas);
+    typeListHas = type_list<int>::has_v<void>;
+    EXPECT_FALSE(typeListHas);
+    typeListHas = type_list<int>::has_v<int>;
+    EXPECT_TRUE(typeListHas);
+    typeListHas = type_list<void, void>::has_v<void>;
+    EXPECT_TRUE(typeListHas);
+    typeListHas = type_list<void, void>::has_v<int>;
+    EXPECT_FALSE(typeListHas);
+    typeListHas = type_list<void, int>::has_v<void>;
+    EXPECT_TRUE(typeListHas);
+    typeListHas = type_list<void, int>::has_v<int>;
+    EXPECT_TRUE(typeListHas);
+    typeListHas = type_list<int, void>::has_v<void>;
+    EXPECT_TRUE(typeListHas);
+    typeListHas = type_list<int, void>::has_v<int>;
+    EXPECT_TRUE(typeListHas);
+    typeListHas = type_list<int, int>::has_v<void>;
+    EXPECT_FALSE(typeListHas);
+    typeListHas = type_list<int, int>::has_v<int>;
+    EXPECT_TRUE(typeListHas);
+
+    typeListHas = type_list<void>::has_v<IsSpecTest<float>>;
+    EXPECT_FALSE(typeListHas);
+    typeListHas = type_list<IsSpecTest<float>>::has_v<void>;
+    EXPECT_FALSE(typeListHas);
+    typeListHas = type_list<IsSpecTest<float>>::has_v<IsSpecTest<float>>;
+    EXPECT_TRUE(typeListHas);
+    typeListHas = type_list<IsSpecTest<float>>::has_v<IsSpecTest<int>>;
+    EXPECT_FALSE(typeListHas);
+}
+
+TEST(ExtendedTypeSupportTest, TypeListHasSpecialization)
+{
+    bool hasSpecialization = type_list<>::has_specialization<IsSpecTest>::value;
+    EXPECT_FALSE(hasSpecialization);
+    hasSpecialization = type_list<void>::has_specialization<IsSpecTest>::value;
+    EXPECT_FALSE(hasSpecialization);
+    hasSpecialization = type_list<IsSpecTest<int>>::has_specialization<IsSpecTest>::value;
+    EXPECT_TRUE(hasSpecialization);
+    hasSpecialization = type_list<IsSpecTest<void>>::has_specialization<IsSpecTest>::value;
+    EXPECT_TRUE(hasSpecialization);
+    hasSpecialization = type_list<IsNotSpecTemplatedTest<int>>::has_specialization<IsSpecTest>::value;
+    EXPECT_FALSE(hasSpecialization);
+    hasSpecialization = type_list<IsNotSpecTemplatedTest<void>>::has_specialization<IsSpecTest>::value;
+    EXPECT_FALSE(hasSpecialization);
+    hasSpecialization = type_list<IsNotSpecStructTest>::has_specialization<IsSpecTest>::value;
+    EXPECT_FALSE(hasSpecialization);
+    hasSpecialization = type_list<int>::has_specialization<IsSpecTest>::value;
+    EXPECT_FALSE(hasSpecialization);
+    hasSpecialization = type_list<void>::has_specialization<IsSpecTest>::value;
+    EXPECT_FALSE(hasSpecialization);
+    hasSpecialization = type_list<void, void>::has_specialization<IsSpecTest>::value;
+    EXPECT_FALSE(hasSpecialization);
+    hasSpecialization = type_list<void, IsSpecTest<void>>::has_specialization<IsSpecTest>::value;
+    EXPECT_TRUE(hasSpecialization);
+    hasSpecialization = type_list<IsSpecTest<void>, void>::has_specialization<IsSpecTest>::value;
+    EXPECT_TRUE(hasSpecialization);
+    hasSpecialization = type_list<IsSpecTest<void>, IsSpecTest<void>>::has_specialization<IsSpecTest>::value;
+    EXPECT_TRUE(hasSpecialization);
+
+    hasSpecialization = type_list<>::has_specialization_v<IsSpecTest>;
+    EXPECT_FALSE(hasSpecialization);
+    hasSpecialization = type_list<void>::has_specialization_v<IsSpecTest>;
+    EXPECT_FALSE(hasSpecialization);
+    hasSpecialization = type_list<IsSpecTest<int>>::has_specialization_v<IsSpecTest>;
+    EXPECT_TRUE(hasSpecialization);
+    hasSpecialization = type_list<IsSpecTest<void>>::has_specialization_v<IsSpecTest>;
+    EXPECT_TRUE(hasSpecialization);
+    hasSpecialization = type_list<IsNotSpecTemplatedTest<int>>::has_specialization_v<IsSpecTest>;
+    EXPECT_FALSE(hasSpecialization);
+    hasSpecialization = type_list<IsNotSpecTemplatedTest<void>>::has_specialization_v<IsSpecTest>;
+    EXPECT_FALSE(hasSpecialization);
+    hasSpecialization = type_list<IsNotSpecStructTest>::has_specialization_v<IsSpecTest>;
+    EXPECT_FALSE(hasSpecialization);
+    hasSpecialization = type_list<int>::has_specialization_v<IsSpecTest>;
+    EXPECT_FALSE(hasSpecialization);
+    hasSpecialization = type_list<void>::has_specialization_v<IsSpecTest>;
+    EXPECT_FALSE(hasSpecialization);
+    hasSpecialization = type_list<void, void>::has_specialization_v<IsSpecTest>;
+    EXPECT_FALSE(hasSpecialization);
+    hasSpecialization = type_list<void, IsSpecTest<void>>::has_specialization_v<IsSpecTest>;
+    EXPECT_TRUE(hasSpecialization);
+    hasSpecialization = type_list<IsSpecTest<void>, void>::has_specialization_v<IsSpecTest>;
+    EXPECT_TRUE(hasSpecialization);
+    hasSpecialization = type_list<IsSpecTest<void>, IsSpecTest<void>>::has_specialization_v<IsSpecTest>;
+    EXPECT_TRUE(hasSpecialization);
+}
+
+TEST(ExtendedTypeSupportTest, TypeListGetSpecialization)
+{
+    bool isVoid = std::is_same_v<void, type_list<>::get_specialization<IsSpecTest>::type>;
+    EXPECT_TRUE(isVoid);
+    isVoid = std::is_same_v<void, type_list<void>::get_specialization<IsSpecTest>::type>;
+    EXPECT_TRUE(isVoid);
+    isVoid = std::is_same_v<void, type_list<void, void>::get_specialization<IsSpecTest>::type>;
+    EXPECT_TRUE(isVoid);
+
+    bool isExpectedSpec = std::is_same_v<IsSpecTest<void>, type_list<IsSpecTest<void>>::get_specialization<IsSpecTest>::type>;
+    EXPECT_TRUE(isExpectedSpec);
+    isExpectedSpec = std::is_same_v<IsSpecTest<void>, type_list<void, IsSpecTest<void>>::get_specialization<IsSpecTest>::type>;
+    EXPECT_TRUE(isExpectedSpec);
+    isExpectedSpec = std::is_same_v<IsSpecTest<void>, type_list<IsSpecTest<void>, void>::get_specialization<IsSpecTest>::type>;
+    EXPECT_TRUE(isExpectedSpec);
+
+    bool isPrimaryTemplate = type_list<IsSpecTest<void>>::get_specialization<IsSpecTest>::type::IsPrimaryTemplate;
+    EXPECT_TRUE(isPrimaryTemplate);
+    isPrimaryTemplate = type_list<IsSpecTest<int>>::get_specialization<IsSpecTest>::type::IsPrimaryTemplate;
+    EXPECT_FALSE(isPrimaryTemplate);
+    isPrimaryTemplate = type_list<IsSpecTest<void>, IsSpecTest<int>>::get_specialization<IsSpecTest>::type::IsPrimaryTemplate;
+    EXPECT_TRUE(isPrimaryTemplate);
+    isPrimaryTemplate = type_list<IsSpecTest<int>, IsSpecTest<void>>::get_specialization<IsSpecTest>::type::IsPrimaryTemplate;
+    EXPECT_FALSE(isPrimaryTemplate);
+}
+
+TEST(ExtendedTypeSupportTest, TypeListTupleSpecializations)
+{
+    bool hasInt = type_list<std::tuple<void, void, void>>::has_v<int>;
+    EXPECT_FALSE(hasInt);
+    hasInt = type_list<const std::tuple<void, void, void>>::has_v<int>;
+    EXPECT_FALSE(hasInt);
+    hasInt = type_list<std::tuple<void, int, void>>::has_v<int>;
+    EXPECT_TRUE(hasInt);
+    hasInt = type_list<const std::tuple<void, int, void>>::has_v<int>;
+    EXPECT_TRUE(hasInt);
+
+    bool hasSpecialization = type_list<std::tuple<void, void, void>>::has_specialization_v<IsSpecTest>;
+    EXPECT_FALSE(hasSpecialization);
+    hasSpecialization = type_list<const std::tuple<void, void, void>>::has_specialization_v<IsSpecTest>;
+    EXPECT_FALSE(hasSpecialization);
+    hasSpecialization = type_list<std::tuple<void, IsSpecTest<void>, void>>::has_specialization_v<IsSpecTest>;
+    EXPECT_TRUE(hasSpecialization);
+    hasSpecialization = type_list<const std::tuple<void, IsSpecTest<void>, void>>::has_specialization_v<IsSpecTest>;
+    EXPECT_TRUE(hasSpecialization);
+
+    bool isSame = std::is_same_v<void, type_list<std::tuple<void, void, void>>::get_specialization_t<IsSpecTest>>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<void, type_list<const std::tuple<void, void, void>>::get_specialization_t<IsSpecTest>>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<IsSpecTest<void>, type_list<std::tuple<void, IsSpecTest<void>, void>>::get_specialization_t<IsSpecTest>>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<IsSpecTest<void>, type_list<const std::tuple<void, IsSpecTest<void>, void>>::get_specialization_t<IsSpecTest>>;
+    EXPECT_TRUE(isSame);
+}
+
+TEST(ExtendedTypeSupportTest, IfVoid)
+{
+    bool replacedVoid = std::is_same_v<float, if_void<void, float>::type>;
+    EXPECT_TRUE(replacedVoid);
+    replacedVoid = std::is_same_v<float, if_void<int, float>::type>;
+    EXPECT_FALSE(replacedVoid);
+    bool alwaysVoid = std::is_same_v<void, if_void<void, void>::type>;
+    EXPECT_TRUE(alwaysVoid);
+    replacedVoid = std::is_same_v<void, if_void<int, void>::type>;
+    EXPECT_FALSE(replacedVoid);
+
+    replacedVoid = std::is_same_v<float, if_void_t<void, float>>;
+    EXPECT_TRUE(replacedVoid);
+    replacedVoid = std::is_same_v<float, if_void_t<int, float>>;
+    EXPECT_FALSE(replacedVoid);
+    alwaysVoid = std::is_same_v<void, if_void_t<void, void>>;
+    EXPECT_TRUE(alwaysVoid);
+    replacedVoid = std::is_same_v<void, if_void_t<int, void>>;
+    EXPECT_FALSE(replacedVoid);
+}
+
 TEST(ExtendedTypeSupportTest, HasType)
 {
     bool hasType = has_type<bool>::value;

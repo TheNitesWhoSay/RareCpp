@@ -523,17 +523,23 @@ void objectMapperExamples()
     std::cout << "unownedEncapsulator: { " << unownedEncapsulator.getA() << " }" << std::endl;
 }
 
-struct F1 {};
-
-struct F2 {};
-SET_DEFAULT_OBJECT_MAPPING(F2, F1)
-
-NOTE(F3, Json::Ignore, ObjectMapper::MappedBy<F1>, Json::Ignore)
-struct F3 {
-    REFLECT_EMPTY(F3)
+struct F1 {
+    std::string a;
+    static constexpr bool isF1 = true;
+    REFLECT(F1, isF1, a)
 };
 
-struct F4 {};
+struct F2 { std::string a; REFLECT(F2, a) };
+SET_DEFAULT_OBJECT_MAPPING(F2, F1)
+
+NOTE(F3, ObjectMapper::MappedBy<F1>)
+struct F3 { std::string a; REFLECT_NOTED(F3, a) };
+
+struct F4 { std::string a; REFLECT(F4, a) };
+
+struct F5 { std::string a; REFLECT(F5, a) };
+
+struct F6 { std::string a; REFLECT(F6, a) };
 
 struct MappedByTest
 {
@@ -544,31 +550,20 @@ struct MappedByTest
     F3 f3; // Mapped to F1 by class-level annotation
 
     NOTE(f4, ObjectMapper::MappedBy<F1>)
-    F3 f4; // Mapped to F1 by field-level annotation
+    F4 f4; // Mapped to F1 by field-level annotation
 
-    REFLECT(MappedByTest, f1, f2, f3, f4)
+    F5 f5; // No fixed mapping to F1, will use op-level annotation
+
+    F6 f6; // No mapping
+
+    REFLECT(MappedByTest, f1, f2, f3, f4, f5, f6)
 };
 
 int main()
 {
-    std::cout << "F1 "
-        << (ObjectMapper::HasDefaultMapping<F1> ? "has tag default mapping: " : "has no default mapping: ")
-        << TypeToStr<ObjectMapper::GetDefaultMapping<F1>>() << std::endl;
-    std::cout << "F2 "
-        << (ObjectMapper::HasDefaultMapping<F2> ? "has tag default mapping: " : "has no default mapping: ")
-        << TypeToStr<ObjectMapper::GetDefaultMapping<F2>>() << std::endl;
-
-    using F1MappedBy = typename ObjectMapper::GetDefaultMapping<F1>::type;
-    if constexpr ( ObjectMapper::HasDefaultMapping<F1> )
-        std::cout << "F1 has class-level-annotation default mapping: " << ExtendedTypeSupport::TypeToStr<F1MappedBy>() << std::endl;
-    else
-        std::cout << "F1 has no class-level-annotation default mapping!" << ExtendedTypeSupport::TypeToStr<F1MappedBy>() << std::endl;
-
-    using F3MappedBy = typename ObjectMapper::GetDefaultMapping<F3>::type;
-    if constexpr ( ObjectMapper::HasDefaultMapping<F3> )
-        std::cout << "F3 has class-level-annotation default mapping: " << ExtendedTypeSupport::TypeToStr<F3MappedBy>() << std::endl;
-    else
-        std::cout << "F3 has no class-level-annotation default mapping!" << ExtendedTypeSupport::TypeToStr<F3MappedBy>() << std::endl;
+    MappedByTest mappedByTest = { "f1.a", "f2.a", "f3.a", "f4.a", "f5.a", "f6.a" };
+    std::cout << Json::out<Json::Statics::Included>(mappedByTest) << std::endl;
+    std::cout << Json::out<Json::Statics::Included, Json::OpNotes<ObjectMapper::UseMapping<F5, F1>>>(mappedByTest) << std::endl;
 
     objectMapperExamples();
     std::cout << std::endl;

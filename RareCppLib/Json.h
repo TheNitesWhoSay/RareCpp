@@ -50,6 +50,8 @@ namespace Json
         {
              std::string_view value;
         };
+
+        template <typename ...Ts> using OpNotes = std::tuple<Ts...>;
     }
     
     inline namespace Shared
@@ -1632,7 +1634,13 @@ namespace Json
                     }
                 }
 
-                if constexpr ( is_pointable<T>::value )
+                if constexpr ( ObjectMapper::HasDefaultMapping<T, typename Field::Annotations, Annotations> )
+                {
+                    using D = ObjectMapper::GetDefaultMapping<T, typename Field::Annotations, Annotations>;
+                    D d = ObjectMapper::map<D>(value);
+                    Put::Value<Annotations, Fields::Field<D>, statics, PrettyPrint, IndentLevel, indent, Object, IsFirst>(os, context, obj, d);
+                }
+                else if constexpr ( is_pointable<T>::value )
                 {
                     if ( value == nullptr )
                         os << "null";
@@ -3241,35 +3249,42 @@ namespace Json
                 return result;
             }
             
-            template <typename Field, size_t TupleIndex = 0, typename Object, typename T1, typename T2, typename ...Ts>
+            template <typename Annotations, typename Field, size_t TupleIndex = 0, typename Object, typename T1, typename T2, typename ...Ts>
             static constexpr void Tuple(std::istream & is, Context & context, char & c, Object & object, std::tuple<T1, T2, Ts...> & value);
 
-            template <typename Field, typename Object, typename Key, typename T>
+            template <typename Annotations, typename Field, typename Object, typename Key, typename T>
             static constexpr void Pair(std::istream & is, Context & context, char & c, Object & object, std::pair<Key, T> & value);
 
-            template <typename Field, typename T, typename Object>
+            template <typename Annotations, typename Field, typename T, typename Object>
             static constexpr void Iterable(std::istream & is, Context & context, char & c, Object & object, T & iterable);
 
-            template <typename T>
+            template <typename Annotations, typename T>
             static void Object(std::istream & is, Context & context, char & c, T & t);
 
-            template <bool InArray, typename Field, typename T, typename Object, bool AllowCustomization = true, bool ExpectQuotes = true>
+            template <typename Annotations, bool InArray, typename Field, typename T, typename Object, bool AllowCustomization = true, bool ExpectQuotes = true>
             static void Value(std::istream & is, Context & context, char & c, Object & object, T & value)
             {
-                if constexpr ( AllowCustomization && Customizers::HaveSpecialization<Object, T, Field::Index, NoAnnotation, Field> ) // Input is specialized
+                if constexpr ( AllowCustomization && Customizers::HaveSpecialization<Object, T, Field::Index, Annotations, Field> ) // Input is specialized
                 {
                     std::stringstream ss;
                     Json::Consume::Value<InArray>(is, c, ss);
                     std::string preserved = ss.str();
-                    if ( !Read::Customization<Object, T, Field::Index, NoAnnotation, Field>(ss, context, object, value) )
+                    if ( !Read::Customization<Object, T, Field::Index, Annotations, Field>(ss, context, object, value) )
                     {
                         std::stringstream subIs(preserved);
-                        Read::Value<InArray, Field, T, Object, false>(subIs, context, c, object, value);
+                        Read::Value<Annotations, InArray, Field, T, Object, false>(subIs, context, c, object, value);
                     }
                     return;
                 }
 
-                if constexpr ( is_pointable<T>::value )
+                if constexpr ( ObjectMapper::HasDefaultMapping<T, typename Field::Annotations, Annotations> )
+                {
+                    using D = ObjectMapper::GetDefaultMapping<T, typename Field::Annotations, Annotations>;
+                    D d {};
+                    Read::Value<Annotations, InArray, Fields::Field<D>>(is, context, c, object, d);
+                    ObjectMapper::map(value, d);
+                }
+                else if constexpr ( is_pointable<T>::value )
                 {
                     using Dereferenced = typename remove_pointer<T>::type;
                     if constexpr ( std::is_base_of<Generic::Value, Dereferenced>::value )
@@ -3289,25 +3304,25 @@ namespace Json
                         if constexpr ( std::is_same<std::shared_ptr<Dereferenced>, T>::value )
                         {
                             value = std::make_shared<Dereferenced>();
-                            Read::Value<InArray, Field>(is, context, c, object, *value);
+                            Read::Value<Annotations, InArray, Field>(is, context, c, object, *value);
                         }
                         else if constexpr ( std::is_same<std::unique_ptr<Dereferenced>, T>::value )
                         {
                             value = std::make_unique<Dereferenced>();
-                            Read::Value<InArray, Field>(is, context, c, object, *value);
+                            Read::Value<Annotations, InArray, Field>(is, context, c, object, *value);
                         }
                         else // Value pointed to is a nullptr and value is not a smart pointer or generic, only valid value is null
                             Consume::Null<InArray>(is, c);
                     }
                     else if constexpr ( is_pointable<Dereferenced>::value && !std::is_const<Dereferenced>::value )
-                        Read::Value<InArray, Field>(is, context, c, object, *value);  // Only chance assigning nullptr to the more deeply nested pointer
+                        Read::Value<Annotations, InArray, Field>(is, context, c, object, *value);  // Only chance assigning nullptr to the more deeply nested pointer
                     else if ( Consume::TryNull<InArray>(is, c) ) // If value pointer is not nullptr, "null" is a possible value
                     {
                         if constexpr ( !std::is_const<T>::value )
                             value = nullptr;
                     }
                     else
-                        Read::Value<InArray, Field>(is, context, c, object, *value);
+                        Read::Value<Annotations, InArray, Field>(is, context, c, object, *value);
                 }
                 else if constexpr ( std::is_base_of<Generic::Value, T>::value )
                 {
@@ -3329,23 +3344,23 @@ namespace Json
                         {
                             if ( !Read::TryArraySuffix(is) )
                             {
-                                Read::Value<true, Field>(is, context, c, object, std::get<0>(value));
+                                Read::Value<Annotations, true, Field>(is, context, c, object, std::get<0>(value));
                                 while ( Read::IterableElementSeparator<false>(is) )
                                     Consume::Value<true>(is, c);
                             }
                         }
                         else
-                            Read::Value<InArray, Field>(is, context, c, object, std::get<0>(value));
+                            Read::Value<Annotations, InArray, Field>(is, context, c, object, std::get<0>(value));
                     }
                     else if constexpr ( std::tuple_size<T>::value >= 2 )
-                        Read::Tuple<Field>(is, context, c, object, value);
+                        Read::Tuple<Annotations, Field>(is, context, c, object, value);
                 }
                 else if constexpr ( is_pair<T>::value )
-                    Read::Pair<Field>(is, context, c, object, value);
+                    Read::Pair<Annotations, Field>(is, context, c, object, value);
                 else if constexpr ( is_iterable<T>::value )
-                    Read::Iterable<Field, T>(is, context, c, object, value);
+                    Read::Iterable<Annotations, Field, T>(is, context, c, object, value);
                 else if constexpr ( is_reflected<T>::value )
-                    Read::Object(is, context, c, value);
+                    Read::Object<Annotations>(is, context, c, value);
                 else if constexpr ( Field::template HasAnnotation<Json::StringifyType> )
                     Read::String<T, ExpectQuotes>(is, c, value);
                 else if constexpr ( Field::template HasAnnotation<Json::EnumIntType> )
@@ -3360,7 +3375,7 @@ namespace Json
                     is >> value;
             }
 
-            template <typename Field, size_t TupleIndex, typename Object, typename T1, typename T2, typename ...Ts>
+            template <typename Annotations, typename Field, size_t TupleIndex, typename Object, typename T1, typename T2, typename ...Ts>
             static constexpr void Tuple(std::istream & is, Context & context, char & c, Object & object, std::tuple<T1, T2, Ts...> & value)
             {
                 constexpr size_t tupleSize = std::tuple_size<typename std::remove_reference_t<decltype(value)>>::value;
@@ -3371,9 +3386,9 @@ namespace Json
                 {
                     if constexpr ( TupleIndex < tupleSize )
                     {
-                        Read::Value<true, Field>(is, context, c, object, std::get<TupleIndex>(value));
+                        Read::Value<Annotations, true, Field>(is, context, c, object, std::get<TupleIndex>(value));
                         if ( Read::IterableElementSeparator<false>(is) )
-                            Read::Tuple<Field, TupleIndex+1, Object, T1, T2, Ts...>(is, context, c, object, value);
+                            Read::Tuple<Annotations, Field, TupleIndex+1, Object, T1, T2, Ts...>(is, context, c, object, value);
                     }
                     else
                     {
@@ -3386,23 +3401,23 @@ namespace Json
                 }
             }
 
-            template <typename Field, typename Object, typename Key, typename T>
+            template <typename Annotations, typename Field, typename Object, typename Key, typename T>
             static constexpr void Pair(std::istream & is, Context & context, char & c, Object & object, std::pair<Key, T> & value)
             {
                 Read::ArrayPrefix(is, c);
                 if ( !Read::TryArraySuffix(is) )
                 {
-                    Read::Value<true, Field>(is, context, c, object, value.first);
+                    Read::Value<Annotations, true, Field>(is, context, c, object, value.first);
                     if ( Read::IterableElementSeparator<false>(is) )
                     {
-                        Read::Value<true, Field>(is, context, c, object, value.second);
+                        Read::Value<Annotations, true, Field>(is, context, c, object, value.second);
                         while ( Read::IterableElementSeparator<false>(is) )
                             Consume::Value<true>(is, c);
                     }
                 }
             }
 
-            template <typename Field, typename Object, typename Key, typename T>
+            template <typename Annotations, typename Field, typename Object, typename Key, typename T>
             static void KeyValueObject(std::istream & is, Context & context, char & c, Object & object, std::pair<Key, T> & value)
             {
                 Read::ObjectPrefix(is, c);
@@ -3413,9 +3428,9 @@ namespace Json
                         std::string fieldName = Read::FieldName(is, c);
                         Read::FieldNameValueSeparator(is, c);
                         if ( fieldName.compare("key") == 0 )
-                            Read::Value<false, Field>(is, context, c, object, value.first);
+                            Read::Value<Annotations, false, Field>(is, context, c, object, value.first);
                         else if ( fieldName.compare("value") == 0 )
-                            Read::Value<false, Field>(is, context, c, object, value.second);
+                            Read::Value<Annotations, false, Field>(is, context, c, object, value.second);
                         else
                             Consume::Value<false>(is, c);
                     }
@@ -3423,17 +3438,17 @@ namespace Json
                 }
             }
             
-            template <typename Field, typename Object, typename Key, typename T>
+            template <typename Annotations, typename Field, typename Object, typename Key, typename T>
             static void FieldPair(std::istream & is, Context & context, char & c, Object & object, Key & key, T & value)
             {
                 std::stringstream ss;
                 Read::String<>(is, c, ss);
-                Read::Value<false, Field, Key, Object, true, false>(ss, context, c, object, key);
+                Read::Value<Annotations, false, Field, Key, Object, true, false>(ss, context, c, object, key);
                 Read::FieldNameValueSeparator(is, c);
-                Read::Value<false, Field>(is, context, c, object, value);
+                Read::Value<Annotations, false, Field>(is, context, c, object, value);
             }
 
-            template <typename Field, typename T, typename Object>
+            template <typename Annotations, typename Field, typename T, typename Object>
             static constexpr void Iterable(std::istream & is, Context & context, char & c, Object & object, T & iterable)
             {
                 using Element = typename element_type<T>::type;
@@ -3456,13 +3471,13 @@ namespace Json
                                     if ( i >= static_array_size<T>::value )
                                         throw ArraySizeExceeded();
                                     else
-                                        Read::FieldPair<Field>(is, context, c, object, std::get<0>(iterable[i]), std::get<1>(iterable[i]));
+                                        Read::FieldPair<Annotations, Field>(is, context, c, object, std::get<0>(iterable[i]), std::get<1>(iterable[i]));
                                     i++;
                                 }
                                 else // Appendable STL container
                                 {
                                     typename element_type<T>::type value;
-                                    Read::FieldPair<Field>(is, context, c, object, std::get<0>(value), std::get<1>(value));
+                                    Read::FieldPair<Annotations, Field>(is, context, c, object, std::get<0>(value), std::get<1>(value));
                                     Append<T, typename element_type<T>::type>(iterable, value);
                                 }
                             }
@@ -3483,17 +3498,17 @@ namespace Json
                             if ( i >= static_array_size<T>::value )
                                 throw ArraySizeExceeded();
                             else
-                                Read::Value<true, Field>(is, context, c, object, iterable[i++]);
+                                Read::Value<Annotations, true, Field>(is, context, c, object, iterable[i++]);
                         }
                         else // Appendable STL container
                         {
                             typename element_type<T>::type value;
                             if constexpr ( !IsMap )
-                                Read::Value<true, Field>(is, context, c, object, value);
+                                Read::Value<Annotations, true, Field>(is, context, c, object, value);
                             else if ( Read::PeekIterablePrefix(is, c) ) // Json Object
-                                Read::KeyValueObject<Field, Object>(is, context, c, object, value);
+                                Read::KeyValueObject<Annotations, Field, Object>(is, context, c, object, value);
                             else // Json Array
-                                Read::Pair<Field, Object>(is, context, c, object, value);
+                                Read::Pair<Annotations, Field, Object>(is, context, c, object, value);
                             Append<T, typename element_type<T>::type>(iterable, value);
                         }
                     }
@@ -3501,7 +3516,7 @@ namespace Json
                 }
             }
 
-            template <typename Object>
+            template <typename Annotations = NoAnnotation, typename Object = void>
             static constexpr void Field(std::istream & is, Context & context, char & c, Object & object, const std::string & fieldName)
             {
                 Read::FieldNameValueSeparator(is, c);
@@ -3512,14 +3527,14 @@ namespace Json
                     {
                         Object::Class::FieldAt(object, jsonField->index, [&](auto & field, auto & value) {
                             using FieldType = typename std::remove_reference<decltype(field)>::type;
-                            Read::Value<false, FieldType>(is, context, c, object, value);
+                            Read::Value<Annotations, false, FieldType>(is, context, c, object, value);
                         });
                     }
                     else if ( jsonField->type == JsonField::Type::SuperClass )
                     {
                         Object::Supers::At(object, jsonField->index, [&](auto superInfo, auto & superObj) {
                             using Super = typename std::remove_reference<decltype(superObj)>::type;
-                            Read::Object<Super>(is, context, c, superObj);
+                            Read::Object<Annotations, Super>(is, context, c, superObj);
                         });
                     }
                 }
@@ -3559,7 +3574,7 @@ namespace Json
                 }
             }
 
-            template <typename T>
+            template <typename Annotations, typename T>
             static void Object(std::istream & is, Context & context, char & c, T & t)
             {
                 Read::ObjectPrefix(is, c);
@@ -3568,14 +3583,14 @@ namespace Json
                     do
                     {
                         std::string fieldName = Read::FieldName(is, c);
-                        Read::Field(is, context, c, t, fieldName);
+                        Read::Field<Annotations>(is, context, c, t, fieldName);
                     }
                     while ( Read::FieldSeparator(is) );
                 }
             }
         };
         
-        template <typename T>
+        template <typename Annotations, typename T>
         class ReflectedObject
         {
         public:
@@ -3590,21 +3605,21 @@ namespace Json
                     context = std::make_shared<Context>();
 
                 char c = '\0';
-                Read::Value<false, Fields::Field<T>>(is, *context, c, obj, obj);
+                Read::Value<Annotations, false, Fields::Field<T>>(is, *context, c, obj, obj);
                 return is;
             }
         };
         
-        template <typename T>
-        std::istream & operator>>(std::istream & is, Json::Input::ReflectedObject<T> object)
+        template <typename Annotations, typename T>
+        std::istream & operator>>(std::istream & is, Json::Input::ReflectedObject<Annotations, T> object)
         {
             return object.get(is);
         }
 
-        template <typename T>
-        Input::ReflectedObject<T> in(T & t, std::shared_ptr<Context> context = nullptr)
+        template <typename Annotations = NoAnnotation, typename T = void>
+        Input::ReflectedObject<Annotations, T> in(T & t, std::shared_ptr<Context> context = nullptr)
         {
-            return Input::ReflectedObject<T>(t, context);
+            return Input::ReflectedObject<Annotations, T>(t, context);
         }
     }
 

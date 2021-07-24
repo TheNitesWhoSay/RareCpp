@@ -427,8 +427,34 @@ namespace ExtendedTypeSupport
         using Right = R;
     };
 
+    template <typename T, template<typename ...> class Of> struct is_specialization : std::false_type {};
+    template <template<typename ...> class Of, typename ...Ts> struct is_specialization<Of<Ts...>, Of> : std::true_type {};
+    template <typename T, template<typename ...> class Of> inline constexpr bool is_specialization_v = is_specialization<T, Of>::value;
+
+    template <typename ...Ts> struct type_list {
+        template <typename T> struct has : std::bool_constant<(std::is_same_v<Ts, T> || ...)> {};
+        template <typename T> static inline constexpr bool has_v = has<T>::value;
+        template <template <typename ...> class Of> struct has_specialization : std::bool_constant<(is_specialization_v<Ts, Of> || ...)> {};
+        template <template <typename ...> class Of> static inline constexpr bool has_specialization_v = has_specialization<Of>::value;
+        template <template <typename ...> class Of> class get_specialization {
+            template <typename ...Us> struct get { using type = void; };
+            template <typename U, typename ...Us> struct get<U, Us...> {
+                using type = std::conditional_t<is_specialization_v<U, Of>, U, typename get<Us...>::type>;
+            };
+        public:
+            using type = typename get<Ts...>::type;
+        };
+        template <template <typename ...> class Of> using get_specialization_t = typename get_specialization<Of>::type;
+    };
+    template <typename ...Ts> struct type_list<const std::tuple<Ts...>> : type_list<Ts...> {};
+    template <typename ...Ts> struct type_list<std::tuple<Ts...>> : type_list<Ts...> {};
+
     struct Unspecialized {}; // Primary templates (and not specializations), should inherit from Unspecialized
     template <typename T> struct is_specialized { static constexpr bool value = !std::is_base_of<Unspecialized, T>::value; };
+
+    template <typename T, typename TypeIfVoid> struct if_void { using type = T; };
+    template <typename TypeIfVoid> struct if_void<void, TypeIfVoid> { using type = TypeIfVoid; };
+    template <typename T, typename TypeIfVoid> using if_void_t = typename if_void<T, TypeIfVoid>::type;
 
     template <typename T>
     constexpr bool HasTypeRecursion() {
@@ -985,14 +1011,20 @@ using Supers = Reflect::Inherit<Class::ClassType, Class::Annotations>;
     
     template <typename T> struct is_reflected { static constexpr bool value = is_proxied<T>::value || decltype(typeHasReflection<T>(0))::value; };
     template <typename T> struct is_reflected<const T> { static constexpr bool value = is_reflected<T>::value; };
+    template <typename T> inline constexpr bool is_reflected_v = is_reflected<T>::value;
 
-    template <typename Type> struct reflected_type { using T = typename std::conditional_t<is_proxied<Type>::value, Proxy<Type>, Type>; };
+    template <typename T> struct reflected_type { using type = typename std::conditional_t<is_proxied<T>::value, Proxy<T>, T>; };
+    template <typename T> using reflected_type_t = typename reflected_type<T>::type;
 
-    template <typename Type> struct clazz { using T = typename reflected_type<Type>::T::Class; };
-    template <typename Type> using class_t = typename clazz<Type>::T;
+    template <typename Type> struct clazz { using type = typename reflected_type_t<Type>::Class; };
+    template <typename Type> using class_t = typename clazz<Type>::type;
 
-    template <typename Type> struct supers { using T = typename reflected_type<Type>::T::Supers; };
-    template <typename Type> using supers_t = typename supers<Type>::T;
+    template <typename Type> struct supers { using type = typename reflected_type_t<Type>::Supers; };
+    template <typename Type> using supers_t = typename supers<Type>::type;
+
+    template <typename T, typename Enable = void> struct class_notes { using type = Reflect::NoAnnotation; };
+    template <typename T> struct class_notes<T, std::enable_if_t<is_reflected_v<T>>> { using type = typename class_t<T>::Annotations; };
+    template <typename T> using class_notes_t = typename class_notes<T>::type;
 }
 
 namespace ObjectMapper
@@ -1163,12 +1195,12 @@ namespace ObjectMapper
                 }
                 else
                 {
-                    Clear(to);
+                    ExtendedTypeSupport::Clear(to);
                     for ( size_t i=0; i<ExtendedTypeSupport::static_array_size<From>::value; i++ )
                     {
                         ToElementType toElement;
                         ObjectMapper::map(toElement, from[i]);
-                        Append(to, toElement);
+                        ExtendedTypeSupport::Append(to, toElement);
                     }
                 }
             }
@@ -1194,68 +1226,58 @@ namespace ObjectMapper
         }
     }
 
-    /// Used to set ObjectMapper tags, e.g. struct ObjectMapper::SetProperty<Foo> : MappedBy<Bar> {};
-    template <typename T> struct SetTags { using DefaultMapping = void; };
-
-    /// Used to get ObjectMapper tags, e.g. ObjectMapper::GetProperty<Foo>::MappedBy::DefaultMap
-    template <typename T> using GetTags = SetTags<T>;
-
-    /// Sets the default type "T" which this object should be mapped to for activities like serializing / deserializing
-    template <typename T> struct IsMappedBy { using DefaultMapping = T; };
-
-/// Sets default type "mappedBy" which this object "object" should be mapped to for activities like serializing / deserializing
-#define SET_DEFAULT_OBJECT_MAPPING(object, mappedBy) template <> struct ObjectMapper::SetTags<object> : IsMappedBy<mappedBy> {};
-
     inline namespace Annotations
     {
-        template <typename T, typename MappedBy> struct MappedByType { using Object = T; using DefaultMapping = MappedBy; };
+        template <typename MappedBy, typename Type = void> struct MappedByType { using Object = Type; using DefaultMapping = MappedBy; };
+        template <typename MappedBy> struct MappedByType<MappedBy, void> { using DefaultMapping = MappedBy; };
 
-        /// Specifies that this operation should map "T" to "MappedBy" for activities like serializing / deserializing
-        template <typename T, typename MappedBy> static constexpr MappedByType<MappedBy, T> UseMapping{};
+        /// Field or class-level annotation saying a field or class should be mapped to "T" for activities like serialization
+        template <typename T> static constexpr MappedByType<T, void> MappedBy{};
 
-        /// Field or class-level annotation saying this field/class should be mapped to "T" for activities like serializing / deserializing
-        template <typename T> static constexpr MappedByType<void, T> MappedBy{};
+        /// Operation annotation saying type "T" should be mapped to type "MappedBy" for activities like serialization
+        template <typename T, typename MappedBy> using UseMapping = MappedByType<MappedBy, T>;
 
-        template <typename T> struct is_mapped_by_note { static constexpr bool value = false; };
-        template <typename T, typename MappedBy> struct is_mapped_by_note<MappedByType<T, MappedBy>> { static constexpr bool value = true; };
-        template <typename T, typename MappedBy> struct is_mapped_by_note<const MappedByType<T, MappedBy>> { static constexpr bool value = true; };
+        template <typename T> inline constexpr bool IsMappedByNotes = ExtendedTypeSupport::type_list<T>::template has_specialization_v<MappedByType>;
+        template <typename T> inline constexpr bool IsMappedByClassNote = IsMappedByNotes<Reflect::class_notes_t<T>>;
 
-        template <typename T, bool IsReflected = Reflect::is_reflected<T>::value> class IsMappedByClassNote;
-        template <typename T> class IsMappedByClassNote<T, false> { public: static constexpr bool value = false; };
-        template <typename T> class IsMappedByClassNote<T, true> {
-            template <typename U> struct TupleHasMappedBy;
-            template <typename U> struct TupleHasMappedBy<const U> { static constexpr bool value = TupleHasMappedBy<U>::value; };
-            template <typename ...Ts> struct TupleHasMappedBy<std::tuple<Ts...>> { static constexpr bool value = (is_mapped_by_note<Ts>::value || ...); };
-        public:
-            static constexpr bool value = TupleHasMappedBy<typename Reflect::class_t<T>::Annotations>::value;
-        };
+        template <typename T, typename Enable = void> struct GetMappingFromNotes { using type = void; };
+        template <typename T> struct GetMappingFromNotes<T, std::enable_if_t<IsMappedByNotes<T>>>
+        { using type = typename ExtendedTypeSupport::type_list<T>::template get_specialization_t<MappedByType>::DefaultMapping; };
 
-        template <typename T, bool IsReflected = Reflect::is_reflected<T>::value> class GetMappingByClassNote;
-        template <typename T> class GetMappingByClassNote<T, false> { public: using type = void; };
-        template <typename T> class GetMappingByClassNote<T, true> {
-            template <size_t I, typename U> struct GetNote;
-            template <size_t I, typename U> struct GetNote<I, const U> { using type = typename GetNote<I, U>::type; };
-            template <size_t I, typename ...Ts> struct GetNote<I, std::tuple<Ts...>> {
-                using type = std::conditional_t<
-                    is_mapped_by_note<std::tuple_element_t<I, std::tuple<Ts...>>>::value,
-                    std::tuple_element_t<I, std::tuple<Ts...>>, typename GetNote<I+1, std::tuple<Ts...>>::type>;
-            };
-            template <typename ...Ts> struct GetNote<std::tuple_size_v<typename Reflect::class_t<T>::Annotations>, std::tuple<Ts...>> { using type = void; };
-        public:
-            using type = typename GetNote<0, typename Reflect::class_t<T>::Annotations>::type::DefaultMapping;
-        };
+        template <typename T, typename Enable = void> struct GetMappingByClassNote { using type = void; };
+        template <typename T> struct GetMappingByClassNote<T, std::enable_if_t<IsMappedByClassNote<T>>>
+        { using type = typename GetMappingFromNotes<Reflect::class_notes_t<T>>::type; };
 
-        template <typename T> using GetMappingByTags = typename GetTags<T>::DefaultMapping;
-        template <typename T> inline constexpr bool IsMappedByTags = !std::is_void_v<GetMappingByTags<T>>;
+        template <typename T> struct SetTags { using DefaultMapping = void; }; // e.g. struct ObjectMapper::SetTags<Foo> : IsMappedBy<Bar> {};
+        template <typename T> using GetTags = SetTags<T>; // e.g. ObjectMapper::GetProperty<Foo>::MappedBy::DefaultMapping
+        template <typename T> using IsMappedBy = MappedByType<T>; // Tags a type "T" to be mapped to for activities like serialization
+/// Sets default type "mappedBy" which this object "object" should be mapped to for activities like serialization
+#define SET_DEFAULT_OBJECT_MAPPING(object, mappedBy) template <> struct ObjectMapper::SetTags<object> : IsMappedBy<mappedBy> {};
 
-        /// Checks whether the type "T" has a type to use for default mappings for activies like serializing / deserializing
-        template <typename T> inline constexpr bool HasDefaultMapping = IsMappedByTags<T> || IsMappedByClassNote<T>::value;
+        template <typename T> inline constexpr bool IsMappedByTags = !std::is_void_v<typename GetTags<T>::DefaultMapping>;
 
-        /// Gets the type which "T" should be mapped to for activities like serializing / deserializing (or void if none)
-        template <typename T> using GetDefaultMapping = std::conditional_t<IsMappedByTags<T>, GetMappingByTags<T>, GetMappingByClassNote<T>>;
+        template <typename T, typename Note, typename Enable = void> struct IsUseMappingNote { static constexpr bool value = false; };
+        template <typename T, typename Note> struct IsUseMappingNote<T, Note, std::enable_if_t<ExtendedTypeSupport::is_specialization_v<Note, MappedByType>>>
+        { static constexpr bool value = std::is_same_v<T, typename Note::Object>; };
+
+        template <typename T, typename Notes> struct HasUseMappingNote { static constexpr bool value = false; };
+        template <typename T, typename ...Ts> struct HasUseMappingNote<T, std::tuple<Ts...>>
+        { static constexpr bool value = (IsUseMappingNote<T, Ts>::value || ...); };
+
+        template <typename T, typename Notes, typename Enable = void> struct GetOpNoteMapping { using type = void; };
+        template <typename T, typename Notes> struct GetOpNoteMapping<T, Notes, std::enable_if_t<HasUseMappingNote<T, Notes>::value>>
+        { using type = typename ExtendedTypeSupport::type_list<Notes>::template get_specialization_t<MappedByType>::DefaultMapping; };
+
+        /// Checks whether the type "T" has a type to use for default mappings for activies like serialization
+        template <typename T, typename FieldNotes = void, typename OpNotes = void> inline constexpr bool HasDefaultMapping =
+            HasUseMappingNote<T, OpNotes>::value || IsMappedByNotes<FieldNotes> || IsMappedByTags<T> || IsMappedByClassNote<T>;
+        
+        /// Gets the type which "T" should be mapped to for activities like serialization (or void if no default exists)
+        template <typename T, typename FieldNotes = void, typename OpNotes = void>
+        using GetDefaultMapping = ExtendedTypeSupport::if_void_t<typename GetOpNoteMapping<T, OpNotes>::type,
+            ExtendedTypeSupport::if_void_t<typename GetMappingFromNotes<FieldNotes>::type,
+            ExtendedTypeSupport::if_void_t<typename GetTags<T>::DefaultMapping, typename GetMappingByClassNote<T>::type>>>;
     }
-
-
 };
 
 #endif
