@@ -1371,6 +1371,16 @@ TEST(ExtendedTypeSupportTest, TypeListTupleSpecializations)
     EXPECT_TRUE(isSame);
 }
 
+struct IsSpecializedTest {};
+
+struct IsUnspecializedTest : ExtendedTypeSupport::Unspecialized {};
+
+TEST(ExtendedTypeSupportTest, IsSpecialized)
+{
+    EXPECT_TRUE(ExtendedTypeSupport::is_specialized<IsSpecializedTest>::value);
+    EXPECT_FALSE(ExtendedTypeSupport::is_specialized<IsUnspecializedTest>::value);
+}
+
 TEST(ExtendedTypeSupportTest, IfVoid)
 {
     bool replacedVoid = std::is_same_v<float, if_void<void, float>::type>;

@@ -33,16 +33,6 @@ Json::OutStreamType & operator <<(Json::OutStreamType & os, const CustomizeFully
     return os;
 }
 
-struct IsSpecializedTest {};
-
-struct IsUnspecializedTest : Json::Unspecialized {};
-
-TEST_HEADER(JsonAnnotationsTest, IsSpecialized)
-{
-    EXPECT_TRUE(Json::is_specialized<IsSpecializedTest>::value);
-    EXPECT_FALSE(Json::is_specialized<IsUnspecializedTest>::value);
-}
-
 TEST_HEADER(JsonSharedTest, MatchesStatics)
 {
     bool matches = Json::matches_statics<false, Statics::Excluded>::value;
