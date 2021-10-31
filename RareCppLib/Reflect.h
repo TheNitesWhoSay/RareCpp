@@ -1053,6 +1053,16 @@ namespace ObjectMapper
     /// Do not specialize this method
     template <typename To, typename From>
     constexpr inline void map_default(To &, const From &);
+    
+    /// Default mapping helper, safe to call from ObjectMapper::map specializations, assignment & conversion operators, and map_to/map_from methods
+    /// Do not specialize this method
+    template<typename To, typename From>
+    constexpr inline To map_default(const From & from)
+    {
+        To to;
+        ObjectMapper::map_default(to, from);
+        return to;
+    }
 
     /// If any mapping exists from "from" to "to", "to" is assigned mapped values from "from", if no mapping exists, "to" is unchanged and nothing is thrown
     /// A mapping may exist if...

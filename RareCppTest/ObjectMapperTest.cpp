@@ -921,7 +921,8 @@ TEST(ObjectMapperTest, MapMacroLimit)
     };
     MapMacroLimitDest dest {};
     dest.b124 = 0;
-    ObjectMapper::map(dest, src);EXPECT_EQ(src.a000, dest.b000);
+    ObjectMapper::map(dest, src);
+    EXPECT_EQ(src.a000, dest.b000);
     EXPECT_EQ(src.a001, dest.b001);
     EXPECT_EQ(src.a002, dest.b002);
     EXPECT_EQ(src.a003, dest.b003);
@@ -1144,4 +1145,190 @@ TEST(ObjectMapperAnnotationsTest, GetDefaultMapping)
     EXPECT_TRUE(isTypeMappedBy);
     isTypeMappedBy = std::is_same_v<TypeMappedBy, ObjectMapper::GetDefaultMapping<ObjWithoutMapping, ClassOrFieldNoteWithMapping, OpNoteWithMapping>>;
     EXPECT_TRUE(isTypeMappedBy);
+}
+
+struct CopyConstructorTest
+{
+    CopyConstructorTest(int a, int b) : a(a), b(b) {}
+    CopyConstructorTest(const CopyConstructorTest & other) { ObjectMapper::map_default(*this, other); }
+
+    int a = 0;
+    int b = 0;
+
+    REFLECT(CopyConstructorTest, a, b)
+};
+
+TEST(ObjectMapperAutoMappingTest, CopyConstructors)
+{
+    CopyConstructorTest cct { 1, 2 };
+    auto copy = cct;
+    EXPECT_EQ(1, copy.a);
+    EXPECT_EQ(2, copy.b);
+}
+
+struct AssignmentOperatorTestSrc
+{
+    int a = 0;
+    int b = 0;
+
+    REFLECT(AssignmentOperatorTestSrc, a, b)
+};
+
+struct AssignmentOperatorTestDest
+{
+    void operator=(const AssignmentOperatorTestSrc & src) { ObjectMapper::map_default(*this, src); }
+
+    int a = 0;
+    int b = 0;
+
+    REFLECT(AssignmentOperatorTestDest, a, b)
+};
+
+TEST(ObjectMapperAutoMappingTest, AssignmentOperator)
+{
+    AssignmentOperatorTestSrc src {1, 2};
+    AssignmentOperatorTestDest dest {};
+    dest = src;
+    
+    EXPECT_EQ(src.a, dest.a);
+    EXPECT_EQ(src.b, dest.b);
+}
+
+struct MoveAssignmentOperatorTestSrc
+{
+    int a = 0;
+    int b = 0;
+
+    REFLECT(MoveAssignmentOperatorTestSrc, a, b)
+};
+
+struct MoveAssignmentOperatorTestDest
+{
+    // Note that ObjectMapper doesn't use any moves internally
+    void operator=(const MoveAssignmentOperatorTestSrc && src) { ObjectMapper::map_default(*this, src); }
+
+    int a = 0;
+    int b = 0;
+
+    REFLECT(MoveAssignmentOperatorTestDest, a, b)
+};
+
+TEST(ObjectMapperAutoMappingTest, MoveAssignmentOperator)
+{
+    MoveAssignmentOperatorTestSrc src {1, 2};
+    MoveAssignmentOperatorTestDest dest {};
+    dest = std::move(src);
+    
+    EXPECT_EQ(1, dest.a);
+    EXPECT_EQ(2, dest.b);
+}
+
+struct ConvertingConstructorTestSrc
+{
+    int a = 0;
+    int b = 0;
+
+    REFLECT(ConvertingConstructorTestSrc, a, b)
+};
+
+struct ConvertingConstructorTestDest
+{
+    ConvertingConstructorTestDest(ConvertingConstructorTestSrc & src) { ObjectMapper::map_default(*this, src); }
+
+    int a = 0;
+    int b = 0;
+
+    REFLECT(ConvertingConstructorTestDest, a, b)
+};
+
+TEST(ObjectMapperAutoMappingTest, ConvertingConstructor)
+{
+    ConvertingConstructorTestSrc src { 1, 2 };
+    ConvertingConstructorTestDest dest(src);
+    
+    EXPECT_EQ(src.a, dest.a);
+    EXPECT_EQ(src.b, dest.b);
+}
+
+struct MoveConstructorTestSrc
+{
+    int a = 0;
+    int b = 0;
+
+    REFLECT(MoveConstructorTestSrc, a, b)
+};
+
+struct MoveConstructorTestDest
+{
+    // Note that ObjectMapper doesn't use any moves internally
+    MoveConstructorTestDest(MoveConstructorTestSrc && src) { ObjectMapper::map_default(*this, src); }
+
+    int a = 0;
+    int b = 0;
+
+    REFLECT(MoveConstructorTestDest, a, b)
+};
+
+TEST(ObjectMapperAutoMappingTest, MoveConstructor)
+{
+    MoveConstructorTestSrc src { 1, 2 };
+    MoveConstructorTestDest dest(std::move(src));
+    
+    EXPECT_EQ(1, dest.a);
+    EXPECT_EQ(2, dest.b);
+}
+
+struct ConversionOperatorTestDest
+{
+    int a = 0;
+    int b = 0;
+
+    REFLECT(ConversionOperatorTestDest, a, b)
+};
+
+struct ConversionOperatorTestSrc
+{
+    operator ConversionOperatorTestDest() const { return ObjectMapper::map_default<ConversionOperatorTestDest>(*this); }
+
+    int a = 0;
+    int b = 0;
+
+    REFLECT(ConversionOperatorTestSrc, a, b)
+};
+
+TEST(ObjectMapperAutoMappingTest, ConversionOperator)
+{
+    ConversionOperatorTestSrc src { 1, 2 };
+    ConversionOperatorTestDest dest = src;
+    
+    EXPECT_EQ(src.a, dest.a);
+    EXPECT_EQ(src.b, dest.b);
+}
+
+struct ExplicitConversionOperatorTestDest
+{
+
+    int a = 0;
+    int b = 0;
+
+    REFLECT(ExplicitConversionOperatorTestDest, a, b)
+};
+
+struct ExplicitConversionOperatorTestSrc
+{
+    operator ExplicitConversionOperatorTestDest() const { return ObjectMapper::map_default<ExplicitConversionOperatorTestDest>(*this); }
+
+    int a = 0;
+    int b = 0;
+
+    REFLECT(ExplicitConversionOperatorTestSrc, a, b)
+};
+
+TEST(ObjectMapperAutoMappingTest, ExplicitConversionOperator)
+{
+    ExplicitConversionOperatorTestSrc src { 1, 2 };
+    ExplicitConversionOperatorTestDest dest = static_cast<ExplicitConversionOperatorTestDest>(src);
+    
+    EXPECT_EQ(src.a, dest.a);
+    EXPECT_EQ(src.b, dest.b);
 }
