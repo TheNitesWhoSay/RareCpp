@@ -69,7 +69,7 @@ If none of the above are satisfied, no mapping is performed; no exception is rai
 
 2.) When it is reasonable to do so, name source and target fields the same and add reflection to both objects; no additional code will be needed to perform mappings
   
-3.) When one or both objects cannot be reflected within their own class, but the field names are the same and the fields and are public or protected, consider adding a reflection proxy, e.g.
+3.) When one or both objects cannot be reflected within their own class, but the field names are the same and the fields are public or protected, consider adding a reflection proxy, e.g.
 ```C++
 template <> struct Reflect::Proxy<PersonDao> : public PersonDao
 {
