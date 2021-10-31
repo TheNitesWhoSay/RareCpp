@@ -65,7 +65,7 @@ If none of the above are satisfied, no mapping is performed; no exception is rai
 
 ## Defining Mappings / Best Practices
 
-1.) If there are pre-existing user-defined assignment operators, user-defined conversion operators, or converting constructors appropriate for your mapping, do nothing! ObjectMapper will find them up and use them automatically; consider adding assignment/conversion operators or constructors where they make sense in your codebase as these are more standard (albeit a little more work).
+1.) If there are pre-existing user-defined assignment operators, user-defined conversion operators, or converting constructors appropriate for your mapping, do nothing! ObjectMapper will find them and use them automatically; consider adding assignment/conversion operators or constructors where they make sense in your codebase as these are more standard (albeit a little more work).
 
 2.) When it is reasonable to do so, name source and target fields the same and add reflection to both objects; no additional code will be needed to perform mappings
   
