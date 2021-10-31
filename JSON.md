@@ -118,6 +118,11 @@ The null, bool, string, and object arrays are optimized for the type of contents
 Json::Value has virtual methods for getting the contents of any given type, e.g. for a Json::Bool call the boolean() method to get the stored value, if it's not the correct type for that method a TypeMismatch exception is thrown, check the type of a Json::Value in advance to avoid that.
 
 
+## Default Mappings
+
+When you have a type which, for whatever reason, is not well-suited for reflection/direct serialization, providing a default mapping to another struct/class which is serialization friendly is an easy option. See [ObjectMapper](https://github.com/TheNitesWhoSay/RareCpp/blob/master/ObjectMapper.md) for how to create mappings and [ObjectMapper Annotations](https://github.com/TheNitesWhoSay/RareCpp/blob/master/ObjectMapper.md#annotations-serializer-instructions) for details on setting a default mapping.
+
+
 ## Customizers
 
 In addition to the annotations, you can further customize behavior for specific types, or specific fields within a type. This is accomplished using partial template specialization on one of the following structs...
