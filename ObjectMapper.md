@@ -141,3 +141,89 @@ void ObjectMapper::map(SpecializationMapping & to, const OwnedObject1 & from)
     to.a = from.a;
 }
 ```
+
+## Constructors & Operator Overloads
+
+You may define various constructors and operator overloads (such as copy constructors, converting constructors, assignment operators, and conversion operators) using ObjectMapper. If you choose to do so, be sure to use the ObjectMapper::map_default methods rather than the ObjectMapper::map methods to avoid infinite recursion.
+
+```C++
+struct Src
+{
+    int a = 0;
+    int b = 0;
+
+    REFLECT(Src, a, b)
+};
+
+struct Dest
+{
+    void operator=(const Src & src) { ObjectMapper::map_default(*this, src); }
+
+    int a = 0;
+    int b = 0;
+
+    REFLECT(Dest, a, b)
+};
+```
+
+## Annotations (Serializer Instructions)
+
+ObjectMapper provides annotations that can instruct serializers to use another type to which your type has a mapping for I/O. This is perhaps most useful for objects coming from libraries included in your code which are not reflected or are otherwise not well-suited for serialization (e.g. DAOs that you need to convert to DTOs). Having a default mapping should tell a given serializer to behave akin to:
+
+```C++
+using D = ObjectMapper::GetDefaultMapping<T, typename Field::Annotations, OpAnnotations>;
+D d = ObjectMapper::map<D>(value);
+output << d;
+```
+
+Or deserializer to behave akin to:
+```C++
+using D = ObjectMapper::GetDefaultMapping<T, typename Field::Annotations, OpAnnotations>;
+D d {};
+input >> d;
+return ObjectMapper::map<T>(d);
+```
+
+
+You can specify a default mapping (or op-level mapping) with...
+
+1.) A class level annotation
+```C++
+NOTE(Dao, ObjectMapper::MappedBy<Dto>)
+struct Dao {
+    std::string a;
+    REFLECT_NOTED(Dao, a)
+};
+```
+
+2.) A field-level annotation
+```C++
+struct MyObj
+{
+    NOTE(Dao, ObjectMapper::MappedBy<Dto>)
+    Dao dao;
+}
+```
+
+3.) Using the macro
+```C++
+SET_DEFAULT_OBJECT_MAPPING(Dao, Dto)
+```
+
+4.) An op-level annotation (if supported by your extension) e.g.
+```C++
+Json::out<Json::Statics::Included, Json::OpNotes<ObjectMapper::UseMapping<Dao, Dto>>>(objectContainingDaos);
+```
+
+Two helpers are provided to assist in using defined mappings:
+- bool HasDefaultMapping<T, FieldNotes = void, OpNotes = void>
+- Type GetDefaultMapping<T, FieldNotes = void, OpNotes = void>
+
+e.g.
+```C++
+if constexpr ( ObjectMapper::HasDefaultMapping<T> )
+{
+    using D = ObjectMapper::GetDefaultMapping<T>;
+    ...
+}
+```
