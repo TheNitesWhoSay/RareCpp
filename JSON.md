@@ -19,7 +19,7 @@ This JSON library will automatically...
 - Ignore any unknown fields in an object or automatically read them into a Json::FieldCluster if present
 
 There are a few annotations you can use to alter the JSON representation...
-- Json::Ignore will cause a field to be ignored by json I/O, on input
+- Json::Ignore will cause a field to be ignored by json I/O
 - Json::Stringify will result in the value given by the ostream operator being quoted and escaped as a JSON string
 - Json::Unstring will demote an std::string type (which by default behaves like Json::String) so that it's put/read without quotes
 - Json::EnumInt can be used to force use of the integer value for an enum field that may otherwise have iostream overloads
