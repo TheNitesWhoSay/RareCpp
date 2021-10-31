@@ -108,7 +108,7 @@ struct OwnedObjectModel
 };
 ```
 
-5.) If one or more of your types are incompatible and need special handling, consider specifying a map_from(source) method in your target class or a map_to(target) method in your source class. A user-defined assignment operator, user defined-conversion operator, or converting constructor is highly preferrable in most cases, only use these when you cannot use the former, or when the former is specified and you need unique behavior for object mappings.
+5.) If one or more of your types are incompatible and need special handling, consider specifying a map_from(source) method in your target class or a map_to(target) method in your source class. A user-defined assignment operator, user defined-conversion operator, or converting constructor is highly preferrable in most cases, only use these when you cannot use the former, or when the former is specified and you need unique behavior for object mappings. If you use ObjectMapper inside your map_to/map_from methods, be sure to use ObjectMapper::map_default rather than ObjectMapper::map to avoid infinite recursion.
 ```C++
 struct UnownedEncapsulator
 {
