@@ -19,7 +19,7 @@ This JSON library will automatically...
 - Ignore any unknown fields in an object or automatically read them into a Json::FieldCluster if present
 
 There are a few annotations you can use to alter the JSON representation...
-- Json::Ignore will cause a field to be ignored by json I/O, on input
+- Json::Ignore will cause a field to be ignored by json I/O
 - Json::Stringify will result in the value given by the ostream operator being quoted and escaped as a JSON string
 - Json::Unstring will demote an std::string type (which by default behaves like Json::String) so that it's put/read without quotes
 - Json::EnumInt can be used to force use of the integer value for an enum field that may otherwise have iostream overloads
@@ -116,6 +116,11 @@ All Generic types extend from Json::Value, FieldCluster extends Json::Object but
 The null, bool, string, and object arrays are optimized for the type of contents they contain, whereas the elements in MixedArray are all shared pointers to Json::Values. Any type that contains nested arrays are automatically a MixedArray.
 
 Json::Value has virtual methods for getting the contents of any given type, e.g. for a Json::Bool call the boolean() method to get the stored value, if it's not the correct type for that method a TypeMismatch exception is thrown, check the type of a Json::Value in advance to avoid that.
+
+
+## Default Mappings
+
+When you have a type which, for whatever reason, is not well-suited for reflection/direct serialization, providing a default mapping to another struct/class which is serialization friendly is an easy option. See [ObjectMapper](https://github.com/TheNitesWhoSay/RareCpp/blob/master/ObjectMapper.md) for how to create mappings and [ObjectMapper Annotations](https://github.com/TheNitesWhoSay/RareCpp/blob/master/ObjectMapper.md#annotations-serializer-instructions) for details on setting a default mapping.
 
 
 ## Customizers

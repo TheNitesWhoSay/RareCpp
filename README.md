@@ -111,8 +111,8 @@ Extended type support also provides several other pieces of functionality includ
 - The Append, Clear, and IsEmpty methods that work on all stl containers
 - The has_type interface to check whether a type is included in a list of types
 - A get_underlying_container method to retrieve a const version of the underlying container for an STL adaptor
-- An interface "get<T>::from(tuple)" to get the first instance of type T from a tuple
-- An interface "for_each<T>::in(tuple)" to iterate each tuple element of type T
+- An interface "get\<T\>::from(tuple)" to get the first instance of type T from a tuple
+- An interface "for_each\<T\>::in(tuple)" to iterate each tuple element of type T
 - An interface "for_each_in(tuple)" to iterate all tuple elements
 - A TypeToStr method to retrieve a string representation of a type
 
@@ -168,7 +168,7 @@ FieldAt(fieldIndex, [&](auto & field) {
 });
 ```
 
-"value" is a reference to the actual field in the object, which you can read or change. "field" is the enhanced flavor of Field, meaning it includes the Type, Index, and HasAnnotation members, it's often useful to grab the type of the field and value parameters so you can more cleanly access the static members
+"value" is a reference to the actual field in the object, which you can read or change. "field" is the enhanced flavor of Field, meaning it includes such members as Type, Index, and HasAnnotation. It's often useful to grab the type of the field and value parameters so you can more cleanly access the static members
 ```C++
 using Field = std::remove_reference<decltype(field)>::type;
 using Type = std::remove_reference<decltype(value)>::type;
@@ -263,7 +263,7 @@ The REFLECT macro takes in the name of the class you're adding reflection to, fo
 2. An enum "IndexOf" is generated using each field name, because enums start at 0 and count up, IndexOf::fieldName provides the index of a given field in a manner statically available at compile time (this especially helps us build switches later)
 3. An empty annotation "NoNote" is set to an empty tuple (this will help stage field annotations later and the class anotations in the next step)
 4. An "annotations" field is set to the class level annotation (if using REFLECT_NOTED), else it's set to an empty-brace initialized NoNote
-5. A description of each field is generated in "Class::fieldName_", wherein the type of the field and the type of a pointer the the field is deduced (with the help of decltype and SFINAE to default cases where either either type may not be available) and where possible the pointer is obtained, the field name and type strings are extracted, any field annotations are identified and a reference to them is obtained, and all of this is packaged into a "Field" object
+5. A description of each field is generated in "Class::fieldName_", wherein the type of the field and the type of a pointer to the field is deduced (with the help of decltype and SFINAE to default cases where either type may not be available) and where possible the pointer is obtained, the field name and type strings are extracted, any field annotations are identified and a reference to them is obtained, and all of this is packaged into a "Field" object
 6. TotalFields gets set to the count of arguments, not including the class name
 7. TotalStaticFields gets set to the count of static field arguments
 8. A "Field" array is generated, similar to the field object defined the fifth step, but the simple flavor
