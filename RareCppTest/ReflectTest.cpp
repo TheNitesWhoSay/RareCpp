@@ -203,12 +203,12 @@ class UseFieldValueTest {
             using ClassType = UseFieldValueTest;
             static constexpr NoAnnotation NoNote {};
             struct first_ {
-                using Field = Fields::Field<int, decltype(&UseFieldValueTest::first), 0>;
+                using Field = Fields::Field<int, void, decltype(&UseFieldValueTest::first), 0>;
                 static constexpr Field field = { "first", "int", &UseFieldValueTest::first, NoNote };
                 CLANG_ONLY(first)
             };
             struct second_ {
-                using Field = Fields::Field<const float, decltype(&UseFieldValueTest::second), 1>;
+                using Field = Fields::Field<const float, void, decltype(&UseFieldValueTest::second), 1>;
                 static constexpr Field field = { "second", "float", &UseFieldValueTest::second, NoNote };
                 CLANG_ONLY(second)
             };
@@ -280,12 +280,12 @@ class UseFieldValueAtTest {
             enum_t(IndexOf, size_t, { first, second });
             static constexpr NoAnnotation NoNote {};
             struct first_ {
-                using Field = Fields::Field<int, decltype(&UseFieldValueAtTest::first), 0>;
+                using Field = Fields::Field<int, void, decltype(&UseFieldValueAtTest::first), 0>;
                 static constexpr Field field = { "first", "int", &UseFieldValueAtTest::first, NoNote };
                 CLANG_ONLY(first)
             };
             struct second_ {
-                using Field = Fields::Field<const float, decltype(&UseFieldValueAtTest::second), 1>;
+                using Field = Fields::Field<const float, void, decltype(&UseFieldValueAtTest::second), 1>;
                 static constexpr Field field = { "second", "float", &UseFieldValueAtTest::second, NoNote };
                 CLANG_ONLY(second)
             };
@@ -532,12 +532,12 @@ TEST(ReflectTest, RfMacroDescribeField)
     using MemberMethodField = DescribeFieldTest::Class::memberMethod_::Field;
     using StaticMethodField = DescribeFieldTest::Class::staticMethod_::Field;
 
-    using ExpectedMemberValueField = Fields::Field<decltype(DescribeFieldTest::memberValue), decltype(&DescribeFieldTest::memberValue), 0, decltype(DescribeFieldTest::Class::NoNote), DescribeFieldTest::Class::memberValue_::nameStr>;
-    using ExpectedStaticValueField = Fields::Field<decltype(DescribeFieldTest::staticValue), decltype(&DescribeFieldTest::staticValue), 1, decltype(DescribeFieldTest::Class::NoNote), DescribeFieldTest::Class::staticValue_::nameStr>;
-    using ExpectedMemberValueReferenceField = Fields::Field<decltype(DescribeFieldTest::memberValueReference), std::nullptr_t, 2, decltype(DescribeFieldTest::memberValueReference_note), DescribeFieldTest::Class::memberValueReference_::nameStr>;
-    using ExpectedStaticValueReferenceField = Fields::Field<decltype(DescribeFieldTest::staticValueReference), decltype(&DescribeFieldTest::staticValueReference), 3, decltype(DescribeFieldTest::staticValueReference_note), DescribeFieldTest::Class::staticValueReference_::nameStr>;
-    using ExpectedMemberMethodField = Fields::Field<decltype(&DescribeFieldTest::memberMethod), decltype(&DescribeFieldTest::memberMethod), 4, decltype(DescribeFieldTest::Class::NoNote), DescribeFieldTest::Class::memberMethod_::nameStr>;
-    using ExpectedStaticMethodField = Fields::Field<decltype(DescribeFieldTest::staticMethod), decltype(&DescribeFieldTest::staticMethod), 5, decltype(DescribeFieldTest::Class::NoNote), DescribeFieldTest::Class::staticMethod_::nameStr>;
+    using ExpectedMemberValueField = Fields::Field<decltype(DescribeFieldTest::memberValue), DescribeFieldTest::Class::memberValue_, decltype(&DescribeFieldTest::memberValue), 0, decltype(DescribeFieldTest::Class::NoNote), DescribeFieldTest::Class::memberValue_::nameStr>;
+    using ExpectedStaticValueField = Fields::Field<decltype(DescribeFieldTest::staticValue), DescribeFieldTest::Class::staticValue_, decltype(&DescribeFieldTest::staticValue), 1, decltype(DescribeFieldTest::Class::NoNote), DescribeFieldTest::Class::staticValue_::nameStr>;
+    using ExpectedMemberValueReferenceField = Fields::Field<decltype(DescribeFieldTest::memberValueReference), DescribeFieldTest::Class::memberValueReference_, std::nullptr_t, 2, decltype(DescribeFieldTest::memberValueReference_note), DescribeFieldTest::Class::memberValueReference_::nameStr>;
+    using ExpectedStaticValueReferenceField = Fields::Field<decltype(DescribeFieldTest::staticValueReference), DescribeFieldTest::Class::staticValueReference_, decltype(&DescribeFieldTest::staticValueReference), 3, decltype(DescribeFieldTest::staticValueReference_note), DescribeFieldTest::Class::staticValueReference_::nameStr>;
+    using ExpectedMemberMethodField = Fields::Field<decltype(&DescribeFieldTest::memberMethod), DescribeFieldTest::Class::memberMethod_, decltype(&DescribeFieldTest::memberMethod), 4, decltype(DescribeFieldTest::Class::NoNote), DescribeFieldTest::Class::memberMethod_::nameStr>;
+    using ExpectedStaticMethodField = Fields::Field<decltype(DescribeFieldTest::staticMethod), DescribeFieldTest::Class::staticMethod_, decltype(&DescribeFieldTest::staticMethod), 5, decltype(DescribeFieldTest::Class::NoNote), DescribeFieldTest::Class::staticMethod_::nameStr>;
     
     isSame = std::is_same_v<ExpectedMemberValueField, MemberValueField>;
     EXPECT_TRUE(isSame);
@@ -611,6 +611,13 @@ TEST(ReflectTest, RfMacroDescribeField)
     EXPECT_FALSE(StaticValueReferenceField::IsFunction);
     EXPECT_TRUE(MemberMethodField::IsFunction);
     EXPECT_TRUE(StaticMethodField::IsFunction);
+    
+    EXPECT_TRUE(MemberValueField::HasOffset);
+    EXPECT_FALSE(StaticValueField::HasOffset);
+    EXPECT_FALSE(MemberValueReferenceField::HasOffset);
+    EXPECT_FALSE(StaticValueReferenceField::HasOffset);
+    EXPECT_FALSE(MemberMethodField::HasOffset);
+    EXPECT_FALSE(StaticMethodField::HasOffset);
 
     MemberValueField memberValueField = DescribeFieldTest::Class::memberValue_::field;
     StaticValueField staticValueField = DescribeFieldTest::Class::staticValue_::field;
@@ -650,13 +657,13 @@ struct AddIfStaticTest
     struct Class
     {
         struct testVal_ {
-            using Field = Fields::Field<int, decltype(&AddIfStaticTest::testVal), 0>;
+            using Field = Fields::Field<int, void, decltype(&AddIfStaticTest::testVal), 0>;
         };
         struct testStaticVal_ {
-            using Field = Fields::Field<int, decltype(&AddIfStaticTest::testStaticVal), 1>;
+            using Field = Fields::Field<int, void, decltype(&AddIfStaticTest::testStaticVal), 1>;
         };
         struct otherTestStaticVal_ {
-            using Field = Fields::Field<int, decltype(&AddIfStaticTest::otherTestStaticVal), 2>;
+            using Field = Fields::Field<int, void, decltype(&AddIfStaticTest::otherTestStaticVal), 2>;
         };
 
         static constexpr size_t TotalStatics = 0
@@ -678,9 +685,9 @@ public:
 
     struct Class {
         static constexpr NoAnnotation NoNote {};
-        struct first_ { static constexpr Fields::Field<decltype(first), decltype(&GetFieldTest::first), 0, NoAnnotation> field =
+        struct first_ { static constexpr Fields::Field<decltype(first), void, decltype(&GetFieldTest::first), 0, NoAnnotation> field =
             { "first", "int", &GetFieldTest::first, NoNote }; };
-        struct second_ { static constexpr Fields::Field<decltype(second), decltype(&GetFieldTest::second), 1, NoAnnotation> field =
+        struct second_ { static constexpr Fields::Field<decltype(second), void, decltype(&GetFieldTest::second), 1, NoAnnotation> field =
             { "second", "float", &GetFieldTest::second, NoNote }; };
         static constexpr Fields::Field<> Fields[2] = {
             GET_FIELD(first)
@@ -705,8 +712,8 @@ struct UseFieldTest {
     struct Class {
         enum_t(IndexOf, size_t, { first, second });
         static constexpr NoAnnotation NoNote {};
-        struct first_ { static constexpr Fields::Field<int, decltype(&UseFieldTest::first), 0> field = { "first", "int", &UseFieldTest::first, NoNote }; };
-        struct second_ { static constexpr Fields::Field<float, decltype(&UseFieldTest::second), 1> field = { "second", "float", &UseFieldTest::second, NoNote }; };
+        struct first_ { static constexpr Fields::Field<int, void, decltype(&UseFieldTest::first), 0> field = { "first", "int", &UseFieldTest::first, NoNote }; };
+        struct second_ { static constexpr Fields::Field<float, void, decltype(&UseFieldTest::second), 1> field = { "second", "float", &UseFieldTest::second, NoNote }; };
         template <typename Function>
         constexpr static void ForEachField(Function function) {
             USE_FIELD(first)
@@ -746,8 +753,8 @@ class UseFieldAtTest {
         struct Class {
             enum_t(IndexOf, size_t, { first, second });
             static constexpr NoAnnotation NoNote {};
-            struct first_ { static constexpr Fields::Field<int, decltype(&UseFieldAtTest::first), 0> field = { "first", "int", &UseFieldAtTest::first, NoNote }; };
-            struct second_ { static constexpr Fields::Field<float, decltype(&UseFieldAtTest::second), 1> field = { "second", "float", &UseFieldAtTest::second, NoNote }; };
+            struct first_ { static constexpr Fields::Field<int, void, decltype(&UseFieldAtTest::first), 0> field = { "first", "int", &UseFieldAtTest::first, NoNote }; };
+            struct second_ { static constexpr Fields::Field<float, void, decltype(&UseFieldAtTest::second), 1> field = { "second", "float", &UseFieldAtTest::second, NoNote }; };
             template <typename Function>
             static void FieldAt(size_t fieldIndex, Function function) {
                 switch ( fieldIndex ) {
@@ -1233,6 +1240,44 @@ TEST(ReflectTest, RfMacroReflectReferences)
         visited = true;
     });
     EXPECT_TRUE(visited);
+}
+
+struct ReflectOffsets
+{
+    uint16_t a;
+    int b;
+    float c;
+    double d;
+    char e;
+    size_t f;
+
+    REFLECT(ReflectOffsets, a, b, c, d, e, f)
+};
+
+TEST(ReflectTest, RfMacroReflectOffsets)
+{
+    constexpr bool isStandardLayout = std::is_standard_layout_v<ReflectOffsets>;
+    EXPECT_TRUE(isStandardLayout);
+
+    ReflectOffsets reflectOffsets { uint16_t(1), 2, 3.0f, 4.0, '5', size_t(6) };
+
+    ReflectOffsets::Class::ForEachField(reflectOffsets, [&](auto & field, auto & value) {
+        using Field = std::remove_reference_t<decltype(field)>;
+        constexpr bool fieldHasOffset = Field::HasOffset;
+        EXPECT_TRUE(fieldHasOffset);
+
+        size_t fieldOffset = std::numeric_limits<size_t>::max();
+        switch ( field.Index )
+        {
+            case 0: fieldOffset = offsetof(ReflectOffsets, a); break;
+            case 1: fieldOffset = offsetof(ReflectOffsets, b); break;
+            case 2: fieldOffset = offsetof(ReflectOffsets, c); break;
+            case 3: fieldOffset = offsetof(ReflectOffsets, d); break;
+            case 4: fieldOffset = offsetof(ReflectOffsets, e); break;
+            case 5: fieldOffset = offsetof(ReflectOffsets, f); break;
+        }
+        EXPECT_EQ(fieldOffset, field.getOffset());
+    });
 }
 
 TEST(ReflectTest, ReflectedType)

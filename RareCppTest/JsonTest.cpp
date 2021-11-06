@@ -2928,12 +2928,12 @@ TEST_HEADER(JsonOutputPut, Value)
 
     InstanceField rootObj;
     rootObj.a = 5;
-    Json::Put::Value<NoAnnotation, Fields::Field<InstanceField, void*, 0, NoAnnotation>, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(rootObjStream, Json::context, placeholderObj, rootObj);
+    Json::Put::Value<NoAnnotation, Fields::Field<InstanceField, void, void*, 0, NoAnnotation>, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(rootObjStream, Json::context, placeholderObj, rootObj);
     EXPECT_STREQ("{\"a\":5}", rootObjStream.str().c_str());
 
     InstanceField obj;
     obj.a = 6;
-    Json::Put::Value<NoAnnotation, Fields::Field<InstanceField, void*, 0, NoAnnotation>, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(reflectedObjStream, Json::context, placeholderObj, obj);
+    Json::Put::Value<NoAnnotation, Fields::Field<InstanceField, void, void*, 0, NoAnnotation>, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(reflectedObjStream, Json::context, placeholderObj, obj);
     EXPECT_STREQ("{\"a\":6}", reflectedObjStream.str().c_str());
 
     std::string str = "asdf";
@@ -2941,7 +2941,7 @@ TEST_HEADER(JsonOutputPut, Value)
     EXPECT_STREQ("\"asdf\"", strStream.str().c_str());
 
     AnEnum enumInt = AnEnum::first;
-    Json::Put::Value<NoAnnotation, Fields::Field<AnEnum, void*, 0, Json::EnumIntType>, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(enumIntStream, Json::context, placeholderObj, enumInt);
+    Json::Put::Value<NoAnnotation, Fields::Field<AnEnum, void, void*, 0, Json::EnumIntType>, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(enumIntStream, Json::context, placeholderObj, enumInt);
     EXPECT_STREQ("0", enumIntStream.str().c_str());
 
     bool boolean = false;

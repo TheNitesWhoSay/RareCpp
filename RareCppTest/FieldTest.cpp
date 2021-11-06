@@ -10,7 +10,7 @@ TEST(ReflectionFieldTest, FieldSimple)
     char fieldTypeStr[] = "int";
 
     Field<> field = { FieldName, fieldTypeStr };
-    bool isEqual = std::is_same<decltype(field), Field<void, std::nullptr_t, 0, NoAnnotation, nullptr>>::value;
+    bool isEqual = std::is_same<decltype(field), Field<void, void, std::nullptr_t, 0, NoAnnotation, nullptr>>::value;
     EXPECT_TRUE(isEqual);
     
     EXPECT_STREQ(FieldName, field.name);
@@ -22,6 +22,16 @@ struct TestStruct
     int testVal;
     static int testStaticVal;
 };
+struct testVal_
+{
+    template <bool HasOffset, typename T = void> struct Get { static constexpr size_t offset() { return offsetof(TestStruct, testVal); } };
+    template <typename T> struct Get<false, T> { static constexpr size_t offset() { return size_t(0); } };
+};
+struct testStaticVal_
+{
+    template <bool HasOffset, typename T = void> struct Get { static constexpr size_t offset() { return size_t(0); } };
+    template <typename T> struct Get<false, T> { static constexpr size_t offset() { return size_t(0); } };
+};
 int TestStruct::testStaticVal = 0;
 
 TEST(ReflectionFieldTest, FieldTemplated)
@@ -30,7 +40,7 @@ TEST(ReflectionFieldTest, FieldTemplated)
     char fieldTypeStr[] = "int";
     NoAnnotation noAnnotation{};
 
-    Field<int, decltype(&TestStruct::testVal), fieldIndex, NoAnnotation, FieldName> field =
+    Field<int, testVal_, decltype(&TestStruct::testVal), fieldIndex, NoAnnotation, FieldName> field =
     { FieldName, fieldTypeStr, &TestStruct::testVal, noAnnotation };
     using IntField = decltype(field);
 
@@ -51,14 +61,19 @@ TEST(ReflectionFieldTest, FieldTemplated)
     EXPECT_EQ(fieldIndex, IntField::Index);
     EXPECT_FALSE(IntField::IsStatic);
     EXPECT_FALSE(IntField::IsFunction);
+    EXPECT_TRUE(IntField::HasOffset);
+    constexpr size_t intFieldOffset = offsetof(TestStruct, testVal);
+    EXPECT_EQ(intFieldOffset, IntField::getOffset());
 
-    Field<int, decltype(&TestStruct::testStaticVal), fieldIndex, NoAnnotation, FieldName> staticField =
+    Field<int, testStaticVal_, decltype(&TestStruct::testStaticVal), fieldIndex, NoAnnotation, FieldName> staticField =
     { FieldName, fieldTypeStr, &TestStruct::testStaticVal, noAnnotation };
     using StaticIntField = decltype(staticField);
 
     EXPECT_EQ(staticField.p, &TestStruct::testStaticVal);
     EXPECT_TRUE(StaticIntField::IsStatic);
     EXPECT_FALSE(StaticIntField::IsFunction);
+    EXPECT_FALSE(StaticIntField::HasOffset);
+    EXPECT_EQ(0, StaticIntField::getOffset());
 }
 
 struct ReferencesTestStruct
@@ -76,7 +91,7 @@ TEST(ReflectionFieldTest, ReferencesFieldTemplated)
     bool fieldIsFunction = false;
     NoAnnotation noAnnotation{};
 
-    Field<decltype(ReferencesTestStruct::testVal), std::nullptr_t, fieldIndex, NoAnnotation, FieldName> field =
+    Field<decltype(ReferencesTestStruct::testVal), void, std::nullptr_t, fieldIndex, NoAnnotation, FieldName> field =
     { FieldName, fieldTypeStr, nullptr, noAnnotation };
     using IntField = decltype(field);
 
@@ -97,8 +112,9 @@ TEST(ReflectionFieldTest, ReferencesFieldTemplated)
     EXPECT_EQ(fieldIndex, IntField::Index);
     EXPECT_FALSE(IntField::IsStatic);
     EXPECT_FALSE(IntField::IsFunction);
+    EXPECT_FALSE(IntField::HasOffset);
 
-    Field<decltype(ReferencesTestStruct::testStaticVal), decltype(&ReferencesTestStruct::testStaticVal), fieldIndex, NoAnnotation, FieldName> staticField =
+    Field<decltype(ReferencesTestStruct::testStaticVal), void, decltype(&ReferencesTestStruct::testStaticVal), fieldIndex, NoAnnotation, FieldName> staticField =
     { FieldName, fieldTypeStr, nullptr, noAnnotation };
     using StaticIntField = decltype(staticField);
 
@@ -109,6 +125,7 @@ TEST(ReflectionFieldTest, ReferencesFieldTemplated)
 
     EXPECT_EQ(fieldIndex, StaticIntField::Index);
     EXPECT_TRUE(StaticIntField::IsStatic);
+    EXPECT_FALSE(StaticIntField::HasOffset);
 }
 
 struct TestFunctions
@@ -126,7 +143,7 @@ TEST(ReflectionFieldTest, MethodsAndFunctions)
     char fieldTypeStr[] = "std::string TestFunctions::reflectedFunction()";
     NoAnnotation noAnnotation{};
 
-    Field<decltype(&TestFunctions::reflectedFunction), decltype(&TestFunctions::reflectedFunction), 0, NoAnnotation, ReflectedFunctionFieldName> field =
+    Field<decltype(&TestFunctions::reflectedFunction), void, decltype(&TestFunctions::reflectedFunction), 0, NoAnnotation, ReflectedFunctionFieldName> field =
         { ReflectedFunctionFieldName, fieldTypeStr, &TestFunctions::reflectedFunction, noAnnotation };
     using FunctionField = decltype(field);
     
@@ -147,6 +164,7 @@ TEST(ReflectionFieldTest, MethodsAndFunctions)
     EXPECT_EQ(fieldIndex, FunctionField::Index);
     EXPECT_FALSE(FunctionField::IsStatic);
     EXPECT_TRUE(FunctionField::IsFunction);
+    EXPECT_FALSE(FunctionField::HasOffset);
 
 
     size_t staticFieldIndex = 1;
@@ -154,7 +172,7 @@ TEST(ReflectionFieldTest, MethodsAndFunctions)
     size_t staticFieldArraySize = 0;
     bool staticFieldIsFunction = true;
 
-    Field<decltype(&TestFunctions::staticReflectedFunction), decltype(&TestFunctions::staticReflectedFunction), 1, NoAnnotation, StaticReflectedFunctionFieldName> staticField = {
+    Field<decltype(&TestFunctions::staticReflectedFunction), void, decltype(&TestFunctions::staticReflectedFunction), 1, NoAnnotation, StaticReflectedFunctionFieldName> staticField = {
         StaticReflectedFunctionFieldName, staticFieldTypeStr,
         &TestFunctions::staticReflectedFunction, noAnnotation
     };
@@ -177,6 +195,7 @@ TEST(ReflectionFieldTest, MethodsAndFunctions)
     EXPECT_EQ(staticFieldIndex, StaticFunctionField::Index);
     EXPECT_TRUE(StaticFunctionField::IsStatic);
     EXPECT_TRUE(StaticFunctionField::IsFunction);
+    EXPECT_FALSE(StaticFunctionField::HasOffset);
 }
 
 struct AnnotationTest
@@ -201,7 +220,7 @@ TEST(ReflectionFieldTest, Annotations)
     char fieldTypeStr[] = "int";
     NoAnnotation noAnnotation{};
 
-    Field<int, decltype(&AnnotationTest::zeroAnnotations), fieldIndex, NoAnnotation, IrrelevantFieldName> zeroNoteField =
+    Field<int, void, decltype(&AnnotationTest::zeroAnnotations), fieldIndex, NoAnnotation, IrrelevantFieldName> zeroNoteField =
     { IrrelevantFieldName, fieldTypeStr, &AnnotationTest::zeroAnnotations, noAnnotation };
     using ZeroNoteField = decltype(zeroNoteField);
 
@@ -220,7 +239,7 @@ TEST(ReflectionFieldTest, Annotations)
     EXPECT_EQ(0, visitCount);
 
 
-    Field<int, decltype(&AnnotationTest::oneAnnotation), fieldIndex, decltype(AnnotationTest::oneAnnotation_note), IrrelevantFieldName> oneNoteField =
+    Field<int, void, decltype(&AnnotationTest::oneAnnotation), fieldIndex, decltype(AnnotationTest::oneAnnotation_note), IrrelevantFieldName> oneNoteField =
     { IrrelevantFieldName, fieldTypeStr, &AnnotationTest::oneAnnotation, AnnotationTest::oneAnnotation_note };
     using OneNoteField = decltype(oneNoteField);
 
@@ -252,7 +271,7 @@ TEST(ReflectionFieldTest, Annotations)
     EXPECT_EQ(1, visitCount);
 
 
-    Field<int, decltype(&AnnotationTest::twoAnnotations), fieldIndex, decltype(AnnotationTest::twoAnnotations_note), IrrelevantFieldName> twoNoteField =
+    Field<int, void, decltype(&AnnotationTest::twoAnnotations), fieldIndex, decltype(AnnotationTest::twoAnnotations_note), IrrelevantFieldName> twoNoteField =
     { IrrelevantFieldName, fieldTypeStr, &AnnotationTest::twoAnnotations, AnnotationTest::twoAnnotations_note };
     using TwoNoteField = decltype(twoNoteField);
 
@@ -290,7 +309,7 @@ TEST(ReflectionFieldTest, Annotations)
     EXPECT_EQ(2, visitCount);
 
 
-    Field<int, decltype(&AnnotationTest::threeAnnotations), fieldIndex, decltype(AnnotationTest::threeAnnotations_note), IrrelevantFieldName> threeNoteField =
+    Field<int, void, decltype(&AnnotationTest::threeAnnotations), fieldIndex, decltype(AnnotationTest::threeAnnotations_note), IrrelevantFieldName> threeNoteField =
     { IrrelevantFieldName, fieldTypeStr, &AnnotationTest::threeAnnotations, AnnotationTest::threeAnnotations_note };
     using ThreeNoteField = decltype(threeNoteField);
 
