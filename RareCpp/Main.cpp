@@ -559,22 +559,8 @@ struct MappedByTest
     REFLECT(MappedByTest, f1, f2, f3, f4, f5, f6)
 };
 
-struct Oft
-{
-    int a;
-    int b;
-
-    REFLECT(Oft, a, b)
-};
-
 int main()
 {
-    Oft::Class::ForEachField([](auto & field){
-        std::cout << field.name << ": " << field.getOffset() << std::endl;
-    });
-
-    std::cout << "b true offset: " << offsetof(Oft, b) << std::endl;
-
     MappedByTest mappedByTest = { "f1.a", "f2.a", "f3.a", "f4.a", "f5.a", "f6.a" };
     std::cout << Json::out<Json::Statics::Included>(mappedByTest) << std::endl;
     std::cout << Json::out<Json::Statics::Included, Json::OpNotes<ObjectMapper::UseMapping<F5, F1>>>(mappedByTest) << std::endl;

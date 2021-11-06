@@ -1914,7 +1914,7 @@ namespace Json
                 if ( context == nullptr )
                     context = std::make_shared<Context>();
 
-                Put::Value<Annotations, Fields::Field<Object, std::nullptr_t, 0, NoAnnotation>,
+                Put::Value<Annotations, Fields::Field<Object, void, std::nullptr_t, 0, NoAnnotation>,
                     statics, PrettyPrint, IndentLevel, indent, Object, true, Object>(os, *context, obj, obj);
 
                 return os;

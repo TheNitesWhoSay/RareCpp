@@ -842,16 +842,16 @@ namespace Reflect
 
     namespace Fields
     {
-        template <typename T = void, typename FieldPointer = std::nullptr_t, size_t FieldIndex = 0, typename Annotations = NoAnnotation, const char* FieldName = nullptr, typename FieldDescr = void>
+        template <typename T = void, typename FieldDescr = void, typename FieldPointer = std::nullptr_t, size_t FieldIndex = 0, typename Annotations = NoAnnotation, const char* FieldName = nullptr>
         struct Field;
     
         template <>
-        struct Field<void, std::nullptr_t, 0, NoAnnotation, nullptr, void> {
+        struct Field<void, void, std::nullptr_t, 0, NoAnnotation, nullptr> {
             const char* name;
             const char* typeStr;
         };
 
-        template <typename T, typename FieldPointer, size_t FieldIndex, typename FieldAnnotations, const char* FieldName, typename FieldDescr>
+        template <typename T, typename FieldDescr, typename FieldPointer, size_t FieldIndex, typename FieldAnnotations, const char* FieldName>
         struct Field {
             static constexpr const char* Name = FieldName;
             const char* name;
@@ -868,7 +868,7 @@ namespace Reflect
             static constexpr bool IsStatic = !std::is_member_pointer<FieldPointer>::value && !std::is_same<std::nullptr_t, FieldPointer>::value;
             static constexpr bool IsFunction = std::is_function_v<T> || std::is_same_v<T, FieldPointer>;
             static constexpr bool HasOffset = !IsStatic && !IsFunction && !std::is_reference_v<T>;
-            static constexpr size_t getOffset() { return FieldDescr::template Get<HasOffset>::offset(); }
+            static constexpr size_t getOffset() { return FieldDescr::template Get<HasOffset>::offset(); } // Returns 0 if HasOffset is false
 
             template <typename Annotation>
             static constexpr bool HasAnnotation = ExtendedTypeSupport::has_type<Annotation, Annotations>::value;
@@ -928,8 +928,8 @@ namespace Reflect
     template <typename T> struct GetNote<T, false> { static constexpr auto & value = T::x##_note; }; \
     using NoteType = decltype(idNote<ProxyType>(0)); \
     template <bool HasOffset, typename T = ClassType> struct Get { static constexpr size_t offset() { return offsetof(T, x); } }; \
-    template <typename T> struct Get<false, T> { static constexpr size_t offset() { return size_t(-1); } }; \
-    using Field = Reflect::Fields::Field<Type, Pointer, IndexOf::x, NoteType, nameStr, x##_>; \
+    template <typename T> struct Get<false, T> { static constexpr size_t offset() { return size_t(0); } }; \
+    using Field = Reflect::Fields::Field<Type, x##_, Pointer, IndexOf::x, NoteType, nameStr>; \
     static constexpr Field field = { nameStr, &typeStr.value[0], GetPointer<ProxyType, std::is_reference_v<Type>>::value, \
         GetNote<ProxyType, std::is_same_v<decltype(Class::NoNote), NoteType>>::value }; \
     CLANG_ONLY(x) \
