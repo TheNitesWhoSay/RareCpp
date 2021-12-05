@@ -2087,4 +2087,15 @@ TEST_HEADER(JsonInput, In)
     EXPECT_STREQ("6", complexStruct.fieldCluster.object().find("someOtherUnknown")->second->numberArray()[2].c_str());
 }
 
+TEST_HEADER(JsonInput, InProxyReflected)
+{
+    std::stringstream objectStream("{\"a\":5}");
+    ProxyReflectedObject object;
+    object.a = 0;
+
+    objectStream >> Json::in(object);
+
+    EXPECT_EQ(5, object.a);
+}
+
 #endif
