@@ -30,7 +30,7 @@
 ///     ...
 /// });
 /* enum_t "enum type (scoped)" documentation minimized for expansion visibility, see definition for description and usage */
-#define enum_t(name, type, ...) struct name ## _ { enum type ## _ : type __VA_ARGS__; }; using name = name ## _::type ## _;
+#define enum_t(name, type, ...) struct name ## _ { enum type ## _ : type __VA_ARGS__; }; using name = typename name ## _::type ## _;
 #pragma warning(disable: 26812) // In the context of using enum_t, enum class is definitely not preferred, disable the warning in visual studios
 #endif
 
@@ -897,6 +897,7 @@ namespace Reflect
     
     template <typename Type> struct unproxy { using T = Type; };
     template <typename Type> struct unproxy<Proxy<Type>> { using T = Type; };
+    template <typename Type> using unproxy_t = typename unproxy<Type>::T;
 
 #define GET_FIELD_NAME(x) x,
 
@@ -916,8 +917,8 @@ namespace Reflect
     template <typename T> static constexpr ExtendedTypeSupport::TypePair<decltype(T::x), decltype(&T::x)> identify(int); \
     template <typename T> static constexpr ExtendedTypeSupport::TypePair<decltype(T::x), std::nullptr_t> identify(unsigned int); \
     template <typename T> static constexpr ExtendedTypeSupport::TypePair<decltype(&T::x), decltype(&T::x)> identify(...); \
-    using Type = decltype(identify<ProxyType>(0))::Left; \
-    using Pointer = decltype(identify<ProxyType>(0))::Right; \
+    using Type = typename decltype(identify<ProxyType>(0))::Left; \
+    using Pointer = typename decltype(identify<ProxyType>(0))::Right; \
     template <typename T, bool IsReference> struct GetPointer { static constexpr auto value = &T::x; }; \
     template <typename T> struct GetPointer<T, true> { static constexpr std::nullptr_t value = nullptr; }; \
     static constexpr const char nameStr[] = #x; \
@@ -948,7 +949,7 @@ namespace Reflect
 #define REFLECT(objectType, ...) \
 struct Class { \
     using ProxyType = objectType; \
-    using ClassType = Reflect::unproxy<ProxyType>::T; \
+    using ClassType = Reflect::unproxy_t<ProxyType>; \
     enum_t(IndexOf, size_t, { FOR_EACH(GET_FIELD_NAME, __VA_ARGS__) }); \
     static constexpr Reflect::NoAnnotation NoNote {}; \
     using Annotations = decltype(NoNote); \
@@ -965,14 +966,14 @@ struct Class { \
     template <typename Function> static void FieldAt(ClassType & object, size_t fieldIndex, Function function) { \
         switch ( fieldIndex ) { FOR_EACH(USE_FIELD_VALUE_AT, __VA_ARGS__) } } \
 }; \
-using Supers = Reflect::Inherit<Class::ClassType, Class::Annotations>;
+using Supers = Reflect::Inherit<typename Class::ClassType, typename Class::Annotations>;
 
 
 /// REFLECT_NOTED is exactly the same as REFLECT except this signals that objectType itself is annotated
 #define REFLECT_NOTED(objectType, ...) \
 struct Class { \
     using ProxyType = objectType; \
-    using ClassType = Reflect::unproxy<ProxyType>::T; \
+    using ClassType = Reflect::unproxy_t<ProxyType>; \
     enum_t(IndexOf, size_t, { FOR_EACH(GET_FIELD_NAME, __VA_ARGS__) }); \
     static constexpr Reflect::NoAnnotation NoNote {}; \
     using Annotations = decltype(objectType##_note); \
@@ -989,14 +990,14 @@ struct Class { \
     template <typename Function> static void FieldAt(ClassType & object, size_t fieldIndex, Function function) { \
         switch ( fieldIndex ) { FOR_EACH(USE_FIELD_VALUE_AT, __VA_ARGS__) } } \
 }; \
-using Supers = Reflect::Inherit<Class::ClassType, Class::Annotations>;
+using Supers = Reflect::Inherit<typename Class::ClassType, typename Class::Annotations>;
 
 
 /// REFLECT_EMPTY is used to reflect an annotated class with no reflected fields
 #define REFLECT_EMPTY(objectType) \
 struct Class { \
     using ProxyType = objectType; \
-    using ClassType = Reflect::unproxy<ProxyType>::T; \
+    using ClassType = Reflect::unproxy_t<ProxyType>; \
     using Annotations = decltype(objectType##_note); \
     static constexpr Annotations & annotations = objectType##_note; \
     static constexpr size_t TotalFields = 0; \
@@ -1008,7 +1009,7 @@ struct Class { \
     template <typename Function> constexpr static void FieldAt(size_t fieldIndex, Function function) {} \
     template <typename Function> static void FieldAt(ClassType & object, size_t fieldIndex, Function function) {} \
 }; \
-using Supers = Reflect::Inherit<Class::ClassType, Class::Annotations>;
+using Supers = Reflect::Inherit<typename Class::ClassType, typename Class::Annotations>;
 
     template <typename T, typename = decltype(T::Class::TotalFields)> static constexpr std::true_type typeHasReflection(int);
     template <typename T> static constexpr std::false_type typeHasReflection(unsigned int);
