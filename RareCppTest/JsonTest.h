@@ -298,4 +298,14 @@ struct Json::Output::CustomizeType<ThreeArgSpecializedType_OpAnnotationsDefaulte
     }
 };
 
+struct ProxyReflectedObject
+{
+    int a;
+};
+
+template <> struct Reflect::Proxy<ProxyReflectedObject> : public ProxyReflectedObject
+{
+    REFLECT(Reflect::Proxy<ProxyReflectedObject>, a)
+};
+
 #endif

@@ -197,4 +197,14 @@ struct Json::Input::CustomizeType<CustomizeType1Arg>
     static bool As(std::istream & input, Context & context, CustomizeType1Arg & value) { return true; }
 };
 
+struct ProxyReflectedObject
+{
+    int a;
+};
+
+template <> struct Reflect::Proxy<ProxyReflectedObject> : public ProxyReflectedObject
+{
+    REFLECT(Reflect::Proxy<ProxyReflectedObject>, a)
+};
+
 #endif

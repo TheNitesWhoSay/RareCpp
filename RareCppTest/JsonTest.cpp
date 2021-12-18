@@ -3380,6 +3380,15 @@ TEST_HEADER(JsonOutputTest, JsonOut)
     EXPECT_STREQ("{\"integer\":4,\"str\":\"aString\",\"nestedObj\":{\"bool\":false,\"ray\":[1,2,3]}}", finalObjStream.str().c_str());
 }
 
+TEST_HEADER(JsonOutputTest, OutProxyReflected)
+{
+    ProxyReflectedObject obj = { 5 };
+
+    TestStreamType objStream;
+    objStream << Json::out(obj);
+    EXPECT_STREQ("{\"a\":5}", objStream.str().c_str());
+}
+
 struct JsonReferences
 {
     JsonReferences() : primitive(11), primitiveReference(primitive) {}
