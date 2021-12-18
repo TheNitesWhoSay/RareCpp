@@ -902,11 +902,11 @@ namespace Reflect
 #define GET_FIELD_NAME(x) x,
 
 #ifdef __clang__
-#define CLANG_ONLY(x) template <typename T, typename F, typename = decltype(T::x)> static constexpr void useInst(F f, T & t) { f(field, t.x); } \
-    template <typename T, typename F, typename = decltype(T::x)> static constexpr void useInst(F f, const T & t) { f(field, t.x); } \
-    template <typename T, typename F> static constexpr inline void useInst(F f, ...) { }
-#define USE_FIELD_VALUE(x) if constexpr ( !x##_::Field::IsFunction ) x##_::useInst<ClassType>(function, object);
-#define USE_FIELD_VALUE_AT(x) case IndexOf::x: if constexpr ( !x##_::Field::IsFunction ) x##_::useInst<ClassType>(function, object); break;
+#define CLANG_ONLY(x) template <typename T_, typename F, typename = decltype(T_::x)> static constexpr void useInst(F f, T_ & t) { f(field, t.x); } \
+    template <typename T_, typename F, typename = decltype(T_::x)> static constexpr void useInst(F f, const T_ & t) { f(field, t.x); } \
+    template <typename T_, typename F> static constexpr inline void useInst(F f, ...) { }
+#define USE_FIELD_VALUE(x) if constexpr ( !x##_::Field::IsFunction ) x##_::template useInst<ClassType>(function, object);
+#define USE_FIELD_VALUE_AT(x) case IndexOf::x: if constexpr ( !x##_::Field::IsFunction ) x##_::template useInst<ClassType>(function, object); break;
 #else
 #define CLANG_ONLY(x)
 #define USE_FIELD_VALUE(x) if constexpr ( !x##_::Field::IsFunction ) function(x##_::field, object.x);
@@ -914,22 +914,22 @@ namespace Reflect
 #endif
 
 #define DESCRIBE_FIELD(x) struct x##_ { \
-    template <typename T> static constexpr ExtendedTypeSupport::TypePair<decltype(T::x), decltype(&T::x)> identify(int); \
-    template <typename T> static constexpr ExtendedTypeSupport::TypePair<decltype(T::x), std::nullptr_t> identify(unsigned int); \
-    template <typename T> static constexpr ExtendedTypeSupport::TypePair<decltype(&T::x), decltype(&T::x)> identify(...); \
+    template <typename T_> static constexpr ExtendedTypeSupport::TypePair<decltype(T_::x), decltype(&T_::x)> identify(int); \
+    template <typename T_> static constexpr ExtendedTypeSupport::TypePair<decltype(T_::x), std::nullptr_t> identify(unsigned int); \
+    template <typename T_> static constexpr ExtendedTypeSupport::TypePair<decltype(&T_::x), decltype(&T_::x)> identify(...); \
     using Type = typename decltype(identify<ProxyType>(0))::Left; \
     using Pointer = typename decltype(identify<ProxyType>(0))::Right; \
-    template <typename T, bool IsReference> struct GetPointer { static constexpr auto value = &T::x; }; \
-    template <typename T> struct GetPointer<T, true> { static constexpr std::nullptr_t value = nullptr; }; \
+    template <typename T_, bool IsReference> struct GetPointer { static constexpr auto value = &T_::x; }; \
+    template <typename T_> struct GetPointer<T_, true> { static constexpr std::nullptr_t value = nullptr; }; \
     static constexpr const char nameStr[] = #x; \
     static constexpr auto typeStr = ExtendedTypeSupport::TypeName<Type>(); \
-    template <typename T> static constexpr decltype(T::x##_note) idNote(int); \
-    template <typename T> static constexpr decltype(Class::NoNote) idNote(...); \
-    template <typename T, bool NoNote> struct GetNote { static constexpr auto & value = Class::NoNote; }; \
-    template <typename T> struct GetNote<T, false> { static constexpr auto & value = T::x##_note; }; \
+    template <typename T_> static constexpr decltype(T_::x##_note) idNote(int); \
+    template <typename T_> static constexpr decltype(Class::NoNote) idNote(...); \
+    template <typename T_, bool NoNote> struct GetNote { static constexpr auto & value = Class::NoNote; }; \
+    template <typename T_> struct GetNote<T_, false> { static constexpr auto & value = T_::x##_note; }; \
     using NoteType = decltype(idNote<ProxyType>(0)); \
-    template <bool HasOffset, typename T = ClassType> struct Get { static constexpr size_t offset() { return offsetof(T, x); } }; \
-    template <typename T> struct Get<false, T> { static constexpr size_t offset() { return size_t(0); } }; \
+    template <bool HasOffset, typename T_ = ClassType> struct Get { static constexpr size_t offset() { return offsetof(T_, x); } }; \
+    template <typename T_> struct Get<false, T_> { static constexpr size_t offset() { return size_t(0); } }; \
     using Field = Reflect::Fields::Field<Type, x##_, Pointer, IndexOf::x, NoteType, nameStr>; \
     static constexpr Field field = { nameStr, &typeStr.value[0], GetPointer<ProxyType, std::is_reference_v<Type>>::value, \
         GetNote<ProxyType, std::is_same_v<decltype(Class::NoNote), NoteType>>::value }; \
