@@ -1280,6 +1280,284 @@ TEST(ReflectTest, RfMacroReflectOffsets)
     });
 }
 
+NOTE(ReflectEmptyTemplate, 'a')
+template <typename T>
+struct ReflectEmptyTemplate
+{
+    REFLECT_EMPTY(ReflectEmptyTemplate)
+};
+
+TEST(ReflectTest, ReflectEmptyTemplate)
+{
+    using Instantiation = ReflectEmptyTemplate<int>;
+
+    bool isReflected = Reflect::is_reflected_v<Instantiation>;
+    EXPECT_TRUE(isReflected);
+    EXPECT_EQ(0, Instantiation::Class::TotalFields);
+
+    char a = std::get<0>(Instantiation::Class::annotations);
+    EXPECT_EQ(a, 'a');
+}
+
+template <typename T>
+struct ReflectTemplate
+{
+    int a = 1;
+    int b = 2;
+
+    REFLECT(ReflectTemplate, a, b)
+};
+
+TEST(ReflectTest, ReflectTemplate)
+{
+    using Instantiation = ReflectTemplate<int>;
+
+    bool isReflected = Reflect::is_reflected_v<Instantiation>;
+    EXPECT_TRUE(isReflected);
+    EXPECT_EQ(2, Instantiation::Class::TotalFields);
+
+    int total = 0;
+    Instantiation instance {};
+    reflected_type_t<Instantiation>::Class::ForEachField(instance, [&](auto & field, auto & value) {
+        total += value;
+    });
+    EXPECT_EQ(3, total);
+
+    int a = 0;
+    reflected_type_t<Instantiation>::Class::FieldAt(instance, 0, [&](auto & field, auto & value) {
+        a = value;
+    });
+    EXPECT_EQ(1, a);
+    int b = 0;
+    reflected_type_t<Instantiation>::Class::FieldAt(instance, 1, [&](auto & field, auto & value) {
+        b = value;
+    });
+    EXPECT_EQ(2, b);
+}
+
+NOTE(ReflectNotedTemplate, 'b')
+template <typename T>
+struct ReflectNotedTemplate
+{
+    int a = 1;
+    int b = 2;
+
+    REFLECT_NOTED(ReflectNotedTemplate, a, b)
+};
+
+TEST(ReflectTest, ReflectNotedTemplate)
+{
+    using Instantiation = ReflectNotedTemplate<int>;
+
+    bool isReflected = Reflect::is_reflected_v<Instantiation>;
+    EXPECT_TRUE(isReflected);
+    EXPECT_EQ(2, Instantiation::Class::TotalFields);
+
+    char b = std::get<0>(Instantiation::Class::annotations);
+    EXPECT_EQ(b, 'b');
+
+    int total = 0;
+    Instantiation instance {};
+    reflected_type_t<Instantiation>::Class::ForEachField(instance, [&](auto & field, auto & value) {
+        total += value;
+    });
+    EXPECT_EQ(3, total);
+
+    int a = 0;
+    reflected_type_t<Instantiation>::Class::FieldAt(instance, 0, [&](auto & field, auto & value) {
+        a = value;
+    });
+    EXPECT_EQ(1, a);
+    int bVal = 0;
+    reflected_type_t<Instantiation>::Class::FieldAt(instance, 1, [&](auto & field, auto & value) {
+        bVal = value;
+    });
+    EXPECT_EQ(2, bVal);
+}
+
+template <typename T>
+struct ReflectTemplateToField
+{
+    T a = 1;
+
+    REFLECT(ReflectTemplateToField, a)
+};
+
+TEST(ReflectTest, ReflectTemplateToField)
+{
+    using Instantiation = ReflectTemplateToField<int>;
+
+    bool isReflected = Reflect::is_reflected_v<Instantiation>;
+    EXPECT_TRUE(isReflected);
+    EXPECT_EQ(1, Instantiation::Class::TotalFields);
+
+    int total = 0;
+    Instantiation instance {};
+    reflected_type_t<Instantiation>::Class::ForEachField(instance, [&](auto & field, auto & value) {
+        total += value;
+    });
+    EXPECT_EQ(1, total);
+
+    int a = 0;
+    reflected_type_t<Instantiation>::Class::FieldAt(instance, 0, [&](auto & field, auto & value) {
+        a = value;
+    });
+    EXPECT_EQ(1, a);
+}
+
+template <typename T, typename U>
+struct ReflectMultiTemplateArg
+{
+    std::pair<T, U> p;
+
+    REFLECT(ReflectMultiTemplateArg, p)
+};
+
+TEST(ReflectTest, ReflectMultiTemplateArg)
+{
+    using Instantiation = ReflectMultiTemplateArg<int, std::string>;
+
+    bool isReflected = Reflect::is_reflected_v<Instantiation>;
+    EXPECT_TRUE(isReflected);
+    EXPECT_EQ(1, Instantiation::Class::TotalFields);
+
+    int total = 0;
+    Instantiation instance { {1, "one"} };
+    reflected_type_t<Instantiation>::Class::ForEachField(instance, [&](auto & field, auto & value) {
+        total += value.first;
+    });
+    EXPECT_EQ(1, total);
+
+    int l = 0;
+    std::string r {};
+    reflected_type_t<Instantiation>::Class::FieldAt(instance, 0, [&](auto & field, auto & value) {
+        l = value.first;
+        r = value.second;
+    });
+    EXPECT_EQ(1, l);
+    EXPECT_STREQ("one", r.c_str());
+}
+
+template <typename T>
+struct ReflectPartialSpecialization
+{
+    int a;
+
+    REFLECT(ReflectPartialSpecialization, a)
+};
+
+template <>
+struct ReflectPartialSpecialization<uint16_t>
+{
+    int b;
+    int c;
+
+    REFLECT(ReflectPartialSpecialization, b, c)
+};
+
+template <>
+struct ReflectPartialSpecialization<int16_t>
+{
+    int b;
+    int c;
+};
+
+TEST(ReflectTest, ReflectPartialSpecialization)
+{
+    using PrimaryTemplateType = ReflectPartialSpecialization<int>;
+    using PartialSpecializationType = ReflectPartialSpecialization<uint16_t>;
+    using UnreflectedSpecializationType = ReflectPartialSpecialization<int16_t>;
+
+    bool primaryTemplateTypeIsReflected = Reflect::is_reflected_v<PrimaryTemplateType>;
+    bool partialSpecializationTypeIsReflected = Reflect::is_reflected_v<PartialSpecializationType>;
+    bool unreflectedSpecializationTypeIsReflected = Reflect::is_reflected_v<UnreflectedSpecializationType>;
+    EXPECT_TRUE(primaryTemplateTypeIsReflected);
+    EXPECT_TRUE(partialSpecializationTypeIsReflected);
+    EXPECT_FALSE(unreflectedSpecializationTypeIsReflected);
+
+    EXPECT_EQ(1, PrimaryTemplateType::Class::TotalFields);
+    EXPECT_EQ(2, PartialSpecializationType::Class::TotalFields);
+
+    PrimaryTemplateType ptt { 1 };
+    PartialSpecializationType pst { 1, 2 };
+
+    int total = 0;
+    reflected_type_t<PrimaryTemplateType>::Class::ForEachField(ptt, [&](auto & field, auto & value) {
+        total += value;
+    });
+    EXPECT_EQ(1, total);
+
+    int a = 0;
+    reflected_type_t<PrimaryTemplateType>::Class::FieldAt(ptt, 0, [&](auto & field, auto & value) {
+        a = value;
+    });
+    EXPECT_EQ(1, a);
+
+    total = 0;
+    reflected_type_t<PartialSpecializationType>::Class::ForEachField(pst, [&](auto & field, auto & value) {
+        total += value;
+    });
+    EXPECT_EQ(3, total);
+    
+    int b = 0;
+    int c = 0;
+    reflected_type_t<PartialSpecializationType>::Class::FieldAt(pst, 0, [&](auto & field, auto & value) {
+        b = value;
+    });
+    reflected_type_t<PartialSpecializationType>::Class::FieldAt(pst, 1, [&](auto & field, auto & value) {
+        c = value;
+    });
+    EXPECT_EQ(1, b);
+    EXPECT_EQ(2, c);
+}
+
+template <typename T>
+struct ReflectSpecializationOnly
+{
+    int a;
+};
+
+template <>
+struct ReflectSpecializationOnly<uint16_t>
+{
+    int b;
+    int c;
+
+    REFLECT(ReflectSpecializationOnly, b, c)
+};
+
+TEST(ReflectTest, ReflectSpecializationOnly)
+{
+    using PrimaryTemplateType = ReflectSpecializationOnly<int>;
+    using PartialSpecializationType = ReflectSpecializationOnly<uint16_t>;
+
+    bool primaryTemplateTypeIsReflected = Reflect::is_reflected_v<PrimaryTemplateType>;
+    bool partialSpecializationTypeIsReflected = Reflect::is_reflected_v<PartialSpecializationType>;
+    EXPECT_FALSE(primaryTemplateTypeIsReflected);
+    EXPECT_TRUE(partialSpecializationTypeIsReflected);
+
+    EXPECT_EQ(2, PartialSpecializationType::Class::TotalFields);
+
+    PartialSpecializationType pst { 1, 2 };
+
+    int total = 0;
+    reflected_type_t<PartialSpecializationType>::Class::ForEachField(pst, [&](auto & field, auto & value) {
+        total += value;
+    });
+    EXPECT_EQ(3, total);
+    
+    int b = 0;
+    int c = 0;
+    reflected_type_t<PartialSpecializationType>::Class::FieldAt(pst, 0, [&](auto & field, auto & value) {
+        b = value;
+    });
+    reflected_type_t<PartialSpecializationType>::Class::FieldAt(pst, 1, [&](auto & field, auto & value) {
+        c = value;
+    });
+    EXPECT_EQ(1, b);
+    EXPECT_EQ(2, c);
+}
+
 TEST(ReflectTest, ReflectedType)
 {
     bool isSame = std::is_same_v<Reflect::reflected_type<UnreflectedObj>::type, UnreflectedObj>;
