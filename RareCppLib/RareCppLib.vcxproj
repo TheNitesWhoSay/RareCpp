@@ -146,6 +146,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Binary.h" />
     <ClInclude Include="Json.h" />
     <ClInclude Include="Reflect.h" />
     <ClInclude Include="StringBuffer.h" />
