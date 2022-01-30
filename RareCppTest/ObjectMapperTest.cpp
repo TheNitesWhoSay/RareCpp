@@ -1149,13 +1149,13 @@ TEST(ObjectMapperAnnotationsTest, GetDefaultMapping)
 
 struct CopyConstructorTest
 {
-    CopyConstructorTest(int a, int b) : a(a), b(b) {}
-    CopyConstructorTest(const CopyConstructorTest & other) { ObjectMapper::map_default(*this, other); }
-
     int a = 0;
     int b = 0;
 
     REFLECT(CopyConstructorTest, a, b)
+
+    CopyConstructorTest(int a, int b) : a(a), b(b) {}
+    CopyConstructorTest(const CopyConstructorTest & other) { ObjectMapper::map_default(*this, other); }
 };
 
 TEST(ObjectMapperAutoMappingTest, CopyConstructors)
@@ -1176,12 +1176,12 @@ struct AssignmentOperatorTestSrc
 
 struct AssignmentOperatorTestDest
 {
-    void operator=(const AssignmentOperatorTestSrc & src) { ObjectMapper::map_default(*this, src); }
-
     int a = 0;
     int b = 0;
 
     REFLECT(AssignmentOperatorTestDest, a, b)
+
+    void operator=(const AssignmentOperatorTestSrc & src) { ObjectMapper::map_default(*this, src); }
 };
 
 TEST(ObjectMapperAutoMappingTest, AssignmentOperator)
@@ -1204,13 +1204,13 @@ struct MoveAssignmentOperatorTestSrc
 
 struct MoveAssignmentOperatorTestDest
 {
-    // Note that ObjectMapper doesn't use any moves internally
-    void operator=(const MoveAssignmentOperatorTestSrc && src) { ObjectMapper::map_default(*this, src); }
-
     int a = 0;
     int b = 0;
 
     REFLECT(MoveAssignmentOperatorTestDest, a, b)
+
+    // Note that ObjectMapper doesn't use any moves internally
+    void operator=(const MoveAssignmentOperatorTestSrc && src) { ObjectMapper::map_default(*this, src); }
 };
 
 TEST(ObjectMapperAutoMappingTest, MoveAssignmentOperator)
@@ -1233,12 +1233,12 @@ struct ConvertingConstructorTestSrc
 
 struct ConvertingConstructorTestDest
 {
-    ConvertingConstructorTestDest(ConvertingConstructorTestSrc & src) { ObjectMapper::map_default(*this, src); }
-
     int a = 0;
     int b = 0;
 
     REFLECT(ConvertingConstructorTestDest, a, b)
+
+    ConvertingConstructorTestDest(ConvertingConstructorTestSrc & src) { ObjectMapper::map_default(*this, src); }
 };
 
 TEST(ObjectMapperAutoMappingTest, ConvertingConstructor)
@@ -1260,13 +1260,13 @@ struct MoveConstructorTestSrc
 
 struct MoveConstructorTestDest
 {
-    // Note that ObjectMapper doesn't use any moves internally
-    MoveConstructorTestDest(MoveConstructorTestSrc && src) { ObjectMapper::map_default(*this, src); }
-
     int a = 0;
     int b = 0;
 
     REFLECT(MoveConstructorTestDest, a, b)
+
+    // Note that ObjectMapper doesn't use any moves internally
+    MoveConstructorTestDest(MoveConstructorTestSrc && src) { ObjectMapper::map_default(*this, src); }
 };
 
 TEST(ObjectMapperAutoMappingTest, MoveConstructor)
@@ -1288,12 +1288,12 @@ struct ConversionOperatorTestDest
 
 struct ConversionOperatorTestSrc
 {
-    operator ConversionOperatorTestDest() const { return ObjectMapper::map_default<ConversionOperatorTestDest>(*this); }
-
     int a = 0;
     int b = 0;
 
     REFLECT(ConversionOperatorTestSrc, a, b)
+
+    operator ConversionOperatorTestDest() const { return ObjectMapper::map_default<ConversionOperatorTestDest>(*this); }
 };
 
 TEST(ObjectMapperAutoMappingTest, ConversionOperator)
@@ -1316,12 +1316,12 @@ struct ExplicitConversionOperatorTestDest
 
 struct ExplicitConversionOperatorTestSrc
 {
-    operator ExplicitConversionOperatorTestDest() const { return ObjectMapper::map_default<ExplicitConversionOperatorTestDest>(*this); }
-
     int a = 0;
     int b = 0;
 
     REFLECT(ExplicitConversionOperatorTestSrc, a, b)
+
+    operator ExplicitConversionOperatorTestDest() const { return ObjectMapper::map_default<ExplicitConversionOperatorTestDest>(*this); }
 };
 
 TEST(ObjectMapperAutoMappingTest, ExplicitConversionOperator)

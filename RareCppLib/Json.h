@@ -1974,7 +1974,8 @@ namespace Json
             template <typename Value, typename OpAnnotations = NoAnnotation, typename Field = NoField>
             struct CustomizeType : public Unspecialized
             {
-                /// Should return true if you put any output, else you should leave output unchanged
+                /// return false if you wish for the input to be re-parsed by the default JSON code, else return true
+                /// For invalid input you can throw an exception to end parsing immediately, or return true to continue parsing
                 static bool As(std::istream & input, Context & context, Value & value) { return false; }
             };
 

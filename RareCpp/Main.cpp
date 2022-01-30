@@ -1,5 +1,6 @@
 #include "Main.h"
 #include "../RareCppLib/Reflect.h"
+#include "BinaryTests.h"
 #include <typeinfo>
 #include <memory>
 using Reflect::is_reflected;
@@ -561,7 +562,10 @@ struct MappedByTest
 
 int main()
 {
-    MappedByTest mappedByTest = { "f1.a", "f2.a", "f3.a", "f4.a", "f5.a", "f6.a" };
+    binaryTests();
+
+
+    /*MappedByTest mappedByTest = { "f1.a", "f2.a", "f3.a", "f4.a", "f5.a", "f6.a" };
     std::cout << Json::out<Json::Statics::Included>(mappedByTest) << std::endl;
     std::cout << Json::out<Json::Statics::Included, Json::OpNotes<ObjectMapper::UseMapping<F5, F1>>>(mappedByTest) << std::endl;
 
@@ -612,7 +616,8 @@ int main()
         std::cout << "..." << std::endl;
         std::cin.clear();
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    } while ( true );
+    } while ( true );*/
+
 
     std::cout << std::endl << "Press enter to exit." << std::endl;
     std::cin.clear();

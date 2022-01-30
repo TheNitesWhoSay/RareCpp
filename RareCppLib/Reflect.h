@@ -365,17 +365,35 @@ namespace ExtendedTypeSupport
         if constexpr ( !std::is_const<Iterable>::value )
         {
             if constexpr ( has_push_back<Iterable>::value )
-                iterable.push_back(element);
+            {
+                if constexpr ( std::is_copy_constructible_v<Element> )
+                    iterable.push_back(element);
+                else
+                    iterable.push_back(std::move(element));
+            }
             else if constexpr ( is_forward_list<Iterable>::value )
             {
                 auto last = iterable.before_begin();
                 for ( auto curr = last; curr != iterable.end(); last = curr++);
-                iterable.insert_after(last, element);
+                if constexpr ( std::is_copy_constructible_v<Element> )
+                    iterable.insert_after(last, element);
+                else
+                    iterable.insert_after(last, std::move(element));
             }
             else if constexpr ( has_push<Iterable>::value )
-                iterable.push(element);
+            {
+                if constexpr ( std::is_copy_constructible_v<Element> )
+                    iterable.push(element);
+                else
+                    iterable.push(std::move(element));
+            }
             else if constexpr ( has_insert<Iterable>::value )
-                iterable.insert(element);
+            {
+                if constexpr ( std::is_copy_constructible_v<Element> )
+                    iterable.insert(element);
+                else
+                    iterable.insert(std::move(element));
+            }
         }
     }
 
@@ -958,16 +976,17 @@ struct Class { \
     static constexpr size_t TotalFields = COUNT_ARGUMENTS(__VA_ARGS__); \
     static constexpr size_t TotalStaticFields = 0 FOR_EACH(ADD_IF_STATIC, __VA_ARGS__); \
     static constexpr Reflect::Fields::Field<> Fields[TotalFields] = { FOR_EACH(GET_FIELD, __VA_ARGS__) }; \
-    template <typename Function> constexpr static void ForEachField(Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
-    template <typename Function> static void ForEachField(ClassType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
-    template <typename Function> static void ForEachField(const ClassType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
-    template <typename Function> constexpr static void FieldAt(size_t fieldIndex, Function function) { \
+    template <typename Function> static constexpr void ForEachField(Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
+    template <typename Function> static constexpr void ForEachField(ClassType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
+    template <typename Function> static constexpr void ForEachField(const ClassType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
+    template <typename Function> static constexpr void FieldAt(size_t fieldIndex, Function function) { \
         switch ( fieldIndex ) { FOR_EACH(USE_FIELD_AT, __VA_ARGS__) } } \
-    template <typename Function> static void FieldAt(ClassType & object, size_t fieldIndex, Function function) { \
+    template <typename Function> static constexpr void FieldAt(ClassType & object, size_t fieldIndex, Function function) { \
+        switch ( fieldIndex ) { FOR_EACH(USE_FIELD_VALUE_AT, __VA_ARGS__) } } \
+    template <typename Function> static constexpr void FieldAt(const ClassType & object, size_t fieldIndex, Function function) { \
         switch ( fieldIndex ) { FOR_EACH(USE_FIELD_VALUE_AT, __VA_ARGS__) } } \
 }; \
 using Supers = Reflect::Inherit<typename Class::ClassType, typename Class::Annotations>;
-
 
 /// REFLECT_NOTED is exactly the same as REFLECT except this signals that objectType itself is annotated
 #define REFLECT_NOTED(objectType, ...) \
@@ -982,12 +1001,14 @@ struct Class { \
     static constexpr size_t TotalFields = COUNT_ARGUMENTS(__VA_ARGS__); \
     static constexpr size_t TotalStaticFields = 0 FOR_EACH(ADD_IF_STATIC, __VA_ARGS__); \
     static constexpr Reflect::Fields::Field<> Fields[TotalFields] = { FOR_EACH(GET_FIELD, __VA_ARGS__) }; \
-    template <typename Function> constexpr static void ForEachField(Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
-    template <typename Function> static void ForEachField(ClassType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
-    template <typename Function> static void ForEachField(const ClassType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
-    template <typename Function> constexpr static void FieldAt(size_t fieldIndex, Function function) { \
+    template <typename Function> static constexpr void ForEachField(Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
+    template <typename Function> static constexpr void ForEachField(ClassType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
+    template <typename Function> static constexpr void ForEachField(const ClassType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
+    template <typename Function> static constexpr void FieldAt(size_t fieldIndex, Function function) { \
         switch ( fieldIndex ) { FOR_EACH(USE_FIELD_AT, __VA_ARGS__) } } \
-    template <typename Function> static void FieldAt(ClassType & object, size_t fieldIndex, Function function) { \
+    template <typename Function> static constexpr void FieldAt(ClassType & object, size_t fieldIndex, Function function) { \
+        switch ( fieldIndex ) { FOR_EACH(USE_FIELD_VALUE_AT, __VA_ARGS__) } } \
+    template <typename Function> static constexpr void FieldAt(const ClassType & object, size_t fieldIndex, Function function) { \
         switch ( fieldIndex ) { FOR_EACH(USE_FIELD_VALUE_AT, __VA_ARGS__) } } \
 }; \
 using Supers = Reflect::Inherit<typename Class::ClassType, typename Class::Annotations>;
@@ -1003,11 +1024,12 @@ struct Class { \
     static constexpr size_t TotalFields = 0; \
     static constexpr size_t TotalStaticFields = 0; \
     static constexpr Reflect::Fields::Field<> Fields[1] = { { "", "" } }; \
-    template <typename Function> constexpr static void ForEachField(Function function) {} \
-    template <typename Function> static void ForEachField(ClassType & object, Function function) {} \
-    template <typename Function> static void ForEachField(const ClassType & object, Function function) { } \
-    template <typename Function> constexpr static void FieldAt(size_t fieldIndex, Function function) {} \
-    template <typename Function> static void FieldAt(ClassType & object, size_t fieldIndex, Function function) {} \
+    template <typename Function> static constexpr void ForEachField(Function function) {} \
+    template <typename Function> static constexpr void ForEachField(ClassType & object, Function function) {} \
+    template <typename Function> static constexpr void ForEachField(const ClassType & object, Function function) { } \
+    template <typename Function> static constexpr void FieldAt(size_t fieldIndex, Function function) {} \
+    template <typename Function> static constexpr void FieldAt(ClassType & object, size_t fieldIndex, Function function) {} \
+    template <typename Function> static constexpr void FieldAt(const ClassType & object, size_t fieldIndex, Function function) {} \
 }; \
 using Supers = Reflect::Inherit<typename Class::ClassType, typename Class::Annotations>;
 

@@ -156,6 +156,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="BinaryTests.h" />
     <ClInclude Include="Main.h" />
   </ItemGroup>
   <ItemGroup>
