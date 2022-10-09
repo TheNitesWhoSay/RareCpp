@@ -2,8 +2,11 @@
 #include "../RareCppLib/Reflect.h"
 #include <typeinfo>
 #include <memory>
-using Reflect::is_reflected;
-using Reflect::class_t;
+using ExtendedTypeSupport::TypeToStr;
+using Reflection::is_reflected;
+using Reflection::class_t;
+using Reflection::Filter;
+using Reflection::Super;
 using Json::Statics;
 
 int A::second = 0;
@@ -140,7 +143,7 @@ public:
     u8 f065; u8 f066; u8 f067; u8 f068; u8 f069; u8 f070; u8 f071; u8 f072; u8 f073; u8 f074; u8 f075; u8 f076; u8 f077; u8 f078; u8 f079; u8 f080;
     u8 f081; u8 f082; u8 f083; u8 f084; u8 f085; u8 f086; u8 f087; u8 f088; u8 f089; u8 f090; u8 f091; u8 f092; u8 f093; u8 f094; u8 f095; u8 f096;
     u8 f097; u8 f098; u8 f099; u8 f100; u8 f101; u8 f102; u8 f103; u8 f104; u8 f105; u8 f106; u8 f107; u8 f108; u8 f109; u8 f110; u8 f111; u8 f112;
-    u8 f113; u8 f114; u8 f115; u8 f116; u8 f117; u8 f118; u8 f119; u8 f120; u8 f121; u8 f122; u8 f123; u8 f124; u8 f125; u8 f126;
+    u8 f113; u8 f114; u8 f115; u8 f116; u8 f117; u8 f118; u8 f119; u8 f120; u8 f121; u8 f122; u8 f123; u8 f124; u8 f125;
 
     REFLECT(MassiveObject,
         f001, f002, f003, f004, f005, f006, f007, f008,
@@ -158,8 +161,7 @@ public:
         f097, f098, f099, f100, f101, f102, f103, f104,
         f105, f106, f107, f108, f109, f110, f111, f112,
         f113, f114, f115, f116, f117, f118, f119, f120,
-        f121, f122, f123, f124, f125
-        //, f126 // This will exceed the max capacity of macro loops and cause compilation errors
+        f121, f122, f123, f124//, f125 // This will exceed the max capacity of macro loops and cause compilation errors
     )
 };
 
@@ -190,10 +192,10 @@ public:
 
 Car outputExamples()
 {
-    for ( size_t i=1; i<=MassiveObject::Class::TotalFields; i++ )
+    for ( size_t i=1; i<=Reflect<MassiveObject>::Fields::Total; i++ )
     {
         std::cout << MassiveObject::Class::Fields[i-1].name;
-        if ( i % 16 == 0 || i == MassiveObject::Class::TotalFields )
+        if ( i % 16 == 0 || i == Reflect<MassiveObject>::Fields::Total )
             std::cout << std::endl;
         else
             std::cout << ", ";
@@ -212,7 +214,7 @@ Car outputExamples()
     std::cout << Json::pretty(myTuple) << std::endl;
     std::cout << Json::pretty(myVector) << std::endl;
     
-    SubTest::Supers::ForEach(sub, [&](auto superInfo, auto & superObj) {
+    Reflect<SubTest>::Supers::ForEach(sub, [&](auto superInfo, auto & superObj) {
         using SuperInfo = decltype(superInfo);
         auto & annotations = superInfo.annotations;
         using Annotations = typename std::remove_const_t<typename std::remove_reference_t<decltype(annotations)>>;
@@ -233,7 +235,7 @@ Car outputExamples()
 
         using Super = typename decltype(superInfo)::Type;
         std::cout << decltype(superInfo)::Index << ": " << TypeToStr<Super>() << " {" << std::endl;
-        Super::Class::ForEachField(superObj, [&](auto & field, auto & value) {
+        Reflect<Super>::Fields::ForEach(superObj, [&](auto & field, auto & value) {
             std::cout << "  " << field.name << ": " << value << std::endl;
         });
         std::cout << "}" << std::endl;
@@ -262,25 +264,25 @@ Car outputExamples()
     FuelTank fuelTank(15.0f, 14.6f, 1.0f, 7.5f);
     Car car(frontLeft, frontRight, backLeft, backRight, driver, passenger, testNest, testMapNest, occupantId, occupantCupHolderUsage, cupHolders, fuelTank, 22.5f);
     
-    for ( size_t i=0; i<Wheel::Class::TotalFields; i++ )
+    for ( size_t i=0; i<Reflect<Wheel>::Fields::Total; i++ )
         std::cout << Wheel::Class::Fields[i].name << std::endl;
 
-    for ( size_t i=0; i<Wheel::Class::TotalFields; i++ )
+    for ( size_t i=0; i<Reflect<Wheel>::Fields::Total; i++ )
     {
-        Wheel::Class::FieldAt(frontLeft, i, [&](auto & field, auto & value) {
+        Reflect<Wheel>::Fields::At(frontLeft, i, [&](auto & field, auto & value) {
             std::cout << field.name << ": " << value << std::endl;
         });
     }
 
-    Wheel::Class::ForEachField(backRight, [&](auto & field, auto & value) {
+    Reflect<Wheel>::Fields::ForEach(backRight, [&](auto & field, auto & value) {
         std::cout << field.name << ": " << value << std::endl;
     });
 
-    Car::Class::ForEachField(car, [&](auto & field, auto & value) {
+    Reflect<Car>::Fields::ForEach(car, [&](auto & field, auto & value) {
         //std::cout << field.name << ": " << value << std::endl; // This will cause a compiler error as there's no ostream operator overload for the FuelTank type!
     });
 
-    Car::Class::ForEachField(car, [&](auto & field, auto & value) {
+    Reflect<Car>::Fields::ForEach(car, [&](auto & field, auto & value) {
         using Field = typename std::remove_reference<decltype(field)>::type;
         using Type = typename std::remove_reference<decltype(value)>::type;
         if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !is_reflected<Type>::value )
@@ -291,11 +293,11 @@ Car outputExamples()
             std::cout << "(carObjectIterable) " << field.name << ": " << "[Skipped, this would be a good place for recursion!]" << std::endl;
     });
 
-    FuelTank::Class::ForEachField(fuelTank, [&](auto & field, auto & value) {
+    Reflect<FuelTank>::Fields::ForEach(fuelTank, [&](auto & field, auto & value) {
         std::cout << field.name << ": " << value << std::endl; // This will print out a pointer, not the array values!
     });
 
-    FuelTank::Class::ForEachField(fuelTank, [&](auto & field, auto & value) {
+    Reflect<FuelTank>::Fields::ForEach(fuelTank, [&](auto & field, auto & value) {
         using Type = typename std::remove_reference<decltype(value)>::type;
         if constexpr ( ExtendedTypeSupport::is_static_array<Type>::value )
             std::cout << field.name << ": " << value[0] << std::endl;
@@ -303,7 +305,7 @@ Car outputExamples()
             std::cout << field.name << ": " << value << std::endl;
     });
 
-    FuelTank::Class::ForEachField(fuelTank, [&](auto & field, auto & value) {
+    Reflect<FuelTank>::Fields::ForEach(fuelTank, [&](auto & field, auto & value) {
         using Field = typename std::remove_reference<decltype(field)>::type;
         using Type = typename std::remove_reference<decltype(value)>::type;
         if constexpr ( !ExtendedTypeSupport::is_iterable<Type>::value && !is_reflected<Type>::value )
@@ -459,9 +461,9 @@ struct OwnedObject2
     REFLECT(OwnedObject2, a)
 };
 
-template <> struct Reflect::Proxy<ProxiedObjectMapping> : public ProxiedObjectMapping
+template <> struct Reflection::Proxy<ProxiedObjectMapping> : public ProxiedObjectMapping
 {
-    REFLECT(Reflect::Proxy<ProxiedObjectMapping>, a)
+    REFLECT(Reflection::Proxy<ProxiedObjectMapping>, a)
 };
 
 struct UnownedObjDao
@@ -559,7 +561,7 @@ struct MappedByTest
     REFLECT(MappedByTest, f1, f2, f3, f4, f5, f6)
 };
 
-int main()
+int oldMain()
 {
     MappedByTest mappedByTest = { "f1.a", "f2.a", "f3.a", "f4.a", "f5.a", "f6.a" };
     std::cout << Json::out<Json::Statics::Included>(mappedByTest) << std::endl;
@@ -576,8 +578,7 @@ int main()
 
     State state {1, 2};
     std::cout << Json::out(state) << std::endl;
-    State::Class::FieldAt(state, 0, [&](auto & field, auto & value)
-    {
+    Reflect<State>::Fields::At(state, 0, [&](auto & field, auto & value) {
         using Field = typename std::remove_reference<decltype(field)>::type;
         std::cout << "Field 0: " << field.template getAnnotation<Json::Name>().value << std::endl;
     });
@@ -614,6 +615,172 @@ int main()
         std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     } while ( true );
 
+    std::cout << std::endl << "Press enter to exit." << std::endl;
+    std::cin.clear();
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    std::cin.get();
+    return 0;
+}
+
+struct SuperOne {};
+struct SuperTwo {};
+
+template <typename Class, typename T>
+bool contains_field_of_type()
+{
+    return Reflect<Class>::Fields::Pack([](auto && ...ts) {
+        return (std::is_same_v<T,typename std::decay_t<decltype(ts)>::Type> || ...);
+    });
+}
+
+template <typename T>
+auto tie(T & t)
+{
+    return Reflect<T>::Fields::PackValues(t, [](auto && ...ts) {
+        return std::forward_as_tuple(ts...);
+    });
+}
+
+NOTE(TestObj, Super<SuperOne>, Super<SuperTwo>)
+struct TestObj
+{
+    int a;
+    constexpr static int b = 2;
+    static int c;
+    std::string d = "four";
+    static std::string e;
+    static int* f;
+
+    REFLECT_NOTED(TestObj, a, b, c, d, e, f)
+};
+int TestObj::c = 3;
+std::string TestObj::e = "five";
+int* TestObj::f = nullptr;
+
+int main()
+{
+    TestObj t {};
+
+    Reflect<TestObj>::Fields::ForEach<Filter::IsInstanceData>(t, [&](auto & field, auto & value) {
+        std::cout << "[instance] " << field.name << ": " << value << std::endl;
+    });
+
+    Reflect<TestObj>::Fields::ForEach<std::is_same, std::string>(t, [&](auto & field, auto & value) {
+        std::cout << "[str] " << field.name << ": " << value << std::endl;
+    });
+
+    int checksum = 0;
+    Reflect<TestObj>::Fields::ForEachValue<std::is_integral>(t, [&](auto & value) {
+        checksum += value;
+    });
+    std::cout << "Checksum: " << checksum << std::endl;
+
+    Reflect<TestObj>::Fields::ForEachValue<std::is_pointer>([&](auto & value) {
+        value = &TestObj::c;
+    });
+    std::cout << "f* = " << (t.f == &TestObj::c ? "&TestObj::c" : "nullptr") << std::endl;
+    
+
+    
+    Reflect<TestObj>::Fields::ForEach(t, [&](auto & field, const auto & value) {
+            std::cout << field.name << ": " << value << std::endl;
+    });
+    Reflect<TestObj>::Fields::ForEach(t, [&](auto & field, auto & value) {
+        using Field = std::remove_reference_t<decltype(field)>;
+        if constexpr ( Field::Index == 0 || Field::Index == 2 ) {
+            value++;
+        }
+    });
+    Reflect<TestObj>::Fields::ForEach(t, [&](auto & field, const auto & value) {
+            std::cout << field.name << ": " << value << std::endl;
+    });
+    Reflect<TestObj>::Fields::ForEach([&](auto & field, const auto & value) {
+        std::cout << field.name << ": static: " << value << std::endl;
+    });
+
+    std::cout << "Total Supers: " << Reflect<TestObj>::Supers::Total << std::endl;
+    Reflect<TestObj>::Supers::At(0, [&](auto superInfo) {
+        std::cout << TypeToStr<typename decltype(superInfo)::Type>() << std::endl;
+    });
+    Reflect<TestObj>::Supers::At(1, [&](auto superInfo) {
+        std::cout << TypeToStr<typename decltype(superInfo)::Type>() << std::endl;
+    });
+    Reflect<TestObj>::Supers::ForEach([&](auto superInfo) {
+        std::cout << TypeToStr<typename decltype(superInfo)::Type>() << std::endl;
+    });
+
+    std::cout << "contains_field_of_type: " << contains_field_of_type<TestObj, std::string>() << std::endl;
+
+    Reflect<TestObj>::Fields::Pack([&](auto && ...ts) {
+        (std::cout << ... << TypeToStr<typename std::remove_reference_t<decltype(ts)>::Type>()) << std::endl;
+    });
+    Reflect<TestObj>::Fields::PackValues([&](auto && ...ts) {
+        (std::cout << ... << TypeToStr<std::decay_t<decltype(ts)>>()) << std::endl;
+    });
+
+    std::cout << "isStatic: " << (Reflect<TestObj>::Fields::Field<0>::IsStatic ? "true" : "false") << std::endl;
+    TestObj::Class::value_pack([&](auto && ...ts) {
+        (std::cout << ... << TypeToStr<std::decay_t<decltype(ts)>>()) << std::endl;
+    });
+
+    auto tied = tie(t);
+    using TypeTup = decltype(tie(t));
+    std::cout << TypeToStr<TypeTup>() << std::endl;
+
+    /*for ( const auto & m : Reflect<TestObj>::Experimental::Members{t} ) {
+        std::cout << m.typeStr << " " << m.name << " {" << m << "}" << std::endl;
+    }*/
+
+    std::cout << Reflect<TestObj>::Fields::FilteredCount<Filter::IsFunction>() << std::endl;
+
+    Reflect<TestObj>::Fields::ForEach(t, [](auto & field, auto & value) {
+        using Field = std::remove_reference_t<decltype(field)>;
+        if constexpr ( Field::Index == 0 || Field::Index == 2 ) {
+            value++;
+        }
+    });
+
+    Reflect<TestObj>::Fields::ForEach(t, [](auto & field, auto & value) {
+        std::cout << field.name << ": " << value << std::endl;
+    });
+    
+    ExtendedTypeSupport::ForIntegralConstant<4>(0, [&](auto && I) {
+        std::cout << "IntegralConst: " << std::decay_t<decltype(I)>::value << std::endl;
+    });
+    Reflect<TestObj>::Fields::At(t, 0, [&](auto & field, auto & value) {
+        std::cout << "Zero: " << field.name << ": " << value << std::endl;
+    });
+
+
+    for ( size_t i=0; i<Reflect<TestObj>::Fields::Total; i++ ) {
+        Reflect<TestObj>::Fields::At(t, i, [&](auto & field, auto & value) {
+            std::cout << i << ": " << field.name << ": " << value << std::endl;
+        });
+    }
+    std::cout << t.a << std::endl;
+
+    ExtendedTypeSupport::ForIntegralConstant<126>(112, [](auto i){
+        std::cout << i.value << std::endl;
+    });
+    Reflect<TestObj>::Notes::ForEach([](auto & annotation) {
+        std::cout << TypeToStr<decltype(annotation)>() << std::endl;
+    });
+    Reflect<TestObj>::Fields::ValueAt(t, 1, [&](auto & value) {
+        std::cout << "ValueAt: " << value << std::endl;
+    });
+    std::cout << Reflect<TestObj>::Fields::template FilteredCount<Filter::IsInstanceData>();
+    
+    std::cout << "typeStr: " << Reflect<TestObj>::Fields::field<0>.typeStr << std::endl;
+    std::cout << "name: " << Reflect<TestObj>::Fields::field<0>.name << std::endl;
+    //Reflect<TestObj>::Experimental::Members{t}[0]([](auto & value){ std::cout << value << std::endl; });
+    Reflect<TestObj>::Fields::ValueAt(t, 0, [](auto & value) { std::cout << value << std::endl; });
+
+    ExtendedTypeSupport::ForIntegralConstants<Reflect<TestObj>::Fields::Total>([&](auto I) {
+        std::cout << Reflect<TestObj>::Fields::Field<I>::IsStatic << std::endl;
+    });
+
+    oldMain();
+    
     std::cout << std::endl << "Press enter to exit." << std::endl;
     std::cin.clear();
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');

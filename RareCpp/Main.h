@@ -3,7 +3,7 @@
 #include "../RareCppLib/Json.h"
 #include <iostream>
 using ExtendedTypeSupport::TypeToStr;
-using Reflect::Super;
+using Reflection::Super;
 using u8 = uint8_t;
 
 namespace Rest
@@ -36,7 +36,7 @@ public:
 NOTE(OtherSuperA)
 class OtherSuperA {
 public:
-    REFLECT_EMPTY(OtherSuperA)
+    REFLECT_NOTED(OtherSuperA)
 };
 
 class Composed {

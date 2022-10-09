@@ -11,8 +11,8 @@ namespace Unreflected
 
 namespace Reflected
 {
-    NOTE(SourceNoArg) struct SourceNoArg { REFLECT_EMPTY(SourceNoArg)  };
-    NOTE(DestNoArg) struct DestNoArg { REFLECT_EMPTY(DestNoArg) };
+    NOTE(SourceNoArg) struct SourceNoArg { REFLECT_NOTED(SourceNoArg) };
+    NOTE(DestNoArg) struct DestNoArg { REFLECT_NOTED(DestNoArg) };
     struct Source_intA {
         int a;
         REFLECT(Source_intA, a)
@@ -1091,7 +1091,7 @@ struct ObjMappedByMacro {};
 SET_DEFAULT_OBJECT_MAPPING(ObjMappedByMacro, TypeMappedBy)
 
 NOTE(ObjMappedByClassNote, ObjectMapper::MappedBy<TypeMappedBy>)
-struct ObjMappedByClassNote { REFLECT_EMPTY(ObjMappedByClassNote) };
+struct ObjMappedByClassNote { REFLECT_NOTED(ObjMappedByClassNote) };
 
 TEST(ObjectMapperAnnotationsTest, Tags)
 {
@@ -1109,7 +1109,7 @@ TEST(ObjectMapperAnnotationsTest, HasDefaultMapping)
     EXPECT_TRUE(hasDefaultMapping);
     hasDefaultMapping = ObjectMapper::HasDefaultMapping<ObjMappedByMacro>;
     EXPECT_TRUE(hasDefaultMapping);
-    using ClassNote = Reflect::class_notes_t<ObjMappedByClassNote>;
+    using ClassNote = Reflection::class_notes_t<ObjMappedByClassNote>;
     hasDefaultMapping = ObjectMapper::HasDefaultMapping<ObjMappedByClassNote>;
     EXPECT_TRUE(hasDefaultMapping);
 
@@ -1307,7 +1307,6 @@ TEST(ObjectMapperAutoMappingTest, ConversionOperator)
 
 struct ExplicitConversionOperatorTestDest
 {
-
     int a = 0;
     int b = 0;
 

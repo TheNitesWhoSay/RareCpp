@@ -2,7 +2,7 @@
 #define JSONINPUTTEST_H
 #include "../RareCppLib/Reflect.h"
 #include "../RareCppLib/Json.h"
-using namespace Reflect;
+using namespace Reflection;
 
 struct CustomizeUnspecialized
 {
@@ -202,9 +202,9 @@ struct ProxyReflectedObject
     int a;
 };
 
-template <> struct Reflect::Proxy<ProxyReflectedObject> : public ProxyReflectedObject
+template <> struct Reflection::Proxy<ProxyReflectedObject> : public ProxyReflectedObject
 {
-    REFLECT(Reflect::Proxy<ProxyReflectedObject>, a)
+    REFLECT(Reflection::Proxy<ProxyReflectedObject>, a)
 };
 
 #endif

@@ -1444,51 +1444,56 @@ TEST(ExtendedTypeSupportTest, GetFirstTupleElementOfType)
 
     std::tuple<int> integer { 1337 };
     EXPECT_EQ(1337, get<int>::from(integer));
-    EXPECT_NO_THROW(get<S>::from(integer));
-
+    bool threw = false;
+    try {
+        ExtendedTypeSupport::get<S>::from(integer); // For some reason accessing this once outside the EXPECT_ANY_THROW avoid Visual Studios intellisense errors
+    } catch ( ... ) {
+        threw = true;
+    }
+    EXPECT_TRUE(threw);
     std::tuple<int, char> intChar { 1337, '\0' };
     EXPECT_EQ(1337, get<int>::from(intChar));
-    EXPECT_NO_THROW(get<S>::from(intChar));
+    EXPECT_ANY_THROW(get<S>::from(intChar));
     std::tuple<char, int> charInt { '\0', 1337 };
     EXPECT_EQ(1337, get<int>::from(charInt));
-    EXPECT_NO_THROW(get<S>::from(charInt));
+    EXPECT_ANY_THROW(get<S>::from(charInt));
 
     std::tuple<int, char, char> intCharChar { 1337, '\0', '\0' };
     EXPECT_EQ(1337, get<int>::from(intCharChar));
-    EXPECT_NO_THROW(get<S>::from(intCharChar));
+    EXPECT_ANY_THROW(get<S>::from(intCharChar));
     std::tuple<char, int, char> charIntChar { '\0', 1337, '\0' };
     EXPECT_EQ(1337, get<int>::from(charIntChar));
-    EXPECT_NO_THROW(get<S>::from(charIntChar));
+    EXPECT_ANY_THROW(get<S>::from(charIntChar));
     std::tuple<char, char, int> charCharInt { '\0', '\0', 1337 };
     EXPECT_EQ(1337, get<int>::from(charCharInt));
-    EXPECT_NO_THROW(get<S>::from(charCharInt));
+    EXPECT_ANY_THROW(get<S>::from(charCharInt));
 
     
     S s { 9001 };
     std::tuple<S> es { s };
     EXPECT_EQ(9001, get<S>::from(es).a);
-    EXPECT_NO_THROW(get<int>::from(es));
+    EXPECT_ANY_THROW(get<int>::from(es));
 
     std::tuple<S, char> sChar { s, '\0' };
     EXPECT_EQ(9001, get<S>::from(sChar).a);
-    EXPECT_NO_THROW(get<int>::from(sChar));
+    EXPECT_ANY_THROW(get<int>::from(sChar));
     std::tuple<char, S> charS { '\0', s };
     EXPECT_EQ(9001, get<S>::from(charS).a);
-    EXPECT_NO_THROW(get<int>::from(charS));
+    EXPECT_ANY_THROW(get<int>::from(charS));
 
     std::tuple<S, char, char> sCharChar { s, '\0', '\0' };
     EXPECT_EQ(9001, get<S>::from(sCharChar).a);
-    EXPECT_NO_THROW(get<int>::from(sCharChar));
+    EXPECT_ANY_THROW(get<int>::from(sCharChar));
     std::tuple<char, S, char> charEsChar { '\0', s, '\0' };
     EXPECT_EQ(9001, get<S>::from(charEsChar).a);
-    EXPECT_NO_THROW(get<int>::from(charEsChar));
+    EXPECT_ANY_THROW(get<int>::from(charEsChar));
     std::tuple<char, char, S> charCharS { '\0', '\0', s };
     EXPECT_EQ(9001, get<S>::from(charCharS).a);
-    EXPECT_NO_THROW(get<int>::from(charCharS));
+    EXPECT_ANY_THROW(get<int>::from(charCharS));
 
     std::tuple<> empty {};
-    EXPECT_NO_THROW(get<int>::from(empty));
-    EXPECT_NO_THROW(get<S>::from(empty));
+    EXPECT_ANY_THROW(get<int>::from(empty));
+    EXPECT_ANY_THROW(get<S>::from(empty));
 }
 
 TEST(ExtendeTypeSupportTest, ForEach)
@@ -1709,4 +1714,128 @@ TEST(ExtendedTypeSupportTest, GetUnderlyingContainer)
     EXPECT_TRUE(isEqual);
     EXPECT_EQ(5, *priorityQueueUnderlyingDeque.begin());
     EXPECT_EQ(4, *++priorityQueueUnderlyingDeque.begin());
+}
+
+TEST(ExtendedTypeSupportTest, ForIntegralConstant)
+{
+    bool visited = false;
+    ForIntegralConstant<0>(0, [&](auto I) {
+        visited = true;
+    });
+    EXPECT_FALSE(visited);
+
+    visited = false;
+    ForIntegralConstant<0>(1, [&](auto I) {
+        visited = true;
+    });
+    EXPECT_FALSE(visited);
+
+    int visitCount = 0;
+    ForIntegralConstant<1>(0, [&](auto I) {
+        visitCount++;
+        EXPECT_EQ(0, decltype(I)::value);
+    });
+    EXPECT_EQ(1, visitCount);
+
+    visited = false;
+    ForIntegralConstant<1>(1, [&](auto I) {
+        visited = true;
+    });
+    EXPECT_FALSE(visited);
+
+    visitCount = 0;
+    ForIntegralConstant<2>(0, [&](auto I) {
+        visitCount++;
+        EXPECT_EQ(0, decltype(I)::value);
+    });
+    EXPECT_EQ(1, visitCount);
+
+    visitCount = 0;
+    ForIntegralConstant<2>(1, [&](auto I) {
+        visitCount++;
+        EXPECT_EQ(1, decltype(I)::value);
+    });
+    EXPECT_EQ(1, visitCount);
+
+    visited = false;
+    ForIntegralConstant<2>(2, [&](auto I) {
+        visited = true;
+    });
+    EXPECT_FALSE(visited);
+
+    visitCount = 0;
+    ForIntegralConstant<256>(0, [&](auto I) {
+        visitCount++;
+        EXPECT_EQ(0, decltype(I)::value);
+    });
+    EXPECT_EQ(1, visitCount);
+
+    visitCount = 0;
+    ForIntegralConstant<256>(128, [&](auto I) {
+        visitCount++;
+        EXPECT_EQ(128, decltype(I)::value);
+    });
+    EXPECT_EQ(1, visitCount);
+
+    visitCount = 0;
+    ForIntegralConstant<256>(255, [&](auto I) {
+        visitCount++;
+        EXPECT_EQ(255, decltype(I)::value);
+    });
+    EXPECT_EQ(1, visitCount);
+
+    visited = false;
+    ForIntegralConstant<256>(256, [&](auto I) {
+        visited = true;
+    });
+    EXPECT_FALSE(visited);
+}
+
+TEST(ExtendedTypeSupportTest, ForIntegralConstants)
+{
+    bool visited = false;
+    ForIntegralConstants<0>([&](auto I) {
+        visited = true;
+    });
+    EXPECT_FALSE(visited);
+
+    int visitCount = 0;
+    ForIntegralConstants<1>([&](auto I) {
+        switch ( visitCount ) {
+            case 0: EXPECT_EQ(0, decltype(I)::value); break;
+            default: EXPECT_TRUE(false); break;
+        }
+        visitCount++;
+    });
+    EXPECT_EQ(1, visitCount);
+     
+    visitCount = 0;
+    ForIntegralConstants<2>([&](auto I) {
+        switch ( visitCount ) {
+            case 0: EXPECT_EQ(0, decltype(I)::value); break;
+            case 1: EXPECT_EQ(1, decltype(I)::value); break;
+            default: EXPECT_TRUE(false); break;
+        }
+        visitCount++;
+    });
+    EXPECT_EQ(2, visitCount);
+
+    visitCount = 0;
+    ForIntegralConstants<3>([&](auto I) {
+        switch ( visitCount ) {
+            case 0: EXPECT_EQ(0, decltype(I)::value); break;
+            case 1: EXPECT_EQ(1, decltype(I)::value); break;
+            case 2: EXPECT_EQ(2, decltype(I)::value); break;
+            default: EXPECT_TRUE(false); break;
+        }
+        visitCount++;
+    });
+    EXPECT_EQ(3, visitCount);
+
+    visitCount = 0;
+    ForIntegralConstants<128>([&](auto I) {
+        EXPECT_EQ(visitCount, decltype(I)::value);
+        visitCount++;
+    });
+    EXPECT_EQ(128, visitCount);
 }

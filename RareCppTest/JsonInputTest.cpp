@@ -5,7 +5,7 @@
 #endif
 #ifdef GET_RUNJSONINPUTTESTSRC_CPP
 
-using namespace Reflect;
+using namespace Reflection;
 
 #ifdef USE_BUFFERED_STREAMS
 #undef TEST_HEADER
@@ -1897,7 +1897,7 @@ struct RegularField
 NOTE(SuperClassField, Super<RegularField>)
 struct SuperClassField : RegularField
 {
-    REFLECT_EMPTY(SuperClassField)
+    REFLECT_NOTED(SuperClassField)
 };
 
 struct RenamedField
@@ -2014,7 +2014,7 @@ TEST_HEADER(JsonInput, InReferences)
 NOTE(EmptyIn)
 struct EmptyIn
 {
-    REFLECT_EMPTY(EmptyIn)
+    REFLECT_NOTED(EmptyIn)
 };
 
 struct SingleFieldIn

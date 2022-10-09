@@ -177,6 +177,7 @@
     <ClCompile Include="JsonTestRunBuffered.cpp" />
     <ClCompile Include="JsonTestRunUnbuffered.cpp" />
     <ClCompile Include="ObjectMapperTest.cpp" />
+    <ClCompile Include="ReflectionTest.cpp" />
     <ClCompile Include="ReflectTest.cpp" />
     <ClCompile Include="StringBufferTest.cpp" />
     <ClCompile Include="TestMain.cpp" />

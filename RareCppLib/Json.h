@@ -26,7 +26,7 @@ namespace Json
 #endif
 
     using namespace ExtendedTypeSupport;
-    using namespace Reflect;
+    using namespace Reflection;
     
     inline namespace Annotations
     {
@@ -63,45 +63,34 @@ namespace Json
             Only = 2
         };
 
-        template <bool IsStatic, Statics statics>
+        template <Statics statics> struct StaticType : std::integral_constant<Statics, statics> {};
+
+        template <bool IsStatic, typename Statics>
         struct matches_statics
         {
-            constexpr static bool value =
-                statics == Statics::Included ||
-                (statics == Statics::Excluded && !IsStatic) ||
-                (statics == Statics::Only && IsStatic);
+            static constexpr bool value =
+                Statics::value == Shared::Statics::Included ||
+                (Statics::value == Shared::Statics::Excluded && !IsStatic) ||
+                (Statics::value == Shared::Statics::Only && IsStatic);
         };
 
-        template <Statics statics, typename Object>
-        static constexpr size_t IgnoredFieldCount()
-        {
-            size_t count = 0;
-            class_t<Object>::ForEachField([&](auto & field) {
-                using Field = typename std::remove_reference<decltype(field)>::type;
-                if constexpr ( (Field::template HasAnnotation<Json::IgnoreType> || Field::IsFunction) && matches_statics<Field::IsStatic, statics>::value )
-                    count ++;
-            });
-            return count;
-        }
+        template <typename Field, class Statics, typename = enable_if_field_t<Field>>
+        struct IsUnignoredDataMatchingStatics : std::bool_constant<!Field::IsFunction && !Field::template HasAnnotation<Json::IgnoreType> &&
+            matches_statics<Field::IsStatic, Statics>::value> {};
 
         template <Statics statics, typename Object, bool IncludeSupers = true>
         static constexpr bool HasFields()
         {
-            constexpr bool MatchesStaticsExcluded = statics == Statics::Excluded &&
-                class_t<Object>::TotalFields - class_t<Object>::TotalStaticFields - IgnoredFieldCount<statics, Object>() > 0;
-            constexpr bool MatchesStaticsIncluded = statics == Statics::Included &&
-                class_t<Object>::TotalFields - IgnoredFieldCount<statics, Object>() > 0;
-            constexpr bool MatchesStaticsOnly = statics == Statics::Only &&
-                class_t<Object>::TotalStaticFields - IgnoredFieldCount<statics, Object>() > 0;
+            constexpr bool HasFieldsMatchingStatics = Reflect<Object>::Fields::template FilteredCount<IsUnignoredDataMatchingStatics, StaticType<statics>>();
 
-            if constexpr ( MatchesStaticsExcluded || MatchesStaticsIncluded || MatchesStaticsOnly )
+            if constexpr ( HasFieldsMatchingStatics )
                 return true;
-            else if constexpr ( supers_t<Object>::TotalSupers == 0 || !IncludeSupers )
+            else if constexpr ( Reflect<Object>::Supers::Total == 0 || !IncludeSupers )
                 return false;
             else
             {
                 bool hasFields = false;
-                supers_t<Object>::ForEach([&](auto superInfo) {
+                Reflect<Object>::Supers::ForEach([&](auto superInfo) {
                     using Super = typename decltype(superInfo)::Type;
                     if constexpr ( HasFields<statics, Super>() )
                         hasFields = true;
@@ -110,16 +99,14 @@ namespace Json
             }
         }
 
-        template <Statics statics, typename Object, size_t Index = 0>
+        template <Statics statics, typename Object>
         static constexpr size_t FirstIndex()
         {
-            size_t firstIndex = 0;
-            class_t<Object>::FieldAt(Index, [&](auto & field) {
-                using Field = typename std::remove_reference<decltype(field)>::type;
-                if constexpr ( !Field::template HasAnnotation<Json::IgnoreType> && matches_statics<Field::IsStatic, statics>::value )
-                    firstIndex = Field::Index;
-                else if constexpr ( Index < class_t<Object>::TotalFields )
-                    firstIndex = FirstIndex<statics, Object, Index+1>();
+            constexpr size_t totalFields = Reflect<Object>::Fields::Total;
+            size_t firstIndex = totalFields;
+            Reflect<Object>::Fields::template ForEachField<IsUnignoredDataMatchingStatics, StaticType<statics>>([&](auto & field) {
+                if ( firstIndex == totalFields )
+                    firstIndex = std::remove_reference_t<decltype(field)>::Index;
             });
             return firstIndex;
         }
@@ -127,15 +114,15 @@ namespace Json
         template <Statics statics, typename Object, size_t Index = 0>
         static constexpr size_t FirstSuperIndex()
         {
-            size_t firstSuperIndex = 0;
-            supers_t<Object>::At(Index, [&](auto superInfo) {
-                using Super = typename decltype(superInfo)::Type;
-                if constexpr ( HasFields<statics, Super>() )
-                    firstSuperIndex = Index;
-                else if constexpr ( Index < supers_t<Object>::TotalSupers )
-                    firstSuperIndex = FirstSuperIndex<statics, Object, Index+1>();
-            });
-            return firstSuperIndex;
+            if constexpr ( Index < Reflect<Object>::Supers::Total )
+            {
+                using SuperInfo = typename Reflect<Object>::Supers::template SuperInfo<Index>;
+                if constexpr ( HasFields<statics, typename SuperInfo::Type>() )
+                    return Index;
+                else
+                    return FirstSuperIndex<statics, Object, Index+1>();
+            }            
+            return Reflect<Object>::Supers::Total;
         }
 
         constexpr size_t NoFieldIndex = std::numeric_limits<size_t>::max();
@@ -1813,36 +1800,32 @@ namespace Json
             static constexpr void Field(OutStreamType & os, Context & context, const Object & obj, FieldName fieldName,
                 const typename FieldClass::Type & value)
             {
-                if constexpr ( matches_statics<FieldClass::IsStatic, statics>::value )
+                if constexpr ( std::is_base_of<Generic::FieldCluster, typename remove_pointer<typename FieldClass::Type>::type>::value )
                 {
-                    if constexpr ( std::is_base_of<Generic::FieldCluster, typename remove_pointer<typename FieldClass::Type>::type>::value )
+                    if constexpr ( FieldClass::Index == FirstIndex<statics, Object>() )
+                        throw Exception("Json::Generic::FieldCluster cannot be the first or the only field in an object");
+                    else if constexpr ( is_pointable<typename FieldClass::Type>::value )
                     {
-                        if constexpr ( FieldClass::Index == FirstIndex<statics, Object>() )
-                            throw Exception("Json::Generic::FieldCluster cannot be the first or the only field in an object");
-                        else if constexpr ( is_pointable<typename FieldClass::Type>::value )
-                        {
-                            if ( value != nullptr )
-                                Put::Value<Annotations, FieldClass, statics, PrettyPrint, IndentLevel, indent, Object, false>(os, context, obj, *value);
-                        }
-                        else
-                            Put::Value<Annotations, FieldClass, statics, PrettyPrint, IndentLevel, indent, Object, false>(os, context, obj, value);
+                        if ( value != nullptr )
+                            Put::Value<Annotations, FieldClass, statics, PrettyPrint, IndentLevel, indent, Object, false>(os, context, obj, *value);
                     }
-                    else if constexpr ( !FieldClass::template HasAnnotation<Json::IgnoreType> )
-                    {
-                        os << StaticAffix::FieldPrefix<FieldClass::Index == FirstIndex<statics, Object>(), PrettyPrint, IndentLevel, indent>;
-                        Put::String(os, fieldName);
-                        os << FieldNameValueSeparator<PrettyPrint>;
-                        Put::Value<Annotations, FieldClass, statics, PrettyPrint, IndentLevel, indent,
-                            Object, FieldClass::Index == FirstIndex<statics, Object>()>(os, context, obj, value);
-                    }
+                    else
+                        Put::Value<Annotations, FieldClass, statics, PrettyPrint, IndentLevel, indent, Object, false>(os, context, obj, value);
+                }
+                else
+                {
+                    os << StaticAffix::FieldPrefix<FieldClass::Index == FirstIndex<statics, Object>(), PrettyPrint, IndentLevel, indent>;
+                    Put::String(os, fieldName);
+                    os << FieldNameValueSeparator<PrettyPrint>;
+                    Put::Value<Annotations, FieldClass, statics, PrettyPrint, IndentLevel, indent,
+                        Object, FieldClass::Index == FirstIndex<statics, Object>()>(os, context, obj, value);
                 }
             }
             
             template <typename Annotations, Statics statics, bool PrettyPrint, size_t IndentLevel, const char* indent, typename Object>
             static constexpr void Fields(OutStreamType & os, Context & context, const Object & obj)
             {
-                class_t<Object>::ForEachField(obj, [&](auto & field, auto & value)
-                {
+                Reflect<Object>::Fields::template ForEach<IsUnignoredDataMatchingStatics, StaticType<statics>>(obj, [&](auto & field, auto & value) {
                     using Field = typename std::remove_reference<decltype(field)>::type;
                     if constexpr ( Field::template HasAnnotation<Json::Name> )
                     {
@@ -1871,8 +1854,7 @@ namespace Json
             template <typename Annotations, Statics statics, bool PrettyPrint, size_t IndentLevel, const char* indent, typename Object>
             static constexpr void Supers(OutStreamType & os, Context & context, const Object & obj)
             {
-                supers_t<Object>::ForEach(obj, [&](auto superInfo, auto & superObj)
-                {
+                Reflect<Object>::Supers::ForEach(obj, [&](auto superInfo, auto & superObj) {
                     using SuperInfo = decltype(superInfo);
                     using Super = typename std::remove_reference<decltype(superObj)>::type;
                     if constexpr ( SuperInfo::template HasAnnotation<Json::Name> )
@@ -1914,7 +1896,7 @@ namespace Json
                 if ( context == nullptr )
                     context = std::make_shared<Context>();
 
-                Put::Value<Annotations, Fields::Field<Object, void, std::nullptr_t, 0, NoAnnotation>,
+                Put::Value<Annotations, Fields::Field<Object, std::false_type, void, std::nullptr_t, 0, NoAnnotation>,
                     statics, PrettyPrint, IndentLevel, indent, Object, true, Object>(os, *context, obj, obj);
 
                 return os;
@@ -2072,8 +2054,9 @@ namespace Json
             template <typename T>
             static std::multimap<size_t, JsonField> & getClassFieldCache(const T & t)
             {
-                using Class = class_t<T>;
-                using Supers = supers_t<T>;
+                using Class = typename Reflect<T>::Class;
+                using Fields = typename Reflect<T>::Fields;
+                using Supers = typename Reflect<T>::Supers;
                 auto found = classToNameHashToJsonField.find(std::type_index(typeid(T)));
                 if ( found == classToNameHashToJsonField.end() )
                 {
@@ -2083,11 +2066,11 @@ namespace Json
                     if ( !inserted.second )
                         throw Exception("Failed to create cache for class!");
 
-                    if constexpr ( Class::TotalFields > 0 )
+                    if constexpr ( Fields::Total > 0 )
                     {
-                        for ( size_t fieldIndex = 0; fieldIndex < Class::TotalFields; fieldIndex++ )
+                        for ( size_t fieldIndex = 0; fieldIndex < Fields::Total; fieldIndex++ )
                         {
-                            Class::FieldAt(fieldIndex, [&](auto & field) {
+                            Fields::FieldAt(fieldIndex, [&](auto & field) {
                                 using Field = typename std::remove_reference<decltype(field)>::type;
                                 if constexpr ( std::is_base_of<Generic::FieldCluster, typename remove_pointer<typename Field::Type>::type>::value )
                                 {
@@ -2114,13 +2097,13 @@ namespace Json
                         }
                     }
 
-                    if constexpr ( Supers::TotalSupers > 0 )
+                    if constexpr ( Supers::Total > 0 )
                     {
-                        for ( size_t superIndex = 0; superIndex < Supers::TotalSupers; superIndex++ )
+                        for ( size_t superIndex = 0; superIndex < Supers::Total; superIndex++ )
                         {
                             Supers::At(t, superIndex, [&](auto superInfo, auto & superObj) {
                                 using SuperInfo = decltype(superInfo);
-                                using Super = typename std::remove_reference<decltype(superObj)>::type;
+                                using Super = typename SuperInfo::Type;
                                 if constexpr ( HasFields<Statics::Included, Super>() )
                                 {
                                     if constexpr ( SuperInfo::template HasAnnotation<Json::Name> )
@@ -3525,14 +3508,14 @@ namespace Json
                 {
                     if ( jsonField->type == JsonField::Type::Regular )
                     {
-                        class_t<Object>::FieldAt(object, jsonField->index, [&](auto & field, auto & value) {
+                        Reflect<Object>::Fields::At(object, jsonField->index, [&](auto & field, auto & value) {
                             using FieldType = typename std::remove_reference<decltype(field)>::type;
                             Read::Value<Annotations, false, FieldType>(is, context, c, object, value);
                         });
                     }
                     else if ( jsonField->type == JsonField::Type::SuperClass )
                     {
-                        supers_t<Object>::At(object, jsonField->index, [&](auto superInfo, auto & superObj) {
+                        Reflect<Object>::Supers::At(object, jsonField->index, [&](auto superInfo, auto & superObj) {
                             using Super = typename std::remove_reference<decltype(superObj)>::type;
                             Read::Object<Annotations, Super>(is, context, c, superObj);
                         });
@@ -3543,7 +3526,7 @@ namespace Json
                     jsonField = getJsonField(object, fieldClusterToJsonFieldName());
                     if ( jsonField != nullptr ) // Has FieldCluster
                     {
-                        class_t<Object>::FieldAt(object, jsonField->index, [&](auto & field, auto & value) {
+                        Reflect<Object>::Fields::At(object, jsonField->index, [&](auto & field, auto & value) {
                             using ValueType = typename std::remove_reference<decltype(value)>::type;
                             if constexpr ( std::is_base_of<Generic::Object, typename remove_pointer<ValueType>::type>::value )
                             {

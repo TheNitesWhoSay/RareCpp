@@ -35,22 +35,22 @@ Json::OutStreamType & operator <<(Json::OutStreamType & os, const CustomizeFully
 
 TEST_HEADER(JsonSharedTest, MatchesStatics)
 {
-    bool matches = Json::matches_statics<false, Statics::Excluded>::value;
+    bool matches = Json::matches_statics<false, Json::StaticType<Statics::Excluded>>::value;
     EXPECT_TRUE(matches);
-    matches = Json::matches_statics<false, Statics::Included>::value;
+    matches = Json::matches_statics<false, Json::StaticType<Statics::Included>>::value;
     EXPECT_TRUE(matches);
-    matches = Json::matches_statics<false, Statics::Only>::value;
+    matches = Json::matches_statics<false, Json::StaticType<Statics::Only>>::value;
     EXPECT_FALSE(matches);
-    matches = Json::matches_statics<true, Statics::Excluded>::value;
+    matches = Json::matches_statics<true, Json::StaticType<Statics::Excluded>>::value;
     EXPECT_FALSE(matches);
-    matches = Json::matches_statics<true, Statics::Included>::value;
+    matches = Json::matches_statics<true, Json::StaticType<Statics::Included>>::value;
     EXPECT_TRUE(matches);
-    matches = Json::matches_statics<true, Statics::Only>::value;
+    matches = Json::matches_statics<true, Json::StaticType<Statics::Only>>::value;
     EXPECT_TRUE(matches);
 }
 
 NOTE(NoFields)
-struct NoFields { REFLECT_EMPTY(NoFields) };
+struct NoFields { REFLECT_NOTED(NoFields) };
 struct InstanceField { int a; REFLECT(InstanceField, a) };
 struct StaticField { static int a; REFLECT(StaticField, a) };
 struct BothFields { int a; static int b; REFLECT(BothFields, a, b) };
@@ -118,96 +118,23 @@ int IgnoreMixed::f = 0;
 int OnlyIgnoreStatics::b = 0;
 int OnlyIgnoreInstance::b= 0;
 
-TEST_HEADER(JsonSharedTest, IgnoredFieldCount)
-{
-    size_t ignoredFieldCount = Json::IgnoredFieldCount<Statics::Excluded, NoFields>();
-    EXPECT_EQ(0, ignoredFieldCount);
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Excluded, InstanceField>();
-    EXPECT_EQ(0, ignoredFieldCount);
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Excluded, StaticField>();
-    EXPECT_EQ(0, ignoredFieldCount);
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Excluded, BothFields>();
-    EXPECT_EQ(0, ignoredFieldCount);
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Excluded, Functions>();
-    EXPECT_EQ(1, ignoredFieldCount);
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Excluded, MoreInstance>();
-    EXPECT_EQ(0, ignoredFieldCount);
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Excluded, MoreStatic>();
-    EXPECT_EQ(0, ignoredFieldCount);
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Excluded, IgnoreInstanceField>();
-    EXPECT_EQ(1, ignoredFieldCount);
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Excluded, IgnoreStaticField>();
-    EXPECT_EQ(0, ignoredFieldCount);
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Excluded, IgnoreBothField>();
-    EXPECT_EQ(1, ignoredFieldCount);
-    
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Excluded, IgnoreMixed>();
-    EXPECT_EQ(3, ignoredFieldCount);
-
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Included, NoFields>();
-    EXPECT_EQ(0, ignoredFieldCount);
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Included, InstanceField>();
-    EXPECT_EQ(0, ignoredFieldCount);
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Included, StaticField>();
-    EXPECT_EQ(0, ignoredFieldCount);
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Included, BothFields>();
-    EXPECT_EQ(0, ignoredFieldCount);
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Included, Functions>();
-    EXPECT_EQ(2, ignoredFieldCount);
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Included, MoreInstance>();
-    EXPECT_EQ(0, ignoredFieldCount);
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Included, MoreStatic>();
-    EXPECT_EQ(0, ignoredFieldCount);
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Included, IgnoreInstanceField>();
-    EXPECT_EQ(1, ignoredFieldCount);
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Included, IgnoreStaticField>();
-    EXPECT_EQ(1, ignoredFieldCount);
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Included, IgnoreBothField>();
-    EXPECT_EQ(2, ignoredFieldCount);
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Included, IgnoreMixed>();
-    EXPECT_EQ(5, ignoredFieldCount);
-
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Only, NoFields>();
-    EXPECT_EQ(0, ignoredFieldCount);
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Only, InstanceField>();
-    EXPECT_EQ(0, ignoredFieldCount);
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Only, StaticField>();
-    EXPECT_EQ(0, ignoredFieldCount);
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Only, BothFields>();
-    EXPECT_EQ(0, ignoredFieldCount);
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Only, Functions>();
-    EXPECT_EQ(1, ignoredFieldCount);
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Only, MoreInstance>();
-    EXPECT_EQ(0, ignoredFieldCount);
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Only, MoreStatic>();
-    EXPECT_EQ(0, ignoredFieldCount);
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Only, IgnoreInstanceField>();
-    EXPECT_EQ(0, ignoredFieldCount);
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Only, IgnoreStaticField>();
-    EXPECT_EQ(1, ignoredFieldCount);
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Only, IgnoreBothField>();
-    EXPECT_EQ(1, ignoredFieldCount);
-    ignoredFieldCount = Json::IgnoredFieldCount<Statics::Only, IgnoreMixed>();
-    EXPECT_EQ(2, ignoredFieldCount);
-}
-
 NOTE(EmptySuper)
-struct EmptySuper { REFLECT_EMPTY(EmptySuper) };
+struct EmptySuper { REFLECT_NOTED(EmptySuper) };
 NOTE(OtherEmptySuper)
-struct OtherEmptySuper { REFLECT_EMPTY(OtherEmptySuper) };
+struct OtherEmptySuper { REFLECT_NOTED(OtherEmptySuper) };
 struct FieldedSuper { int a; REFLECT(FieldedSuper, a) };
 NOTE(NestedEmptySuper, Super<EmptySuper>)
-struct NestedEmptySuper : EmptySuper { REFLECT_EMPTY(NestedEmptySuper) };
+struct NestedEmptySuper : EmptySuper { REFLECT_NOTED(NestedEmptySuper) };
 NOTE(NestedFieldedSuper, Super<FieldedSuper>)
-struct NestedFieldedSuper : FieldedSuper { REFLECT_EMPTY(NestedFieldedSuper) };
+struct NestedFieldedSuper : FieldedSuper { REFLECT_NOTED(NestedFieldedSuper) };
 NOTE(DoublyNestedEmptySuper, Super<NestedEmptySuper>)
-struct DoublyNestedEmptySuper : NestedEmptySuper { REFLECT_EMPTY(DoublyNestedEmptySuper) };
+struct DoublyNestedEmptySuper : NestedEmptySuper { REFLECT_NOTED(DoublyNestedEmptySuper) };
 NOTE(DoublyNestedFieldedSuper, Super<NestedFieldedSuper>)
-struct DoublyNestedFieldedSuper : NestedFieldedSuper { REFLECT_EMPTY(DoublyNestedFieldedSuper) };
+struct DoublyNestedFieldedSuper : NestedFieldedSuper { REFLECT_NOTED(DoublyNestedFieldedSuper) };
 NOTE(DoubleSuper, Super<EmptySuper>, Super<FieldedSuper>(Json::Name{"Fielded"}))
-struct DoubleSuper : EmptySuper, FieldedSuper { REFLECT_EMPTY(DoubleSuper) };
+struct DoubleSuper : EmptySuper, FieldedSuper { REFLECT_NOTED(DoubleSuper) };
 NOTE(TripleSuper, Super<EmptySuper>, Super<OtherEmptySuper>, Super<FieldedSuper>)
-struct TripleSuper : EmptySuper, OtherEmptySuper, FieldedSuper { REFLECT_EMPTY(TripleSuper) };
+struct TripleSuper : EmptySuper, OtherEmptySuper, FieldedSuper { REFLECT_NOTED(TripleSuper) };
 
 TEST_HEADER(JsonSharedTest, HasFields)
 {
@@ -312,27 +239,27 @@ TEST_HEADER(JsonSharedTest, FirstIndex)
     firstIndex = Json::FirstIndex<Statics::Excluded, InstanceField>();
     EXPECT_EQ(0, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Excluded, StaticField>();
-    EXPECT_EQ(0, firstIndex);
+    EXPECT_EQ(1, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Excluded, BothFields>();
     EXPECT_EQ(0, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Excluded, Functions>();
-    EXPECT_EQ(0, firstIndex);
+    EXPECT_EQ(2, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Excluded, MoreInstance>();
     EXPECT_EQ(0, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Excluded, MoreStatic>();
     EXPECT_EQ(0, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Excluded, IgnoreInstanceField>();
-    EXPECT_EQ(0, firstIndex);
+    EXPECT_EQ(1, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Excluded, IgnoreStaticField>();
-    EXPECT_EQ(0, firstIndex);
+    EXPECT_EQ(1, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Excluded, IgnoreBothField>();
-    EXPECT_EQ(0, firstIndex);
+    EXPECT_EQ(2, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Excluded, IgnoreMixed>();
     EXPECT_EQ(1, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Excluded, OnlyIgnoreStatics>();
     EXPECT_EQ(0, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Excluded, OnlyIgnoreInstance>();
-    EXPECT_EQ(0, firstIndex);
+    EXPECT_EQ(2, firstIndex);
 
     firstIndex = Json::FirstIndex<Statics::Included, NoFields>();
     EXPECT_EQ(0, firstIndex);
@@ -343,17 +270,17 @@ TEST_HEADER(JsonSharedTest, FirstIndex)
     firstIndex = Json::FirstIndex<Statics::Included, BothFields>();
     EXPECT_EQ(0, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Included, Functions>();
-    EXPECT_EQ(0, firstIndex);
+    EXPECT_EQ(2, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Included, MoreInstance>();
     EXPECT_EQ(0, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Included, MoreStatic>();
     EXPECT_EQ(0, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Included, IgnoreInstanceField>();
-    EXPECT_EQ(0, firstIndex);
+    EXPECT_EQ(1, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Included, IgnoreStaticField>();
-    EXPECT_EQ(0, firstIndex);
+    EXPECT_EQ(1, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Included, IgnoreBothField>();
-    EXPECT_EQ(0, firstIndex);
+    EXPECT_EQ(2, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Included, IgnoreMixed>();
     EXPECT_EQ(1, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Included, OnlyIgnoreStatics>();
@@ -364,27 +291,27 @@ TEST_HEADER(JsonSharedTest, FirstIndex)
     firstIndex = Json::FirstIndex<Statics::Only, NoFields>();
     EXPECT_EQ(0, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Only, InstanceField>();
-    EXPECT_EQ(0, firstIndex);
+    EXPECT_EQ(1, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Only, StaticField>();
     EXPECT_EQ(0, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Only, BothFields>();
     EXPECT_EQ(1, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Only, Functions>();
-    EXPECT_EQ(1, firstIndex);
+    EXPECT_EQ(2, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Only, MoreInstance>();
     EXPECT_EQ(2, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Only, MoreStatic>();
     EXPECT_EQ(1, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Only, IgnoreInstanceField>();
-    EXPECT_EQ(0, firstIndex);
+    EXPECT_EQ(1, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Only, IgnoreStaticField>();
-    EXPECT_EQ(0, firstIndex);
+    EXPECT_EQ(1, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Only, IgnoreBothField>();
-    EXPECT_EQ(0, firstIndex);
+    EXPECT_EQ(2, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Only, IgnoreMixed>();
     EXPECT_EQ(3, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Only, OnlyIgnoreStatics>();
-    EXPECT_EQ(0, firstIndex);
+    EXPECT_EQ(2, firstIndex);
     firstIndex = Json::FirstIndex<Statics::Only, OnlyIgnoreInstance>();
     EXPECT_EQ(1, firstIndex);
 }
@@ -1994,7 +1921,7 @@ TEST_HEADER(JsonOutputStaticAffixTest, StaticObjectPrefix)
 NOTE(TrulyEmpty)
 struct TrulyEmpty
 {
-    REFLECT_EMPTY(TrulyEmpty)
+    REFLECT_NOTED(TrulyEmpty)
 };
 
 struct NoSuperOrStatic
@@ -2032,7 +1959,7 @@ struct RegularSuper
 NOTE(NoStaticOrInstance, Super<RegularSuper>)
 struct NoStaticOrInstance : public RegularSuper
 {
-    REFLECT_EMPTY(NoStaticOrInstance)
+    REFLECT_NOTED(NoStaticOrInstance)
 };
 
 NOTE(NoStatic, Super<RegularSuper>)
@@ -2856,6 +2783,16 @@ bool operator<(const Keyable & lhs, const Keyable & rhs)
     return lhs.a < rhs.a;
 }
 
+struct IntFieldBase {
+    static constexpr const char name[] = "testVal";
+    static constexpr auto typeStr_ = ExtendedTypeSupport::TypeName<int>();
+    static constexpr const char* typeStr = typeStr_;
+    template <bool IncludeField, typename Function, typename T_ = void> static constexpr void callback(Function && function) {}
+    template <bool IncludeField, typename Function, typename T_ = void> static constexpr void callback(T_ && t, Function && function) {}
+    static constexpr auto & annotations = Reflection::NoNote;
+    static constexpr auto p = &InstanceField::a;
+};
+
 TEST_HEADER(JsonOutputPut, Value)
 {
     TestStreamType customizedStream,
@@ -2928,12 +2865,12 @@ TEST_HEADER(JsonOutputPut, Value)
 
     InstanceField rootObj;
     rootObj.a = 5;
-    Json::Put::Value<NoAnnotation, Fields::Field<InstanceField, void, void*, 0, NoAnnotation>, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(rootObjStream, Json::context, placeholderObj, rootObj);
+    Json::Put::Value<NoAnnotation, Fields::Field<InstanceField, IntFieldBase, void, void*, 0, NoAnnotation>, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(rootObjStream, Json::context, placeholderObj, rootObj);
     EXPECT_STREQ("{\"a\":5}", rootObjStream.str().c_str());
 
     InstanceField obj;
     obj.a = 6;
-    Json::Put::Value<NoAnnotation, Fields::Field<InstanceField, void, void*, 0, NoAnnotation>, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(reflectedObjStream, Json::context, placeholderObj, obj);
+    Json::Put::Value<NoAnnotation, Fields::Field<InstanceField, IntFieldBase, void, void*, 0, NoAnnotation>, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(reflectedObjStream, Json::context, placeholderObj, obj);
     EXPECT_STREQ("{\"a\":6}", reflectedObjStream.str().c_str());
 
     std::string str = "asdf";
@@ -2941,7 +2878,7 @@ TEST_HEADER(JsonOutputPut, Value)
     EXPECT_STREQ("\"asdf\"", strStream.str().c_str());
 
     AnEnum enumInt = AnEnum::first;
-    Json::Put::Value<NoAnnotation, Fields::Field<AnEnum, void, void*, 0, Json::EnumIntType>, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(enumIntStream, Json::context, placeholderObj, enumInt);
+    Json::Put::Value<NoAnnotation, Fields::Field<AnEnum, IntFieldBase, void, void*, 0, Json::EnumIntType>, Json::Statics::Excluded, false, 0, Json::twoSpaces, int, true>(enumIntStream, Json::context, placeholderObj, enumInt);
     EXPECT_STREQ("0", enumIntStream.str().c_str());
 
     bool boolean = false;
@@ -3206,7 +3143,7 @@ TEST_HEADER(JsonOutputPut, Field)
     TestStreamType putRegularIgnored;
     Json::Put::Field<NoAnnotation, RegularFields::Class::regularIgnored_::Field, Json::Statics::Excluded, false, 0, Json::twoSpaces, RegularFields>(
         putRegularIgnored, Json::context, regularFields, "regularIgnored", regularFields.regularIgnored);
-    EXPECT_STREQ("", putRegularIgnored.str().c_str());
+    EXPECT_STREQ(",\"regularIgnored\":3", putRegularIgnored.str().c_str());
 
     TestStreamType putRegularEmptyCluster;
     Json::Put::Field<NoAnnotation, RegularFields::Class::regularFieldCluster_::Field, Json::Statics::Excluded, false, 0, Json::twoSpaces, RegularFields>(

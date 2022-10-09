@@ -73,5 +73,8 @@
     <ClCompile Include="ObjectMapperTest.cpp">
       <Filter>Source Files\ReflectTest</Filter>
     </ClCompile>
+    <ClCompile Include="ReflectionTest.cpp">
+      <Filter>Source Files\ReflectTest</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

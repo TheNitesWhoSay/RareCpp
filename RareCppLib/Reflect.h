@@ -17,6 +17,7 @@
 #include <string_view>
 #include <string>
 #include <tuple>
+#include <exception>
 
 #ifndef enum_t
 /// enum_t "enum type (scoped)" assumes the property of enum classes that encloses the enum values within a particular scope
@@ -46,6 +47,7 @@ namespace MacroLoops
 #define ML_C(x,y) x##y
 
 /// MacroLoop_ForEach[1, ..., ArgMax]
+#define ML_0(f,...)
 #define ML_1(f,a,...) f(a)
 #define ML_2(f,a,...) f(a) ML_E(ML_1(f,__VA_ARGS__))
 #define ML_3(f,a,...) f(a) ML_E(ML_2(f,__VA_ARGS__))
@@ -177,6 +179,10 @@ namespace MacroLoops
 95,94,93,92,91,90,89,88,87,86,85,84,83,82,81,80,79,78,77,76,75,74,73,72,71,70,69,68,67,66,65,64,63,62,61,60,59,58,57,56,55,54,53,52,51,50,49,48,\
 47,46,45,44,43,42,41,40,39,38,37,36,35,34,33,32,31,30,29,28,27,26,25,24,23,22,21,20,19,18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0
 
+/// MacroLoop_TruesFalse [T[125], F]
+#define ML_T() T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,\
+T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,T,F
+
 /// MacroLoop_Select_Argument_At_Argument_Max [a0, ..., a(ArgMax-1), argAtArgMax]
 #define ML_M(a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z,a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,b0,b1,b2,b3,b4,b5,b6,b7,b8,b9,c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,\
 d0,d1,d2,d3,d4,d5,d6,d7,d8,d9,e0,e1,e2,e3,e4,e5,e6,e7,e8,e9,f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,g0,g1,g2,g3,g4,g5,g6,g7,g8,g9,h0,h1,h2,h3,h4,h5,h6,h7,h8,h9,\
@@ -188,11 +194,26 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
 /// MacroLoop_ForEach_N
 #define ML_N(N,f,...) ML_E(ML_C(ML_,N)(f,__VA_ARGS__))
 
-/// Selects the count of varadic arguments
-#define COUNT_ARGUMENTS(...) ML_S(__VA_ARGS__,ML_G())
+/// MacroLoop_ForEachTrue & MacroLoop_ForEachFalse
+#define ML_TF_F(h,t,...)
+#define ML_TF_T(h,t,a,...) h(a) ML_N(COUNT_ARGUMENTS(__VA_ARGS__),t,__VA_ARGS__)
+
+// MacroLoop_ForEach_Boolean_Call_True_Or_False_macro
+#define ML_B(b,h,t,...) ML_E(ML_C(ML_TF_,b)(h,t,__VA_ARGS__))
+
+/// Selects the count of varadic arguments (can count 0 arguments, but cannot count parenthesized arguments)
+#define COUNT_ARGUMENTS(...) ML_S(ML##__VA_ARGS__##_G(),ML_G())
+
+/// Selects the count of varadic arguments (cannot count 0 arguments, but can count parenthesized arguments)
+#define COUNT_POSITIVE_ARGUMENTS(...) ML_S(__VA_ARGS__,ML_G())
 
 /// Call "f" for each argument
 #define FOR_EACH(f,...) ML_N(COUNT_ARGUMENTS(__VA_ARGS__),f,__VA_ARGS__)
+
+/// Call "h" for the first argument (if it exists) and "t" for the subsequent arguments (if they exist)
+#define FOR_HEAD_TAIL(h,t,...) ML_B(ML_S(ML##__VA_ARGS__##_T(),ML_T()),h,t,__VA_ARGS__)
+
+#define FOR_EACH_POSITIVE(f,...) ML_N(COUNT_POSITIVE_ARGUMENTS(__VA_ARGS__),f,__VA_ARGS__)
 
 };
 
@@ -456,6 +477,27 @@ namespace ExtendedTypeSupport
     template <typename TypeIfVoid> struct if_void<void, TypeIfVoid> { using type = TypeIfVoid; };
     template <typename T, typename TypeIfVoid> using if_void_t = typename if_void<T, TypeIfVoid>::type;
 
+    template <typename F, size_t ...Is>
+    constexpr void ForIntegralConstant(size_t i, std::index_sequence<Is...>, F && f) {
+        (void)((i == Is && (std::forward<F>(f)(std::integral_constant<size_t, Is>{}), true)) || ...);
+    }
+
+    template <size_t Max, typename F>
+    constexpr void ForIntegralConstant(size_t i, F && f) {
+        ForIntegralConstant(i, std::make_index_sequence<Max>{}, std::forward<F>(f));
+    }
+
+    template <typename F, size_t ...Is>
+    constexpr void ForIntegralConstants(std::index_sequence<Is...>, F && f) {
+        (void)((std::forward<F>(f)(std::integral_constant<size_t, Is>{}), true) && ...);
+    }
+
+    // For integral constants 0 to Max-1
+    template <size_t Max, typename F>
+    constexpr void ForIntegralConstants(F && f) {
+        ForIntegralConstants(std::make_index_sequence<Max>{}, std::forward<F>(f));
+    }
+
     template <typename T>
     constexpr bool HasTypeRecursion() {
         return false;
@@ -476,18 +518,16 @@ namespace ExtendedTypeSupport
     template <typename TypeToGet>
     class get
     {
-    private:
         template <typename ...Ts> struct get_impl
         {
             template <size_t Index>
-            static constexpr TypeToGet GetElementRecursion(const std::tuple<Ts...> & elements)
+            static constexpr const TypeToGet & GetElementRecursion(const std::tuple<Ts...> & elements)
             {
-                #pragma warning(suppress: 26444) // Warning incorrectly raised for unnamed local variable
-                return {};
+                throw std::exception(); // Tuple must contain the type provided
             }
 
             template <size_t Index, typename CurrentType, typename... NextTypes>
-            static constexpr TypeToGet GetElementRecursion(const std::tuple<Ts...> & elements)
+            static constexpr const TypeToGet & GetElementRecursion(const std::tuple<Ts...> & elements)
             {
                 if constexpr ( std::is_same<TypeToGet, CurrentType>::value )
                     return std::get<Index>(elements);
@@ -495,14 +535,14 @@ namespace ExtendedTypeSupport
                     return GetElementRecursion<Index+1, NextTypes...>(elements);
             }
 
-            static constexpr TypeToGet GetElement(const std::tuple<Ts...> & elements)
+            static constexpr const TypeToGet & GetElement(const std::tuple<Ts...> & elements)
             {
                 return GetElementRecursion<0, Ts...>(elements);
             }
         };
 
     public:
-        template <typename ...Ts> static constexpr TypeToGet from(const std::tuple<Ts...> & elements) {
+        template <typename ...Ts> static constexpr const TypeToGet & from(const std::tuple<Ts...> & elements) {
             return get_impl<Ts...>::GetElement(elements);
         }
     };
@@ -510,7 +550,6 @@ namespace ExtendedTypeSupport
     template <typename TypeToGet>
     class for_each
     {
-    private:
         template <typename ...Ts> struct for_each_impl
         {
             template <size_t Index, typename Function>
@@ -604,14 +643,18 @@ namespace ExtendedTypeSupport
     template <typename T>
     struct TypeName
     {
+        static constexpr size_t length = getTypeView<T>().size();
+
         constexpr TypeName() : value() {
             auto view = getTypeView<T>();
-            for ( size_t i=0; i<view.size(); i++ )
+            for ( size_t i=0; i<length; i++ )
                 value[i] = view[i];
 
-            value[view.size()] = '\0';
+            value[length] = '\0';
         }
-        char value[getTypeView<T>().size()+1];
+        char value[length+1];
+
+        constexpr operator const char*() const { return &value[0]; };
     };
     
     template <typename T>
@@ -631,43 +674,53 @@ namespace ExtendedTypeSupport
 }
 
 /// Contains support for working with reflected fields, the definition for the REFLECT macro and non-generic supporting macros
-namespace Reflect
+namespace Reflection
 {
     #define NOTE(field, ...) static constexpr auto field##_note { std::tuple { __VA_ARGS__ } };
     using NoAnnotation = std::tuple<>;
+    static constexpr NoAnnotation NoNote {};
+
+    struct Unproxied {};
+
+    template <typename T>
+    struct Proxy : public Unproxied {};
+
+    template <typename T>
+    struct is_proxied : std::bool_constant<!std::is_base_of<Unproxied, Proxy<T>>::value> {};
+    
+    template <typename Type> struct unproxy { using T = Type; };
+    template <typename Type> struct unproxy<Proxy<Type>> { using T = Type; };
+    template <typename Type> using unproxy_t = typename unproxy<Type>::T;
+
+    template <typename T, typename = decltype(T::Class::Total)> static constexpr std::true_type typeHasReflection(int);
+    template <typename T> static constexpr std::false_type typeHasReflection(unsigned int);
+    
+    template <typename T> struct is_reflected { static constexpr bool value = is_proxied<T>::value || decltype(typeHasReflection<T>(0))::value; };
+    template <typename T> struct is_reflected<const T> { static constexpr bool value = is_reflected<T>::value; };
+    template <typename T> inline constexpr bool is_reflected_v = is_reflected<T>::value;
+
+    template <typename T> struct reflected_type { using type = typename std::conditional_t<is_proxied<T>::value, Proxy<T>, T>; };
+    template <typename T> using reflected_type_t = typename reflected_type<T>::type;
+
+    template <typename Type> struct clazz { using type = typename reflected_type_t<Type>::Class; };
+    template <typename Type> using class_t = typename clazz<Type>::type;
+
+    template <typename T, typename Enable = void> struct class_notes { using type = Reflection::NoAnnotation; };
+    template <typename T> struct class_notes<T, std::enable_if_t<is_reflected_v<T>>> { using type = typename class_t<T>::Annotations; };
+    template <typename T> using class_notes_t = typename class_notes<T>::type;
 
     inline namespace Inheritance
     {
-        template <typename T, size_t SuperIndex, typename SuperAnnotations>
-        struct SuperInfo {
-            using Type = T;
-            using Annotations = SuperAnnotations;
-            const Annotations & annotations;
-            static constexpr size_t Index = SuperIndex;
-
-            template <typename Annotation>
-            static constexpr bool HasAnnotation = ExtendedTypeSupport::has_type<Annotation, Annotations>::value;
-
-            template <typename Annotation>
-            constexpr Annotation getAnnotation() const { return ExtendedTypeSupport::get<Annotation>::from(annotations); }
-
-            template <typename Annotation, typename Function>
-            constexpr void forEach(Function function) const { return ExtendedTypeSupport::for_each<Annotation>::in(annotations, function); }
-
-            template <typename Function>
-            constexpr void forEachAnnotation(Function function) const { return ExtendedTypeSupport::for_each_in(annotations, function); }
-        };
-
         template <typename T, typename ...Ts>
         struct NotedSuper {
-            const std::tuple<Ts...> annotations;
+            std::tuple<Ts...> annotations;
             using Annotations = decltype(annotations);
         };
 
         template <typename T>
         struct SuperClass {
             constexpr static NoAnnotation annotations{};
-            using Annotations = decltype(annotations);
+            using Annotations = NoAnnotation;
 
             template <typename ...Ts>
             constexpr NotedSuper<T, Ts...> operator() (const Ts & ... args) const { return NotedSuper<T, Ts...>{std::tuple<Ts...>(args...)}; } 
@@ -686,183 +739,176 @@ namespace Reflect
         template <typename T> struct super_type<SuperClass<T>> { using type = T; };
         template <typename T, typename ...Ts> struct super_type<NotedSuper<T, Ts...>> { using type = T; };
 
-        template <size_t Count>
-        static constexpr size_t CountSupersRecursion() { return Count; }
+        template <typename ...Ts> struct count_supers {
+            static constexpr size_t value = size_t(0 + (ExtendedTypeSupport::is_specialization_v<std::remove_const_t<Ts>, SuperClass> + ...) +
+                (ExtendedTypeSupport::is_specialization_v<std::remove_const_t<Ts>, NotedSuper> + ...)); };
+        template<> struct count_supers<> { static constexpr size_t value = 0; };
 
-        template <size_t Count, typename CurrentType, typename... NextTypes>
-        static constexpr size_t CountSupersRecursion()
-        {
-            if constexpr ( is_super<CurrentType>::value )
-                return CountSupersRecursion<1+Count, NextTypes...>();
-            else
-                return CountSupersRecursion<Count, NextTypes...>();
-        }
-
-        template <typename ... Ts> struct count_supers { static constexpr size_t value = CountSupersRecursion<0, Ts...>(); };
-
-        template <typename SubClass, typename ...Ts>
-        struct Inherit;
-
-        template <typename SubClass, typename ...Ts>
-        struct Inherit<SubClass, const std::tuple<Ts...>>
-        {
-            template <size_t Index, size_t SuperIndex, typename Function>
-            static void ForEachRecursion(const SubClass &, Function function) {} // Base case for recursion
-
-            template <size_t Index, size_t SuperIndex, typename Function, typename CurrentAnnotation, typename ...NextAnnotations>
-            static void ForEachRecursion(SubClass & object, Function function)
-            {
-                if constexpr ( is_super<CurrentAnnotation>::value )
-                {
-                    using SuperType = typename super_type<CurrentAnnotation>::type;
-                    function(SuperInfo<SuperType, SuperIndex, typename CurrentAnnotation::Annotations>{std::get<Index>(SubClass::Class::annotations).annotations}, (SuperType &)object);
-                    ForEachRecursion<Index+1, SuperIndex+1, Function, NextAnnotations...>(object, function);
-                }
-                else
-                    ForEachRecursion<Index+1, SuperIndex, Function, NextAnnotations...>(object, function);
-            }
-
-            template <size_t Index, size_t SuperIndex, typename Function, typename CurrentAnnotation, typename ...NextAnnotations>
-            static void ForEachRecursion(const SubClass & object, Function function)
-            {
-                if constexpr ( is_super<CurrentAnnotation>::value )
-                {
-                    using SuperType = typename super_type<CurrentAnnotation>::type;
-                    function(SuperInfo<SuperType, SuperIndex, typename CurrentAnnotation::Annotations>{std::get<Index>(SubClass::Class::annotations).annotations}, (SuperType &)object);
-                    ForEachRecursion<Index+1, SuperIndex+1, Function, NextAnnotations...>(object, function);
-                }
-                else
-                    ForEachRecursion<Index+1, SuperIndex, Function, NextAnnotations...>(object, function);
-            }
-
-            template <typename Function>
-            static void ForEach(SubClass & object, Function function) {
-                ForEachRecursion<0, 0, Function, Ts...>(object, function);
-            }
-
-            template <typename Function>
-            static void ForEach(const SubClass & object, Function function) {
-                ForEachRecursion<0, 0, Function, Ts...>(object, function);
-            }
-
-            template <size_t Index, size_t SuperIndex, typename Function>
-            static constexpr void ForEachRecursion(Function function) {} // Base case for recursion
-            
-            template <size_t Index, size_t SuperIndex, typename Function, typename CurrentAnnotation, typename... NextAnnotations>
-            static constexpr void ForEachRecursion(Function function)
-            {
-                if constexpr ( is_super<CurrentAnnotation>::value )
-                {
-                    using SuperType = typename super_type<CurrentAnnotation>::type;
-                    function(SuperInfo<SuperType, SuperIndex, typename CurrentAnnotation::Annotations>{std::get<Index>(SubClass::Class::annotations).annotations});
-                    ForEachRecursion<Index+1, SuperIndex+1, Function, NextAnnotations...>(function);
-                }
-                else
-                    ForEachRecursion<Index+1, SuperIndex, Function, NextAnnotations...>(function);
-            }
-
-            template <typename Function>
-            static constexpr void ForEach(Function function) {
-                ForEachRecursion<0, 0, Function, Ts ...>(function);
-            }
-            
-            template <size_t Index, size_t SuperIndex, typename Function>
-            static void AtRecursion(const SubClass & object, size_t superIndex, Function function) {} // Base case for recursion
-        
-            template <size_t Index, size_t SuperIndex, typename Function, typename CurrentAnnotation, typename... NextAnnotations>
-            static void AtRecursion(SubClass & object, size_t superIndex, Function function) {
-                if constexpr ( is_super<CurrentAnnotation>::value )
-                {
-                    if ( SuperIndex == superIndex )
+        template <size_t SuperIndex, typename ...Ts>
+        struct super_note_index {
+            static constexpr size_t value = [](){
+                constexpr size_t TotalNotes = sizeof...(Ts);
+                size_t superNoteIndex = TotalNotes;
+                size_t superCount = 0;
+                ExtendedTypeSupport::ForIntegralConstants<TotalNotes>([&](auto NoteIndex) {
+                    if constexpr ( is_super<std::tuple_element_t<decltype(NoteIndex)::value, std::tuple<Ts...>>>::value )
                     {
-                        using SuperType = typename super_type<CurrentAnnotation>::type;
-                        function(SuperInfo<SuperType, SuperIndex, typename CurrentAnnotation::Annotations>{std::get<Index>(SubClass::Class::annotations).annotations}, (SuperType &)object);
+                        if ( superCount == SuperIndex )
+                            superNoteIndex = decltype(NoteIndex)::value;
+
+                        ++superCount;
                     }
-                    else
-                        AtRecursion<Index+1, SuperIndex+1, Function, NextAnnotations...>(object, superIndex, function);
-                }
-                else
-                    AtRecursion<Index+1, SuperIndex, Function, NextAnnotations...>(object, superIndex, function);
-            }
-        
-            template <size_t Index, size_t SuperIndex, typename Function, typename CurrentAnnotation, typename... NextAnnotations>
-            static void AtRecursion(const SubClass & object, size_t superIndex, Function function) {
-                if constexpr ( is_super<CurrentAnnotation>::value )
-                {
-                    if ( SuperIndex == superIndex )
-                    {
-                        using SuperType = typename super_type<CurrentAnnotation>::type;
-                        function(SuperInfo<SuperType, SuperIndex, typename CurrentAnnotation::Annotations>{std::get<Index>(SubClass::Class::annotations).annotations}, (SuperType &)object);
-                    }
-                    else
-                        AtRecursion<Index+1, SuperIndex+1, Function, NextAnnotations...>(object, superIndex, function);
-                }
-                else
-                    AtRecursion<Index+1, SuperIndex, Function, NextAnnotations...>(object, superIndex, function);
-            }
-
-            template <typename Function>
-            static void At(SubClass & object, size_t superIndex, Function function) {
-                AtRecursion<0, 0, Function, Ts ...>(object, superIndex, function);
-            }
-
-            template <typename Function>
-            static void At(const SubClass & object, size_t superIndex, Function function) {
-                AtRecursion<0, 0, Function, Ts ...>(object, superIndex, function);
-            }
-        
-            template <size_t Index, size_t SuperIndex, typename Function>
-            static constexpr void AtRecursion(size_t superIndex, Function function) {} // Base case for recursion
-        
-            template <size_t Index, size_t SuperIndex, typename Function, typename CurrentAnnotation, typename... NextAnnotations>
-            static constexpr void AtRecursion(size_t superIndex, Function function) {
-                if constexpr ( is_super<CurrentAnnotation>::value )
-                {
-                    if ( SuperIndex == superIndex )
-                    {
-                        using SuperType = typename super_type<CurrentAnnotation>::type;
-                        function(SuperInfo<SuperType, SuperIndex, typename CurrentAnnotation::Annotations>{std::get<Index>(SubClass::Class::annotations).annotations});
-                    }
-                    else
-                        AtRecursion<Index+1, SuperIndex+1, Function, NextAnnotations...>(superIndex, function);
-                }
-                else
-                    AtRecursion<Index+1, SuperIndex, Function, NextAnnotations...>(superIndex, function);
-            }
-
-            template <typename Function>
-            static constexpr void At(size_t superIndex, Function function) {
-                AtRecursion<0, 0, Function, Ts ...>(superIndex, function);
-            }
-
-            static constexpr size_t TotalSupers = count_supers<Ts...>::value;
+                });
+                return superNoteIndex;
+            }();
         };
+        template <size_t SuperIndex, typename ...Ts> struct super_note_index<SuperIndex, std::tuple<Ts...>> : super_note_index<SuperIndex, Ts...> {};
+        template <size_t SuperIndex, typename ...Ts> struct super_note_index<SuperIndex, const std::tuple<Ts...>> : super_note_index<SuperIndex, Ts...> {};
+
+        template <size_t NoteIndex, typename ...Ts>
+        struct note_super_index {
+            static constexpr size_t value = [](){
+                constexpr size_t TotalNotes = sizeof...(Ts);
+                size_t noteSuperIndex = TotalNotes;
+                size_t superCount = 0;
+                ExtendedTypeSupport::ForIntegralConstants<TotalNotes>([&](auto I) {
+                    if constexpr ( is_super<std::tuple_element_t<decltype(I)::value, std::tuple<Ts...>>>::value )
+                    {
+                        if constexpr ( NoteIndex == decltype(I)::value )
+                            noteSuperIndex = superCount;
+
+                        ++superCount;
+                    }
+                });
+                return noteSuperIndex;
+            }();
+        };
+        template <size_t NoteIndex, typename ...Ts> struct note_super_index<NoteIndex, std::tuple<Ts...>> : note_super_index<NoteIndex, Ts...> {};
+        template <size_t NoteIndex, typename ...Ts> struct note_super_index<NoteIndex, const std::tuple<Ts...>> : note_super_index<NoteIndex, Ts...> {};
+
+        template <size_t SuperIndex, typename SubClass>
+        struct SuperInfo {
+
+            static constexpr size_t Index = SuperIndex;
+            static constexpr size_t SuperNoteIndex = super_note_index<Index, typename class_t<SubClass>::Annotations>::value;
+            using SuperNote = std::tuple_element_t<SuperNoteIndex, typename class_t<SubClass>::Annotations>;
+            static constexpr auto & superNote = std::get<SuperNoteIndex>(class_t<SubClass>::annotations);
+
+            using Type = typename super_type<SuperNote>::type;
+            using Annotations = typename SuperNote::Annotations;
+            static constexpr auto & annotations = superNote.annotations;
+            
+            template <typename Annotation>
+            static constexpr bool HasAnnotation = ExtendedTypeSupport::has_type<Annotation, Annotations>::value;
+
+            template <template <typename ...> class Of>
+            static constexpr bool HasSpecializedAnnotation = ExtendedTypeSupport::type_list<Annotations>::template has_specialization_v<Of>;
+
+            template <typename Annotation>
+            static constexpr Annotation getAnnotation() { return ExtendedTypeSupport::get<Annotation>::from(annotations); }
+
+            template <template <typename ...> class Of>
+            static constexpr auto getAnnotation() {
+                return ExtendedTypeSupport::get<typename ExtendedTypeSupport::type_list<Annotations>::template get_specialization_t<Of>>::from(annotations);
+            }
+
+            template <typename Annotation, typename Function>
+            static constexpr void forEach(Function function) { return ExtendedTypeSupport::for_each<Annotation>::in(annotations, function); }
+
+            template <typename Function>
+            static constexpr void forEachAnnotation(Function function) { return ExtendedTypeSupport::for_each_in(annotations, function); }
+        };
+
+        template <typename SubClass, typename ...Ts>
+        struct Inherit
+        {
+            template <size_t SuperIndex> using SuperInfo = SuperInfo<SuperIndex, SubClass>;
+
+            static constexpr size_t Total = count_supers<Ts...>::value;
+
+            template <typename Function, typename U, typename = std::enable_if_t<std::is_same_v<SubClass,std::decay_t<U>>>>
+            static constexpr void ForEach(U && object, Function && function) {
+                ExtendedTypeSupport::ForIntegralConstants<sizeof...(Ts)>([&](auto I) {
+                    using Note = std::tuple_element_t<decltype(I)::value, std::tuple<Ts...>>;
+                    using SuperType = typename super_type<Note>::type;
+                    if constexpr ( !std::is_void_v<SuperType> ) {
+                        static constexpr size_t SuperIndex = note_super_index<decltype(I)::value, Ts...>::value;
+                        if constexpr ( std::is_const_v<decltype(std::forward<U>(object))> )
+                            function(Inheritance::SuperInfo<SuperIndex, SubClass>{}, (const SuperType &)object);
+                        else
+                            function(Inheritance::SuperInfo<SuperIndex, SubClass>{}, (SuperType &)object);
+                    }
+                });
+            }
+
+            template <typename Function>
+            static constexpr void ForEach(Function && function) {
+                ExtendedTypeSupport::ForIntegralConstants<sizeof...(Ts)>([&](auto I) {
+                    using Note = std::tuple_element_t<decltype(I)::value, std::tuple<Ts...>>;
+                    using SuperType = typename super_type<Note>::type;
+                    if constexpr ( !std::is_void_v<SuperType> ) {
+                        constexpr size_t SuperIndex = note_super_index<decltype(I)::value, Ts...>::value;
+                        function(Inheritance::SuperInfo<SuperIndex, SubClass>{});
+                    }
+                });
+            }
+
+            template <typename Function, typename U, typename = std::enable_if_t<std::is_same_v<SubClass,std::decay_t<U>>>>
+            static constexpr void At(U && object, size_t superIndex, Function && function) {
+                ExtendedTypeSupport::ForIntegralConstant<sizeof...(Ts)>(superIndex, [&](auto SuperIndex) {
+                    constexpr size_t I = super_note_index<decltype(SuperIndex)::value, Ts...>::value;
+                    if constexpr ( I < sizeof...(Ts) ) {
+                        using SuperType = typename super_type<std::tuple_element_t<I, std::tuple<Ts...>>>::type;
+                        if constexpr ( !std::is_void_v<SuperType> )
+                        {
+                            auto superInfo = Inheritance::SuperInfo<decltype(SuperIndex)::value, SubClass>{};
+                            if constexpr ( std::is_const_v<decltype(std::forward<U>(object))> )
+                                function(superInfo, (const SuperType &)object);
+                            else
+                                function(superInfo, (SuperType &)object);
+                        }
+                    }
+                });
+            }
+
+            template <typename Function>
+            static constexpr void At(size_t superIndex, Function && function) {
+                ExtendedTypeSupport::ForIntegralConstant<sizeof...(Ts)>(superIndex, [&](auto SuperIndex) {
+                    constexpr size_t I = super_note_index<decltype(SuperIndex)::value, Ts...>::value;
+                    if constexpr ( I < sizeof...(Ts) ) {
+                        using SuperType = typename super_type<std::tuple_element_t<I, std::tuple<Ts...>>>::type;
+                        if constexpr ( !std::is_void_v<SuperType> )
+                        {
+                            function(Inheritance::SuperInfo<decltype(SuperIndex)::value, SubClass>{});
+                        }
+                    }
+                });
+            }
+        };
+
+        template <typename SubClass, typename ...Ts> struct Inherit<SubClass, std::tuple<Ts...>> : Inherit<SubClass, Ts...> {};
+        template <typename SubClass, typename ...Ts> struct Inherit<SubClass, const std::tuple<Ts...>> : Inherit<SubClass, Ts...> {};
 
     }
 
     namespace Fields
     {
-        template <typename T = void, typename FieldDescr = void, typename FieldPointer = std::nullptr_t, size_t FieldIndex = 0, typename Annotations = NoAnnotation, const char* FieldName = nullptr>
+        template <typename T = void, typename Base = std::false_type, typename FieldDescr = void, typename FieldPointer = std::nullptr_t, size_t FieldIndex = 0,
+            typename Notes = NoAnnotation>
         struct Field;
     
         template <>
-        struct Field<void, void, std::nullptr_t, 0, NoAnnotation, nullptr> {
+        struct Field<void, std::false_type, void, std::nullptr_t, 0, NoAnnotation> {
             const char* name;
             const char* typeStr;
         };
 
-        template <typename T, typename FieldDescr, typename FieldPointer, size_t FieldIndex, typename FieldAnnotations, const char* FieldName>
-        struct Field {
-            static constexpr const char* Name = FieldName;
-            const char* name;
-            const char* typeStr;
+        template <typename T, typename Base, typename FieldDescr, typename FieldPointer, size_t FieldIndex, typename FieldAnnotations>
+        struct Field : public Base {
 
             using Type = T;
             using Pointer = std::conditional_t<std::is_reference_v<T>, std::nullptr_t, FieldPointer>;
             using Annotations = FieldAnnotations;
-
-            Pointer p;
-            const Annotations & annotations;
         
             static constexpr size_t Index = FieldIndex;
             static constexpr bool IsStatic = !std::is_member_pointer<FieldPointer>::value && !std::is_same<std::nullptr_t, FieldPointer>::value;
@@ -873,47 +919,39 @@ namespace Reflect
             template <typename Annotation>
             static constexpr bool HasAnnotation = ExtendedTypeSupport::has_type<Annotation, Annotations>::value;
 
+            template <template <typename ...> class Of>
+            static constexpr bool HasSpecializedAnnotation = ExtendedTypeSupport::type_list<Annotations>::template has_specialization_v<Of>;
+
             template <typename Annotation>
-            constexpr Annotation getAnnotation() const { return ExtendedTypeSupport::get<Annotation>::from(annotations); }
+            constexpr const auto & getAnnotation() const { return ExtendedTypeSupport::get<Annotation>::from(Base::annotations); }
+
+            template <template <typename ...> class Of>
+            constexpr const auto & getAnnotation() const {
+                return ExtendedTypeSupport::get<typename ExtendedTypeSupport::type_list<Annotations>::template get_specialization_t<Of>>::from(Base::annotations);
+            }
 
             template <typename Annotation, typename Function>
-            constexpr void forEach(Function function) const { return ExtendedTypeSupport::for_each<Annotation>::in(annotations, function); }
+            constexpr void forEach(Function function) const { return ExtendedTypeSupport::for_each<Annotation>::in(Base::annotations, function); }
 
             template <typename Function>
-            constexpr void forEachAnnotation(Function function) const { return ExtendedTypeSupport::for_each_in(annotations, function); }
+            constexpr void forEachAnnotation(Function function) const { return ExtendedTypeSupport::for_each_in(Base::annotations, function); }
+
         };
     }
 
-    struct Unproxied {};
-
-    template <typename T>
-    struct Proxy : public Unproxied {};
-
-    template <typename T>
-    struct is_proxied
-    {
-        static constexpr bool value = !std::is_base_of<Unproxied, Proxy<T>>::value;
-    };
-    
-    template <typename Type> struct unproxy { using T = Type; };
-    template <typename Type> struct unproxy<Proxy<Type>> { using T = Type; };
-    template <typename Type> using unproxy_t = typename unproxy<Type>::T;
-
-#define GET_FIELD_NAME(x) x,
-
 #ifdef __clang__
-#define CLANG_ONLY(x) template <typename T_, typename F, typename = decltype(T_::x)> static constexpr void useInst(F f, T_ & t) { f(field, t.x); } \
-    template <typename T_, typename F, typename = decltype(T_::x)> static constexpr void useInst(F f, const T_ & t) { f(field, t.x); } \
-    template <typename T_, typename F> static constexpr inline void useInst(F f, ...) { }
-#define USE_FIELD_VALUE(x) if constexpr ( !x##_::Field::IsFunction ) x##_::template useInst<ClassType>(function, object);
-#define USE_FIELD_VALUE_AT(x) case IndexOf::x: if constexpr ( !x##_::Field::IsFunction ) x##_::template useInst<ClassType>(function, object); break;
+#define CLANG_ONLY(x) \
+    template<bool IsStaticData, typename Field, typename GetNull, typename T_> static constexpr std::enable_if_t<IsStaticData, std::add_lvalue_reference_t<decltype(T_::x)>> getStatic(int) { return std::add_lvalue_reference_t<decltype(T_::x)>(T_::x); } \
+    template<bool IsStaticData, typename Field, typename GetNull, typename T_> static constexpr std::enable_if_t<!IsStaticData, std::add_lvalue_reference_t<decltype(&T_::x)>> getStatic(unsigned) { return std::add_lvalue_reference_t<decltype(&T_::x)>(Field::p); } \
+    template<bool IsStaticData, typename Field, typename GetNull, typename T_> static constexpr std::nullptr_t & getStatic(...) { return (std::nullptr_t &)GetNull::value; }
+#define PASS_STATIC_VALUE(x) FieldDescr<IndexOf::x>::template getStatic<x##_::Field::IsStatic && !x##_::Field::IsFunction, x##_::Field, x##_::template GetPointer<nullptr_t, true>, ClassType>(0)
 #else
 #define CLANG_ONLY(x)
-#define USE_FIELD_VALUE(x) if constexpr ( !x##_::Field::IsFunction ) function(x##_::field, object.x);
-#define USE_FIELD_VALUE_AT(x) case IndexOf::x: if constexpr ( !x##_::Field::IsFunction ) function(x##_::field, object.x); break;
+#define PASS_STATIC_VALUE(x) []() -> decltype(auto) { if constexpr ( x##_::Field::IsStatic && !x##_::Field::IsFunction ) return std::add_lvalue_reference_t<decltype(ClassType::x)>(ClassType::x); else return std::add_lvalue_reference_t<typename x##_::Field::Pointer>(x##_::Field::p); }()
 #endif
+#define PASS_STATIC_VALUE_(x) ,PASS_STATIC_VALUE(x)
 
-#define DESCRIBE_FIELD(x) struct x##_ { \
+#define DESCRIBE_FIELD(x) template <typename U_> struct FieldDescr<IndexOf::x, U_> { \
     template <typename T_> static constexpr ExtendedTypeSupport::TypePair<decltype(T_::x), decltype(&T_::x)> identify(int); \
     template <typename T_> static constexpr ExtendedTypeSupport::TypePair<decltype(T_::x), std::nullptr_t> identify(unsigned int); \
     template <typename T_> static constexpr ExtendedTypeSupport::TypePair<decltype(&T_::x), decltype(&T_::x)> identify(...); \
@@ -921,116 +959,393 @@ namespace Reflect
     using Pointer = typename decltype(identify<ProxyType>(0))::Right; \
     template <typename T_, bool IsReference> struct GetPointer { static constexpr auto value = &T_::x; }; \
     template <typename T_> struct GetPointer<T_, true> { static constexpr std::nullptr_t value = nullptr; }; \
-    static constexpr const char nameStr[] = #x; \
-    static constexpr auto typeStr = ExtendedTypeSupport::TypeName<Type>(); \
     template <typename T_> static constexpr decltype(T_::x##_note) idNote(int); \
-    template <typename T_> static constexpr decltype(Class::NoNote) idNote(...); \
-    template <typename T_, bool NoNote> struct GetNote { static constexpr auto & value = Class::NoNote; }; \
+    template <typename T_> static constexpr decltype(Reflection::NoNote) idNote(...); \
+    template <typename T_, bool NoNote> struct GetNote { static constexpr auto & value = Reflection::NoNote; }; \
     template <typename T_> struct GetNote<T_, false> { static constexpr auto & value = T_::x##_note; }; \
-    using NoteType = decltype(idNote<ProxyType>(0)); \
     template <bool HasOffset, typename T_ = ClassType> struct Get { static constexpr size_t offset() { return offsetof(T_, x); } }; \
     template <typename T_> struct Get<false, T_> { static constexpr size_t offset() { return size_t(0); } }; \
-    using Field = Reflect::Fields::Field<Type, x##_, Pointer, IndexOf::x, NoteType, nameStr>; \
-    static constexpr Field field = { nameStr, &typeStr.value[0], GetPointer<ProxyType, std::is_reference_v<Type>>::value, \
-        GetNote<ProxyType, std::is_same_v<decltype(Class::NoNote), NoteType>>::value }; \
+    static constexpr auto typeStr_ = ExtendedTypeSupport::TypeName<Type>(); \
+    struct FieldBase { \
+        static constexpr const char* typeStr = typeStr_; \
+        static constexpr const char name[] = #x; \
+        template <bool IncludeField, typename Function, typename T_ = ClassType> static constexpr void callback(Function && function) { \
+            if constexpr ( Field::IsFunction || !Field::IsStatic ) { if constexpr ( IncludeField ) { function(field, field.p); } else { function(field.p); } } \
+            else if constexpr ( IncludeField ) { function(field, T_::x); } else { function(T_::x); } } \
+        template <bool IncludeField, typename Function, typename T_ = ClassType> static constexpr void callback(T_ && t, Function && function) { \
+            if constexpr ( Field::IsFunction ) { if constexpr ( IncludeField ) { function(field, field.p); } else { function(field.p); } } \
+            else if constexpr ( IncludeField ) { function(field, std::forward<T_>(t).x); } else { function(std::forward<T_>(t).x); } } \
+        static constexpr auto & annotations = GetNote<ProxyType, std::is_same_v<decltype(Reflection::NoNote), decltype(idNote<ProxyType>(0))>>::value; \
+        static constexpr Pointer p { GetPointer<ProxyType, std::is_reference_v<Type>>::value }; }; \
+    using Field = Reflection::Fields::Field<Type, FieldBase, FieldDescr<IndexOf::x, U_>, Pointer, IndexOf::x, decltype(idNote<ProxyType>(0))>; \
+    static constexpr Field field {}; \
     CLANG_ONLY(x) \
-};
+}; using x##_ = FieldDescr<IndexOf::x>;
 
-#define ADD_IF_STATIC(x) + ( x##_::Field::IsStatic ? 1 : 0 )
 #define GET_FIELD(x) { Class::x##_::field.name, Class::x##_::field.typeStr },
-#define USE_FIELD(x) function(x##_::field);
-#define USE_FIELD_AT(x) case IndexOf::x: function(x##_::field); break;
+#define PASS_FIELD(x) x##_::field
+#define PASS_FIELD_(x) ,x##_::field
+#define PASS_VALUE(x) [&t]() -> decltype(auto) { if constexpr ( x##_::Field::IsFunction ) { return std::add_lvalue_reference_t<typename x##_::Field::Pointer>(x##_::Field::p); } else return std::add_lvalue_reference_t<decltype(t.x)>(t.x); }()
+#define PASS_VALUE_(x) ,[&t]() -> decltype(auto) { if constexpr ( x##_::Field::IsFunction ) { return std::add_lvalue_reference_t<typename x##_::Field::Pointer>(x##_::Field::p); } else return std::add_lvalue_reference_t<decltype(t.x)>(t.x); }()
 
+//#pragma warning(disable: 4003) // Not enough arguments warning generated despite macros working perfectly
 
-#pragma warning(disable: 4003) // Not enough arguments warning generated despite macros working perfectly
-
-/// After the objectType there needs to be at least 1 and at most 125 field names
+/// After the objectType can be 0 to 124 field names
 /// e.g. REFLECT(MyObj, myInt, myString, myOtherObj)
 #define REFLECT(objectType, ...) \
 struct Class { \
     using ProxyType = objectType; \
-    using ClassType = Reflect::unproxy_t<ProxyType>; \
-    enum_t(IndexOf, size_t, { FOR_EACH(GET_FIELD_NAME, __VA_ARGS__) }); \
-    static constexpr Reflect::NoAnnotation NoNote {}; \
-    using Annotations = decltype(NoNote); \
-    static constexpr Annotations & annotations = NoNote; \
-    FOR_EACH(DESCRIBE_FIELD, __VA_ARGS__) \
-    static constexpr size_t TotalFields = COUNT_ARGUMENTS(__VA_ARGS__); \
-    static constexpr size_t TotalStaticFields = 0 FOR_EACH(ADD_IF_STATIC, __VA_ARGS__); \
-    static constexpr Reflect::Fields::Field<> Fields[TotalFields] = { FOR_EACH(GET_FIELD, __VA_ARGS__) }; \
-    template <typename Function> constexpr static void ForEachField(Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
-    template <typename Function> static void ForEachField(ClassType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
-    template <typename Function> static void ForEachField(const ClassType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
-    template <typename Function> constexpr static void FieldAt(size_t fieldIndex, Function function) { \
-        switch ( fieldIndex ) { FOR_EACH(USE_FIELD_AT, __VA_ARGS__) } } \
-    template <typename Function> static void FieldAt(ClassType & object, size_t fieldIndex, Function function) { \
-        switch ( fieldIndex ) { FOR_EACH(USE_FIELD_VALUE_AT, __VA_ARGS__) } } \
-}; \
-using Supers = Reflect::Inherit<typename Class::ClassType, typename Class::Annotations>;
+    using ClassType = Reflection::unproxy_t<ProxyType>; \
+    static constexpr size_t Total = COUNT_ARGUMENTS(__VA_ARGS__); \
+    enum_t(IndexOf, size_t, { __VA_ARGS__ }); \
+    using Annotations = Reflection::NoAnnotation; \
+    static constexpr auto & annotations = Reflection::NoNote; \
+    template <size_t FieldIndex, typename U_ = void> struct FieldDescr; FOR_EACH(DESCRIBE_FIELD, __VA_ARGS__) \
+    static constexpr Reflection::Fields::Field<> Fields[Total+1] { FOR_EACH(GET_FIELD, __VA_ARGS__) }; \
+    template <typename Function> static constexpr auto field_pack(Function && function) { \
+        return function(FOR_HEAD_TAIL(PASS_FIELD, PASS_FIELD_, __VA_ARGS__)); } \
+    template <typename Function, typename U_> static constexpr auto value_pack(U_ && t, Function && function) { \
+        return function(FOR_HEAD_TAIL(PASS_VALUE, PASS_VALUE_, __VA_ARGS__)); } \
+    template <typename Function> static constexpr auto value_pack(Function && function) { \
+        return function(FOR_HEAD_TAIL(PASS_STATIC_VALUE, PASS_STATIC_VALUE_, __VA_ARGS__)); } \
+};
 
 
 /// REFLECT_NOTED is exactly the same as REFLECT except this signals that objectType itself is annotated
 #define REFLECT_NOTED(objectType, ...) \
 struct Class { \
     using ProxyType = objectType; \
-    using ClassType = Reflect::unproxy_t<ProxyType>; \
-    enum_t(IndexOf, size_t, { FOR_EACH(GET_FIELD_NAME, __VA_ARGS__) }); \
-    static constexpr Reflect::NoAnnotation NoNote {}; \
+    using ClassType = Reflection::unproxy_t<ProxyType>; \
+    static constexpr size_t Total = COUNT_ARGUMENTS(__VA_ARGS__); \
+    enum_t(IndexOf, size_t, { __VA_ARGS__ }); \
+    static constexpr Reflection::NoAnnotation NoNote {}; \
     using Annotations = decltype(objectType##_note); \
     static constexpr Annotations & annotations = objectType##_note; \
-    FOR_EACH(DESCRIBE_FIELD, __VA_ARGS__) \
-    static constexpr size_t TotalFields = COUNT_ARGUMENTS(__VA_ARGS__); \
-    static constexpr size_t TotalStaticFields = 0 FOR_EACH(ADD_IF_STATIC, __VA_ARGS__); \
-    static constexpr Reflect::Fields::Field<> Fields[TotalFields] = { FOR_EACH(GET_FIELD, __VA_ARGS__) }; \
-    template <typename Function> constexpr static void ForEachField(Function function) { FOR_EACH(USE_FIELD, __VA_ARGS__) } \
-    template <typename Function> static void ForEachField(ClassType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
-    template <typename Function> static void ForEachField(const ClassType & object, Function function) { FOR_EACH(USE_FIELD_VALUE, __VA_ARGS__) } \
-    template <typename Function> constexpr static void FieldAt(size_t fieldIndex, Function function) { \
-        switch ( fieldIndex ) { FOR_EACH(USE_FIELD_AT, __VA_ARGS__) } } \
-    template <typename Function> static void FieldAt(ClassType & object, size_t fieldIndex, Function function) { \
-        switch ( fieldIndex ) { FOR_EACH(USE_FIELD_VALUE_AT, __VA_ARGS__) } } \
-}; \
-using Supers = Reflect::Inherit<typename Class::ClassType, typename Class::Annotations>;
+    template <size_t FieldIndex, typename U_ = void> struct FieldDescr; FOR_EACH(DESCRIBE_FIELD, __VA_ARGS__) \
+    static constexpr Reflection::Fields::Field<> Fields[Total+1] { FOR_EACH(GET_FIELD, __VA_ARGS__) }; \
+    template <typename Function> static constexpr auto field_pack(Function && function) { \
+        return function(FOR_HEAD_TAIL(PASS_FIELD, PASS_FIELD_, __VA_ARGS__)); } \
+    template <typename Function, typename U> static constexpr auto value_pack(U && t, Function && function) { \
+        return function(FOR_HEAD_TAIL(PASS_VALUE, PASS_VALUE_, __VA_ARGS__)); } \
+    template <typename Function> static constexpr auto value_pack(Function && function) { \
+        return function(FOR_HEAD_TAIL(PASS_STATIC_VALUE, PASS_STATIC_VALUE_, __VA_ARGS__)); } \
+};
 
+    template <typename T, typename = typename T::Type, typename = typename T::Annotations, typename = decltype(T::Index)> static constexpr std::true_type typeIsField(int);
+    template <typename T> static constexpr std::false_type typeIsField(unsigned int);
 
-/// REFLECT_EMPTY is used to reflect an annotated class with no reflected fields
-#define REFLECT_EMPTY(objectType) \
-struct Class { \
-    using ProxyType = objectType; \
-    using ClassType = Reflect::unproxy_t<ProxyType>; \
-    using Annotations = decltype(objectType##_note); \
-    static constexpr Annotations & annotations = objectType##_note; \
-    static constexpr size_t TotalFields = 0; \
-    static constexpr size_t TotalStaticFields = 0; \
-    static constexpr Reflect::Fields::Field<> Fields[1] = { { "", "" } }; \
-    template <typename Function> constexpr static void ForEachField(Function function) {} \
-    template <typename Function> static void ForEachField(ClassType & object, Function function) {} \
-    template <typename Function> static void ForEachField(const ClassType & object, Function function) { } \
-    template <typename Function> constexpr static void FieldAt(size_t fieldIndex, Function function) {} \
-    template <typename Function> static void FieldAt(ClassType & object, size_t fieldIndex, Function function) {} \
-}; \
-using Supers = Reflect::Inherit<typename Class::ClassType, typename Class::Annotations>;
+    template <typename T> struct is_field { static constexpr bool value = decltype(typeIsField<T>(0))::value; };
+    template <typename T> inline constexpr bool is_field_v = is_field<T>::value;
 
-    template <typename T, typename = decltype(T::Class::TotalFields)> static constexpr std::true_type typeHasReflection(int);
-    template <typename T> static constexpr std::false_type typeHasReflection(unsigned int);
+    template <typename T> using enable_if_field_t = std::enable_if_t<is_field_v<T>>;
     
-    template <typename T> struct is_reflected { static constexpr bool value = is_proxied<T>::value || decltype(typeHasReflection<T>(0))::value; };
-    template <typename T> struct is_reflected<const T> { static constexpr bool value = is_reflected<T>::value; };
-    template <typename T> inline constexpr bool is_reflected_v = is_reflected<T>::value;
+    template <template <typename...> class Filter, typename ...Ts> static constexpr Filter<Ts...> filterResult(int);
+    template <template <typename...> class Filter, typename T, typename ...Ts> static constexpr std::false_type filterResult(unsigned);
 
-    template <typename T> struct reflected_type { using type = typename std::conditional_t<is_proxied<T>::value, Proxy<T>, T>; };
-    template <typename T> using reflected_type_t = typename reflected_type<T>::type;
+    /** filter_result uses Filter<Field, Ts...> if it results in a valid expression, otherwise it uses Filter<Field::Type, Ts...>
+        This allows the filter to be based on field metadata (e.g. whether a variable is static), or operate purely on the field type */
+    template <template <typename...> class Filter, typename Field, typename ...Ts> struct filter_result :
+        std::bool_constant<decltype(filterResult<Filter, Field, Ts...>(0))::value || decltype(filterResult<Filter, typename Field::Type, Ts...>(0))::value> {};
+    template <template <typename...> class Filter, typename T, typename ...Ts> inline constexpr bool passes_filter = filter_result<Filter, T, Ts...>::value;
 
-    template <typename Type> struct clazz { using type = typename reflected_type_t<Type>::Class; };
-    template <typename Type> using class_t = typename clazz<Type>::type;
+    struct Filter {
+        template <typename Field, typename = enable_if_field_t<Field>> struct None : std::bool_constant<true> {};
+        template <typename Field, typename = enable_if_field_t<Field>> struct IsData : std::bool_constant<!Field::IsFunction> {}; // Data is defined as non-functions (raw data, pointers, references)
+        template <typename Field, typename = enable_if_field_t<Field>> struct IsFunction : std::bool_constant<Field::IsFunction> {};
+        template <typename Field, typename = enable_if_field_t<Field>> struct IsInstanceField : std::bool_constant<!Field::IsStatic> {};
+        template <typename Field, typename = enable_if_field_t<Field>> struct IsStaticField : std::bool_constant<Field::IsStatic> {};
+        template <typename Field, typename = enable_if_field_t<Field>> struct IsInstanceData : std::bool_constant<!Field::IsStatic && !Field::IsFunction> {};
+        template <typename Field, typename = enable_if_field_t<Field>> struct IsInstanceFunction : std::bool_constant<!Field::IsStatic && Field::IsFunction> {};
+        template <typename Field, typename = enable_if_field_t<Field>> struct IsStaticData : std::bool_constant<Field::IsStatic && !Field::IsFunction> {};
+        template <typename Field, typename = enable_if_field_t<Field>> struct IsStaticFunction : std::bool_constant<Field::IsStatic && Field::IsFunction> {};
+    };
 
-    template <typename Type> struct supers { using type = typename reflected_type_t<Type>::Supers; };
-    template <typename Type> using supers_t = typename supers<Type>::type;
+    template <typename T>
+    struct Reflect
+    {
+        using Type = T;
+        using Class = Reflection::class_t<T>; // Access to the underlying T::Class (or Proxy<T>::Class) reflection structure
+        using Supers = Reflection::Inherit<unproxy_t<T>, typename Class::Annotations>; // Super-class info for type T
 
-    template <typename T, typename Enable = void> struct class_notes { using type = Reflect::NoAnnotation; };
-    template <typename T> struct class_notes<T, std::enable_if_t<is_reflected_v<T>>> { using type = typename class_t<T>::Annotations; };
-    template <typename T> using class_notes_t = typename class_notes<T>::type;
+        struct Fields // Access to field information
+        {
+            static constexpr size_t Total = Class::Total;
+            
+            template <size_t FieldIndex> using Field = typename Class::template FieldDescr<FieldIndex>::Field;
+
+            template <size_t FieldIndex> static constexpr const Field<FieldIndex> & field = Class::template FieldDescr<FieldIndex>::field;
+
+            // Forwards all fields to function as a parameter pack
+            template <typename Function> static constexpr auto Pack(Function && function) { return Class::field_pack(std::forward<Function>(function)); }
+            
+            // Forwards the static value of all fields (member pointers if instance field) to function as a parameter pack
+            template <typename Function> static constexpr auto PackValues(Function && function) { return Class::value_pack(function); }
+            
+            // Forwards the value of all fields to function as a parameter pack
+            template <typename Function, class U> static constexpr auto PackValues(U && t, Function && function) { return Class::value_pack(std::forward<U>(t), std::forward<Function>(function)); }
+            
+            template <template <typename ...> class Filter, typename ...FilterArgs>
+            static constexpr size_t FilteredCount() {
+                if constexpr ( Total == 0 )
+                    return 0;
+                else
+                {
+                    size_t count = 0;
+                    ExtendedTypeSupport::ForIntegralConstants<Total>([&](auto I) {
+                        if constexpr ( passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
+                            ++count;
+                    });
+                    return count;
+                }
+            };
+
+            // t, function(field, value)
+            template <typename Function, class U, typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
+            static constexpr void ForEach(U && t, Function && function) {
+                
+                ExtendedTypeSupport::ForIntegralConstants<Total>([&](auto I) {
+                    Field<decltype(I)::value>::template callback<true>(std::forward<U>(t), std::forward<Function>(function));
+                });
+            }
+
+            // t, function(field, value) [filtered]
+            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function, class U, typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
+            static void ForEach(U && t, Function && function) {
+                if constexpr ( Total > 0 )
+                {
+                    ExtendedTypeSupport::ForIntegralConstants<Total>([&](auto I) {
+                        if constexpr ( passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
+                            Field<decltype(I)::value>::template callback<true>(std::forward<U>(t), std::forward<Function>(function));
+                    });
+                }
+            }
+            
+            // function(field, value) [statics only]
+            template <typename Function> static constexpr void ForEach(Function && function) {
+                if constexpr ( Total > 0 )
+                {
+                    ExtendedTypeSupport::ForIntegralConstants<Total>([&](auto I) {
+                        if constexpr ( Field<decltype(I)::value>::IsStatic )
+                            Field<decltype(I)::value>::template callback<true>(std::forward<Function>(function));
+                    });
+                }
+            }
+
+            // function(field, value) [filtered, statics only]
+            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function> static constexpr void ForEach(Function && function) {
+                if constexpr ( Total > 0 )
+                {
+                    ExtendedTypeSupport::ForIntegralConstants<Total>([&](auto I) {
+                        if constexpr ( Field<decltype(I)::value>::IsStatic && passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
+                            Field<decltype(I)::value>::template callback<true>(std::forward<Function>(function));
+                    });
+                }
+            }
+
+            // function(field)
+            template <typename Function> static constexpr void ForEachField(Function && function) {
+                ExtendedTypeSupport::ForIntegralConstants<Total>([&](auto I) {
+                    function(field<decltype(I)::value>);
+                });
+            }
+
+            // function(field) [filtered]
+            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function> static constexpr void ForEachField(Function && function) {
+                ExtendedTypeSupport::ForIntegralConstants<Total>([&](auto I) {
+                    if constexpr ( passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
+                        function(field<decltype(I)::value>);
+                });
+            }
+
+            // t, function(value)
+            template <typename Function, class U, typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
+            static constexpr void ForEachValue(U && t, Function && function) {
+                ExtendedTypeSupport::ForIntegralConstants<Total>([&](auto I) {
+                    Field<decltype(I)::value>::template callback<false>(std::forward<U>(t), std::forward<Function>(function));
+                });
+            }
+
+            // t, function(value) [filtered]
+            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function, class U, typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
+            static constexpr void ForEachValue(U && t, Function && function) {
+                ExtendedTypeSupport::ForIntegralConstants<Total>([&](auto I) {
+                    if constexpr ( passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
+                        Field<decltype(I)::value>::template callback<false>(std::forward<U>(t), std::forward<Function>(function));
+                });
+            }
+
+            // function(value) [statics only]
+            template <typename Function> static constexpr void ForEachValue(Function && function) {
+                ExtendedTypeSupport::ForIntegralConstants<Total>([&](auto I) {
+                    if constexpr ( Field<decltype(I)::value>::IsStatic )
+                        Field<decltype(I)::value>::template callback<false>(std::forward<Function>(function));
+                });
+            }
+
+            // function(value) [filtered, statics only]
+            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function> static constexpr void ForEachValue(Function && function) {
+                ExtendedTypeSupport::ForIntegralConstants<Total>([&](auto I) {
+                    if constexpr ( Field<decltype(I)::value>::IsStatic && passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
+                        Field<decltype(I)::value>::template callback<false>(std::forward<Function>(function));
+                });
+            }
+
+            // t, function(field, value)
+            template <typename Function, class U, typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
+            static constexpr void At(U && t, size_t fieldIndex, Function && function) {
+                ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
+                    Field<decltype(I)::value>::template callback<true>(std::forward<U>(t), std::forward<Function>(function));
+                });
+            }
+
+            // t, function(field, value) [filtered]
+            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function, class U, typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
+            static constexpr void At(U && t, size_t fieldIndex, Function && function) {
+                ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
+                    if constexpr ( passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
+                        Field<decltype(I)::value>::template callback<true>(std::forward<U>(t), std::forward<Function>(function));
+                });
+            }
+            
+            // function(field, value) [statics only]
+            template <typename Function> static constexpr void At(size_t fieldIndex, Function && function) {
+                ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
+                    Field<decltype(I)::value>::template callback<true>(std::forward<Function>(function));
+                });
+            }
+            
+            // function(field, value) [filtered, statics only]
+            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function> static constexpr void At(size_t fieldIndex, Function && function) {
+                ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
+                    if constexpr ( passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
+                        Field<decltype(I)::value>::template callback<true>(std::forward<Function>(function));
+                });
+            }
+            
+            // function(field)
+            template <typename Function> static constexpr void FieldAt(size_t fieldIndex, Function && function) {
+                ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
+                    function(field<decltype(I)::value>);
+                });
+            }
+            
+            // function(field) [filtered]
+            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function> static constexpr void FieldAt(size_t fieldIndex, Function && function) {
+                ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
+                    if constexpr ( passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
+                        function(field<decltype(I)::value>);
+                });
+            }
+            
+            // t, function(value)
+            template <typename Function, class U, typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
+            static constexpr void ValueAt(U && t, size_t fieldIndex, Function && function) {
+                ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
+                    Field<decltype(I)::value>::template callback<false>(std::forward<U>(t), std::forward<Function>(function));
+                });
+            }
+            
+            // t, function(value) [filtered]
+            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function, class U, typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
+            static constexpr void ValueAt(U && t, size_t fieldIndex, Function && function) {
+                ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
+                    if constexpr ( passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
+                        Field<decltype(I)::value>::template callback<false>(std::forward<U>(t), std::forward<Function>(function));
+                });
+            }
+            
+            // function(value) [statics only]
+            template <typename Function> static constexpr void ValueAt(size_t fieldIndex, Function && function) {
+                ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
+                    Field<decltype(I)::value>::template callback<false>(std::forward<Function>(function));
+                });
+            }
+            
+            // function(value) [filtered, statics only]
+            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function> static constexpr void ValueAt(size_t fieldIndex, Function && function) {
+                ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
+                    if constexpr ( passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
+                        Field<decltype(I)::value>::template callback<false>(std::forward<Function>(function));
+                });
+            }
+
+        };
+
+        /*struct Experimental // May have better support in the future, but for now this is experimental
+        {
+            struct Members
+            {
+                T & t;
+            
+                constexpr Members(T & t) : t(t) {}
+
+                // Members are experimental 
+                struct Member
+                {
+                    T & t;
+                    size_t index;
+                    const char* typeStr;
+                    const char* name;
+                    Member & value;
+
+                    constexpr Member(T & t, size_t index, const char* typeStr, const char* name)
+                        : t(t), index(index), typeStr(typeStr), name(name), value(*this) {}
+
+                    template <typename Function> constexpr void operator()(Function function) const { Fields::ValueAt(t, index, function); }
+                    template <typename V> constexpr void operator=(V v) { Fields::ValueAt(t, index, [&](auto & value){ value = v; }); }
+                    friend std::ostream & operator<<(std::ostream & os, const Member & m)
+                    { Fields::ValueAt(m.t, m.index, [&](auto & value) { os << value; }); return os; }
+                };
+
+                constexpr auto operator[](size_t i) const { return Member{t, i, Class::Fields[i].typeStr, Class::Fields[i].name}; }
+                constexpr auto operator[](int i) const { return Member{t, size_t(i), Class::Fields[i].typeStr, Class::Fields[i].name}; }
+                constexpr auto size() { return Fields::Total; }
+
+                struct Iterator
+                {
+                    T & t;
+                    size_t i;
+
+                    void operator++() { ++this->i; }
+                    constexpr Member operator->() { return Member{t, size_t(i), Class::Fields[i].typeStr, Class::Fields[i].name}; }
+                    constexpr Member operator*() { return Member{t, size_t(i), Class::Fields[i].typeStr, Class::Fields[i].name}; }
+                    bool operator!=(const Iterator & other) { return this->i != other.i; }
+                };
+
+                constexpr auto begin() { return Iterator{t, 0}; }
+                constexpr auto end() { return Iterator{t, Fields::Total}; }
+            };
+        };*/
+
+        // Specifically the class-level annotations of the reflected type, not field-level annotations
+        struct Notes
+        {
+            // function(annotation)
+            template <typename Function>
+            static constexpr void ForEach(Function function) { return ExtendedTypeSupport::for_each_in(Class::annotations, function); }
+
+            // function(annotation) [filtered to type 'Annotation']
+            template <typename Annotation, typename Function>
+            static constexpr void ForEach(Function function) { return ExtendedTypeSupport::for_each<Annotation>::in(Class::annotations, function); }
+
+            template <typename Annotation>
+            static constexpr bool Has = ExtendedTypeSupport::has_type<Annotation, typename Class::Annotations>::value;
+
+            template <template <typename ...> class Of>
+            static constexpr bool HasSpecialization = ExtendedTypeSupport::type_list<typename Class::Annotations>::template has_specialization_v<Of>;
+
+            template <typename Annotation>
+            static constexpr auto & Get() { return ExtendedTypeSupport::get<Annotation>::from(Class::annotations); }
+
+            template <template <typename ...> class Of>
+            static constexpr auto & Get() {
+                return ExtendedTypeSupport::get<typename ExtendedTypeSupport::type_list<typename Class::Annotations>::template get_specialization_t<Of>>::from(Class::annotations);
+            }
+        };
+    };
+
 }
+using Reflection::Reflect;
 
 namespace ObjectMapper
 {
@@ -1042,12 +1357,12 @@ namespace ObjectMapper
 /// Defines a mapping from "this" to objectType
 /// After the objectType there needs to be at least 1 and at most 124 parenthesized field mappings ("this" fields on left, objectType fields on right)
 /// e.g. MAP_TO(target, (a, a), (b, c), (d, d))
-#define MAP_TO(objectType, ...) void map_to(objectType & o) const { FOR_EACH(OM_O, __VA_ARGS__) }
+#define MAP_TO(objectType, ...) void map_to(objectType & o) const { FOR_EACH_POSITIVE(OM_O, __VA_ARGS__) }
 
 /// Defines a mapping from objectType to "this"
 /// After the objectType there needs to be at least 1 and at most 124 parenthesized field mappings ("this" fields on left, objectType fields on right)
 /// e.g. MAP_FROM(target, (a, a), (b, c), (d, d))
-#define MAP_FROM(objectType, ...) void map_from(const objectType & o) { FOR_EACH(OM_T, __VA_ARGS__) }
+#define MAP_FROM(objectType, ...) void map_from(const objectType & o) { FOR_EACH_POSITIVE(OM_T, __VA_ARGS__) }
 
 /// Defines a bi-directional mapping between "this" and objectType
 /// After the objectType there needs to be at least 1 and at most 124 parenthesized field mappings ("this" fields on left, objectType fields on right)
@@ -1230,11 +1545,11 @@ namespace ObjectMapper
                 }
             }
         }
-        else if constexpr ( Reflect::is_reflected<To>::value && Reflect::is_reflected<From>::value )
+        else if constexpr ( Reflection::is_reflected<To>::value && Reflection::is_reflected<From>::value )
         {
-            Reflect::class_t<To>::ForEachField(to, [&](auto & toField, auto & toValue) {
-                Reflect::class_t<From>::ForEachField(from, [&](auto & fromField, auto & fromValue) {
-                    if constexpr (std::string_view(toField.Name) == std::string_view(fromField.Name))
+            Reflect<To>::Fields::ForEach(to, [&](auto & toField, auto & toValue) {
+                Reflect<From>::Fields::ForEach(from, [&](auto & fromField, auto & fromValue) {
+                    if constexpr ( std::string_view(toField.name) == std::string_view(fromField.name) )
                         ObjectMapper::map(toValue, fromValue);
                 });
             });
@@ -1253,7 +1568,7 @@ namespace ObjectMapper
         template <typename T, typename MappedBy> using UseMapping = MappedByType<MappedBy, T>;
 
         template <typename T> inline constexpr bool IsMappedByNotes = ExtendedTypeSupport::type_list<T>::template has_specialization_v<MappedByType>;
-        template <typename T> inline constexpr bool IsMappedByClassNote = IsMappedByNotes<Reflect::class_notes_t<T>>;
+        template <typename T> inline constexpr bool IsMappedByClassNote = IsMappedByNotes<Reflection::class_notes_t<T>>;
 
         template <typename T, typename Enable = void> struct GetMappingFromNotes { using type = void; };
         template <typename T> struct GetMappingFromNotes<T, std::enable_if_t<IsMappedByNotes<T>>>
@@ -1261,7 +1576,7 @@ namespace ObjectMapper
 
         template <typename T, typename Enable = void> struct GetMappingByClassNote { using type = void; };
         template <typename T> struct GetMappingByClassNote<T, std::enable_if_t<IsMappedByClassNote<T>>>
-        { using type = typename GetMappingFromNotes<Reflect::class_notes_t<T>>::type; };
+        { using type = typename GetMappingFromNotes<Reflection::class_notes_t<T>>::type; };
 
         template <typename T> struct SetTags { using DefaultMapping = void; }; // e.g. struct ObjectMapper::SetTags<Foo> : IsMappedBy<Bar> {};
         template <typename T> using GetTags = SetTags<T>; // e.g. ObjectMapper::GetProperty<Foo>::MappedBy::DefaultMapping
