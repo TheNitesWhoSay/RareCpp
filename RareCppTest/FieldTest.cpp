@@ -464,4 +464,12 @@ TEST(ReflectionFieldTest, SpecializedAnnotations)
     using SpecializationType = typename MappedByAnnotationsTest::DefaultMapping;
     isSame = std::is_same_v<SpecializationType, AnnotationTest>;
     EXPECT_TRUE(isSame);
+
+    int visitCount = 0;
+    decltype(fieldWithSpecializedNote)::forEach<ObjectMapper::MappedByType>([&](auto & annotation){
+        isSame = std::is_same_v<ObjectMapper::IsMappedBy<AnnotationTest>, std::remove_const_t<std::remove_reference_t<decltype(annotation)>>>;
+        EXPECT_TRUE(isSame);
+        visitCount++;
+    });
+    EXPECT_EQ(1, visitCount);
 }

@@ -7,6 +7,11 @@ struct SerializedName
     std::string_view value;
 };
 
+template <typename T>
+struct Specializable {
+    T value;
+};
+
 NOTE(TestSuper)
 struct TestSuper {};
 struct TestOtherSuper {};
@@ -30,6 +35,10 @@ NOTE(DoubleSuperNotes,
     Super<TestSuper>(TestAnnotation{33}, TestOtherAnnotation{44}, TestOtherAnnotation{55}),
     Super<TestOtherSuper>(TestAnnotation{1}, TestOtherAnnotation{2}))
 struct DoubleSuperNotes : TestSuper, TestOtherSuper { REFLECT_NOTED(DoubleSuperNotes) };
+
+NOTE(SpecializedSuperAnnotation,
+    Super<TestSuper>('a', Specializable<int>{0}, 'b', Specializable<int>{1}))
+struct SpecializedSuperAnnotation : TestSuper { REFLECT_NOTED(SpecializedSuperAnnotation) };
 
 TEST(ReflectInheritanceTest, SuperInfo)
 {
@@ -144,6 +153,14 @@ TEST(ReflectInheritanceTest, SuperInfo)
         timesVisited ++;
     });
     EXPECT_EQ(3, timesVisited);
+
+    timesVisited = 0;
+    using SpecializedNotes = SuperInfo<0, SpecializedSuperAnnotation>;
+    SpecializedNotes::forEach<Specializable>([&](auto & annotation) {
+        EXPECT_EQ(timesVisited, annotation.value);
+        timesVisited++;
+    });
+    EXPECT_EQ(2, timesVisited);
 }
 
 NOTE(BaseClass, Super<TestSuper>, Super<TestOtherSuper>(SerializedName{"testOther"}, 'a'), 'b')
@@ -304,6 +321,314 @@ TEST(ReflectInheritanceTest, InheritTotalSupers)
     EXPECT_EQ(3, InheritSuper_3b::Total);
     EXPECT_EQ(3, InheritSuper_3c::Total);
     EXPECT_EQ(3, InheritSuper_3d::Total);
+}
+
+TEST(ReflectInheritanceTest, InheritForEachStatic)
+{
+    int visitCount = 0;
+    InheritSuper_0a::ForEach([&](auto superInfo) {
+        visitCount++;
+    });
+    EXPECT_EQ(0, visitCount);
+    visitCount = 0;
+    InheritSuper_0b::ForEach([&](auto superInfo) {
+        visitCount++;
+    });
+    EXPECT_EQ(0, visitCount);
+    visitCount = 0;
+    InheritSuper_0c::ForEach([&](auto superInfo) {
+        visitCount++;
+    });
+    EXPECT_EQ(0, visitCount);
+    
+    visitCount = 0;
+    InheritSuper_1a::ForEach([&](auto superInfo) {
+        EXPECT_EQ(0, superInfo.Index);
+        using Info = decltype(superInfo);
+        using InfoType = typename Info::Type;
+        using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
+        bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
+        EXPECT_TRUE(isSame);
+        isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+        EXPECT_TRUE(isSame);
+        visitCount++;
+    });
+    EXPECT_EQ(1, visitCount);
+    visitCount = 0;
+    InheritSuper_1b::ForEach([&](auto superInfo) {
+        EXPECT_EQ(0, superInfo.Index);
+        using Info = decltype(superInfo);
+        using InfoType = typename Info::Type;
+        using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
+        bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
+        EXPECT_TRUE(isSame);
+        isSame = std::is_same<std::tuple<char, char>, InfoAnnotations>::value;
+        EXPECT_TRUE(isSame);
+        EXPECT_EQ('c', std::get<0>(superInfo.annotations));
+        EXPECT_EQ('d', std::get<1>(superInfo.annotations));
+        visitCount++;
+    });
+    EXPECT_EQ(1, visitCount);
+    visitCount = 0;
+    InheritSuper_1c::ForEach([&](auto superInfo) {
+        EXPECT_EQ(0, superInfo.Index);
+        using Info = decltype(superInfo);
+        using InfoType = typename Info::Type;
+        using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
+        bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
+        EXPECT_TRUE(isSame);
+        isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+        EXPECT_TRUE(isSame);
+        visitCount++;
+    });
+    EXPECT_EQ(1, visitCount);
+    visitCount = 0;
+    InheritSuper_1d::ForEach([&](auto superInfo) {
+        EXPECT_EQ(0, superInfo.Index);
+        using Info = decltype(superInfo);
+        using InfoType = typename Info::Type;
+        using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
+        bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
+        EXPECT_TRUE(isSame);
+        isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+        EXPECT_TRUE(isSame);
+        visitCount++;
+    });
+    EXPECT_EQ(1, visitCount);
+    
+    visitCount = 0;
+    InheritSuper_2a::ForEach([&](auto superInfo) {
+        EXPECT_EQ(visitCount, superInfo.Index);
+        using Info = decltype(superInfo);
+        using InfoType = typename Info::Type;
+        using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
+        if constexpr ( superInfo.Index == 0 )
+        {
+            bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
+            EXPECT_TRUE(isSame);
+            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if constexpr ( superInfo.Index == 1 )
+        {
+            bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
+            EXPECT_TRUE(isSame);
+            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+    });
+    EXPECT_EQ(2, visitCount);
+    visitCount = 0;
+    InheritSuper_2b::ForEach([&](auto superInfo) {
+        EXPECT_EQ(visitCount, superInfo.Index);
+        using Info = decltype(superInfo);
+        using InfoType = typename Info::Type;
+        using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
+        if constexpr ( superInfo.Index == 0 )
+        {
+            bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
+            EXPECT_TRUE(isSame);
+            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if constexpr ( superInfo.Index == 1 )
+        {
+            bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
+            EXPECT_TRUE(isSame);
+            isSame = std::is_same<std::tuple<char, char>, InfoAnnotations>::value;
+            EXPECT_TRUE(isSame);
+            EXPECT_EQ('e', std::get<0>(superInfo.annotations));
+            EXPECT_EQ('f', std::get<1>(superInfo.annotations));
+            visitCount++;
+        }
+    });
+    EXPECT_EQ(2, visitCount);
+    visitCount = 0;
+    InheritSuper_2c::ForEach([&](auto superInfo) {
+        EXPECT_EQ(visitCount, superInfo.Index);
+        using Info = decltype(superInfo);
+        using InfoType = typename Info::Type;
+        using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
+        if constexpr ( superInfo.Index == 0 )
+        {
+            bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
+            EXPECT_TRUE(isSame);
+            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if constexpr ( superInfo.Index == 1 )
+        {
+            bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
+            EXPECT_TRUE(isSame);
+            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+    });
+    EXPECT_EQ(2, visitCount);
+    visitCount = 0;
+    InheritSuper_2d::ForEach([&](auto superInfo) {
+        EXPECT_EQ(visitCount, superInfo.Index);
+        using Info = decltype(superInfo);
+        using InfoType = typename Info::Type;
+        using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
+        if constexpr ( superInfo.Index == 0 )
+        {
+            bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
+            EXPECT_TRUE(isSame);
+            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if constexpr ( superInfo.Index == 1 )
+        {
+            bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
+            EXPECT_TRUE(isSame);
+            isSame = std::is_same<std::tuple<char, char>, InfoAnnotations>::value;
+            EXPECT_TRUE(isSame);
+            EXPECT_EQ('g', std::get<0>(superInfo.annotations));
+            EXPECT_EQ('h', std::get<1>(superInfo.annotations));
+            visitCount++;
+        }
+    });
+    EXPECT_EQ(2, visitCount);
+    
+    visitCount = 0;
+    InheritSuper_3a::ForEach([&](auto superInfo) {
+        EXPECT_EQ(visitCount, superInfo.Index);
+        using Info = decltype(superInfo);
+        using InfoType = typename Info::Type;
+        using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
+        if constexpr ( superInfo.Index == 0 )
+        {
+            bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
+            EXPECT_TRUE(isSame);
+            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if constexpr ( superInfo.Index == 1 )
+        {
+            bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
+            EXPECT_TRUE(isSame);
+            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if constexpr ( superInfo.Index == 2 )
+        {
+            bool isSame = std::is_same<InheritSuper_S3, InfoType>::value;
+            EXPECT_TRUE(isSame);
+            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+    });
+    EXPECT_EQ(3, visitCount);
+    visitCount = 0;
+    InheritSuper_3b::ForEach([&](auto superInfo) {
+        EXPECT_EQ(visitCount, superInfo.Index);
+        using Info = decltype(superInfo);
+        using InfoType = typename Info::Type;
+        using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
+        if constexpr ( superInfo.Index == 0 )
+        {
+            bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
+            EXPECT_TRUE(isSame);
+            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if constexpr ( superInfo.Index == 1 )
+        {
+            bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
+            EXPECT_TRUE(isSame);
+            isSame = std::is_same<std::tuple<char, char>, InfoAnnotations>::value;
+            EXPECT_TRUE(isSame);
+            EXPECT_EQ('i', std::get<0>(superInfo.annotations));
+            EXPECT_EQ('j', std::get<1>(superInfo.annotations));
+            visitCount++;
+        }
+        else if constexpr ( superInfo.Index == 2 )
+        {
+            bool isSame = std::is_same<InheritSuper_S3, InfoType>::value;
+            EXPECT_TRUE(isSame);
+            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+    });
+    EXPECT_EQ(3, visitCount);
+    visitCount = 0;
+    InheritSuper_3c::ForEach([&](auto superInfo) {
+        EXPECT_EQ(visitCount, superInfo.Index);
+        using Info = decltype(superInfo);
+        using InfoType = typename Info::Type;
+        using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
+        if constexpr ( superInfo.Index == 0 )
+        {
+            bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
+            EXPECT_TRUE(isSame);
+            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if constexpr ( superInfo.Index == 1 )
+        {
+            bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
+            EXPECT_TRUE(isSame);
+            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if constexpr ( superInfo.Index == 2 )
+        {
+            bool isSame = std::is_same<InheritSuper_S3, InfoType>::value;
+            EXPECT_TRUE(isSame);
+            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+    });
+    EXPECT_EQ(3, visitCount);
+    visitCount = 0;
+    InheritSuper_3d::ForEach([&](auto superInfo) {
+        EXPECT_EQ(visitCount, superInfo.Index);
+        using Info = decltype(superInfo);
+        using InfoType = typename Info::Type;
+        using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
+        if constexpr ( superInfo.Index == 0 )
+        {
+            bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
+            EXPECT_TRUE(isSame);
+            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if constexpr ( superInfo.Index == 1 )
+        {
+            bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
+            EXPECT_TRUE(isSame);
+            isSame = std::is_same<std::tuple<char, char>, InfoAnnotations>::value;
+            EXPECT_TRUE(isSame);
+            EXPECT_EQ('k', std::get<0>(superInfo.annotations));
+            EXPECT_EQ('l', std::get<1>(superInfo.annotations));
+            visitCount++;
+        }
+        else if constexpr ( superInfo.Index == 2 )
+        {
+            bool isSame = std::is_same<InheritSuper_S3, InfoType>::value;
+            EXPECT_TRUE(isSame);
+            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+    });
+    EXPECT_EQ(3, visitCount);
 }
 
 TEST(ReflectInheritanceTest, InheritForEachInstance)
@@ -1019,26 +1344,430 @@ TEST(ReflectInheritanceTest, InheritForEachInstanceConst)
     EXPECT_EQ(3, visitCount);
 }
 
-TEST(ReflectInheritanceTest, InheritForEachStatic)
+TEST(ReflectInheritanceTest, InheritForEachSuper)
 {
     int visitCount = 0;
-    InheritSuper_0a::ForEach([&](auto superInfo) {
+    InheritSuper_0a::ForEachSuper(inheritSuper_S0a, [&](auto & super) {
         visitCount++;
     });
     EXPECT_EQ(0, visitCount);
     visitCount = 0;
-    InheritSuper_0b::ForEach([&](auto superInfo) {
+    InheritSuper_0b::ForEachSuper(inheritSuper_S0b, [&](auto & super) {
         visitCount++;
     });
     EXPECT_EQ(0, visitCount);
     visitCount = 0;
-    InheritSuper_0c::ForEach([&](auto superInfo) {
+    InheritSuper_0c::ForEachSuper(inheritSuper_S0c, [&](auto & super) {
         visitCount++;
     });
     EXPECT_EQ(0, visitCount);
     
     visitCount = 0;
-    InheritSuper_1a::ForEach([&](auto superInfo) {
+    InheritSuper_1a::ForEachSuper(inheritSuper_S1a, [&](auto & super) {
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+        EXPECT_TRUE(isSame);
+        visitCount++;
+    });
+    EXPECT_EQ(1, visitCount);
+    visitCount = 0;
+    InheritSuper_1b::ForEachSuper(inheritSuper_S1b, [&](auto & super) {
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+        EXPECT_TRUE(isSame);
+        visitCount++;
+    });
+    EXPECT_EQ(1, visitCount);
+    visitCount = 0;
+    InheritSuper_1c::ForEachSuper(inheritSuper_S1c, [&](auto & super) {
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+        EXPECT_TRUE(isSame);
+        visitCount++;
+    });
+    EXPECT_EQ(1, visitCount);
+    visitCount = 0;
+    InheritSuper_1d::ForEachSuper(inheritSuper_S1d, [&](auto & super) {
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+        EXPECT_TRUE(isSame);
+        visitCount++;
+    });
+    EXPECT_EQ(1, visitCount);
+    
+    visitCount = 0;
+    InheritSuper_2a::ForEachSuper(inheritSuper_S2a, [&](auto & super) {
+        if ( visitCount == 0 )
+        {
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if ( visitCount == 1 )
+        {
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+    });
+    EXPECT_EQ(2, visitCount);
+    visitCount = 0;
+    InheritSuper_2b::ForEachSuper(inheritSuper_S2b, [&](auto & super) {
+        if ( visitCount == 0 )
+        {
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if ( visitCount == 1 )
+        {
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+    });
+    EXPECT_EQ(2, visitCount);
+    visitCount = 0;
+    InheritSuper_2c::ForEachSuper(inheritSuper_S2c, [&](auto & super) {
+        if ( visitCount == 0 )
+        {
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if ( visitCount == 1 )
+        {
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+    });
+    EXPECT_EQ(2, visitCount);
+    visitCount = 0;
+    InheritSuper_2d::ForEachSuper(inheritSuper_S2d, [&](auto & super) {
+        if ( visitCount == 0 )
+        {
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if ( visitCount == 1 )
+        {
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+    });
+    EXPECT_EQ(2, visitCount);
+    
+    visitCount = 0;
+    InheritSuper_3a::ForEachSuper(inheritSuper_S3a, [&](auto & super) {
+        if ( visitCount == 0 )
+        {
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if ( visitCount == 1 )
+        {
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if ( visitCount == 2 )
+        {
+            bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+    });
+    EXPECT_EQ(3, visitCount);
+    visitCount = 0;
+    InheritSuper_3b::ForEachSuper(inheritSuper_S3b, [&](auto & super) {
+        if ( visitCount == 0 )
+        {
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if ( visitCount == 1 )
+        {
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if ( visitCount == 2 )
+        {
+            bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+    });
+    EXPECT_EQ(3, visitCount);
+    visitCount = 0;
+    InheritSuper_3c::ForEachSuper(inheritSuper_S3c, [&](auto & super) {
+        if ( visitCount == 0 )
+        {
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if ( visitCount == 1 )
+        {
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if ( visitCount == 2 )
+        {
+            bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+    });
+    EXPECT_EQ(3, visitCount);
+    visitCount = 0;
+    InheritSuper_3d::ForEachSuper(inheritSuper_S3d, [&](auto & super) {
+        if ( visitCount == 0 )
+        {
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if ( visitCount == 1 )
+        {
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if ( visitCount == 2 )
+        {
+            bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+    });
+    EXPECT_EQ(3, visitCount);
+}
+
+TEST(ReflectInheritanceTest, InheritForEachSuperConst)
+{
+    int visitCount = 0;
+    InheritSuper_0a::ForEachSuper((const decltype(inheritSuper_S0a) &)inheritSuper_S0a, [&](auto & super) {
+        visitCount++;
+    });
+    EXPECT_EQ(0, visitCount);
+    visitCount = 0;
+    InheritSuper_0b::ForEachSuper((const decltype(inheritSuper_S0b) &)inheritSuper_S0b, [&](auto & super) {
+        visitCount++;
+    });
+    EXPECT_EQ(0, visitCount);
+    visitCount = 0;
+    InheritSuper_0c::ForEachSuper((const decltype(inheritSuper_S0c) &)inheritSuper_S0c, [&](auto & super) {
+        visitCount++;
+    });
+    EXPECT_EQ(0, visitCount);
+    
+    visitCount = 0;
+    InheritSuper_1a::ForEachSuper((const decltype(inheritSuper_S1a) &)inheritSuper_S1a, [&](auto & super) {
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+        EXPECT_TRUE(isSame);
+        visitCount++;
+    });
+    EXPECT_EQ(1, visitCount);
+    visitCount = 0;
+    InheritSuper_1b::ForEachSuper((const decltype(inheritSuper_S1b) &)inheritSuper_S1b, [&](auto & super) {
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+        EXPECT_TRUE(isSame);
+        visitCount++;
+    });
+    EXPECT_EQ(1, visitCount);
+    visitCount = 0;
+    InheritSuper_1c::ForEachSuper((const decltype(inheritSuper_S1c) &)inheritSuper_S1c, [&](auto & super) {
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+        EXPECT_TRUE(isSame);
+        visitCount++;
+    });
+    EXPECT_EQ(1, visitCount);
+    visitCount = 0;
+    InheritSuper_1d::ForEachSuper((const decltype(inheritSuper_S1d) &)inheritSuper_S1d, [&](auto & super) {
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+        EXPECT_TRUE(isSame);
+        visitCount++;
+    });
+    EXPECT_EQ(1, visitCount);
+    
+    visitCount = 0;
+    InheritSuper_2a::ForEachSuper((const decltype(inheritSuper_S2a) &)inheritSuper_S2a, [&](auto & super) {
+        if ( visitCount == 0 )
+        {
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if ( visitCount == 1 )
+        {
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+    });
+    EXPECT_EQ(2, visitCount);
+    visitCount = 0;
+    InheritSuper_2b::ForEachSuper((const decltype(inheritSuper_S2b) &)inheritSuper_S2b, [&](auto & super) {
+        if ( visitCount == 0 )
+        {
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if ( visitCount == 1 )
+        {
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+    });
+    EXPECT_EQ(2, visitCount);
+    visitCount = 0;
+    InheritSuper_2c::ForEachSuper((const decltype(inheritSuper_S2c) &)inheritSuper_S2c, [&](auto & super) {
+        if ( visitCount == 0 )
+        {
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if ( visitCount == 1 )
+        {
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+    });
+    EXPECT_EQ(2, visitCount);
+    visitCount = 0;
+    InheritSuper_2d::ForEachSuper((const decltype(inheritSuper_S2d) &)inheritSuper_S2d, [&](auto & super) {
+        if ( visitCount == 0 )
+        {
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if ( visitCount == 1 )
+        {
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+    });
+    EXPECT_EQ(2, visitCount);
+    
+    visitCount = 0;
+    InheritSuper_3a::ForEachSuper((const decltype(inheritSuper_S3a) &)inheritSuper_S3a, [&](auto & super) {
+        if ( visitCount == 0 )
+        {
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if ( visitCount == 1 )
+        {
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if ( visitCount == 2 )
+        {
+            bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+    });
+    EXPECT_EQ(3, visitCount);
+    visitCount = 0;
+    InheritSuper_3b::ForEachSuper((const decltype(inheritSuper_S3b) &)inheritSuper_S3b, [&](auto & super) {
+        if ( visitCount == 0 )
+        {
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if ( visitCount == 1 )
+        {
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if ( visitCount == 2 )
+        {
+            bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+    });
+    EXPECT_EQ(3, visitCount);
+    visitCount = 0;
+    InheritSuper_3c::ForEachSuper((const decltype(inheritSuper_S3c) &)inheritSuper_S3c, [&](auto & super) {
+        if ( visitCount == 0 )
+        {
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if ( visitCount == 1 )
+        {
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if ( visitCount == 2 )
+        {
+            bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+    });
+    EXPECT_EQ(3, visitCount);
+    visitCount = 0;
+    InheritSuper_3d::ForEachSuper((const decltype(inheritSuper_S3d) &)inheritSuper_S3d, [&](auto & super) {
+        if ( visitCount == 0 )
+        {
+            bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if ( visitCount == 1 )
+        {
+            bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+        else if ( visitCount == 2 )
+        {
+            bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
+            EXPECT_TRUE(isSame);
+            visitCount++;
+        }
+    });
+    EXPECT_EQ(3, visitCount);
+}
+
+TEST(ReflectInheritanceTest, InheritAtStatic)
+{
+    int visitCount = 0;
+    InheritSuper_0a::At(0, [&](auto superInfo) {
+        visitCount++;
+    });
+    EXPECT_EQ(0, visitCount);
+    visitCount = 0;
+    InheritSuper_0b::At(0, [&](auto superInfo) {
+        visitCount++;
+    });
+    EXPECT_EQ(0, visitCount);
+    visitCount = 0;
+    InheritSuper_0c::At(0, [&](auto superInfo) {
+        visitCount++;
+    });
+    EXPECT_EQ(0, visitCount);
+    
+    visitCount = 0;
+    InheritSuper_1a::At(0, [&](auto superInfo) {
         EXPECT_EQ(0, superInfo.Index);
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
@@ -1051,7 +1780,7 @@ TEST(ReflectInheritanceTest, InheritForEachStatic)
     });
     EXPECT_EQ(1, visitCount);
     visitCount = 0;
-    InheritSuper_1b::ForEach([&](auto superInfo) {
+    InheritSuper_1b::At(0, [&](auto superInfo) {
         EXPECT_EQ(0, superInfo.Index);
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
@@ -1066,7 +1795,7 @@ TEST(ReflectInheritanceTest, InheritForEachStatic)
     });
     EXPECT_EQ(1, visitCount);
     visitCount = 0;
-    InheritSuper_1c::ForEach([&](auto superInfo) {
+    InheritSuper_1c::At(0, [&](auto superInfo) {
         EXPECT_EQ(0, superInfo.Index);
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
@@ -1079,7 +1808,7 @@ TEST(ReflectInheritanceTest, InheritForEachStatic)
     });
     EXPECT_EQ(1, visitCount);
     visitCount = 0;
-    InheritSuper_1d::ForEach([&](auto superInfo) {
+    InheritSuper_1d::At(0, [&](auto superInfo) {
         EXPECT_EQ(0, superInfo.Index);
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
@@ -1093,237 +1822,261 @@ TEST(ReflectInheritanceTest, InheritForEachStatic)
     EXPECT_EQ(1, visitCount);
     
     visitCount = 0;
-    InheritSuper_2a::ForEach([&](auto superInfo) {
-        EXPECT_EQ(visitCount, superInfo.Index);
-        using Info = decltype(superInfo);
-        using InfoType = typename Info::Type;
-        using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        if constexpr ( superInfo.Index == 0 )
-        {
-            bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
-            EXPECT_TRUE(isSame);
-            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
-            EXPECT_TRUE(isSame);
-            visitCount++;
-        }
-        else if constexpr ( superInfo.Index == 1 )
-        {
-            bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
-            EXPECT_TRUE(isSame);
-            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
-            EXPECT_TRUE(isSame);
-            visitCount++;
-        }
-    });
+    for ( int i=0; i<InheritSuper_2a::Total; i++ )
+    {
+        InheritSuper_2a::At(i, [&](auto superInfo) {
+            EXPECT_EQ(visitCount, superInfo.Index);
+            using Info = decltype(superInfo);
+            using InfoType = typename Info::Type;
+            using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
+            if constexpr ( superInfo.Index == 0 )
+            {
+                bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
+                EXPECT_TRUE(isSame);
+                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+            else if constexpr ( superInfo.Index == 1 )
+            {
+                bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
+                EXPECT_TRUE(isSame);
+                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+        });
+    }
     EXPECT_EQ(2, visitCount);
     visitCount = 0;
-    InheritSuper_2b::ForEach([&](auto superInfo) {
-        EXPECT_EQ(visitCount, superInfo.Index);
-        using Info = decltype(superInfo);
-        using InfoType = typename Info::Type;
-        using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        if constexpr ( superInfo.Index == 0 )
-        {
-            bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
-            EXPECT_TRUE(isSame);
-            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
-            EXPECT_TRUE(isSame);
-            visitCount++;
-        }
-        else if constexpr ( superInfo.Index == 1 )
-        {
-            bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
-            EXPECT_TRUE(isSame);
-            isSame = std::is_same<std::tuple<char, char>, InfoAnnotations>::value;
-            EXPECT_TRUE(isSame);
-            EXPECT_EQ('e', std::get<0>(superInfo.annotations));
-            EXPECT_EQ('f', std::get<1>(superInfo.annotations));
-            visitCount++;
-        }
-    });
+    for ( int i=0; i<InheritSuper_2b::Total; i++ )
+    {
+        InheritSuper_2b::At(i, [&](auto superInfo) {
+            EXPECT_EQ(visitCount, superInfo.Index);
+            using Info = decltype(superInfo);
+            using InfoType = typename Info::Type;
+            using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
+            if constexpr ( superInfo.Index == 0 )
+            {
+                bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
+                EXPECT_TRUE(isSame);
+                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+            else if constexpr ( superInfo.Index == 1 )
+            {
+                bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
+                EXPECT_TRUE(isSame);
+                isSame = std::is_same<std::tuple<char, char>, InfoAnnotations>::value;
+                EXPECT_TRUE(isSame);
+                EXPECT_EQ('e', std::get<0>(superInfo.annotations));
+                EXPECT_EQ('f', std::get<1>(superInfo.annotations));
+                visitCount++;
+            }
+        });
+    }
     EXPECT_EQ(2, visitCount);
     visitCount = 0;
-    InheritSuper_2c::ForEach([&](auto superInfo) {
-        EXPECT_EQ(visitCount, superInfo.Index);
-        using Info = decltype(superInfo);
-        using InfoType = typename Info::Type;
-        using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        if constexpr ( superInfo.Index == 0 )
-        {
-            bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
-            EXPECT_TRUE(isSame);
-            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
-            EXPECT_TRUE(isSame);
-            visitCount++;
-        }
-        else if constexpr ( superInfo.Index == 1 )
-        {
-            bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
-            EXPECT_TRUE(isSame);
-            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
-            EXPECT_TRUE(isSame);
-            visitCount++;
-        }
-    });
+    for ( int i=0; i<InheritSuper_2c::Total; i++ )
+    {
+        InheritSuper_2c::At(i, [&](auto superInfo) {
+            EXPECT_EQ(visitCount, superInfo.Index);
+            using Info = decltype(superInfo);
+            using InfoType = typename Info::Type;
+            using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
+            if constexpr ( superInfo.Index == 0 )
+            {
+                bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
+                EXPECT_TRUE(isSame);
+                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+            else if constexpr ( superInfo.Index == 1 )
+            {
+                bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
+                EXPECT_TRUE(isSame);
+                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+        });
+    }
     EXPECT_EQ(2, visitCount);
     visitCount = 0;
-    InheritSuper_2d::ForEach([&](auto superInfo) {
-        EXPECT_EQ(visitCount, superInfo.Index);
-        using Info = decltype(superInfo);
-        using InfoType = typename Info::Type;
-        using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        if constexpr ( superInfo.Index == 0 )
-        {
-            bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
-            EXPECT_TRUE(isSame);
-            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
-            EXPECT_TRUE(isSame);
-            visitCount++;
-        }
-        else if constexpr ( superInfo.Index == 1 )
-        {
-            bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
-            EXPECT_TRUE(isSame);
-            isSame = std::is_same<std::tuple<char, char>, InfoAnnotations>::value;
-            EXPECT_TRUE(isSame);
-            EXPECT_EQ('g', std::get<0>(superInfo.annotations));
-            EXPECT_EQ('h', std::get<1>(superInfo.annotations));
-            visitCount++;
-        }
-    });
+    for ( int i=0; i<InheritSuper_2d::Total; i++ )
+    {
+        InheritSuper_2d::At(i, [&](auto superInfo) {
+            EXPECT_EQ(visitCount, superInfo.Index);
+            using Info = decltype(superInfo);
+            using InfoType = typename Info::Type;
+            using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
+            if constexpr ( superInfo.Index == 0 )
+            {
+                bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
+                EXPECT_TRUE(isSame);
+                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+            else if constexpr ( superInfo.Index == 1 )
+            {
+                bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
+                EXPECT_TRUE(isSame);
+                isSame = std::is_same<std::tuple<char, char>, InfoAnnotations>::value;
+                EXPECT_TRUE(isSame);
+                EXPECT_EQ('g', std::get<0>(superInfo.annotations));
+                EXPECT_EQ('h', std::get<1>(superInfo.annotations));
+                visitCount++;
+            }
+        });
+    }
     EXPECT_EQ(2, visitCount);
     
     visitCount = 0;
-    InheritSuper_3a::ForEach([&](auto superInfo) {
-        EXPECT_EQ(visitCount, superInfo.Index);
-        using Info = decltype(superInfo);
-        using InfoType = typename Info::Type;
-        using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        if constexpr ( superInfo.Index == 0 )
-        {
-            bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
-            EXPECT_TRUE(isSame);
-            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
-            EXPECT_TRUE(isSame);
-            visitCount++;
-        }
-        else if constexpr ( superInfo.Index == 1 )
-        {
-            bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
-            EXPECT_TRUE(isSame);
-            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
-            EXPECT_TRUE(isSame);
-            visitCount++;
-        }
-        else if constexpr ( superInfo.Index == 2 )
-        {
-            bool isSame = std::is_same<InheritSuper_S3, InfoType>::value;
-            EXPECT_TRUE(isSame);
-            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
-            EXPECT_TRUE(isSame);
-            visitCount++;
-        }
-    });
+    for ( int i=0; i<InheritSuper_3a::Total; i++ )
+    {
+        InheritSuper_3a::At(i, [&](auto superInfo) {
+            EXPECT_EQ(visitCount, superInfo.Index);
+            using Info = decltype(superInfo);
+            using InfoType = typename Info::Type;
+            using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
+            if constexpr ( superInfo.Index == 0 )
+            {
+                bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
+                EXPECT_TRUE(isSame);
+                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+            else if constexpr ( superInfo.Index == 1 )
+            {
+                bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
+                EXPECT_TRUE(isSame);
+                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+            else if constexpr ( superInfo.Index == 2 )
+            {
+                bool isSame = std::is_same<InheritSuper_S3, InfoType>::value;
+                EXPECT_TRUE(isSame);
+                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+        });
+    }
     EXPECT_EQ(3, visitCount);
     visitCount = 0;
-    InheritSuper_3b::ForEach([&](auto superInfo) {
-        EXPECT_EQ(visitCount, superInfo.Index);
-        using Info = decltype(superInfo);
-        using InfoType = typename Info::Type;
-        using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        if constexpr ( superInfo.Index == 0 )
-        {
-            bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
-            EXPECT_TRUE(isSame);
-            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
-            EXPECT_TRUE(isSame);
-            visitCount++;
-        }
-        else if constexpr ( superInfo.Index == 1 )
-        {
-            bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
-            EXPECT_TRUE(isSame);
-            isSame = std::is_same<std::tuple<char, char>, InfoAnnotations>::value;
-            EXPECT_TRUE(isSame);
-            EXPECT_EQ('i', std::get<0>(superInfo.annotations));
-            EXPECT_EQ('j', std::get<1>(superInfo.annotations));
-            visitCount++;
-        }
-        else if constexpr ( superInfo.Index == 2 )
-        {
-            bool isSame = std::is_same<InheritSuper_S3, InfoType>::value;
-            EXPECT_TRUE(isSame);
-            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
-            EXPECT_TRUE(isSame);
-            visitCount++;
-        }
-    });
+    for ( int i=0; i<InheritSuper_3b::Total; i++ )
+    {
+        InheritSuper_3b::At(i, [&](auto superInfo) {
+            EXPECT_EQ(visitCount, superInfo.Index);
+            using Info = decltype(superInfo);
+            using InfoType = typename Info::Type;
+            using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
+            if constexpr ( superInfo.Index == 0 )
+            {
+                bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
+                EXPECT_TRUE(isSame);
+                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+            else if constexpr ( superInfo.Index == 1 )
+            {
+                bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
+                EXPECT_TRUE(isSame);
+                isSame = std::is_same<std::tuple<char, char>, InfoAnnotations>::value;
+                EXPECT_TRUE(isSame);
+                EXPECT_EQ('i', std::get<0>(superInfo.annotations));
+                EXPECT_EQ('j', std::get<1>(superInfo.annotations));
+                visitCount++;
+            }
+            else if constexpr ( superInfo.Index == 2 )
+            {
+                bool isSame = std::is_same<InheritSuper_S3, InfoType>::value;
+                EXPECT_TRUE(isSame);
+                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+        });
+    }
     EXPECT_EQ(3, visitCount);
     visitCount = 0;
-    InheritSuper_3c::ForEach([&](auto superInfo) {
-        EXPECT_EQ(visitCount, superInfo.Index);
-        using Info = decltype(superInfo);
-        using InfoType = typename Info::Type;
-        using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        if constexpr ( superInfo.Index == 0 )
-        {
-            bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
-            EXPECT_TRUE(isSame);
-            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
-            EXPECT_TRUE(isSame);
-            visitCount++;
-        }
-        else if constexpr ( superInfo.Index == 1 )
-        {
-            bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
-            EXPECT_TRUE(isSame);
-            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
-            EXPECT_TRUE(isSame);
-            visitCount++;
-        }
-        else if constexpr ( superInfo.Index == 2 )
-        {
-            bool isSame = std::is_same<InheritSuper_S3, InfoType>::value;
-            EXPECT_TRUE(isSame);
-            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
-            EXPECT_TRUE(isSame);
-            visitCount++;
-        }
-    });
+    for ( int i=0; i<InheritSuper_3c::Total; i++ )
+    {
+        InheritSuper_3c::At(i, [&](auto superInfo) {
+            EXPECT_EQ(visitCount, superInfo.Index);
+            using Info = decltype(superInfo);
+            using InfoType = typename Info::Type;
+            using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
+            if constexpr ( superInfo.Index == 0 )
+            {
+                bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
+                EXPECT_TRUE(isSame);
+                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+            else if constexpr ( superInfo.Index == 1 )
+            {
+                bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
+                EXPECT_TRUE(isSame);
+                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+            else if constexpr ( superInfo.Index == 2 )
+            {
+                bool isSame = std::is_same<InheritSuper_S3, InfoType>::value;
+                EXPECT_TRUE(isSame);
+                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+        });
+    }
     EXPECT_EQ(3, visitCount);
     visitCount = 0;
-    InheritSuper_3d::ForEach([&](auto superInfo) {
-        EXPECT_EQ(visitCount, superInfo.Index);
-        using Info = decltype(superInfo);
-        using InfoType = typename Info::Type;
-        using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        if constexpr ( superInfo.Index == 0 )
-        {
-            bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
-            EXPECT_TRUE(isSame);
-            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
-            EXPECT_TRUE(isSame);
-            visitCount++;
-        }
-        else if constexpr ( superInfo.Index == 1 )
-        {
-            bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
-            EXPECT_TRUE(isSame);
-            isSame = std::is_same<std::tuple<char, char>, InfoAnnotations>::value;
-            EXPECT_TRUE(isSame);
-            EXPECT_EQ('k', std::get<0>(superInfo.annotations));
-            EXPECT_EQ('l', std::get<1>(superInfo.annotations));
-            visitCount++;
-        }
-        else if constexpr ( superInfo.Index == 2 )
-        {
-            bool isSame = std::is_same<InheritSuper_S3, InfoType>::value;
-            EXPECT_TRUE(isSame);
-            isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
-            EXPECT_TRUE(isSame);
-            visitCount++;
-        }
-    });
+    for ( int i=0; i<InheritSuper_3d::Total; i++ )
+    {
+        InheritSuper_3d::At(i, [&](auto superInfo) {
+            EXPECT_EQ(visitCount, superInfo.Index);
+            using Info = decltype(superInfo);
+            using InfoType = typename Info::Type;
+            using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
+            if constexpr ( superInfo.Index == 0 )
+            {
+                bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
+                EXPECT_TRUE(isSame);
+                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+            else if constexpr ( superInfo.Index == 1 )
+            {
+                bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
+                EXPECT_TRUE(isSame);
+                isSame = std::is_same<std::tuple<char, char>, InfoAnnotations>::value;
+                EXPECT_TRUE(isSame);
+                EXPECT_EQ('k', std::get<0>(superInfo.annotations));
+                EXPECT_EQ('l', std::get<1>(superInfo.annotations));
+                visitCount++;
+            }
+            else if constexpr ( superInfo.Index == 2 )
+            {
+                bool isSame = std::is_same<InheritSuper_S3, InfoType>::value;
+                EXPECT_TRUE(isSame);
+                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+        });
+    }
     EXPECT_EQ(3, visitCount);
 }
 
@@ -2087,74 +2840,48 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
     EXPECT_EQ(3, visitCount);
 }
 
-TEST(ReflectInheritanceTest, InheritAtStatic)
+TEST(ReflectInheritanceTest, InheritSuperAt)
 {
     int visitCount = 0;
-    InheritSuper_0a::At(0, [&](auto superInfo) {
+    InheritSuper_0a::SuperAt(inheritSuper_S0a, 0, [&](auto & super) {
         visitCount++;
     });
     EXPECT_EQ(0, visitCount);
     visitCount = 0;
-    InheritSuper_0b::At(0, [&](auto superInfo) {
+    InheritSuper_0b::SuperAt(inheritSuper_S0b, 0, [&](auto & super) {
         visitCount++;
     });
     EXPECT_EQ(0, visitCount);
     visitCount = 0;
-    InheritSuper_0c::At(0, [&](auto superInfo) {
+    InheritSuper_0c::SuperAt(inheritSuper_S0c, 0, [&](auto & super) {
         visitCount++;
     });
     EXPECT_EQ(0, visitCount);
     
     visitCount = 0;
-    InheritSuper_1a::At(0, [&](auto superInfo) {
-        EXPECT_EQ(0, superInfo.Index);
-        using Info = decltype(superInfo);
-        using InfoType = typename Info::Type;
-        using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
-        EXPECT_TRUE(isSame);
-        isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+    InheritSuper_1a::SuperAt(inheritSuper_S1a, 0, [&](auto & super) {
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         visitCount++;
     });
     EXPECT_EQ(1, visitCount);
     visitCount = 0;
-    InheritSuper_1b::At(0, [&](auto superInfo) {
-        EXPECT_EQ(0, superInfo.Index);
-        using Info = decltype(superInfo);
-        using InfoType = typename Info::Type;
-        using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
-        EXPECT_TRUE(isSame);
-        isSame = std::is_same<std::tuple<char, char>, InfoAnnotations>::value;
-        EXPECT_TRUE(isSame);
-        EXPECT_EQ('c', std::get<0>(superInfo.annotations));
-        EXPECT_EQ('d', std::get<1>(superInfo.annotations));
-        visitCount++;
-    });
-    EXPECT_EQ(1, visitCount);
-    visitCount = 0;
-    InheritSuper_1c::At(0, [&](auto superInfo) {
-        EXPECT_EQ(0, superInfo.Index);
-        using Info = decltype(superInfo);
-        using InfoType = typename Info::Type;
-        using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
-        EXPECT_TRUE(isSame);
-        isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+    InheritSuper_1b::SuperAt(inheritSuper_S1b, 0, [&](auto & super) {
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         visitCount++;
     });
     EXPECT_EQ(1, visitCount);
     visitCount = 0;
-    InheritSuper_1d::At(0, [&](auto superInfo) {
-        EXPECT_EQ(0, superInfo.Index);
-        using Info = decltype(superInfo);
-        using InfoType = typename Info::Type;
-        using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-        bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
+    InheritSuper_1c::SuperAt(inheritSuper_S1c, 0, [&](auto & super) {
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
-        isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+        visitCount++;
+    });
+    EXPECT_EQ(1, visitCount);
+    visitCount = 0;
+    InheritSuper_1d::SuperAt(inheritSuper_S1d, 0, [&](auto & super) {
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         visitCount++;
     });
@@ -2163,24 +2890,16 @@ TEST(ReflectInheritanceTest, InheritAtStatic)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_2a::Total; i++ )
     {
-        InheritSuper_2a::At(i, [&](auto superInfo) {
-            EXPECT_EQ(visitCount, superInfo.Index);
-            using Info = decltype(superInfo);
-            using InfoType = typename Info::Type;
-            using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-            if constexpr ( superInfo.Index == 0 )
+        InheritSuper_2a::SuperAt(inheritSuper_S2a, i, [&](auto & super) {
+            if ( visitCount == 0 )
             {
-                bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
-                EXPECT_TRUE(isSame);
-                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 visitCount++;
             }
-            else if constexpr ( superInfo.Index == 1 )
+            else if ( visitCount == 1 )
             {
-                bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
-                EXPECT_TRUE(isSame);
-                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 visitCount++;
             }
@@ -2190,27 +2909,17 @@ TEST(ReflectInheritanceTest, InheritAtStatic)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_2b::Total; i++ )
     {
-        InheritSuper_2b::At(i, [&](auto superInfo) {
-            EXPECT_EQ(visitCount, superInfo.Index);
-            using Info = decltype(superInfo);
-            using InfoType = typename Info::Type;
-            using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-            if constexpr ( superInfo.Index == 0 )
+        InheritSuper_2b::SuperAt(inheritSuper_S2b, i, [&](auto & super) {
+            if ( visitCount == 0 )
             {
-                bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
-                EXPECT_TRUE(isSame);
-                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 visitCount++;
             }
-            else if constexpr ( superInfo.Index == 1 )
+            else if ( visitCount == 1 )
             {
-                bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
-                isSame = std::is_same<std::tuple<char, char>, InfoAnnotations>::value;
-                EXPECT_TRUE(isSame);
-                EXPECT_EQ('e', std::get<0>(superInfo.annotations));
-                EXPECT_EQ('f', std::get<1>(superInfo.annotations));
                 visitCount++;
             }
         });
@@ -2219,24 +2928,16 @@ TEST(ReflectInheritanceTest, InheritAtStatic)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_2c::Total; i++ )
     {
-        InheritSuper_2c::At(i, [&](auto superInfo) {
-            EXPECT_EQ(visitCount, superInfo.Index);
-            using Info = decltype(superInfo);
-            using InfoType = typename Info::Type;
-            using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-            if constexpr ( superInfo.Index == 0 )
+        InheritSuper_2c::SuperAt(inheritSuper_S2c, i, [&](auto & super) {
+            if ( visitCount == 0 )
             {
-                bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
-                EXPECT_TRUE(isSame);
-                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 visitCount++;
             }
-            else if constexpr ( superInfo.Index == 1 )
+            else if ( visitCount == 1 )
             {
-                bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
-                EXPECT_TRUE(isSame);
-                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 visitCount++;
             }
@@ -2246,27 +2947,17 @@ TEST(ReflectInheritanceTest, InheritAtStatic)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_2d::Total; i++ )
     {
-        InheritSuper_2d::At(i, [&](auto superInfo) {
-            EXPECT_EQ(visitCount, superInfo.Index);
-            using Info = decltype(superInfo);
-            using InfoType = typename Info::Type;
-            using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-            if constexpr ( superInfo.Index == 0 )
+        InheritSuper_2d::SuperAt(inheritSuper_S2d, i, [&](auto & super) {
+            if ( visitCount == 0 )
             {
-                bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
-                EXPECT_TRUE(isSame);
-                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 visitCount++;
             }
-            else if constexpr ( superInfo.Index == 1 )
+            else if ( visitCount == 1 )
             {
-                bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
-                isSame = std::is_same<std::tuple<char, char>, InfoAnnotations>::value;
-                EXPECT_TRUE(isSame);
-                EXPECT_EQ('g', std::get<0>(superInfo.annotations));
-                EXPECT_EQ('h', std::get<1>(superInfo.annotations));
                 visitCount++;
             }
         });
@@ -2276,32 +2967,22 @@ TEST(ReflectInheritanceTest, InheritAtStatic)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_3a::Total; i++ )
     {
-        InheritSuper_3a::At(i, [&](auto superInfo) {
-            EXPECT_EQ(visitCount, superInfo.Index);
-            using Info = decltype(superInfo);
-            using InfoType = typename Info::Type;
-            using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-            if constexpr ( superInfo.Index == 0 )
+        InheritSuper_3a::SuperAt(inheritSuper_S3a, i, [&](auto & super) {
+            if ( visitCount == 0 )
             {
-                bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
-                EXPECT_TRUE(isSame);
-                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 visitCount++;
             }
-            else if constexpr ( superInfo.Index == 1 )
+            else if ( visitCount == 1 )
             {
-                bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
-                EXPECT_TRUE(isSame);
-                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 visitCount++;
             }
-            else if constexpr ( superInfo.Index == 2 )
+            else if ( visitCount == 2 )
             {
-                bool isSame = std::is_same<InheritSuper_S3, InfoType>::value;
-                EXPECT_TRUE(isSame);
-                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 visitCount++;
             }
@@ -2311,34 +2992,22 @@ TEST(ReflectInheritanceTest, InheritAtStatic)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_3b::Total; i++ )
     {
-        InheritSuper_3b::At(i, [&](auto superInfo) {
-            EXPECT_EQ(visitCount, superInfo.Index);
-            using Info = decltype(superInfo);
-            using InfoType = typename Info::Type;
-            using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-            if constexpr ( superInfo.Index == 0 )
+        InheritSuper_3b::SuperAt(inheritSuper_S3b, i, [&](auto & super) {
+            if ( visitCount == 0 )
             {
-                bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
-                EXPECT_TRUE(isSame);
-                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 visitCount++;
             }
-            else if constexpr ( superInfo.Index == 1 )
+            else if ( visitCount == 1 )
             {
-                bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
-                isSame = std::is_same<std::tuple<char, char>, InfoAnnotations>::value;
-                EXPECT_TRUE(isSame);
-                EXPECT_EQ('i', std::get<0>(superInfo.annotations));
-                EXPECT_EQ('j', std::get<1>(superInfo.annotations));
                 visitCount++;
             }
-            else if constexpr ( superInfo.Index == 2 )
+            else if ( visitCount == 2 )
             {
-                bool isSame = std::is_same<InheritSuper_S3, InfoType>::value;
-                EXPECT_TRUE(isSame);
-                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 visitCount++;
             }
@@ -2348,32 +3017,22 @@ TEST(ReflectInheritanceTest, InheritAtStatic)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_3c::Total; i++ )
     {
-        InheritSuper_3c::At(i, [&](auto superInfo) {
-            EXPECT_EQ(visitCount, superInfo.Index);
-            using Info = decltype(superInfo);
-            using InfoType = typename Info::Type;
-            using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-            if constexpr ( superInfo.Index == 0 )
+        InheritSuper_3c::SuperAt(inheritSuper_S3c, i, [&](auto & super) {
+            if ( visitCount == 0 )
             {
-                bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
-                EXPECT_TRUE(isSame);
-                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 visitCount++;
             }
-            else if constexpr ( superInfo.Index == 1 )
+            else if ( visitCount == 1 )
             {
-                bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
-                EXPECT_TRUE(isSame);
-                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 visitCount++;
             }
-            else if constexpr ( superInfo.Index == 2 )
+            else if ( visitCount == 2 )
             {
-                bool isSame = std::is_same<InheritSuper_S3, InfoType>::value;
-                EXPECT_TRUE(isSame);
-                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 visitCount++;
             }
@@ -2383,34 +3042,248 @@ TEST(ReflectInheritanceTest, InheritAtStatic)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_3d::Total; i++ )
     {
-        InheritSuper_3d::At(i, [&](auto superInfo) {
-            EXPECT_EQ(visitCount, superInfo.Index);
-            using Info = decltype(superInfo);
-            using InfoType = typename Info::Type;
-            using InfoAnnotations = typename std::remove_reference<typename std::remove_const<typename Info::Annotations>::type>::type;
-            if constexpr ( superInfo.Index == 0 )
+        InheritSuper_3d::SuperAt(inheritSuper_S3d, i, [&](auto & super) {
+            if ( visitCount == 0 )
             {
-                bool isSame = std::is_same<InheritSuper_S1, InfoType>::value;
-                EXPECT_TRUE(isSame);
-                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 visitCount++;
             }
-            else if constexpr ( superInfo.Index == 1 )
+            else if ( visitCount == 1 )
             {
-                bool isSame = std::is_same<InheritSuper_S2, InfoType>::value;
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
-                isSame = std::is_same<std::tuple<char, char>, InfoAnnotations>::value;
-                EXPECT_TRUE(isSame);
-                EXPECT_EQ('k', std::get<0>(superInfo.annotations));
-                EXPECT_EQ('l', std::get<1>(superInfo.annotations));
                 visitCount++;
             }
-            else if constexpr ( superInfo.Index == 2 )
+            else if ( visitCount == 2 )
             {
-                bool isSame = std::is_same<InheritSuper_S3, InfoType>::value;
+                bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
-                isSame = std::is_same<std::tuple<>, InfoAnnotations>::value;
+                visitCount++;
+            }
+        });
+    }
+    EXPECT_EQ(3, visitCount);
+}
+
+TEST(ReflectInheritanceTest, InheritSuperAtConst)
+{
+    int visitCount = 0;
+    InheritSuper_0a::SuperAt((const decltype(inheritSuper_S0a) &)inheritSuper_S0a, 0, [&](auto & super) {
+        visitCount++;
+    });
+    EXPECT_EQ(0, visitCount);
+    visitCount = 0;
+    InheritSuper_0b::SuperAt((const decltype(inheritSuper_S0b) &)inheritSuper_S0b, 0, [&](auto & super) {
+        visitCount++;
+    });
+    EXPECT_EQ(0, visitCount);
+    visitCount = 0;
+    InheritSuper_0c::SuperAt((const decltype(inheritSuper_S0c) &)inheritSuper_S0c, 0, [&](auto & super) {
+        visitCount++;
+    });
+    EXPECT_EQ(0, visitCount);
+    
+    visitCount = 0;
+    InheritSuper_1a::SuperAt((const decltype(inheritSuper_S1a) &)inheritSuper_S1a, 0, [&](auto & super) {
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+        EXPECT_TRUE(isSame);
+        visitCount++;
+    });
+    EXPECT_EQ(1, visitCount);
+    visitCount = 0;
+    InheritSuper_1b::SuperAt((const decltype(inheritSuper_S1b) &)inheritSuper_S1b, 0, [&](auto & super) {
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+        EXPECT_TRUE(isSame);
+        visitCount++;
+    });
+    EXPECT_EQ(1, visitCount);
+    visitCount = 0;
+    InheritSuper_1c::SuperAt((const decltype(inheritSuper_S1c) &)inheritSuper_S1c, 0, [&](auto & super) {
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+        EXPECT_TRUE(isSame);
+        visitCount++;
+    });
+    EXPECT_EQ(1, visitCount);
+    visitCount = 0;
+    InheritSuper_1d::SuperAt((const decltype(inheritSuper_S1d) &)inheritSuper_S1d, 0, [&](auto & super) {
+        bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+        EXPECT_TRUE(isSame);
+        visitCount++;
+    });
+    EXPECT_EQ(1, visitCount);
+    
+    visitCount = 0;
+    for ( int i=0; i<InheritSuper_2a::Total; i++ )
+    {
+        InheritSuper_2a::SuperAt((const decltype(inheritSuper_S2a) &)inheritSuper_S2a, i, [&](auto & super) {
+            if ( visitCount == 0 )
+            {
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+            else if ( visitCount == 1 )
+            {
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+        });
+    }
+    EXPECT_EQ(2, visitCount);
+    visitCount = 0;
+    for ( int i=0; i<InheritSuper_2b::Total; i++ )
+    {
+        InheritSuper_2b::SuperAt((const decltype(inheritSuper_S2b) &)inheritSuper_S2b, i, [&](auto & super) {
+            if ( visitCount == 0 )
+            {
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+            else if ( visitCount == 1 )
+            {
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+        });
+    }
+    EXPECT_EQ(2, visitCount);
+    visitCount = 0;
+    for ( int i=0; i<InheritSuper_2c::Total; i++ )
+    {
+        InheritSuper_2c::SuperAt((const decltype(inheritSuper_S2c) &)inheritSuper_S2c, i, [&](auto & super) {
+            if ( visitCount == 0 )
+            {
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+            else if ( visitCount == 1 )
+            {
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+        });
+    }
+    EXPECT_EQ(2, visitCount);
+    visitCount = 0;
+    for ( int i=0; i<InheritSuper_2d::Total; i++ )
+    {
+        InheritSuper_2d::SuperAt((const decltype(inheritSuper_S2d) &)inheritSuper_S2d, i, [&](auto & super) {
+            if ( visitCount == 0 )
+            {
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+            else if ( visitCount == 1 )
+            {
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+        });
+    }
+    EXPECT_EQ(2, visitCount);
+    
+    visitCount = 0;
+    for ( int i=0; i<InheritSuper_3a::Total; i++ )
+    {
+        InheritSuper_3a::SuperAt((const decltype(inheritSuper_S3a) &)inheritSuper_S3a, i, [&](auto & super) {
+            if ( visitCount == 0 )
+            {
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+            else if ( visitCount == 1 )
+            {
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+            else if ( visitCount == 2 )
+            {
+                bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+        });
+    }
+    EXPECT_EQ(3, visitCount);
+    visitCount = 0;
+    for ( int i=0; i<InheritSuper_3b::Total; i++ )
+    {
+        InheritSuper_3b::SuperAt((const decltype(inheritSuper_S3b) &)inheritSuper_S3b, i, [&](auto & super) {
+            if ( visitCount == 0 )
+            {
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+            else if ( visitCount == 1 )
+            {
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+            else if ( visitCount == 2 )
+            {
+                bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+        });
+    }
+    EXPECT_EQ(3, visitCount);
+    visitCount = 0;
+    for ( int i=0; i<InheritSuper_3c::Total; i++ )
+    {
+        InheritSuper_3c::SuperAt((const decltype(inheritSuper_S3c) &)inheritSuper_S3c, i, [&](auto & super) {
+            if ( visitCount == 0 )
+            {
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+            else if ( visitCount == 1 )
+            {
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+            else if ( visitCount == 2 )
+            {
+                bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+        });
+    }
+    EXPECT_EQ(3, visitCount);
+    visitCount = 0;
+    for ( int i=0; i<InheritSuper_3d::Total; i++ )
+    {
+        InheritSuper_3d::SuperAt((const decltype(inheritSuper_S3d) &)inheritSuper_S3d, i, [&](auto & super) {
+            if ( visitCount == 0 )
+            {
+                bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+            else if ( visitCount == 1 )
+            {
+                bool isSame = std::is_same<InheritSuper_S2, typename std::remove_reference<decltype(super)>::type>::value;
+                EXPECT_TRUE(isSame);
+                visitCount++;
+            }
+            else if ( visitCount == 2 )
+            {
+                bool isSame = std::is_same<InheritSuper_S3, typename std::remove_reference<decltype(super)>::type>::value;
                 EXPECT_TRUE(isSame);
                 visitCount++;
             }

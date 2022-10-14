@@ -1552,6 +1552,84 @@ TEST(ExtendeTypeSupportTest, ForEach)
     EXPECT_EQ(3, visitCount);
 }
 
+struct Unspecializable {};
+
+template <typename T>
+struct Specializable {
+    T value;
+};
+
+TEST(ExtendedTypeSupportTest, ForEachSpecialization)
+{
+    auto empty = std::tuple{};
+    int visitCount = 0;
+    for_each_specialization<Specializable>::in(empty, [&](auto & value){
+        visitCount++;
+    });
+    EXPECT_EQ(0, visitCount);
+    
+    auto intTuple = std::tuple{0};
+    visitCount = 0;
+    for_each_specialization<Specializable>::in(intTuple, [&](auto & value){
+        visitCount++;
+    });
+    EXPECT_EQ(0, visitCount);
+
+    auto unspecializableTuple = std::tuple { Unspecializable{} };
+    visitCount = 0;
+    for_each_specialization<Specializable>::in(unspecializableTuple, [&](auto & value){
+        visitCount++;
+    });
+    EXPECT_EQ(0, visitCount);
+
+    auto specializableTuple = std::tuple { Specializable<int>{55} };
+    visitCount = 0;
+    for_each_specialization<Specializable>::in(specializableTuple, [&](auto & value){
+        visitCount++;
+        EXPECT_EQ(55, value.value);
+    });
+    EXPECT_EQ(1, visitCount);
+
+    auto specializableSpecializableTuple = std::tuple { Specializable<int>{11}, Specializable<int>{22} };
+    visitCount = 0;
+    for_each_specialization<Specializable>::in(specializableSpecializableTuple, [&](auto & value){
+        visitCount++;
+        EXPECT_EQ(visitCount*11, value.value);
+    });
+    EXPECT_EQ(2, visitCount);
+
+    auto intIntTuple = std::tuple { 11, 22 };
+    visitCount = 0;
+    for_each_specialization<Specializable>::in(intIntTuple, [&](auto & value){
+        visitCount++;
+    });
+    EXPECT_EQ(0, visitCount);
+
+    auto intSpecializableTuple = std::tuple { 11, Specializable<int>{22} };
+    visitCount = 0;
+    for_each_specialization<Specializable>::in(intSpecializableTuple, [&](auto & value){
+        visitCount++;
+        EXPECT_EQ(22, value.value);
+    });
+    EXPECT_EQ(1, visitCount);
+
+    auto specializableIntTuple = std::tuple { Specializable<int>{11}, 22 };
+    visitCount = 0;
+    for_each_specialization<Specializable>::in(specializableIntTuple, [&](auto & value){
+        visitCount++;
+        EXPECT_EQ(11, value.value);
+    });
+    EXPECT_EQ(1, visitCount);
+
+    auto intSpecializableIntTuple = std::tuple { 11, Specializable<int>{22}, 33 };
+    visitCount = 0;
+    for_each_specialization<Specializable>::in(intSpecializableIntTuple, [&](auto & value){
+        visitCount++;
+        EXPECT_EQ(22, value.value);
+    });
+    EXPECT_EQ(1, visitCount);
+}
+
 TEST(ExtendedTypeSupportTest, ForEachIn)
 {
     std::tuple<> empty {};
