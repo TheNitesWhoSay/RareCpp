@@ -333,6 +333,8 @@ namespace ExtendedTypeSupport
     template <typename T> struct is_tuple { static constexpr bool value = false; };
     template <typename ...Ts> struct is_tuple<std::tuple<Ts...>> { static constexpr bool value = true; };
     template <typename ...Ts> struct is_tuple<const std::tuple<Ts...>> { static constexpr bool value = true; };
+    template <typename ...Ts> struct is_tuple<std::tuple<Ts...> &> { static constexpr bool value = true; };
+    template <typename ...Ts> struct is_tuple<const std::tuple<Ts...> &> { static constexpr bool value = true; };
 
     template <typename T> struct is_bool { static constexpr bool value = std::is_same<bool, typename std::remove_const<T>::type>::value; };
     
@@ -425,10 +427,10 @@ namespace ExtendedTypeSupport
     }
 
     inline namespace OpDetection {
-        namespace OpDetectImpl {
-            template <class AlwaysVoid, template<class...> class Op, class... Args> struct OpExists { static constexpr bool value = false; };
-            template <template<class...> class Op, class... Args> struct OpExists<std::void_t<Op<Args...>>, Op, Args...> { static constexpr bool value = true; };
+        template <class AlwaysVoid, template<class...> class Op, class... Args> struct OpExists { static constexpr bool value = false; };
+        template <template<class...> class Op, class... Args> struct OpExists<std::void_t<Op<Args...>>, Op, Args...> { static constexpr bool value = true; };
 
+        namespace OpDetectImpl {
             template <typename L, typename R> using AssignmentOp = decltype(std::declval<L>() = std::declval<const R &>());
             template <typename L, typename R> using StaticCastAssignmentOp = decltype(
                 std::declval<L>() = static_cast<std::remove_reference_t<L>>(std::declval<const R &>()));
@@ -436,10 +438,10 @@ namespace ExtendedTypeSupport
             template <typename L, typename R> using MapFromOp = decltype(std::declval<L>().map_from(std::declval<const R &>()));
         }
 
-        template <typename L, typename R> static constexpr bool IsAssignable = OpDetectImpl::OpExists<void, OpDetectImpl::AssignmentOp, L, R>::value;
-        template <typename L, typename R> static constexpr bool IsStaticCastAssignable = OpDetectImpl::OpExists<void, OpDetectImpl::StaticCastAssignmentOp, L, R>::value;
-        template <typename L, typename R> static constexpr bool HasMapTo = OpDetectImpl::OpExists<void, OpDetectImpl::MapToOp, L, R>::value;
-        template <typename L, typename R> static constexpr bool HasMapFrom = OpDetectImpl::OpExists<void, OpDetectImpl::MapFromOp, L, R>::value;
+        template <typename L, typename R> static constexpr bool IsAssignable = OpExists<void, OpDetectImpl::AssignmentOp, L, R>::value;
+        template <typename L, typename R> static constexpr bool IsStaticCastAssignable = OpExists<void, OpDetectImpl::StaticCastAssignmentOp, L, R>::value;
+        template <typename L, typename R> static constexpr bool HasMapTo = OpExists<void, OpDetectImpl::MapToOp, L, R>::value;
+        template <typename L, typename R> static constexpr bool HasMapFrom = OpExists<void, OpDetectImpl::MapFromOp, L, R>::value;
     };
     
     template <typename L, typename R>
@@ -451,6 +453,7 @@ namespace ExtendedTypeSupport
     template <typename T, template<typename ...> class Of> struct is_specialization : std::false_type {};
     template <template<typename ...> class Of, typename ...Ts> struct is_specialization<Of<Ts...>, Of> : std::true_type {};
     template <typename T, template<typename ...> class Of> inline constexpr bool is_specialization_v = is_specialization<T, Of>::value;
+    template <typename T, template<typename ...> class Of> struct is_specialization_t : is_specialization<T, Of> {};
 
     template <typename ...Ts> struct type_list {
         template <typename T> struct has : std::bool_constant<(std::is_same_v<Ts, T> || ...)> {};
@@ -495,7 +498,8 @@ namespace ExtendedTypeSupport
     // For integral constants 0 to Max-1
     template <size_t Max, typename F>
     constexpr void ForIntegralConstants(F && f) {
-        ForIntegralConstants(std::make_index_sequence<Max>{}, std::forward<F>(f));
+        if constexpr ( Max > 0 )
+            ForIntegralConstants(std::make_index_sequence<Max>{}, std::forward<F>(f));
     }
 
     template <typename T>
@@ -703,6 +707,120 @@ namespace ExtendedTypeSupport
         };
         return AdaptorSubClass::get(adaptor);
     }
+
+    template <typename T, typename ... Ts>
+    struct index_of
+    {
+        static constexpr size_t value = [](){
+            size_t index = sizeof...(Ts);
+            ExtendedTypeSupport::ForIntegralConstants<sizeof...(Ts)>([&](auto I) {
+                if constexpr ( std::is_same_v<std::remove_cv_t<std::remove_reference_t<T>>,
+                        std::remove_cv_t<std::remove_reference_t<std::tuple_element_t<decltype(I)::value, std::tuple<Ts...>>>>> )
+                {
+                    if ( index == sizeof...(Ts) )
+                        index = decltype(I)::value;
+                }
+            });
+            return index;
+        }();
+    };
+
+    template <typename T, typename ... Ts> struct index_of<T, std::tuple<Ts...>> : index_of<T, Ts...> {};
+    template <typename T, typename ... Ts> struct index_of<T, const std::tuple<Ts...>> : index_of<T, Ts...> {};
+    template <typename T, typename ... Ts> struct index_of<T, std::tuple<Ts...> &> : index_of<T, Ts...> {};
+    template <typename T, typename ... Ts> struct index_of<T, const std::tuple<Ts...> &> : index_of<T, Ts...> {};
+
+	static constexpr inline size_t fnv1a_hash(const std::string_view & str) noexcept { // Returns a fnv1a hash of the given string
+		constexpr size_t seed = sizeof(size_t) >= 8 ? size_t(14695981039346656037ULL) : size_t(2166136261U);
+		constexpr size_t factor = sizeof(size_t) >= 8 ? size_t(1099511628211ULL) : size_t(16777619U);
+		size_t hash = seed;
+		for ( auto c : str ) {
+			hash ^= static_cast<size_t>(c);
+			hash *= factor;
+		}
+		return hash;
+	}
+    
+    template <const char* ... s>
+    struct StringIndexMap { // Constexpr map from a set of unique strings to the indexes at which they're passed in
+
+        static constexpr size_t total = sizeof...(s); // The total number of strings in the map
+
+    private:
+        static constexpr size_t totalBuckets = [](){
+            constexpr size_t extraBits = 0; // Increasing this may trade memory for performance
+            if constexpr ( total <= 8 ) return size_t(8) << extraBits;
+            else {
+                size_t n = 1;
+                for ( size_t remainder = total-1; remainder > 0; n <<= 1 ) remainder >>= 1;
+                return n << extraBits;
+            }
+        }();
+        static constexpr size_t mask = totalBuckets-1;
+    
+        struct Bucket { size_t begin = 0; size_t end = 0; }; // The hash value and the [begin, end) indexes of the matching StringIndexes
+        struct StringIndex { std::string_view str; size_t index; }; // The string and the index with which it was passed in to the map
+        struct HashMap {
+            Bucket stringBucket[totalBuckets] {};
+            StringIndex stringIndex[total];
+
+            static constexpr void swap(size_t & l, size_t & r, StringIndex & l2, StringIndex & r2) noexcept { // sort's swap helper
+                size_t t = std::move(l); l = std::move(r); r = std::move(t); StringIndex t2 = std::move(l2); l2 = std::move(r2); r2 = std::move(t2);
+            }
+
+            constexpr inline void sort(size_t (&hashes)[total], int l = 0, int r = int(total)-1) noexcept { // sort hashes, keep indexes parallel
+                if ( l < r ) {
+                    int i = l+(r-l)/2; // Take median index as the pivot, swap pivot with last element
+                    swap(hashes[i], hashes[r], stringIndex[i], stringIndex[r]);
+                    size_t pivotValue = hashes[r];
+                    i = l;
+                    for ( int j=l; j<r; ++j ) {
+                        if ( hashes[j] <= pivotValue ) { // Swap elements less than pivot to the earliest indexes
+                            swap(hashes[i], hashes[j], stringIndex[i], stringIndex[j]);
+                            ++i;
+                        }
+                    }
+                    swap(hashes[size_t(i)], hashes[r], stringIndex[size_t(i)], stringIndex[r]);
+                    sort(hashes, l, i-1); // Sort left sub-array (elements <= pivotValue)
+                    sort(hashes, i+1, r); // Sort right sub-array (elements > pivotValue)
+                }
+            }
+        };
+
+        template <size_t ... I> static constexpr auto buildHashMap(std::index_sequence<I...>) noexcept {
+            HashMap hashMap {{}, {{std::string_view(s), I}...}};
+            size_t dupedHashes[total] { (fnv1a_hash(std::string_view(s)) & mask)... };
+            
+            hashMap.sort(dupedHashes); // Sort stringBucket, mirroring any swaps performed to stringBucket in stringIndexes and strings)
+            size_t last = !dupedHashes[0]; // Set last to anything other than the value of the first hash
+            for ( size_t i=0; i<total; ++i ) { // Build array without duplicate hashes, and a parallel array with the range of strings per each unique hash
+                size_t hash = dupedHashes[i];
+                if ( last == hash ) { ++(hashMap.stringBucket[hash].end); } // Duplicate hash, add this string to the hash match range
+                else { hashMap.stringBucket[hash] = Bucket{i, i+1}; } // New hash
+                last = hash;
+            }
+            return hashMap;
+        }
+
+        static constexpr HashMap hashMap = buildHashMap(std::make_index_sequence<total>());
+        static constexpr size_t dupedHashes[total] { (fnv1a_hash(std::string_view(s)) & mask)... };
+
+    public:
+        static constexpr size_t indexOf(const std::string_view & str) noexcept {
+            const Bucket & bucket = hashMap.stringBucket[fnv1a_hash(str) & mask];
+            const StringIndex & firstMatch = hashMap.stringIndex[bucket.begin];
+            if ( str == firstMatch.str ) return firstMatch.index;
+            for ( size_t i=bucket.begin+1; i<bucket.end; ++i ) {
+                if ( str == hashMap.stringIndex[i].str )
+                    return hashMap.stringIndex[i].index;
+            }
+            return std::numeric_limits<size_t>::max();
+        }
+    };
+    template <> struct StringIndexMap<> { // Maps strings to the indexes at which they're passed in, constexpr friendly
+        static constexpr size_t total = 0; // The total number of strings in the map (0)
+        static constexpr size_t indexOf(const std::string_view & str) noexcept { return std::numeric_limits<size_t>::max(); }
+    };
 }
 
 /// Contains support for working with reflected fields, the definition for the REFLECT macro and non-generic supporting macros
@@ -920,7 +1038,7 @@ namespace Reflection
             }
 
             template <typename Function, typename U, typename = std::enable_if_t<std::is_same_v<SubClass,std::decay_t<U>>>>
-            static constexpr void At(U && object, size_t superIndex, Function && function) {
+            static constexpr void At(size_t superIndex, U && object, Function && function) {
                 ExtendedTypeSupport::ForIntegralConstant<sizeof...(Ts)>(superIndex, [&](auto SuperIndex) {
                     constexpr size_t I = super_note_index<decltype(SuperIndex)::value, Ts...>::value;
                     if constexpr ( I < sizeof...(Ts) ) {
@@ -938,7 +1056,7 @@ namespace Reflection
             }
 
             template <typename Function, typename U, typename = std::enable_if_t<std::is_same_v<SubClass,std::decay_t<U>>>>
-            static constexpr void SuperAt(U && object, size_t superIndex, Function && function) {
+            static constexpr void SuperAt(size_t superIndex, U && object, Function && function) {
                 ExtendedTypeSupport::ForIntegralConstant<sizeof...(Ts)>(superIndex, [&](auto SuperIndex) {
                     constexpr size_t I = super_note_index<decltype(SuperIndex)::value, Ts...>::value;
                     if constexpr ( I < sizeof...(Ts) ) {
@@ -1008,19 +1126,18 @@ namespace Reflection
             // function(annotation) [filtered to annotations specializing 'Of']
             template <template <typename ...> class Of, typename Function>
             static constexpr void forEach(Function function) { return ExtendedTypeSupport::for_each_specialization<Of>::in(Base::annotations, function); }
-
         };
     }
 
-#ifdef __clang__
-#define CLANG_ONLY(x) \
+#if _MSC_VER && !__clang__ && !__GNUC__
+#define STATIC_VALUE_HELPER(x)
+#define PASS_STATIC_VALUE(x) []() -> decltype(auto) { if constexpr ( x##_::Field::IsStatic && !x##_::Field::IsFunction ) return std::add_lvalue_reference_t<decltype(ClassType::x)>(ClassType::x); else return std::add_lvalue_reference_t<typename x##_::Field::Pointer>(x##_::Field::p); }()
+#else
+#define STATIC_VALUE_HELPER(x) \
     template<bool IsStaticData, typename Field, typename GetNull, typename T_> static constexpr std::enable_if_t<IsStaticData, std::add_lvalue_reference_t<decltype(T_::x)>> getStatic(int) { return std::add_lvalue_reference_t<decltype(T_::x)>(T_::x); } \
     template<bool IsStaticData, typename Field, typename GetNull, typename T_> static constexpr std::enable_if_t<!IsStaticData, std::add_lvalue_reference_t<decltype(&T_::x)>> getStatic(unsigned) { return std::add_lvalue_reference_t<decltype(&T_::x)>(Field::p); } \
     template<bool IsStaticData, typename Field, typename GetNull, typename T_> static constexpr std::nullptr_t & getStatic(...) { return (std::nullptr_t &)GetNull::value; }
 #define PASS_STATIC_VALUE(x) FieldDescr<IndexOf::x>::template getStatic<x##_::Field::IsStatic && !x##_::Field::IsFunction, x##_::Field, x##_::template GetPointer<nullptr_t, true>, ClassType>(0)
-#else
-#define CLANG_ONLY(x)
-#define PASS_STATIC_VALUE(x) []() -> decltype(auto) { if constexpr ( x##_::Field::IsStatic && !x##_::Field::IsFunction ) return std::add_lvalue_reference_t<decltype(ClassType::x)>(ClassType::x); else return std::add_lvalue_reference_t<typename x##_::Field::Pointer>(x##_::Field::p); }()
 #endif
 #define PASS_STATIC_VALUE_(x) ,PASS_STATIC_VALUE(x)
 
@@ -1052,7 +1169,7 @@ namespace Reflection
         static constexpr Pointer p { GetPointer<ProxyType, std::is_reference_v<Type>>::value }; }; \
     using Field = Reflection::Fields::Field<Type, FieldBase, FieldDescr<IndexOf::x, U_>, Pointer, IndexOf::x, decltype(idNote<ProxyType>(0))>; \
     static constexpr Field field {}; \
-    CLANG_ONLY(x) \
+    STATIC_VALUE_HELPER(x) \
 }; using x##_ = FieldDescr<IndexOf::x>;
 
 #define GET_FIELD(x) { Class::x##_::field.name, Class::x##_::field.typeStr },
@@ -1060,6 +1177,7 @@ namespace Reflection
 #define PASS_FIELD_(x) ,x##_::field
 #define PASS_VALUE(x) [&t]() -> decltype(auto) { if constexpr ( x##_::Field::IsFunction ) { return std::add_lvalue_reference_t<typename x##_::Field::Pointer>(x##_::Field::p); } else return std::add_lvalue_reference_t<decltype(t.x)>(t.x); }()
 #define PASS_VALUE_(x) ,[&t]() -> decltype(auto) { if constexpr ( x##_::Field::IsFunction ) { return std::add_lvalue_reference_t<typename x##_::Field::Pointer>(x##_::Field::p); } else return std::add_lvalue_reference_t<decltype(t.x)>(t.x); }()
+#define FIELD_ADAPTER(x) U_<IndexOf::x,Ts...> x;
 
 /// After the objectType can be 0 to 124 field names
 /// e.g. REFLECT(MyObj, myInt, myString, myOtherObj)
@@ -1072,6 +1190,7 @@ struct Class { \
     using Annotations = Reflection::NoAnnotation; \
     static constexpr auto & annotations = Reflection::NoNote; \
     template <size_t FieldIndex, typename U_ = void> struct FieldDescr; FOR_EACH(DESCRIBE_FIELD, __VA_ARGS__) \
+    template <template<size_t I,class...> class U_, class ... Ts> struct Adapter { FOR_EACH(FIELD_ADAPTER, __VA_ARGS__) }; \
     static constexpr Reflection::Fields::Field<> Fields[Total+1] { FOR_EACH(GET_FIELD, __VA_ARGS__) }; \
     template <typename Function> static constexpr auto field_pack(Function && function) { \
         return function(FOR_HEAD_TAIL(PASS_FIELD, PASS_FIELD_, __VA_ARGS__)); } \
@@ -1093,6 +1212,7 @@ struct Class { \
     using Annotations = decltype(objectType##_note); \
     static constexpr Annotations & annotations = objectType##_note; \
     template <size_t FieldIndex, typename U_ = void> struct FieldDescr; FOR_EACH(DESCRIBE_FIELD, __VA_ARGS__) \
+    template <template<size_t I,class...> class U_, class ... Ts> struct Adapter { FOR_EACH(FIELD_ADAPTER, __VA_ARGS__) }; \
     static constexpr Reflection::Fields::Field<> Fields[Total+1] { FOR_EACH(GET_FIELD, __VA_ARGS__) }; \
     template <typename Function> static constexpr auto field_pack(Function && function) { \
         return function(FOR_HEAD_TAIL(PASS_FIELD, PASS_FIELD_, __VA_ARGS__)); } \
@@ -1129,6 +1249,11 @@ struct Class { \
         template <typename Field, typename = enable_if_field_t<Field>> struct IsInstanceFunction : std::bool_constant<!Field::IsStatic && Field::IsFunction> {};
         template <typename Field, typename = enable_if_field_t<Field>> struct IsStaticData : std::bool_constant<Field::IsStatic && !Field::IsFunction> {};
         template <typename Field, typename = enable_if_field_t<Field>> struct IsStaticFunction : std::bool_constant<Field::IsStatic && Field::IsFunction> {};
+		
+        template <template <typename...> class Of> struct Is {
+            template <typename Field, typename = enable_if_field_t<Field>> struct Specialization : std::bool_constant<
+                ExtendedTypeSupport::is_specialization_v<typename Field::Type, Of>> {};
+        };
     };
 
     template <typename T>
@@ -1140,21 +1265,37 @@ struct Class { \
 
         struct Fields // Access to field information
         {
-            static constexpr size_t Total = Class::Total;
+            static constexpr size_t Total = Class::Total; // The total number of reflected fields
             
-            template <size_t FieldIndex> using Field = typename Class::template FieldDescr<FieldIndex>::Field;
+            template <size_t FieldIndex> using Field = typename Class::template FieldDescr<FieldIndex>::Field; // Field<I> - field type by index
 
+            // field<I> - field instance by index
             template <size_t FieldIndex> static constexpr const Field<FieldIndex> & field = Class::template FieldDescr<FieldIndex>::field;
+
+        protected:
+            template <size_t ... I> static constexpr auto fieldIndexMap(std::index_sequence<I...>) {
+				if constexpr ( sizeof...(I) > 0 )
+					return ExtendedTypeSupport::StringIndexMap<(Reflect<T>::Fields::Field<I>::name)...>();
+				else
+					return ExtendedTypeSupport::StringIndexMap<>();
+            }
+
+            using FieldNames = decltype(fieldIndexMap(std::make_index_sequence<Reflect<T>::Fields::Total>()));
+
+            template <size_t I = 0, typename F>
+            static constexpr std::true_type uses_field_only(F && f, std::conditional_t<true, int, decltype(std::forward<F>(f)(field<I>))> = 0) { return {}; }
+            template <size_t I = 0> static constexpr std::false_type uses_field_only(...) { return {}; }
+
+        public:
+            // Gets the index of a field using the field name
+            template <class U=T> static constexpr size_t IndexOf(std::string_view fieldName) {
+                return FieldNames::indexOf(fieldName);
+            }
 
             // Forwards all fields to function as a parameter pack
             template <typename Function> static constexpr auto Pack(Function && function) { return Class::field_pack(std::forward<Function>(function)); }
-            
-            // Forwards the static value of all fields (member pointers if instance field) to function as a parameter pack
-            template <typename Function> static constexpr auto PackValues(Function && function) { return Class::value_pack(function); }
-            
-            // Forwards the value of all fields to function as a parameter pack
-            template <typename Function, class U> static constexpr auto PackValues(U && t, Function && function) { return Class::value_pack(std::forward<U>(t), std::forward<Function>(function)); }
-            
+
+            // The total number of reflected fields after the given filter is applied
             template <template <typename ...> class Filter, typename ...FilterArgs>
             static constexpr size_t FilteredCount() {
                 if constexpr ( Total == 0 )
@@ -1169,6 +1310,31 @@ struct Class { \
                     return count;
                 }
             };
+            
+            // function(field) or...
+            // function(field, value) [statics only]
+            template <typename Function> static constexpr void ForEach(Function && function) {
+                ExtendedTypeSupport::ForIntegralConstants<Total>([&](auto I) {
+                    if constexpr ( decltype(uses_field_only(std::forward<Function>(function)))::value )
+                        function(field<decltype(I)::value>);
+                    else if constexpr ( Field<decltype(I)::value>::IsStatic )
+                        Field<decltype(I)::value>::template callback<true>(std::forward<Function>(function));
+                });
+            }
+
+            // function(field) [filtered] or...
+            // function(field, value) [filtered, statics only]
+            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function> static constexpr void ForEach(Function && function) {
+                ExtendedTypeSupport::ForIntegralConstants<Total>([&](auto I) {
+                    if constexpr ( passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
+                    {
+                        if constexpr ( decltype(uses_field_only<decltype(I)::value>(std::forward<Function>(function)))::value )
+                            function(field<decltype(I)::value>);
+                        else if constexpr ( Field<decltype(I)::value>::IsStatic )
+                            Field<decltype(I)::value>::template callback<true>(std::forward<Function>(function));
+                    }
+                });
+            }
 
             // t, function(field, value)
             template <typename Function, class U, typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
@@ -1182,88 +1348,40 @@ struct Class { \
             // t, function(field, value) [filtered]
             template <template <typename ...> class Filter, typename ...FilterArgs, typename Function, class U, typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
             static void ForEach(U && t, Function && function) {
-                if constexpr ( Total > 0 )
-                {
-                    ExtendedTypeSupport::ForIntegralConstants<Total>([&](auto I) {
-                        if constexpr ( passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
-                            Field<decltype(I)::value>::template callback<true>(std::forward<U>(t), std::forward<Function>(function));
-                    });
-                }
+                ExtendedTypeSupport::ForIntegralConstants<Total>([&](auto I) {
+                    if constexpr ( passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
+                        Field<decltype(I)::value>::template callback<true>(std::forward<U>(t), std::forward<Function>(function));
+                });
             }
             
+            // function(field) or...
             // function(field, value) [statics only]
-            template <typename Function> static constexpr void ForEach(Function && function) {
-                if constexpr ( Total > 0 )
-                {
-                    ExtendedTypeSupport::ForIntegralConstants<Total>([&](auto I) {
-                        if constexpr ( Field<decltype(I)::value>::IsStatic )
-                            Field<decltype(I)::value>::template callback<true>(std::forward<Function>(function));
-                    });
-                }
+            template <typename Function> static constexpr void At(size_t fieldIndex, Function && function) {
+				ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
+					if constexpr ( decltype(uses_field_only(std::forward<Function>(function)))::value )
+						function(field<decltype(I)::value>);
+                    else if constexpr ( Field<decltype(I)::value>::IsStatic )
+						Field<decltype(I)::value>::template callback<true>(std::forward<Function>(function));
+				});
             }
-
+            
+            // function(field) [filtered] or...
             // function(field, value) [filtered, statics only]
-            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function> static constexpr void ForEach(Function && function) {
-                if constexpr ( Total > 0 )
-                {
-                    ExtendedTypeSupport::ForIntegralConstants<Total>([&](auto I) {
-                        if constexpr ( Field<decltype(I)::value>::IsStatic && passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
-                            Field<decltype(I)::value>::template callback<true>(std::forward<Function>(function));
-                    });
-                }
-            }
-
-            // function(field)
-            template <typename Function> static constexpr void ForEachField(Function && function) {
-                ExtendedTypeSupport::ForIntegralConstants<Total>([&](auto I) {
-                    function(field<decltype(I)::value>);
-                });
-            }
-
-            // function(field) [filtered]
-            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function> static constexpr void ForEachField(Function && function) {
-                ExtendedTypeSupport::ForIntegralConstants<Total>([&](auto I) {
-                    if constexpr ( passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
-                        function(field<decltype(I)::value>);
-                });
-            }
-
-            // t, function(value)
-            template <typename Function, class U, typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
-            static constexpr void ForEachValue(U && t, Function && function) {
-                ExtendedTypeSupport::ForIntegralConstants<Total>([&](auto I) {
-                    Field<decltype(I)::value>::template callback<false>(std::forward<U>(t), std::forward<Function>(function));
-                });
-            }
-
-            // t, function(value) [filtered]
-            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function, class U, typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
-            static constexpr void ForEachValue(U && t, Function && function) {
-                ExtendedTypeSupport::ForIntegralConstants<Total>([&](auto I) {
-                    if constexpr ( passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
-                        Field<decltype(I)::value>::template callback<false>(std::forward<U>(t), std::forward<Function>(function));
-                });
-            }
-
-            // function(value) [statics only]
-            template <typename Function> static constexpr void ForEachValue(Function && function) {
-                ExtendedTypeSupport::ForIntegralConstants<Total>([&](auto I) {
-                    if constexpr ( Field<decltype(I)::value>::IsStatic )
-                        Field<decltype(I)::value>::template callback<false>(std::forward<Function>(function));
-                });
-            }
-
-            // function(value) [filtered, statics only]
-            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function> static constexpr void ForEachValue(Function && function) {
-                ExtendedTypeSupport::ForIntegralConstants<Total>([&](auto I) {
-                    if constexpr ( Field<decltype(I)::value>::IsStatic && passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
-                        Field<decltype(I)::value>::template callback<false>(std::forward<Function>(function));
-                });
+            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function> static constexpr void At(size_t fieldIndex, Function && function) {
+				ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
+					if constexpr ( passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
+                    {
+					    if constexpr ( decltype(uses_field_only<decltype(I)::value>(std::forward<Function>(function)))::value )
+							function(field<decltype(I)::value>);
+                        else if constexpr ( Field<decltype(I)::value>::IsStatic )
+							Field<decltype(I)::value>::template callback<true>(std::forward<Function>(function));
+                    }
+				});
             }
 
             // t, function(field, value)
             template <typename Function, class U, typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
-            static constexpr void At(U && t, size_t fieldIndex, Function && function) {
+            static constexpr void At(size_t fieldIndex, U && t, Function && function) {
                 ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
                     Field<decltype(I)::value>::template callback<true>(std::forward<U>(t), std::forward<Function>(function));
                 });
@@ -1271,46 +1389,125 @@ struct Class { \
 
             // t, function(field, value) [filtered]
             template <template <typename ...> class Filter, typename ...FilterArgs, typename Function, class U, typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
-            static constexpr void At(U && t, size_t fieldIndex, Function && function) {
+            static constexpr void At(size_t fieldIndex, U && t, Function && function) {
                 ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
                     if constexpr ( passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
                         Field<decltype(I)::value>::template callback<true>(std::forward<U>(t), std::forward<Function>(function));
                 });
             }
             
-            // function(field, value) [statics only]
-            template <typename Function> static constexpr void At(size_t fieldIndex, Function && function) {
-                ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
-                    Field<decltype(I)::value>::template callback<true>(std::forward<Function>(function));
-                });
+            // fieldName, function(field) or...
+            // fieldName, function(field, value) [statics only]
+            template <typename Function> static constexpr void Named(std::string_view fieldName, Function && function) {
+			    size_t fieldIndex = IndexOf<>(fieldName);
+			    ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
+				    if constexpr ( decltype(Reflect<T>::Fields::uses_field_only(std::forward<Function>(function)))::value )
+					    function(field<decltype(I)::value>);
+				    else if constexpr ( Field<decltype(I)::value>::IsStatic )
+					    Field<decltype(I)::value>::template callback<true>(std::forward<Function>(function));
+			    });
             }
             
-            // function(field, value) [filtered, statics only]
-            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function> static constexpr void At(size_t fieldIndex, Function && function) {
+            // fieldName, function(field) [filtered] or...
+            // fieldName, function(field, value) [filtered, statics only]
+            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function> static constexpr void Named(std::string_view fieldName, Function && function) {
+			    size_t fieldIndex = IndexOf<>(fieldName);
+			    ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
+				    if constexpr ( passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
+				    {
+					    if constexpr ( decltype(Reflect<T>::Fields::uses_field_only<decltype(I)::value>(std::forward<Function>(function)))::value )
+						    function(field<decltype(I)::value>);
+					    else if constexpr ( Field<decltype(I)::value>::IsStatic )
+						    Field<decltype(I)::value>::template callback<true>(std::forward<Function>(function));
+				    }
+			    });
+            }
+
+            // t, fieldName, function(field, value)
+            template <typename Function, class U, typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
+            static constexpr void Named(std::string_view fieldName, U && t, Function && function) {
+                size_t fieldIndex = IndexOf<>(fieldName);
+                ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
+                    Field<decltype(I)::value>::template callback<true>(std::forward<U>(t), std::forward<Function>(function));
+                });
+            }
+
+            // t, fieldName, function(field, value) [filtered]
+            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function, class U, typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
+            static constexpr void Named(std::string_view fieldName, U && t, Function && function) {
+                size_t fieldIndex = IndexOf<>(fieldName);
                 ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
                     if constexpr ( passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
-                        Field<decltype(I)::value>::template callback<true>(std::forward<Function>(function));
+                        Field<decltype(I)::value>::template callback<true>(std::forward<U>(t), std::forward<Function>(function));
                 });
             }
+        };
+
+        class Values // Access to field-value information
+        {
+            template <size_t FieldIndex> using Field = typename Fields::template Field<FieldIndex>;
+
+        public:
+            static constexpr size_t Total = Fields::Total; // The total number of reflected fields
+
+            // Forwards the static value of all fields (member pointers if instance field) to function as a parameter pack
+            template <typename Function> static constexpr auto Pack(Function && function) { return Class::value_pack(function); }
             
-            // function(field)
-            template <typename Function> static constexpr void FieldAt(size_t fieldIndex, Function && function) {
-                ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
-                    function(field<decltype(I)::value>);
+            // Forwards the value of all fields to function as a parameter pack
+            template <typename Function, class U> static constexpr auto Pack(U && t, Function && function) { return Class::value_pack(std::forward<U>(t), std::forward<Function>(function)); }
+
+            // function(value) [statics only]
+            template <typename Function> static constexpr void ForEach(Function && function) {
+                ExtendedTypeSupport::ForIntegralConstants<Total>([&](auto I) {
+                    if constexpr ( Field<decltype(I)::value>::IsStatic )
+                        Field<decltype(I)::value>::template callback<false>(std::forward<Function>(function));
                 });
             }
-            
-            // function(field) [filtered]
-            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function> static constexpr void FieldAt(size_t fieldIndex, Function && function) {
-                ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
-                    if constexpr ( passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
-                        function(field<decltype(I)::value>);
+
+            // function(value) [filtered, statics only]
+            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function> static constexpr void ForEach(Function && function) {
+                ExtendedTypeSupport::ForIntegralConstants<Total>([&](auto I) {
+                    if constexpr ( Field<decltype(I)::value>::IsStatic && passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
+                        Field<decltype(I)::value>::template callback<false>(std::forward<Function>(function));
                 });
             }
-            
+
             // t, function(value)
             template <typename Function, class U, typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
-            static constexpr void ValueAt(U && t, size_t fieldIndex, Function && function) {
+            static constexpr void ForEach(U && t, Function && function) {
+                ExtendedTypeSupport::ForIntegralConstants<Total>([&](auto I) {
+                    Field<decltype(I)::value>::template callback<false>(std::forward<U>(t), std::forward<Function>(function));
+                });
+            }
+
+            // t, function(value) [filtered]
+            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function, class U, typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
+            static constexpr void ForEach(U && t, Function && function) {
+                ExtendedTypeSupport::ForIntegralConstants<Total>([&](auto I) {
+                    if constexpr ( passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
+                        Field<decltype(I)::value>::template callback<false>(std::forward<U>(t), std::forward<Function>(function));
+                });
+            }
+            
+            // function(value) [statics only]
+            template <typename Function> static constexpr void At(size_t fieldIndex, Function && function) {
+                ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
+                    if constexpr ( Field<decltype(I)::value>::IsStatic )
+                        Field<decltype(I)::value>::template callback<false>(std::forward<Function>(function));
+                });
+            }
+            
+            // function(value) [filtered, statics only]
+            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function> static constexpr void At(size_t fieldIndex, Function && function) {
+                ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
+                    if constexpr ( Field<decltype(I)::value>::IsStatic && passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
+                        Field<decltype(I)::value>::template callback<false>(std::forward<Function>(function));
+                });
+            }
+
+            // t, function(value)
+            template <typename Function, class U, typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
+            static constexpr void At(size_t fieldIndex, U && t, Function && function) {
                 ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
                     Field<decltype(I)::value>::template callback<false>(std::forward<U>(t), std::forward<Function>(function));
                 });
@@ -1318,28 +1515,49 @@ struct Class { \
             
             // t, function(value) [filtered]
             template <template <typename ...> class Filter, typename ...FilterArgs, typename Function, class U, typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
-            static constexpr void ValueAt(U && t, size_t fieldIndex, Function && function) {
+            static constexpr void At(size_t fieldIndex, U && t, Function && function) {
                 ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
                     if constexpr ( passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
                         Field<decltype(I)::value>::template callback<false>(std::forward<U>(t), std::forward<Function>(function));
                 });
             }
-            
-            // function(value) [statics only]
-            template <typename Function> static constexpr void ValueAt(size_t fieldIndex, Function && function) {
+
+            // fieldName, function(value) [statics only]
+            template <typename Function> static constexpr void Named(std::string_view fieldName, Function && function) {
+                size_t fieldIndex = Fields::template IndexOf<>(fieldName);
                 ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
-                    Field<decltype(I)::value>::template callback<false>(std::forward<Function>(function));
-                });
-            }
-            
-            // function(value) [filtered, statics only]
-            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function> static constexpr void ValueAt(size_t fieldIndex, Function && function) {
-                ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
-                    if constexpr ( passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
+                    if constexpr ( Field<decltype(I)::value>::IsStatic )
                         Field<decltype(I)::value>::template callback<false>(std::forward<Function>(function));
                 });
             }
 
+            // fieldName, function(value) [filtered, statics only]
+            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function> static constexpr void Named(std::string_view fieldName, Function && function) {
+                size_t fieldIndex = Fields::template IndexOf<>(fieldName);
+                ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
+                    if constexpr ( Field<decltype(I)::value>::IsStatic && passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
+                        Field<decltype(I)::value>::template callback<false>(std::forward<Function>(function));
+                });
+            }
+            
+            // t, fieldName, function(value)
+            template <typename Function, class U, typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
+            static constexpr void Named(std::string_view fieldName, U && t, Function && function) {
+                size_t fieldIndex = Fields::template IndexOf<>(fieldName);
+                ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
+                    Field<decltype(I)::value>::template callback<false>(std::forward<U>(t), std::forward<Function>(function));
+                });
+            }
+
+            // t, fieldName, function(value) [filtered]
+            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function, class U, typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
+            static constexpr void Named(std::string_view fieldName, U && t, Function && function) {
+                size_t fieldIndex = Fields::template IndexOf<>(fieldName);
+                ExtendedTypeSupport::ForIntegralConstant<Total>(fieldIndex, [&](auto I) {
+                    if constexpr ( passes_filter<Filter, Field<decltype(I)::value>, FilterArgs...> )
+                        Field<decltype(I)::value>::template callback<false>(std::forward<U>(t), std::forward<Function>(function));
+                });
+            }
         };
 
         /*struct Experimental // May have better support in the future, but for now this is experimental
@@ -1418,7 +1636,6 @@ struct Class { \
             }
         };
     };
-
 }
 using Reflection::Reflect;
 

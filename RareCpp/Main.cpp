@@ -181,7 +181,7 @@ public:
     REFLECT(OtherSuper, otherVal)
 };
 
-NOTE(SubTest, Super<Superish>(Json::Name{"asdfjk"}, Json::Name{"anotherName"}, Json::Ignore), Rest::Controller, Super<OtherSuper>)
+NOTE(SubTest, Super<Superish>(Json::Name{"asdfjk"}, Json::Name{"anotherName"}, Json::Ignore), Super<OtherSuper>)
 class SubTest : public Superish, public OtherSuper
 {
 public:
@@ -269,7 +269,7 @@ Car outputExamples()
 
     for ( size_t i=0; i<Reflect<Wheel>::Fields::Total; i++ )
     {
-        Reflect<Wheel>::Fields::At(frontLeft, i, [&](auto & field, auto & value) {
+        Reflect<Wheel>::Fields::At(i, frontLeft, [&](auto & field, auto & value) {
             std::cout << field.name << ": " << value << std::endl;
         });
     }
@@ -578,7 +578,7 @@ int oldMain()
 
     State state {1, 2};
     std::cout << Json::out(state) << std::endl;
-    Reflect<State>::Fields::At(state, 0, [&](auto & field, auto & value) {
+    Reflect<State>::Fields::At(0, state, [&](auto & field, auto & value) {
         using Field = typename std::remove_reference<decltype(field)>::type;
         std::cout << "Field 0: " << field.template getAnnotation<Json::Name>().value << std::endl;
     });
@@ -636,7 +636,7 @@ bool contains_field_of_type()
 template <typename T>
 auto tie(T & t)
 {
-    return Reflect<T>::Fields::PackValues(t, [](auto && ...ts) {
+    return Reflect<T>::Values::Pack(t, [](auto && ...ts) {
         return std::forward_as_tuple(ts...);
     });
 }
@@ -657,8 +657,39 @@ int TestObj::c = 3;
 std::string TestObj::e = "five";
 int* TestObj::f = nullptr;
 
+void adapterExperiment();
+void functionExperiment();
+
 int main()
 {
+    adapterExperiment();
+    functionExperiment();
+
+    outputExamples();
+
+
+    std::cout << "total: " << Reflect<TestObj>::Fields::Total << std::endl;
+    std::cout << "a: " << Reflect<TestObj>::Fields::IndexOf<>("a") << std::endl;
+    std::cout << "b: " << Reflect<TestObj>::Fields::IndexOf<>("b") << std::endl;
+    std::cout << "c: " << Reflect<TestObj>::Fields::IndexOf<>("c") << std::endl;
+    std::cout << "d: " << Reflect<TestObj>::Fields::IndexOf<>("d") << std::endl;
+
+    TestObj mixerTest {0};
+    Reflect<TestObj>::Fields::ForEach<Filter::IsInstanceData>([&](auto & field) {
+        using Field = std::remove_reference_t<decltype(field)>;
+        std::cout << TypeToStr<typename Field::Type>() << std::endl;
+    });
+
+    constexpr auto field = Reflect<TestObj>::Fields::field<2>;
+    std::cout << 2 << ": " << field.name << std::endl;
+    size_t runtimeIndex = Reflect<TestObj>::Fields::IndexOf("c");
+    Reflect<TestObj>::Fields::Named(std::string("c"), [&](auto & field) {
+        std::cout << runtimeIndex << ": " << field.name << std::endl;
+    });
+    Reflect<TestObj>::Fields::Pack([&](auto & ... ts) {
+        (std::cout << ... << std::remove_reference_t<decltype(ts)>::name) << std::endl;
+    });
+
     TestObj t {};
 
     Reflect<TestObj>::Fields::ForEach<Filter::IsInstanceData>(t, [&](auto & field, auto & value) {
@@ -670,12 +701,12 @@ int main()
     });
 
     int checksum = 0;
-    Reflect<TestObj>::Fields::ForEachValue<std::is_integral>(t, [&](auto & value) {
+    Reflect<TestObj>::Values::ForEach<std::is_integral>(t, [&](auto & value) {
         checksum += value;
     });
     std::cout << "Checksum: " << checksum << std::endl;
 
-    Reflect<TestObj>::Fields::ForEachValue<std::is_pointer>([&](auto & value) {
+    Reflect<TestObj>::Values::ForEach<std::is_pointer>([&](auto & value) {
         value = &TestObj::c;
     });
     std::cout << "f* = " << (t.f == &TestObj::c ? "&TestObj::c" : "nullptr") << std::endl;
@@ -714,7 +745,7 @@ int main()
     Reflect<TestObj>::Fields::Pack([&](auto && ...ts) {
         (std::cout << ... << TypeToStr<typename std::remove_reference_t<decltype(ts)>::Type>()) << std::endl;
     });
-    Reflect<TestObj>::Fields::PackValues([&](auto && ...ts) {
+    Reflect<TestObj>::Values::Pack([&](auto && ...ts) {
         (std::cout << ... << TypeToStr<std::decay_t<decltype(ts)>>()) << std::endl;
     });
 
@@ -727,9 +758,9 @@ int main()
     using TypeTup = decltype(tie(t));
     std::cout << TypeToStr<TypeTup>() << std::endl;
 
-    /*for ( const auto & m : Reflect<TestObj>::Experimental::Members{t} ) {
-        std::cout << m.typeStr << " " << m.name << " {" << m << "}" << std::endl;
-    }*/
+    //for ( const auto & m : Reflect<TestObj>::Experimental::Members{t} ) {
+    //    std::cout << m.typeStr << " " << m.name << " {" << m << "}" << std::endl;
+    //}
 
     std::cout << Reflect<TestObj>::Fields::FilteredCount<Filter::IsFunction>() << std::endl;
 
@@ -747,13 +778,13 @@ int main()
     ExtendedTypeSupport::ForIntegralConstant<4>(0, [&](auto && I) {
         std::cout << "IntegralConst: " << std::decay_t<decltype(I)>::value << std::endl;
     });
-    Reflect<TestObj>::Fields::At(t, 0, [&](auto & field, auto & value) {
+    Reflect<TestObj>::Fields::At(0, t, [&](auto & field, auto & value) {
         std::cout << "Zero: " << field.name << ": " << value << std::endl;
     });
 
 
     for ( size_t i=0; i<Reflect<TestObj>::Fields::Total; i++ ) {
-        Reflect<TestObj>::Fields::At(t, i, [&](auto & field, auto & value) {
+        Reflect<TestObj>::Fields::At(i, t, [&](auto & field, auto & value) {
             std::cout << i << ": " << field.name << ": " << value << std::endl;
         });
     }
@@ -765,7 +796,7 @@ int main()
     Reflect<TestObj>::Notes::ForEach([](auto & annotation) {
         std::cout << TypeToStr<decltype(annotation)>() << std::endl;
     });
-    Reflect<TestObj>::Fields::ValueAt(t, 1, [&](auto & value) {
+    Reflect<TestObj>::Values::At(1, t, [&](auto & value) {
         std::cout << "ValueAt: " << value << std::endl;
     });
     std::cout << Reflect<TestObj>::Fields::template FilteredCount<Filter::IsInstanceData>();
@@ -773,7 +804,7 @@ int main()
     std::cout << "typeStr: " << Reflect<TestObj>::Fields::field<0>.typeStr << std::endl;
     std::cout << "name: " << Reflect<TestObj>::Fields::field<0>.name << std::endl;
     //Reflect<TestObj>::Experimental::Members{t}[0]([](auto & value){ std::cout << value << std::endl; });
-    Reflect<TestObj>::Fields::ValueAt(t, 0, [](auto & value) { std::cout << value << std::endl; });
+    Reflect<TestObj>::Values::At(0, t, [](auto & value) { std::cout << value << std::endl; });
 
     ExtendedTypeSupport::ForIntegralConstants<Reflect<TestObj>::Fields::Total>([&](auto I) {
         std::cout << Reflect<TestObj>::Fields::Field<I>::IsStatic << std::endl;

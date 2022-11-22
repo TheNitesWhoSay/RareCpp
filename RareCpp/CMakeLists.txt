@@ -7,6 +7,8 @@ set(Headers
 )
 set(Sources
   Main.cpp
+  Functions.cpp
+  Adapters.cpp
 )
 
 add_executable(${This} ${Sources} ${Headers})

@@ -182,6 +182,164 @@ TEST(ReflectionTest, Unproxy)
     EXPECT_TRUE(isSame);
 }
 
+struct does_not_have_reflected_class {};
+struct does_not_quite_have_reflected_class {
+    struct Class {};
+};
+struct does_have_reflected_class {
+    struct Class {
+        static constexpr size_t Total = 0;
+    };
+};
+struct is_reflected_REFLECT {
+    int value;
+
+    REFLECT(is_reflected_REFLECT, value)
+};
+NOTE(is_reflected_REFLECT_NOTED)
+struct is_reflected_REFLECT_NOTED {
+    int value;
+
+    REFLECT_NOTED(is_reflected_REFLECT_NOTED, value)
+};
+NOTE(is_reflected_REFLECT_EMPTY)
+struct is_reflected_REFLECT_EMPTY {
+    REFLECT_NOTED(is_reflected_REFLECT_EMPTY)
+};
+
+TEST(ExtendedTypeSupportTest, BaseTypeHasClass)
+{
+    bool hasClass = decltype(typeHasReflection<does_not_have_reflected_class>(0))::value;
+    EXPECT_FALSE(hasClass);
+    hasClass = decltype(typeHasReflection<does_not_quite_have_reflected_class>(0))::value;
+    EXPECT_FALSE(hasClass);
+    hasClass = decltype(typeHasReflection<does_have_reflected_class>(0))::value;
+    EXPECT_TRUE(hasClass);
+    hasClass = decltype(typeHasReflection<is_reflected_REFLECT>(0))::value;
+    EXPECT_TRUE(hasClass);
+    hasClass = decltype(typeHasReflection<is_reflected_REFLECT_NOTED>(0))::value;
+    EXPECT_TRUE(hasClass);
+}
+
+TEST(ExtendedTypeSupportTest, IsReflected)
+{
+    EXPECT_FALSE(is_reflected<does_not_have_reflected_class>::value);
+    EXPECT_FALSE(is_reflected<does_not_quite_have_reflected_class>::value);
+    EXPECT_TRUE(is_reflected<does_have_reflected_class>::value);
+    EXPECT_TRUE(is_reflected<is_reflected_REFLECT>::value);
+    EXPECT_TRUE(is_reflected<is_reflected_REFLECT_NOTED>::value);
+    EXPECT_FALSE(is_reflected<UnreflectedObj>::value);
+    EXPECT_TRUE(is_reflected<UnownedObj1>::value);
+    EXPECT_TRUE(is_reflected<UnownedObj2>::value);
+    EXPECT_TRUE(is_reflected<OwnedObj>::value);
+
+    EXPECT_FALSE(is_reflected_v<does_not_have_reflected_class>);
+    EXPECT_FALSE(is_reflected_v<does_not_quite_have_reflected_class>);
+    EXPECT_TRUE(is_reflected_v<does_have_reflected_class>);
+    EXPECT_TRUE(is_reflected_v<is_reflected_REFLECT>);
+    EXPECT_TRUE(is_reflected_v<is_reflected_REFLECT_NOTED>);
+    EXPECT_FALSE(is_reflected_v<UnreflectedObj>);
+    EXPECT_TRUE(is_reflected_v<UnownedObj1>);
+    EXPECT_TRUE(is_reflected_v<UnownedObj2>);
+    EXPECT_TRUE(is_reflected_v<OwnedObj>);
+}
+
+TEST(ReflectionTest, ReflectedType)
+{
+    bool isSame = std::is_same_v<Reflection::reflected_type<UnreflectedObj>::type, UnreflectedObj>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<Reflection::reflected_type<UnownedObj1>::type, Reflection::Proxy<UnownedObj1>>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<Reflection::reflected_type<UnownedObj2>::type, Reflection::Proxy<UnownedObj2>>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<Reflection::reflected_type<OwnedObj>::type, Reflection::Proxy<OwnedObj>>;
+    EXPECT_TRUE(isSame);
+
+    isSame = std::is_same_v<Reflection::reflected_type_t<UnreflectedObj>, UnreflectedObj>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<Reflection::reflected_type_t<UnownedObj1>, Reflection::Proxy<UnownedObj1>>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<Reflection::reflected_type_t<UnownedObj2>, Reflection::Proxy<UnownedObj2>>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<Reflection::reflected_type_t<OwnedObj>, Reflection::Proxy<OwnedObj>>;
+    EXPECT_TRUE(isSame);
+}
+
+class ReflectSuperObj {
+public:
+    int superVal;
+
+    REFLECT(ReflectSuperObj, superVal)
+};
+
+class ReflectSubObj {
+public:
+    int val;
+
+    REFLECT(ReflectSubObj, val)
+};
+
+NOTE(ReflectionObj, Super<ReflectSuperObj>)
+class ReflectionObj : public ReflectSuperObj {
+public:
+    ReflectionObj() : primitive(0), object({}), primitiveReference(primitive) { primitiveArray[0] = 0; primitiveArray[1] = 1; }
+
+    int primitive;
+    ReflectSubObj object;
+    int primitiveArray[2];
+    std::map<int,float> map;
+    std::vector<ReflectSubObj> objCollection;
+    std::stack<int> stack;
+    static int staticPrimitive;
+    int & primitiveReference;
+    static int & staticPrimitiveReference;
+    int memberMethod() { return 1; }
+    static int staticMethod() { return 2; }
+
+    REFLECT_NOTED(ReflectionObj, primitive, object, primitiveArray, map, objCollection, stack, staticPrimitive, primitiveReference, staticPrimitiveReference, memberMethod, staticMethod)
+};
+
+int ReflectionObj::staticPrimitive = 0;
+int & ReflectionObj::staticPrimitiveReference = ReflectionObj::staticPrimitive;
+
+TEST(ReflectionTest, ClassT)
+{
+    bool isSame = std::is_same_v<Reflection::clazz<UnownedObj1>::type, Reflection::Proxy<UnownedObj1>::Class>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<Reflection::clazz<UnownedObj2>::type, Reflection::Proxy<UnownedObj2>::Class>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<Reflection::clazz<OwnedObj>::type, Reflection::Proxy<OwnedObj>::Class>;
+    EXPECT_TRUE(isSame);
+
+    isSame = std::is_same_v<Reflection::class_t<UnownedObj1>, Reflection::Proxy<UnownedObj1>::Class>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<Reflection::class_t<UnownedObj2>, Reflection::Proxy<UnownedObj2>::Class>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<Reflection::class_t<OwnedObj>, Reflection::Proxy<OwnedObj>::Class>;
+    EXPECT_TRUE(isSame);
+}
+
+TEST(ReflectionTest, ClassNotesT)
+{
+    bool isSame = std::is_same_v<ReflectionObj::Class::Annotations, class_notes<ReflectionObj>::type>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<Reflection::NoAnnotation, std::remove_const_t<class_notes<ReflectSuperObj>::type>>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<Reflection::NoAnnotation, std::remove_const_t<class_notes<is_reflected_REFLECT_EMPTY>::type>>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<Reflection::NoAnnotation, std::remove_const_t<class_notes<does_not_have_reflected_class>::type>>;
+    EXPECT_TRUE(isSame);
+
+    isSame = std::is_same_v<ReflectionObj::Class::Annotations, class_notes_t<ReflectionObj>>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<Reflection::NoAnnotation, std::remove_const_t<class_notes_t<ReflectSuperObj>>>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<Reflection::NoAnnotation, std::remove_const_t<class_notes_t<is_reflected_REFLECT_EMPTY>>>;
+    EXPECT_TRUE(isSame);
+    isSame = std::is_same_v<Reflection::NoAnnotation, std::remove_const_t<class_notes_t<does_not_have_reflected_class>>>;
+    EXPECT_TRUE(isSame);
+}
+
 struct ClangOnlyTest {
     static constexpr int first = 1;
     static int second;
@@ -195,9 +353,9 @@ struct ClangOnlyTest {
     struct SecondField { static constexpr auto p = &ClangOnlyTest::second; };
     struct ThirdField { static constexpr auto p = &ClangOnlyTest::third; };
 
-    struct first_ { CLANG_ONLY(first) };
-    struct second_ { CLANG_ONLY(second) };
-    struct third_ { CLANG_ONLY(third) };
+    struct first_ { STATIC_VALUE_HELPER(first) };
+    struct second_ { STATIC_VALUE_HELPER(second) };
+    struct third_ { STATIC_VALUE_HELPER(third) };
 };
 
 int ClangOnlyTest::second = 2;
@@ -1829,105 +1987,6 @@ TEST(ReflectionTest, RfMacroCumulative)
     EXPECT_TRUE(true);
 }
 
-struct does_not_have_reflected_class {};
-struct does_not_quite_have_reflected_class {
-    struct Class {};
-};
-struct does_have_reflected_class {
-    struct Class {
-        static constexpr size_t Total = 0;
-    };
-};
-struct is_reflected_REFLECT {
-    int value;
-
-    REFLECT(is_reflected_REFLECT, value)
-};
-NOTE(is_reflected_REFLECT_NOTED)
-struct is_reflected_REFLECT_NOTED {
-    int value;
-
-    REFLECT_NOTED(is_reflected_REFLECT_NOTED, value)
-};
-NOTE(is_reflected_REFLECT_EMPTY)
-struct is_reflected_REFLECT_EMPTY {
-    REFLECT_NOTED(is_reflected_REFLECT_EMPTY)
-};
-
-TEST(ExtendedTypeSupportTest, BaseTypeHasClass)
-{
-    bool hasClass = decltype(typeHasReflection<does_not_have_reflected_class>(0))::value;
-    EXPECT_FALSE(hasClass);
-    hasClass = decltype(typeHasReflection<does_not_quite_have_reflected_class>(0))::value;
-    EXPECT_FALSE(hasClass);
-    hasClass = decltype(typeHasReflection<does_have_reflected_class>(0))::value;
-    EXPECT_TRUE(hasClass);
-    hasClass = decltype(typeHasReflection<is_reflected_REFLECT>(0))::value;
-    EXPECT_TRUE(hasClass);
-    hasClass = decltype(typeHasReflection<is_reflected_REFLECT_NOTED>(0))::value;
-    EXPECT_TRUE(hasClass);
-}
-
-TEST(ExtendedTypeSupportTest, IsReflected)
-{
-    EXPECT_FALSE(is_reflected<does_not_have_reflected_class>::value);
-    EXPECT_FALSE(is_reflected<does_not_quite_have_reflected_class>::value);
-    EXPECT_TRUE(is_reflected<does_have_reflected_class>::value);
-    EXPECT_TRUE(is_reflected<is_reflected_REFLECT>::value);
-    EXPECT_TRUE(is_reflected<is_reflected_REFLECT_NOTED>::value);
-    EXPECT_FALSE(is_reflected<UnreflectedObj>::value);
-    EXPECT_TRUE(is_reflected<UnownedObj1>::value);
-    EXPECT_TRUE(is_reflected<UnownedObj2>::value);
-    EXPECT_TRUE(is_reflected<OwnedObj>::value);
-
-    EXPECT_FALSE(is_reflected_v<does_not_have_reflected_class>);
-    EXPECT_FALSE(is_reflected_v<does_not_quite_have_reflected_class>);
-    EXPECT_TRUE(is_reflected_v<does_have_reflected_class>);
-    EXPECT_TRUE(is_reflected_v<is_reflected_REFLECT>);
-    EXPECT_TRUE(is_reflected_v<is_reflected_REFLECT_NOTED>);
-    EXPECT_FALSE(is_reflected_v<UnreflectedObj>);
-    EXPECT_TRUE(is_reflected_v<UnownedObj1>);
-    EXPECT_TRUE(is_reflected_v<UnownedObj2>);
-    EXPECT_TRUE(is_reflected_v<OwnedObj>);
-}
-
-class ReflectSuperObj {
-public:
-    int superVal;
-
-    REFLECT(ReflectSuperObj, superVal)
-};
-
-class ReflectSubObj {
-public:
-    int val;
-
-    REFLECT(ReflectSubObj, val)
-};
-
-NOTE(ReflectionObj, Super<ReflectSuperObj>)
-class ReflectionObj : public ReflectSuperObj {
-public:
-    ReflectionObj() : primitive(0), object({}), primitiveReference(primitive) { primitiveArray[0] = 0; primitiveArray[1] = 1; }
-
-    int primitive;
-    ReflectSubObj object;
-    int primitiveArray[2];
-    std::map<int,float> map;
-    std::vector<ReflectSubObj> objCollection;
-    std::stack<int> stack;
-    static int staticPrimitive;
-    int & primitiveReference;
-    static int & staticPrimitiveReference;
-    int memberMethod() { return 1; }
-    static int staticMethod() { return 2; }
-
-    REFLECT_NOTED(ReflectionObj, primitive, object, primitiveArray, map, objCollection, stack, staticPrimitive, primitiveReference, staticPrimitiveReference, memberMethod, staticMethod)
-};
-
-int ReflectionObj::staticPrimitive = 0;
-int & ReflectionObj::staticPrimitiveReference = ReflectionObj::staticPrimitive;
-
 TEST(ReflectionTest, RfMacroReflectNoted)
 {
     EXPECT_TRUE(is_reflected<ReflectSuperObj>::value);
@@ -2065,63 +2124,4 @@ TEST(ReflectionTest, RfMacroReflectNoted)
     EXPECT_STREQ(ReflectionObj::Class::staticPrimitiveReference_::field.typeStr, ReflectionObj::Class::Fields[8].typeStr);
     EXPECT_STREQ(ReflectionObj::Class::memberMethod_::field.typeStr, ReflectionObj::Class::Fields[9].typeStr);
     EXPECT_STREQ(ReflectionObj::Class::staticMethod_::field.typeStr, ReflectionObj::Class::Fields[10].typeStr);
-}
-
-TEST(ReflectionTest, ReflectedType)
-{
-    bool isSame = std::is_same_v<Reflection::reflected_type<UnreflectedObj>::type, UnreflectedObj>;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<Reflection::reflected_type<UnownedObj1>::type, Reflection::Proxy<UnownedObj1>>;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<Reflection::reflected_type<UnownedObj2>::type, Reflection::Proxy<UnownedObj2>>;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<Reflection::reflected_type<OwnedObj>::type, Reflection::Proxy<OwnedObj>>;
-    EXPECT_TRUE(isSame);
-
-    isSame = std::is_same_v<Reflection::reflected_type_t<UnreflectedObj>, UnreflectedObj>;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<Reflection::reflected_type_t<UnownedObj1>, Reflection::Proxy<UnownedObj1>>;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<Reflection::reflected_type_t<UnownedObj2>, Reflection::Proxy<UnownedObj2>>;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<Reflection::reflected_type_t<OwnedObj>, Reflection::Proxy<OwnedObj>>;
-    EXPECT_TRUE(isSame);
-}
-
-TEST(ReflectionTest, ClassT)
-{
-    bool isSame = std::is_same_v<Reflection::clazz<UnownedObj1>::type, Reflection::Proxy<UnownedObj1>::Class>;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<Reflection::clazz<UnownedObj2>::type, Reflection::Proxy<UnownedObj2>::Class>;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<Reflection::clazz<OwnedObj>::type, Reflection::Proxy<OwnedObj>::Class>;
-    EXPECT_TRUE(isSame);
-
-    isSame = std::is_same_v<Reflection::class_t<UnownedObj1>, Reflection::Proxy<UnownedObj1>::Class>;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<Reflection::class_t<UnownedObj2>, Reflection::Proxy<UnownedObj2>::Class>;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<Reflection::class_t<OwnedObj>, Reflection::Proxy<OwnedObj>::Class>;
-    EXPECT_TRUE(isSame);
-}
-
-TEST(ReflectionTest, ClassNotesT)
-{
-    bool isSame = std::is_same_v<ReflectionObj::Class::Annotations, class_notes<ReflectionObj>::type>;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<Reflection::NoAnnotation, std::remove_const_t<class_notes<ReflectSuperObj>::type>>;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<Reflection::NoAnnotation, std::remove_const_t<class_notes<is_reflected_REFLECT_EMPTY>::type>>;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<Reflection::NoAnnotation, std::remove_const_t<class_notes<does_not_have_reflected_class>::type>>;
-    EXPECT_TRUE(isSame);
-
-    isSame = std::is_same_v<ReflectionObj::Class::Annotations, class_notes_t<ReflectionObj>>;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<Reflection::NoAnnotation, std::remove_const_t<class_notes_t<ReflectSuperObj>>>;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<Reflection::NoAnnotation, std::remove_const_t<class_notes_t<is_reflected_REFLECT_EMPTY>>>;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<Reflection::NoAnnotation, std::remove_const_t<class_notes_t<does_not_have_reflected_class>>>;
-    EXPECT_TRUE(isSame);
 }

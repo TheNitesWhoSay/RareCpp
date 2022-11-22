@@ -1402,6 +1402,130 @@ TEST(ExtendedTypeSupportTest, IfVoid)
     EXPECT_FALSE(replacedVoid);
 }
 
+TEST(ExtendedTypeSupportTest, ForIntegralConstant)
+{
+    bool visited = false;
+    ForIntegralConstant<0>(0, [&](auto I) {
+        visited = true;
+    });
+    EXPECT_FALSE(visited);
+
+    visited = false;
+    ForIntegralConstant<0>(1, [&](auto I) {
+        visited = true;
+    });
+    EXPECT_FALSE(visited);
+
+    int visitCount = 0;
+    ForIntegralConstant<1>(0, [&](auto I) {
+        visitCount++;
+        EXPECT_EQ(0, decltype(I)::value);
+    });
+    EXPECT_EQ(1, visitCount);
+
+    visited = false;
+    ForIntegralConstant<1>(1, [&](auto I) {
+        visited = true;
+    });
+    EXPECT_FALSE(visited);
+
+    visitCount = 0;
+    ForIntegralConstant<2>(0, [&](auto I) {
+        visitCount++;
+        EXPECT_EQ(0, decltype(I)::value);
+    });
+    EXPECT_EQ(1, visitCount);
+
+    visitCount = 0;
+    ForIntegralConstant<2>(1, [&](auto I) {
+        visitCount++;
+        EXPECT_EQ(1, decltype(I)::value);
+    });
+    EXPECT_EQ(1, visitCount);
+
+    visited = false;
+    ForIntegralConstant<2>(2, [&](auto I) {
+        visited = true;
+    });
+    EXPECT_FALSE(visited);
+
+    visitCount = 0;
+    ForIntegralConstant<256>(0, [&](auto I) {
+        visitCount++;
+        EXPECT_EQ(0, decltype(I)::value);
+    });
+    EXPECT_EQ(1, visitCount);
+
+    visitCount = 0;
+    ForIntegralConstant<256>(128, [&](auto I) {
+        visitCount++;
+        EXPECT_EQ(128, decltype(I)::value);
+    });
+    EXPECT_EQ(1, visitCount);
+
+    visitCount = 0;
+    ForIntegralConstant<256>(255, [&](auto I) {
+        visitCount++;
+        EXPECT_EQ(255, decltype(I)::value);
+    });
+    EXPECT_EQ(1, visitCount);
+
+    visited = false;
+    ForIntegralConstant<256>(256, [&](auto I) {
+        visited = true;
+    });
+    EXPECT_FALSE(visited);
+}
+
+TEST(ExtendedTypeSupportTest, ForIntegralConstants)
+{
+    bool visited = false;
+    ForIntegralConstants<0>([&](auto I) {
+        visited = true;
+    });
+    EXPECT_FALSE(visited);
+
+    int visitCount = 0;
+    ForIntegralConstants<1>([&](auto I) {
+        switch ( visitCount ) {
+            case 0: EXPECT_EQ(0, decltype(I)::value); break;
+            default: EXPECT_TRUE(false); break;
+        }
+        visitCount++;
+    });
+    EXPECT_EQ(1, visitCount);
+     
+    visitCount = 0;
+    ForIntegralConstants<2>([&](auto I) {
+        switch ( visitCount ) {
+            case 0: EXPECT_EQ(0, decltype(I)::value); break;
+            case 1: EXPECT_EQ(1, decltype(I)::value); break;
+            default: EXPECT_TRUE(false); break;
+        }
+        visitCount++;
+    });
+    EXPECT_EQ(2, visitCount);
+
+    visitCount = 0;
+    ForIntegralConstants<3>([&](auto I) {
+        switch ( visitCount ) {
+            case 0: EXPECT_EQ(0, decltype(I)::value); break;
+            case 1: EXPECT_EQ(1, decltype(I)::value); break;
+            case 2: EXPECT_EQ(2, decltype(I)::value); break;
+            default: EXPECT_TRUE(false); break;
+        }
+        visitCount++;
+    });
+    EXPECT_EQ(3, visitCount);
+
+    visitCount = 0;
+    ForIntegralConstants<128>([&](auto I) {
+        EXPECT_EQ(visitCount, decltype(I)::value);
+        visitCount++;
+    });
+    EXPECT_EQ(128, visitCount);
+}
+
 TEST(ExtendedTypeSupportTest, HasType)
 {
     bool hasType = has_type<bool>::value;
@@ -1794,126 +1918,417 @@ TEST(ExtendedTypeSupportTest, GetUnderlyingContainer)
     EXPECT_EQ(4, *++priorityQueueUnderlyingDeque.begin());
 }
 
-TEST(ExtendedTypeSupportTest, ForIntegralConstant)
+TEST(ExtendedTypeSupportTest, IndexOf)
 {
-    bool visited = false;
-    ForIntegralConstant<0>(0, [&](auto I) {
-        visited = true;
-    });
-    EXPECT_FALSE(visited);
-
-    visited = false;
-    ForIntegralConstant<0>(1, [&](auto I) {
-        visited = true;
-    });
-    EXPECT_FALSE(visited);
-
-    int visitCount = 0;
-    ForIntegralConstant<1>(0, [&](auto I) {
-        visitCount++;
-        EXPECT_EQ(0, decltype(I)::value);
-    });
-    EXPECT_EQ(1, visitCount);
-
-    visited = false;
-    ForIntegralConstant<1>(1, [&](auto I) {
-        visited = true;
-    });
-    EXPECT_FALSE(visited);
-
-    visitCount = 0;
-    ForIntegralConstant<2>(0, [&](auto I) {
-        visitCount++;
-        EXPECT_EQ(0, decltype(I)::value);
-    });
-    EXPECT_EQ(1, visitCount);
-
-    visitCount = 0;
-    ForIntegralConstant<2>(1, [&](auto I) {
-        visitCount++;
-        EXPECT_EQ(1, decltype(I)::value);
-    });
-    EXPECT_EQ(1, visitCount);
-
-    visited = false;
-    ForIntegralConstant<2>(2, [&](auto I) {
-        visited = true;
-    });
-    EXPECT_FALSE(visited);
-
-    visitCount = 0;
-    ForIntegralConstant<256>(0, [&](auto I) {
-        visitCount++;
-        EXPECT_EQ(0, decltype(I)::value);
-    });
-    EXPECT_EQ(1, visitCount);
-
-    visitCount = 0;
-    ForIntegralConstant<256>(128, [&](auto I) {
-        visitCount++;
-        EXPECT_EQ(128, decltype(I)::value);
-    });
-    EXPECT_EQ(1, visitCount);
-
-    visitCount = 0;
-    ForIntegralConstant<256>(255, [&](auto I) {
-        visitCount++;
-        EXPECT_EQ(255, decltype(I)::value);
-    });
-    EXPECT_EQ(1, visitCount);
-
-    visited = false;
-    ForIntegralConstant<256>(256, [&](auto I) {
-        visited = true;
-    });
-    EXPECT_FALSE(visited);
+    using Tup = std::tuple<int, char, bool, short>;
+    auto tupIntIndex = ExtendedTypeSupport::index_of<int, Tup>::value;
+    auto tupCharIndex = ExtendedTypeSupport::index_of<char, Tup>::value;
+    auto tupBoolIndex = ExtendedTypeSupport::index_of<bool, Tup>::value;
+    auto tupShortIndex = ExtendedTypeSupport::index_of<short, Tup>::value;
+    EXPECT_EQ(0, tupIntIndex);
+    EXPECT_EQ(1, tupCharIndex);
+    EXPECT_EQ(2, tupBoolIndex);
+    EXPECT_EQ(3, tupShortIndex);
+    
+    tupIntIndex = ExtendedTypeSupport::index_of<const int, Tup>::value;
+    tupCharIndex = ExtendedTypeSupport::index_of<const char, Tup>::value;
+    tupBoolIndex = ExtendedTypeSupport::index_of<const bool, Tup>::value;
+    tupShortIndex = ExtendedTypeSupport::index_of<const short, Tup>::value;
+    EXPECT_EQ(0, tupIntIndex);
+    EXPECT_EQ(1, tupCharIndex);
+    EXPECT_EQ(2, tupBoolIndex);
+    EXPECT_EQ(3, tupShortIndex);
+    
+    tupIntIndex = ExtendedTypeSupport::index_of<int &, Tup>::value;
+    tupCharIndex = ExtendedTypeSupport::index_of<char &, Tup>::value;
+    tupBoolIndex = ExtendedTypeSupport::index_of<bool &, Tup>::value;
+    tupShortIndex = ExtendedTypeSupport::index_of<short &, Tup>::value;
+    EXPECT_EQ(0, tupIntIndex);
+    EXPECT_EQ(1, tupCharIndex);
+    EXPECT_EQ(2, tupBoolIndex);
+    EXPECT_EQ(3, tupShortIndex);
+    
+    tupIntIndex = ExtendedTypeSupport::index_of<const int &, Tup>::value;
+    tupCharIndex = ExtendedTypeSupport::index_of<const char &, Tup>::value;
+    tupBoolIndex = ExtendedTypeSupport::index_of<const bool &, Tup>::value;
+    tupShortIndex = ExtendedTypeSupport::index_of<const short &, Tup>::value;
+    EXPECT_EQ(0, tupIntIndex);
+    EXPECT_EQ(1, tupCharIndex);
+    EXPECT_EQ(2, tupBoolIndex);
+    EXPECT_EQ(3, tupShortIndex);
+    
+    tupIntIndex = ExtendedTypeSupport::index_of<int, Tup>::value;
+    tupCharIndex = ExtendedTypeSupport::index_of<char, Tup>::value;
+    tupBoolIndex = ExtendedTypeSupport::index_of<bool, Tup>::value;
+    tupShortIndex = ExtendedTypeSupport::index_of<short, Tup>::value;
+    EXPECT_EQ(0, tupIntIndex);
+    EXPECT_EQ(1, tupCharIndex);
+    EXPECT_EQ(2, tupBoolIndex);
+    EXPECT_EQ(3, tupShortIndex);
+    
+    tupIntIndex = ExtendedTypeSupport::index_of<const int, Tup>::value;
+    tupCharIndex = ExtendedTypeSupport::index_of<const char, Tup>::value;
+    tupBoolIndex = ExtendedTypeSupport::index_of<const bool, Tup>::value;
+    tupShortIndex = ExtendedTypeSupport::index_of<const short, Tup>::value;
+    EXPECT_EQ(0, tupIntIndex);
+    EXPECT_EQ(1, tupCharIndex);
+    EXPECT_EQ(2, tupBoolIndex);
+    EXPECT_EQ(3, tupShortIndex);
+    
+    tupIntIndex = ExtendedTypeSupport::index_of<int &, Tup>::value;
+    tupCharIndex = ExtendedTypeSupport::index_of<char &, Tup>::value;
+    tupBoolIndex = ExtendedTypeSupport::index_of<bool &, Tup>::value;
+    tupShortIndex = ExtendedTypeSupport::index_of<short &, Tup>::value;
+    EXPECT_EQ(0, tupIntIndex);
+    EXPECT_EQ(1, tupCharIndex);
+    EXPECT_EQ(2, tupBoolIndex);
+    EXPECT_EQ(3, tupShortIndex);
+    
+    tupIntIndex = ExtendedTypeSupport::index_of<const int &, Tup>::value;
+    tupCharIndex = ExtendedTypeSupport::index_of<const char &, Tup>::value;
+    tupBoolIndex = ExtendedTypeSupport::index_of<const bool &, Tup>::value;
+    tupShortIndex = ExtendedTypeSupport::index_of<const short &, Tup>::value;
+    EXPECT_EQ(0, tupIntIndex);
+    EXPECT_EQ(1, tupCharIndex);
+    EXPECT_EQ(2, tupBoolIndex);
+    EXPECT_EQ(3, tupShortIndex);
+    
+    tupIntIndex = ExtendedTypeSupport::index_of<int, const Tup>::value;
+    tupCharIndex = ExtendedTypeSupport::index_of<char, const Tup>::value;
+    tupBoolIndex = ExtendedTypeSupport::index_of<bool, const Tup>::value;
+    tupShortIndex = ExtendedTypeSupport::index_of<short, const Tup>::value;
+    EXPECT_EQ(0, tupIntIndex);
+    EXPECT_EQ(1, tupCharIndex);
+    EXPECT_EQ(2, tupBoolIndex);
+    EXPECT_EQ(3, tupShortIndex);
+    
+    tupIntIndex = ExtendedTypeSupport::index_of<const int, const Tup>::value;
+    tupCharIndex = ExtendedTypeSupport::index_of<const char, const Tup>::value;
+    tupBoolIndex = ExtendedTypeSupport::index_of<const bool, const Tup>::value;
+    tupShortIndex = ExtendedTypeSupport::index_of<const short, const Tup>::value;
+    EXPECT_EQ(0, tupIntIndex);
+    EXPECT_EQ(1, tupCharIndex);
+    EXPECT_EQ(2, tupBoolIndex);
+    EXPECT_EQ(3, tupShortIndex);
+    
+    tupIntIndex = ExtendedTypeSupport::index_of<int &, const Tup>::value;
+    tupCharIndex = ExtendedTypeSupport::index_of<char &, const Tup>::value;
+    tupBoolIndex = ExtendedTypeSupport::index_of<bool &, const Tup>::value;
+    tupShortIndex = ExtendedTypeSupport::index_of<short &, const Tup>::value;
+    EXPECT_EQ(0, tupIntIndex);
+    EXPECT_EQ(1, tupCharIndex);
+    EXPECT_EQ(2, tupBoolIndex);
+    EXPECT_EQ(3, tupShortIndex);
+    
+    tupIntIndex = ExtendedTypeSupport::index_of<const int &, const Tup>::value;
+    tupCharIndex = ExtendedTypeSupport::index_of<const char &, const Tup>::value;
+    tupBoolIndex = ExtendedTypeSupport::index_of<const bool &, const Tup>::value;
+    tupShortIndex = ExtendedTypeSupport::index_of<const short &, const Tup>::value;
+    EXPECT_EQ(0, tupIntIndex);
+    EXPECT_EQ(1, tupCharIndex);
+    EXPECT_EQ(2, tupBoolIndex);
+    EXPECT_EQ(3, tupShortIndex);
+    
+    tupIntIndex = ExtendedTypeSupport::index_of<int, Tup &>::value;
+    tupCharIndex = ExtendedTypeSupport::index_of<char, Tup &>::value;
+    tupBoolIndex = ExtendedTypeSupport::index_of<bool, Tup &>::value;
+    tupShortIndex = ExtendedTypeSupport::index_of<short, Tup &>::value;
+    EXPECT_EQ(0, tupIntIndex);
+    EXPECT_EQ(1, tupCharIndex);
+    EXPECT_EQ(2, tupBoolIndex);
+    EXPECT_EQ(3, tupShortIndex);
+    
+    tupIntIndex = ExtendedTypeSupport::index_of<const int, Tup &>::value;
+    tupCharIndex = ExtendedTypeSupport::index_of<const char, Tup &>::value;
+    tupBoolIndex = ExtendedTypeSupport::index_of<const bool, Tup &>::value;
+    tupShortIndex = ExtendedTypeSupport::index_of<const short, Tup &>::value;
+    EXPECT_EQ(0, tupIntIndex);
+    EXPECT_EQ(1, tupCharIndex);
+    EXPECT_EQ(2, tupBoolIndex);
+    EXPECT_EQ(3, tupShortIndex);
+    
+    tupIntIndex = ExtendedTypeSupport::index_of<int &, Tup &>::value;
+    tupCharIndex = ExtendedTypeSupport::index_of<char &, Tup &>::value;
+    tupBoolIndex = ExtendedTypeSupport::index_of<bool &, Tup &>::value;
+    tupShortIndex = ExtendedTypeSupport::index_of<short &, Tup &>::value;
+    EXPECT_EQ(0, tupIntIndex);
+    EXPECT_EQ(1, tupCharIndex);
+    EXPECT_EQ(2, tupBoolIndex);
+    EXPECT_EQ(3, tupShortIndex);
+    
+    tupIntIndex = ExtendedTypeSupport::index_of<const int &, const Tup &>::value;
+    tupCharIndex = ExtendedTypeSupport::index_of<const char &, const Tup &>::value;
+    tupBoolIndex = ExtendedTypeSupport::index_of<const bool &, const Tup &>::value;
+    tupShortIndex = ExtendedTypeSupport::index_of<const short &, const Tup &>::value;
+    EXPECT_EQ(0, tupIntIndex);
+    EXPECT_EQ(1, tupCharIndex);
+    EXPECT_EQ(2, tupBoolIndex);
+    EXPECT_EQ(3, tupShortIndex);
 }
 
-TEST(ExtendedTypeSupportTest, ForIntegralConstants)
+TEST(ExtendedTypeSupportTest, Fnv1aHash)
 {
-    bool visited = false;
-    ForIntegralConstants<0>([&](auto I) {
-        visited = true;
-    });
-    EXPECT_FALSE(visited);
+    std::string_view empty = "";
+    std::string_view a = "a";
+    constexpr std::string_view c = "cexp";
+    size_t emptyHash = fnv1a_hash(empty);
+    size_t aHash = fnv1a_hash(a);
+    constexpr size_t cHash = fnv1a_hash(c);
+    EXPECT_GT(emptyHash, 0);
+    EXPECT_GT(aHash, 0);
+    EXPECT_GT(cHash, 0);
+}
 
-    int visitCount = 0;
-    ForIntegralConstants<1>([&](auto I) {
-        switch ( visitCount ) {
-            case 0: EXPECT_EQ(0, decltype(I)::value); break;
-            default: EXPECT_TRUE(false); break;
-        }
-        visitCount++;
-    });
-    EXPECT_EQ(1, visitCount);
-     
-    visitCount = 0;
-    ForIntegralConstants<2>([&](auto I) {
-        switch ( visitCount ) {
-            case 0: EXPECT_EQ(0, decltype(I)::value); break;
-            case 1: EXPECT_EQ(1, decltype(I)::value); break;
-            default: EXPECT_TRUE(false); break;
-        }
-        visitCount++;
-    });
-    EXPECT_EQ(2, visitCount);
+TEST(ExtendedTypeSupportTest, StringIndexMapping)
+{
+    static constexpr const char a_[] = "a";
+    static constexpr const char b_[] = "b";
+    static constexpr const char c_[] = "c";
+    static constexpr const char d_[] = "d";
+    static constexpr const char e_[] = "e";
+    static constexpr const char f_[] = "f";
 
-    visitCount = 0;
-    ForIntegralConstants<3>([&](auto I) {
-        switch ( visitCount ) {
-            case 0: EXPECT_EQ(0, decltype(I)::value); break;
-            case 1: EXPECT_EQ(1, decltype(I)::value); break;
-            case 2: EXPECT_EQ(2, decltype(I)::value); break;
-            default: EXPECT_TRUE(false); break;
-        }
-        visitCount++;
-    });
-    EXPECT_EQ(3, visitCount);
+    using ZeroStrings = StringIndexMap<>;
+    EXPECT_EQ(0, ZeroStrings::total);
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), ZeroStrings::indexOf(""));
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), ZeroStrings::indexOf("a"));
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), ZeroStrings::indexOf("asdf"));
 
-    visitCount = 0;
-    ForIntegralConstants<128>([&](auto I) {
-        EXPECT_EQ(visitCount, decltype(I)::value);
-        visitCount++;
-    });
-    EXPECT_EQ(128, visitCount);
+    static constexpr const char emptyString_[] = "";
+    using EmptyString = StringIndexMap<emptyString_>;
+    constexpr size_t emptyStringTotal = EmptyString::total;
+    EXPECT_EQ(1, emptyStringTotal);
+    EXPECT_EQ(0, EmptyString::indexOf(""));
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), EmptyString::indexOf("a"));
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), EmptyString::indexOf("asdf"));
+    
+    using AString = StringIndexMap<a_>;
+    constexpr size_t aStringTotal = AString::total;
+    EXPECT_EQ(1, aStringTotal);
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), AString::indexOf(""));
+    EXPECT_EQ(0, AString::indexOf("a"));
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), AString::indexOf("asdf"));
+    
+    static constexpr const char asdf_[] = "asdf";
+    using AsdfString = StringIndexMap<asdf_>;
+    constexpr size_t asdfStringTotal = AsdfString::total;
+    EXPECT_EQ(1, asdfStringTotal);
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), AsdfString::indexOf(""));
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), AsdfString::indexOf("a"));
+    EXPECT_EQ(0, AsdfString::indexOf("asdf"));
+
+    using Ab = StringIndexMap<a_, b_>;
+    constexpr size_t abTotal = Ab::total;
+    EXPECT_EQ(2, abTotal);
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), Ab::indexOf(""));
+    EXPECT_EQ(0, Ab::indexOf("a"));
+    EXPECT_EQ(1, Ab::indexOf("b"));
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), Ab::indexOf("ab"));
+
+    using Ba = StringIndexMap<b_, a_>;
+    constexpr size_t baTotal = Ba::total;
+    EXPECT_EQ(2, baTotal);
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), Ba::indexOf(""));
+    EXPECT_EQ(0, Ba::indexOf("b"));
+    EXPECT_EQ(1, Ba::indexOf("a"));
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), Ba::indexOf("ba"));
+
+    using Abc = StringIndexMap<a_, b_, c_>;
+    constexpr size_t abcTotal = Abc::total;
+    EXPECT_EQ(3, abcTotal);
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), Abc::indexOf(""));
+    EXPECT_EQ(0, Abc::indexOf("a"));
+    EXPECT_EQ(1, Abc::indexOf("b"));
+    EXPECT_EQ(2, Abc::indexOf("c"));
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), Abc::indexOf("ab"));
+
+    using Bac = StringIndexMap<b_, a_, c_>;
+    constexpr size_t bacTotal = Bac::total;
+    EXPECT_EQ(3, bacTotal);
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), Bac::indexOf(""));
+    EXPECT_EQ(0, Bac::indexOf("b"));
+    EXPECT_EQ(1, Bac::indexOf("a"));
+    EXPECT_EQ(2, Bac::indexOf("c"));
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), Bac::indexOf("B"));
+    
+    static constexpr const char A_[] = "A";
+    static constexpr const char a_underscore[] = "a_";
+    using Aaa_ = StringIndexMap<A_, a_, a_underscore>;
+    constexpr size_t Aaa_Total = Aaa_::total;
+    EXPECT_EQ(3, Aaa_Total);
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), Aaa_::indexOf(""));
+    EXPECT_EQ(0, Aaa_::indexOf("A"));
+    EXPECT_EQ(1, Aaa_::indexOf("a"));
+    EXPECT_EQ(2, Aaa_::indexOf("a_"));
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), Aaa_::indexOf("A_"));
+
+    using FourArg = StringIndexMap<a_, b_, c_, d_>;
+    EXPECT_EQ(4, FourArg::total);
+    EXPECT_EQ(0, FourArg::indexOf("a"));
+    EXPECT_EQ(1, FourArg::indexOf("b"));
+    EXPECT_EQ(2, FourArg::indexOf("c"));
+    EXPECT_EQ(3, FourArg::indexOf("d"));
+    
+    static constexpr const char Some_[] = "Some";
+    static constexpr const char slightly_[] = "slightly";
+    static constexpr const char moreComplex_[] = "moreComplex";
+    static constexpr const char stringy_thingies_[] = "stringy_thingies";
+    static constexpr const char dot[] = ".";
+    using SlightlyComplex = StringIndexMap<Some_, slightly_, moreComplex_, stringy_thingies_, dot>;
+
+    EXPECT_EQ(5, SlightlyComplex::total);
+    EXPECT_EQ(0, SlightlyComplex::indexOf("Some"));
+    EXPECT_EQ(1, SlightlyComplex::indexOf("slightly"));
+    EXPECT_EQ(2, SlightlyComplex::indexOf("moreComplex"));
+    EXPECT_EQ(3, SlightlyComplex::indexOf("stringy_thingies"));
+    EXPECT_EQ(4, SlightlyComplex::indexOf("."));
+
+    using SixArg = StringIndexMap<f_, e_, d_, c_, b_, a_>;
+    
+    EXPECT_EQ(6, SixArg::total);
+    EXPECT_EQ(0, SixArg::indexOf("f"));
+    EXPECT_EQ(1, SixArg::indexOf("e"));
+    EXPECT_EQ(2, SixArg::indexOf("d"));
+    EXPECT_EQ(3, SixArg::indexOf("c"));
+    EXPECT_EQ(4, SixArg::indexOf("b"));
+    EXPECT_EQ(5, SixArg::indexOf("a"));
+    
+    static constexpr const char g_[] = "g";
+    static constexpr const char h_[] = "h";
+    static constexpr const char i_[] = "i";
+    static constexpr const char j_[] = "j";
+    static constexpr const char k_[] = "k";
+    static constexpr const char l_[] = "l";
+    static constexpr const char m_[] = "m";
+    static constexpr const char n_[] = "n";
+    static constexpr const char o_[] = "o";
+    static constexpr const char p_[] = "p";
+    static constexpr const char q_[] = "q";
+    static constexpr const char r_[] = "r";
+    static constexpr const char s_[] = "s";
+    static constexpr const char t_[] = "t";
+    static constexpr const char u_[] = "u";
+    static constexpr const char v_[] = "v";
+    static constexpr const char w_[] = "w";
+    static constexpr const char x_[] = "x";
+    static constexpr const char y_[] = "y";
+    static constexpr const char z_[] = "z";
+    static constexpr const char a0[] = "a0";
+    static constexpr const char a1[] = "a1";
+    static constexpr const char a2[] = "a2";
+    static constexpr const char a3[] = "a3";
+    static constexpr const char a4[] = "a4";
+    static constexpr const char a5[] = "a5";
+    static constexpr const char a6[] = "a6";
+    static constexpr const char a7[] = "a7";
+    static constexpr const char a8[] = "a8";
+    static constexpr const char a9[] = "a9";
+    static constexpr const char b0[] = "b0";
+    static constexpr const char b1[] = "b1";
+    static constexpr const char b2[] = "b2";
+    static constexpr const char b3[] = "b3";
+    static constexpr const char b4[] = "b4";
+    static constexpr const char b5[] = "b5";
+    static constexpr const char b6[] = "b6";
+    static constexpr const char b7[] = "b7";
+    static constexpr const char b8[] = "b8";
+    static constexpr const char b9[] = "b9";
+    static constexpr const char c0[] = "c0";
+    static constexpr const char c1[] = "c1";
+    static constexpr const char c2[] = "c2";
+    static constexpr const char c3[] = "c3";
+    static constexpr const char c4[] = "c4";
+    static constexpr const char c5[] = "c5";
+    static constexpr const char c6[] = "c6";
+    static constexpr const char c7[] = "c7";
+    static constexpr const char c8[] = "c8";
+    static constexpr const char c9[] = "c9";
+    static constexpr const char d0[] = "d0";
+    static constexpr const char d1[] = "d1";
+    static constexpr const char d2[] = "d2";
+    static constexpr const char d3[] = "d3";
+    static constexpr const char d4[] = "d4";
+    static constexpr const char d5[] = "d5";
+    static constexpr const char d6[] = "d6";
+    static constexpr const char d7[] = "d7";
+    static constexpr const char d8[] = "d8";
+    static constexpr const char d9[] = "d9";
+    static constexpr const char e0[] = "e0";
+    static constexpr const char e1[] = "e1";
+    static constexpr const char e2[] = "e2";
+    static constexpr const char e3[] = "e3";
+    static constexpr const char e4[] = "e4";
+    static constexpr const char e5[] = "e5";
+    static constexpr const char e6[] = "e6";
+    static constexpr const char e7[] = "e7";
+    static constexpr const char e8[] = "e8";
+    static constexpr const char e9[] = "e9";
+    static constexpr const char f0[] = "f0";
+    static constexpr const char f1[] = "f1";
+    static constexpr const char f2[] = "f2";
+    static constexpr const char f3[] = "f3";
+    static constexpr const char f4[] = "f4";
+    static constexpr const char f5[] = "f5";
+    static constexpr const char f6[] = "f6";
+    static constexpr const char f7[] = "f7";
+    static constexpr const char f8[] = "f8";
+    static constexpr const char f9[] = "f9";
+    static constexpr const char g0[] = "g0";
+    static constexpr const char g1[] = "g1";
+    static constexpr const char g2[] = "g2";
+    static constexpr const char g3[] = "g3";
+    static constexpr const char g4[] = "g4";
+    static constexpr const char g5[] = "g5";
+    static constexpr const char g6[] = "g6";
+    static constexpr const char g7[] = "g7";
+    static constexpr const char g8[] = "g8";
+    static constexpr const char g9[] = "g9";
+    static constexpr const char h0[] = "h0";
+    static constexpr const char h1[] = "h1";
+    static constexpr const char h2[] = "h2";
+    static constexpr const char h3[] = "h3";
+    static constexpr const char h4[] = "h4";
+    static constexpr const char h5[] = "h5";
+    static constexpr const char h6[] = "h6";
+    static constexpr const char h7[] = "h7";
+    static constexpr const char h8[] = "h8";
+    static constexpr const char h9[] = "h9";
+    static constexpr const char i0[] = "i0";
+    static constexpr const char i1[] = "i1";
+    static constexpr const char i2[] = "i2";
+    static constexpr const char i3[] = "i3";
+    static constexpr const char i4[] = "i4";
+    static constexpr const char i5[] = "i5";
+    static constexpr const char i6[] = "i6";
+    static constexpr const char i7[] = "i7";
+    static constexpr const char i8[] = "i8";
+    static constexpr const char i9[] = "i9";
+    static constexpr const char j0[] = "j0";
+    static constexpr const char j1[] = "j1";
+    static constexpr const char j2[] = "j2";
+    static constexpr const char j3[] = "j3";
+    static constexpr const char j4[] = "j4";
+    static constexpr const char j5[] = "j5";
+    static constexpr const char j6[] = "j6";
+    static constexpr const char j7[] = "j7";
+    static constexpr const char last[] = "last";
+    using ManyArgs = StringIndexMap<a_,b_,c_,d_,e_,f_,g_,h_,i_,j_,k_,l_,m_,n_,o_,p_,q_,r_,s_,t_,u_,v_,w_,x_,y_,z_,
+        a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,b0,b1,b2,b3,b4,b5,b6,b7,b8,b9,c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,
+        d0,d1,d2,d3,d4,d5,d6,d7,d8,d9,e0,e1,e2,e3,e4,e5,e6,e7,e8,e9,f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,
+        g0,g1,g2,g3,g4,g5,g6,g7,g8,g9,h0,h1,h2,h3,h4,h5,h6,h7,h8,h9,i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,
+        j0,j1,j2,j3,j4,j5,j6,j7,last>;
+    EXPECT_EQ(125, ManyArgs::total);
+    
+    constexpr std::string_view manyStrings[] {
+        "a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z",
+        "a0","a1","a2","a3","a4","a5","a6","a7","a8","a9","b0","b1","b2","b3","b4","b5","b6","b7","b8","b9",
+        "c0","c1","c2","c3","c4","c5","c6","c7","c8","c9","d0","d1","d2","d3","d4","d5","d6","d7","d8","d9",
+        "e0","e1","e2","e3","e4","e5","e6","e7","e8","e9","f0","f1","f2","f3","f4","f5","f6","f7","f8","f9",
+        "g0","g1","g2","g3","g4","g5","g6","g7","g8","g9","h0","h1","h2","h3","h4","h5","h6","h7","h8","h9",
+        "i0","i1","i2","i3","i4","i5","i6","i7","i8","i9","j0","j1","j2","j3","j4","j5","j6","j7","last"
+    };
+    EXPECT_EQ(0, ManyArgs::indexOf("a"));
+    for ( size_t i=0; i<125; ++i ) {
+        EXPECT_EQ(i, ManyArgs::indexOf(manyStrings[i]));
+    }
 }

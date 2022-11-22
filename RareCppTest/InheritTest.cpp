@@ -2083,23 +2083,23 @@ TEST(ReflectInheritanceTest, InheritAtStatic)
 TEST(ReflectInheritanceTest, InheritAtInstance)
 {
     int visitCount = 0;
-    InheritSuper_0a::At(inheritSuper_S0a, 0, [&](auto superInfo, auto & super) {
+    InheritSuper_0a::At(0, inheritSuper_S0a, [&](auto superInfo, auto & super) {
         visitCount++;
     });
     EXPECT_EQ(0, visitCount);
     visitCount = 0;
-    InheritSuper_0b::At(inheritSuper_S0b, 0, [&](auto superInfo, auto & super) {
+    InheritSuper_0b::At(0, inheritSuper_S0b, [&](auto superInfo, auto & super) {
         visitCount++;
     });
     EXPECT_EQ(0, visitCount);
     visitCount = 0;
-    InheritSuper_0c::At(inheritSuper_S0c, 0, [&](auto superInfo, auto & super) {
+    InheritSuper_0c::At(0, inheritSuper_S0c, [&](auto superInfo, auto & super) {
         visitCount++;
     });
     EXPECT_EQ(0, visitCount);
     
     visitCount = 0;
-    InheritSuper_1a::At(inheritSuper_S1a, 0, [&](auto superInfo, auto & super) {
+    InheritSuper_1a::At(0, inheritSuper_S1a, [&](auto superInfo, auto & super) {
         EXPECT_EQ(0, superInfo.Index);
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
@@ -2114,7 +2114,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
     });
     EXPECT_EQ(1, visitCount);
     visitCount = 0;
-    InheritSuper_1b::At(inheritSuper_S1b, 0, [&](auto superInfo, auto & super) {
+    InheritSuper_1b::At(0, inheritSuper_S1b, [&](auto superInfo, auto & super) {
         EXPECT_EQ(0, superInfo.Index);
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
@@ -2131,7 +2131,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
     });
     EXPECT_EQ(1, visitCount);
     visitCount = 0;
-    InheritSuper_1c::At(inheritSuper_S1c, 0, [&](auto superInfo, auto & super) {
+    InheritSuper_1c::At(0, inheritSuper_S1c, [&](auto superInfo, auto & super) {
         EXPECT_EQ(0, superInfo.Index);
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
@@ -2146,7 +2146,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
     });
     EXPECT_EQ(1, visitCount);
     visitCount = 0;
-    InheritSuper_1d::At(inheritSuper_S1d, 0, [&](auto superInfo, auto & super) {
+    InheritSuper_1d::At(0, inheritSuper_S1d, [&](auto superInfo, auto & super) {
         EXPECT_EQ(0, superInfo.Index);
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
@@ -2164,7 +2164,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_2a::Total; i++ )
     {
-        InheritSuper_2a::At(inheritSuper_S2a, i, [&](auto superInfo, auto & super) {
+        InheritSuper_2a::At(i, inheritSuper_S2a, [&](auto superInfo, auto & super) {
             EXPECT_EQ(visitCount, superInfo.Index);
             using Info = decltype(superInfo);
             using InfoType = typename Info::Type;
@@ -2195,7 +2195,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_2b::Total; i++ )
     {
-        InheritSuper_2b::At(inheritSuper_S2b, i, [&](auto superInfo, auto & super) {
+        InheritSuper_2b::At(i, inheritSuper_S2b, [&](auto superInfo, auto & super) {
             EXPECT_EQ(visitCount, superInfo.Index);
             using Info = decltype(superInfo);
             using InfoType = typename Info::Type;
@@ -2228,7 +2228,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_2c::Total; i++ )
     {
-        InheritSuper_2c::At(inheritSuper_S2c, i, [&](auto superInfo, auto & super) {
+        InheritSuper_2c::At(i, inheritSuper_S2c, [&](auto superInfo, auto & super) {
             EXPECT_EQ(visitCount, superInfo.Index);
             using Info = decltype(superInfo);
             using InfoType = typename Info::Type;
@@ -2259,7 +2259,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_2d::Total; i++ )
     {
-        InheritSuper_2d::At(inheritSuper_S2d, i, [&](auto superInfo, auto & super) {
+        InheritSuper_2d::At(i, inheritSuper_S2d, [&](auto superInfo, auto & super) {
             EXPECT_EQ(visitCount, superInfo.Index);
             using Info = decltype(superInfo);
             using InfoType = typename Info::Type;
@@ -2293,7 +2293,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_3a::Total; i++ )
     {
-        InheritSuper_3a::At(inheritSuper_S3a, i, [&](auto superInfo, auto & super) {
+        InheritSuper_3a::At(i, inheritSuper_S3a, [&](auto superInfo, auto & super) {
             EXPECT_EQ(visitCount, superInfo.Index);
             using Info = decltype(superInfo);
             using InfoType = typename Info::Type;
@@ -2334,7 +2334,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_3b::Total; i++ )
     {
-        InheritSuper_3b::At(inheritSuper_S3b, i, [&](auto superInfo, auto & super) {
+        InheritSuper_3b::At(i, inheritSuper_S3b, [&](auto superInfo, auto & super) {
             EXPECT_EQ(visitCount, superInfo.Index);
             using Info = decltype(superInfo);
             using InfoType = typename Info::Type;
@@ -2377,7 +2377,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_3c::Total; i++ )
     {
-        InheritSuper_3c::At(inheritSuper_S3c, i, [&](auto superInfo, auto & super) {
+        InheritSuper_3c::At(i, inheritSuper_S3c, [&](auto superInfo, auto & super) {
             EXPECT_EQ(visitCount, superInfo.Index);
             using Info = decltype(superInfo);
             using InfoType = typename Info::Type;
@@ -2418,7 +2418,7 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_3d::Total; i++ )
     {
-        InheritSuper_3d::At(inheritSuper_S3d, i, [&](auto superInfo, auto & super) {
+        InheritSuper_3d::At(i, inheritSuper_S3d, [&](auto superInfo, auto & super) {
             EXPECT_EQ(visitCount, superInfo.Index);
             using Info = decltype(superInfo);
             using InfoType = typename Info::Type;
@@ -2463,23 +2463,23 @@ TEST(ReflectInheritanceTest, InheritAtInstance)
 TEST(ReflectInheritanceTest, InheritAtInstanceConst)
 {
     int visitCount = 0;
-    InheritSuper_0a::At((const decltype(inheritSuper_S0a) &)inheritSuper_S0a, 0, [&](auto superInfo, auto & super) {
+    InheritSuper_0a::At(0, (const decltype(inheritSuper_S0a) &)inheritSuper_S0a, [&](auto superInfo, auto & super) {
         visitCount++;
     });
     EXPECT_EQ(0, visitCount);
     visitCount = 0;
-    InheritSuper_0b::At((const decltype(inheritSuper_S0b) &)inheritSuper_S0b, 0, [&](auto superInfo, auto & super) {
+    InheritSuper_0b::At(0, (const decltype(inheritSuper_S0b) &)inheritSuper_S0b, [&](auto superInfo, auto & super) {
         visitCount++;
     });
     EXPECT_EQ(0, visitCount);
     visitCount = 0;
-    InheritSuper_0c::At((const decltype(inheritSuper_S0c) &)inheritSuper_S0c, 0, [&](auto superInfo, auto & super) {
+    InheritSuper_0c::At(0, (const decltype(inheritSuper_S0c) &)inheritSuper_S0c, [&](auto superInfo, auto & super) {
         visitCount++;
     });
     EXPECT_EQ(0, visitCount);
     
     visitCount = 0;
-    InheritSuper_1a::At((const decltype(inheritSuper_S1a) &)inheritSuper_S1a, 0, [&](auto superInfo, auto & super) {
+    InheritSuper_1a::At(0, (const decltype(inheritSuper_S1a) &)inheritSuper_S1a, [&](auto superInfo, auto & super) {
         EXPECT_EQ(0, superInfo.Index);
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
@@ -2494,7 +2494,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
     });
     EXPECT_EQ(1, visitCount);
     visitCount = 0;
-    InheritSuper_1b::At((const decltype(inheritSuper_S1b) &)inheritSuper_S1b, 0, [&](auto superInfo, auto & super) {
+    InheritSuper_1b::At(0, (const decltype(inheritSuper_S1b) &)inheritSuper_S1b, [&](auto superInfo, auto & super) {
         EXPECT_EQ(0, superInfo.Index);
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
@@ -2511,7 +2511,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
     });
     EXPECT_EQ(1, visitCount);
     visitCount = 0;
-    InheritSuper_1c::At((const decltype(inheritSuper_S1c) &)inheritSuper_S1c, 0, [&](auto superInfo, auto & super) {
+    InheritSuper_1c::At(0, (const decltype(inheritSuper_S1c) &)inheritSuper_S1c, [&](auto superInfo, auto & super) {
         EXPECT_EQ(0, superInfo.Index);
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
@@ -2526,7 +2526,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
     });
     EXPECT_EQ(1, visitCount);
     visitCount = 0;
-    InheritSuper_1d::At((const decltype(inheritSuper_S1d) &)inheritSuper_S1d, 0, [&](auto superInfo, auto & super) {
+    InheritSuper_1d::At(0, (const decltype(inheritSuper_S1d) &)inheritSuper_S1d, [&](auto superInfo, auto & super) {
         EXPECT_EQ(0, superInfo.Index);
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
@@ -2544,7 +2544,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_2a::Total; i++ )
     {
-        InheritSuper_2a::At((const decltype(inheritSuper_S2a) &)inheritSuper_S2a, i, [&](auto superInfo, auto & super) {
+        InheritSuper_2a::At(i, (const decltype(inheritSuper_S2a) &)inheritSuper_S2a, [&](auto superInfo, auto & super) {
             EXPECT_EQ(visitCount, superInfo.Index);
             using Info = decltype(superInfo);
             using InfoType = typename Info::Type;
@@ -2575,7 +2575,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_2b::Total; i++ )
     {
-        InheritSuper_2b::At((const decltype(inheritSuper_S2b) &)inheritSuper_S2b, i, [&](auto superInfo, auto & super) {
+        InheritSuper_2b::At(i, (const decltype(inheritSuper_S2b) &)inheritSuper_S2b, [&](auto superInfo, auto & super) {
             EXPECT_EQ(visitCount, superInfo.Index);
             using Info = decltype(superInfo);
             using InfoType = typename Info::Type;
@@ -2608,7 +2608,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_2c::Total; i++ )
     {
-        InheritSuper_2c::At((const decltype(inheritSuper_S2c) &)inheritSuper_S2c, i, [&](auto superInfo, auto & super) {
+        InheritSuper_2c::At(i, (const decltype(inheritSuper_S2c) &)inheritSuper_S2c, [&](auto superInfo, auto & super) {
             EXPECT_EQ(visitCount, superInfo.Index);
             using Info = decltype(superInfo);
             using InfoType = typename Info::Type;
@@ -2639,7 +2639,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_2d::Total; i++ )
     {
-        InheritSuper_2d::At((const decltype(inheritSuper_S2d) &)inheritSuper_S2d, i, [&](auto superInfo, auto & super) {
+        InheritSuper_2d::At(i, (const decltype(inheritSuper_S2d) &)inheritSuper_S2d, [&](auto superInfo, auto & super) {
             EXPECT_EQ(visitCount, superInfo.Index);
             using Info = decltype(superInfo);
             using InfoType = typename Info::Type;
@@ -2673,7 +2673,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_3a::Total; i++ )
     {
-        InheritSuper_3a::At((const decltype(inheritSuper_S3a) &)inheritSuper_S3a, i, [&](auto superInfo, auto & super) {
+        InheritSuper_3a::At(i, (const decltype(inheritSuper_S3a) &)inheritSuper_S3a, [&](auto superInfo, auto & super) {
             EXPECT_EQ(visitCount, superInfo.Index);
             using Info = decltype(superInfo);
             using InfoType = typename Info::Type;
@@ -2714,7 +2714,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_3b::Total; i++ )
     {
-        InheritSuper_3b::At((const decltype(inheritSuper_S3b) &)inheritSuper_S3b, i, [&](auto superInfo, auto & super) {
+        InheritSuper_3b::At(i, (const decltype(inheritSuper_S3b) &)inheritSuper_S3b, [&](auto superInfo, auto & super) {
             EXPECT_EQ(visitCount, superInfo.Index);
             using Info = decltype(superInfo);
             using InfoType = typename Info::Type;
@@ -2757,7 +2757,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_3c::Total; i++ )
     {
-        InheritSuper_3c::At((const decltype(inheritSuper_S3c) &)inheritSuper_S3c, i, [&](auto superInfo, auto & super) {
+        InheritSuper_3c::At(i, (const decltype(inheritSuper_S3c) &)inheritSuper_S3c, [&](auto superInfo, auto & super) {
             EXPECT_EQ(visitCount, superInfo.Index);
             using Info = decltype(superInfo);
             using InfoType = typename Info::Type;
@@ -2798,7 +2798,7 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_3d::Total; i++ )
     {
-        InheritSuper_3d::At((const decltype(inheritSuper_S3d) &)inheritSuper_S3d, i, [&](auto superInfo, auto & super) {
+        InheritSuper_3d::At(i, (const decltype(inheritSuper_S3d) &)inheritSuper_S3d, [&](auto superInfo, auto & super) {
             EXPECT_EQ(visitCount, superInfo.Index);
             using Info = decltype(superInfo);
             using InfoType = typename Info::Type;
@@ -2843,44 +2843,44 @@ TEST(ReflectInheritanceTest, InheritAtInstanceConst)
 TEST(ReflectInheritanceTest, InheritSuperAt)
 {
     int visitCount = 0;
-    InheritSuper_0a::SuperAt(inheritSuper_S0a, 0, [&](auto & super) {
+    InheritSuper_0a::SuperAt(0, inheritSuper_S0a, [&](auto & super) {
         visitCount++;
     });
     EXPECT_EQ(0, visitCount);
     visitCount = 0;
-    InheritSuper_0b::SuperAt(inheritSuper_S0b, 0, [&](auto & super) {
+    InheritSuper_0b::SuperAt(0, inheritSuper_S0b, [&](auto & super) {
         visitCount++;
     });
     EXPECT_EQ(0, visitCount);
     visitCount = 0;
-    InheritSuper_0c::SuperAt(inheritSuper_S0c, 0, [&](auto & super) {
+    InheritSuper_0c::SuperAt(0, inheritSuper_S0c, [&](auto & super) {
         visitCount++;
     });
     EXPECT_EQ(0, visitCount);
     
     visitCount = 0;
-    InheritSuper_1a::SuperAt(inheritSuper_S1a, 0, [&](auto & super) {
+    InheritSuper_1a::SuperAt(0, inheritSuper_S1a, [&](auto & super) {
         bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         visitCount++;
     });
     EXPECT_EQ(1, visitCount);
     visitCount = 0;
-    InheritSuper_1b::SuperAt(inheritSuper_S1b, 0, [&](auto & super) {
+    InheritSuper_1b::SuperAt(0, inheritSuper_S1b, [&](auto & super) {
         bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         visitCount++;
     });
     EXPECT_EQ(1, visitCount);
     visitCount = 0;
-    InheritSuper_1c::SuperAt(inheritSuper_S1c, 0, [&](auto & super) {
+    InheritSuper_1c::SuperAt(0, inheritSuper_S1c, [&](auto & super) {
         bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         visitCount++;
     });
     EXPECT_EQ(1, visitCount);
     visitCount = 0;
-    InheritSuper_1d::SuperAt(inheritSuper_S1d, 0, [&](auto & super) {
+    InheritSuper_1d::SuperAt(0, inheritSuper_S1d, [&](auto & super) {
         bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         visitCount++;
@@ -2890,7 +2890,7 @@ TEST(ReflectInheritanceTest, InheritSuperAt)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_2a::Total; i++ )
     {
-        InheritSuper_2a::SuperAt(inheritSuper_S2a, i, [&](auto & super) {
+        InheritSuper_2a::SuperAt(i, inheritSuper_S2a, [&](auto & super) {
             if ( visitCount == 0 )
             {
                 bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
@@ -2909,7 +2909,7 @@ TEST(ReflectInheritanceTest, InheritSuperAt)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_2b::Total; i++ )
     {
-        InheritSuper_2b::SuperAt(inheritSuper_S2b, i, [&](auto & super) {
+        InheritSuper_2b::SuperAt(i, inheritSuper_S2b, [&](auto & super) {
             if ( visitCount == 0 )
             {
                 bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
@@ -2928,7 +2928,7 @@ TEST(ReflectInheritanceTest, InheritSuperAt)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_2c::Total; i++ )
     {
-        InheritSuper_2c::SuperAt(inheritSuper_S2c, i, [&](auto & super) {
+        InheritSuper_2c::SuperAt(i, inheritSuper_S2c, [&](auto & super) {
             if ( visitCount == 0 )
             {
                 bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
@@ -2947,7 +2947,7 @@ TEST(ReflectInheritanceTest, InheritSuperAt)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_2d::Total; i++ )
     {
-        InheritSuper_2d::SuperAt(inheritSuper_S2d, i, [&](auto & super) {
+        InheritSuper_2d::SuperAt(i, inheritSuper_S2d, [&](auto & super) {
             if ( visitCount == 0 )
             {
                 bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
@@ -2967,7 +2967,7 @@ TEST(ReflectInheritanceTest, InheritSuperAt)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_3a::Total; i++ )
     {
-        InheritSuper_3a::SuperAt(inheritSuper_S3a, i, [&](auto & super) {
+        InheritSuper_3a::SuperAt(i, inheritSuper_S3a, [&](auto & super) {
             if ( visitCount == 0 )
             {
                 bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
@@ -2992,7 +2992,7 @@ TEST(ReflectInheritanceTest, InheritSuperAt)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_3b::Total; i++ )
     {
-        InheritSuper_3b::SuperAt(inheritSuper_S3b, i, [&](auto & super) {
+        InheritSuper_3b::SuperAt(i, inheritSuper_S3b, [&](auto & super) {
             if ( visitCount == 0 )
             {
                 bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
@@ -3017,7 +3017,7 @@ TEST(ReflectInheritanceTest, InheritSuperAt)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_3c::Total; i++ )
     {
-        InheritSuper_3c::SuperAt(inheritSuper_S3c, i, [&](auto & super) {
+        InheritSuper_3c::SuperAt(i, inheritSuper_S3c, [&](auto & super) {
             if ( visitCount == 0 )
             {
                 bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
@@ -3042,7 +3042,7 @@ TEST(ReflectInheritanceTest, InheritSuperAt)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_3d::Total; i++ )
     {
-        InheritSuper_3d::SuperAt(inheritSuper_S3d, i, [&](auto & super) {
+        InheritSuper_3d::SuperAt(i, inheritSuper_S3d, [&](auto & super) {
             if ( visitCount == 0 )
             {
                 bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
@@ -3069,44 +3069,44 @@ TEST(ReflectInheritanceTest, InheritSuperAt)
 TEST(ReflectInheritanceTest, InheritSuperAtConst)
 {
     int visitCount = 0;
-    InheritSuper_0a::SuperAt((const decltype(inheritSuper_S0a) &)inheritSuper_S0a, 0, [&](auto & super) {
+    InheritSuper_0a::SuperAt(0, (const decltype(inheritSuper_S0a) &)inheritSuper_S0a, [&](auto & super) {
         visitCount++;
     });
     EXPECT_EQ(0, visitCount);
     visitCount = 0;
-    InheritSuper_0b::SuperAt((const decltype(inheritSuper_S0b) &)inheritSuper_S0b, 0, [&](auto & super) {
+    InheritSuper_0b::SuperAt(0, (const decltype(inheritSuper_S0b) &)inheritSuper_S0b, [&](auto & super) {
         visitCount++;
     });
     EXPECT_EQ(0, visitCount);
     visitCount = 0;
-    InheritSuper_0c::SuperAt((const decltype(inheritSuper_S0c) &)inheritSuper_S0c, 0, [&](auto & super) {
+    InheritSuper_0c::SuperAt(0, (const decltype(inheritSuper_S0c) &)inheritSuper_S0c, [&](auto & super) {
         visitCount++;
     });
     EXPECT_EQ(0, visitCount);
     
     visitCount = 0;
-    InheritSuper_1a::SuperAt((const decltype(inheritSuper_S1a) &)inheritSuper_S1a, 0, [&](auto & super) {
+    InheritSuper_1a::SuperAt(0, (const decltype(inheritSuper_S1a) &)inheritSuper_S1a, [&](auto & super) {
         bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         visitCount++;
     });
     EXPECT_EQ(1, visitCount);
     visitCount = 0;
-    InheritSuper_1b::SuperAt((const decltype(inheritSuper_S1b) &)inheritSuper_S1b, 0, [&](auto & super) {
+    InheritSuper_1b::SuperAt(0, (const decltype(inheritSuper_S1b) &)inheritSuper_S1b, [&](auto & super) {
         bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         visitCount++;
     });
     EXPECT_EQ(1, visitCount);
     visitCount = 0;
-    InheritSuper_1c::SuperAt((const decltype(inheritSuper_S1c) &)inheritSuper_S1c, 0, [&](auto & super) {
+    InheritSuper_1c::SuperAt(0, (const decltype(inheritSuper_S1c) &)inheritSuper_S1c, [&](auto & super) {
         bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         visitCount++;
     });
     EXPECT_EQ(1, visitCount);
     visitCount = 0;
-    InheritSuper_1d::SuperAt((const decltype(inheritSuper_S1d) &)inheritSuper_S1d, 0, [&](auto & super) {
+    InheritSuper_1d::SuperAt(0, (const decltype(inheritSuper_S1d) &)inheritSuper_S1d, [&](auto & super) {
         bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
         EXPECT_TRUE(isSame);
         visitCount++;
@@ -3116,7 +3116,7 @@ TEST(ReflectInheritanceTest, InheritSuperAtConst)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_2a::Total; i++ )
     {
-        InheritSuper_2a::SuperAt((const decltype(inheritSuper_S2a) &)inheritSuper_S2a, i, [&](auto & super) {
+        InheritSuper_2a::SuperAt(i, (const decltype(inheritSuper_S2a) &)inheritSuper_S2a, [&](auto & super) {
             if ( visitCount == 0 )
             {
                 bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
@@ -3135,7 +3135,7 @@ TEST(ReflectInheritanceTest, InheritSuperAtConst)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_2b::Total; i++ )
     {
-        InheritSuper_2b::SuperAt((const decltype(inheritSuper_S2b) &)inheritSuper_S2b, i, [&](auto & super) {
+        InheritSuper_2b::SuperAt(i, (const decltype(inheritSuper_S2b) &)inheritSuper_S2b, [&](auto & super) {
             if ( visitCount == 0 )
             {
                 bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
@@ -3154,7 +3154,7 @@ TEST(ReflectInheritanceTest, InheritSuperAtConst)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_2c::Total; i++ )
     {
-        InheritSuper_2c::SuperAt((const decltype(inheritSuper_S2c) &)inheritSuper_S2c, i, [&](auto & super) {
+        InheritSuper_2c::SuperAt(i, (const decltype(inheritSuper_S2c) &)inheritSuper_S2c, [&](auto & super) {
             if ( visitCount == 0 )
             {
                 bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
@@ -3173,7 +3173,7 @@ TEST(ReflectInheritanceTest, InheritSuperAtConst)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_2d::Total; i++ )
     {
-        InheritSuper_2d::SuperAt((const decltype(inheritSuper_S2d) &)inheritSuper_S2d, i, [&](auto & super) {
+        InheritSuper_2d::SuperAt(i, (const decltype(inheritSuper_S2d) &)inheritSuper_S2d, [&](auto & super) {
             if ( visitCount == 0 )
             {
                 bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
@@ -3193,7 +3193,7 @@ TEST(ReflectInheritanceTest, InheritSuperAtConst)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_3a::Total; i++ )
     {
-        InheritSuper_3a::SuperAt((const decltype(inheritSuper_S3a) &)inheritSuper_S3a, i, [&](auto & super) {
+        InheritSuper_3a::SuperAt(i, (const decltype(inheritSuper_S3a) &)inheritSuper_S3a, [&](auto & super) {
             if ( visitCount == 0 )
             {
                 bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
@@ -3218,7 +3218,7 @@ TEST(ReflectInheritanceTest, InheritSuperAtConst)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_3b::Total; i++ )
     {
-        InheritSuper_3b::SuperAt((const decltype(inheritSuper_S3b) &)inheritSuper_S3b, i, [&](auto & super) {
+        InheritSuper_3b::SuperAt(i, (const decltype(inheritSuper_S3b) &)inheritSuper_S3b, [&](auto & super) {
             if ( visitCount == 0 )
             {
                 bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
@@ -3243,7 +3243,7 @@ TEST(ReflectInheritanceTest, InheritSuperAtConst)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_3c::Total; i++ )
     {
-        InheritSuper_3c::SuperAt((const decltype(inheritSuper_S3c) &)inheritSuper_S3c, i, [&](auto & super) {
+        InheritSuper_3c::SuperAt(i, (const decltype(inheritSuper_S3c) &)inheritSuper_S3c, [&](auto & super) {
             if ( visitCount == 0 )
             {
                 bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
@@ -3268,7 +3268,7 @@ TEST(ReflectInheritanceTest, InheritSuperAtConst)
     visitCount = 0;
     for ( int i=0; i<InheritSuper_3d::Total; i++ )
     {
-        InheritSuper_3d::SuperAt((const decltype(inheritSuper_S3d) &)inheritSuper_S3d, i, [&](auto & super) {
+        InheritSuper_3d::SuperAt(i, (const decltype(inheritSuper_S3d) &)inheritSuper_S3d, [&](auto & super) {
             if ( visitCount == 0 )
             {
                 bool isSame = std::is_same<InheritSuper_S1, typename std::remove_reference<decltype(super)>::type>::value;
@@ -3422,7 +3422,7 @@ TEST(ReflectInheritanceTest, InheritRecursion)
     // Inherit at instance
     outerVisitCount = 0;
     innerVisitCount = 0;
-    Reflect<InheritChild>::Supers::At(child, 0, [&](auto superInfo, auto & super) {
+    Reflect<InheritChild>::Supers::At(0, child, [&](auto superInfo, auto & super) {
         EXPECT_EQ(0, superInfo.Index);
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
@@ -3436,7 +3436,7 @@ TEST(ReflectInheritanceTest, InheritRecursion)
         EXPECT_EQ('d', std::get<0>(superInfo.annotations));
         
         EXPECT_EQ('c', std::get<1>(InfoType::Class::annotations));
-        Reflect<InfoType>::Supers::At(super, 0, [&](auto superInfo, auto & super) {
+        Reflect<InfoType>::Supers::At(0, super, [&](auto superInfo, auto & super) {
             EXPECT_EQ(0, superInfo.Index);
             using Info = decltype(superInfo);
             using InfoType = typename Info::Type;
@@ -3459,7 +3459,7 @@ TEST(ReflectInheritanceTest, InheritRecursion)
     // Inherit at instance const
     outerVisitCount = 0;
     innerVisitCount = 0;
-    Reflect<InheritChild>::Supers::At((const decltype(child) &)child, 0, [&](auto superInfo, auto & super) {
+    Reflect<InheritChild>::Supers::At(0, (const decltype(child) &)child, [&](auto superInfo, auto & super) {
         EXPECT_EQ(0, superInfo.Index);
         using Info = decltype(superInfo);
         using InfoType = typename Info::Type;
@@ -3473,7 +3473,7 @@ TEST(ReflectInheritanceTest, InheritRecursion)
         EXPECT_EQ('d', std::get<0>(superInfo.annotations));
         
         EXPECT_EQ('c', std::get<1>(InfoType::Class::annotations));
-        Reflect<InfoType>::Supers::At((const decltype(super) &)super, 0, [&](auto superInfo, auto & super) {
+        Reflect<InfoType>::Supers::At(0, (const decltype(super) &)super, [&](auto superInfo, auto & super) {
             EXPECT_EQ(0, superInfo.Index);
             using Info = decltype(superInfo);
             using InfoType = typename Info::Type;
