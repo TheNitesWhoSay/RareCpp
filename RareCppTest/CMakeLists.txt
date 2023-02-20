@@ -1,27 +1,28 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.15.0)
 
 set(This RareCppTest)
 
 set(Headers
-  JsonInputTest.h
-  JsonTest.h
+  json_input_test.h
+  json_test.h
 )
 set(Sources
-  ExtendedTypeSupportTest.cpp
-  FieldTest.cpp
-  GenericMacroTest.cpp
-  InheritTest.cpp
-  JsonInputTest.cpp
-  JsonInputTestBuffered.cpp
-  JsonInputTestUnbuffered.cpp
-  JsonTest.cpp
-  JsonTestRunBuffered.cpp
-  JsonTestRunUnbuffered.cpp
-  ObjectMapperTest.cpp
-  ReflectionTest.cpp
-  ReflectTest.cpp
-  StringBufferTest.cpp
-  TestMain.cpp
+  builder_test.cpp
+  extended_type_support_test.cpp
+  member_test.cpp
+  generic_macro_test.cpp
+  inherit_test.cpp
+  json_input_test.cpp
+  json_input_test_buffered.cpp
+  json_input_test_unbuffered.cpp
+  json_test.cpp
+  json_test_run_buffered.cpp
+  json_test_run_unbuffered.cpp
+  object_mapper_test.cpp
+  reflection_test.cpp
+  reflect_test.cpp
+  string_buffer_test.cpp
+  test_main.cpp
 )
 
 add_executable(${This} ${Sources} ${Headers})

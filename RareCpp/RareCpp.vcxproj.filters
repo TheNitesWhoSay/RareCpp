@@ -9,21 +9,63 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
     </Filter>
+    <Filter Include="Source Files\experimental">
+      <UniqueIdentifier>{b47d123a-d82b-43e1-8b75-dd938ddf90ac}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\examples">
+      <UniqueIdentifier>{f135fb85-4c7a-448a-95a1-41cc8f8c732f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\experimental">
+      <UniqueIdentifier>{ec879c5c-8025-472a-ba9e-32ca9afd75ab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\examples">
+      <UniqueIdentifier>{4d497e52-a0ad-49f7-afa8-1f34e4eea2ba}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Main.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="experimental\adaptive.h">
+      <Filter>Header Files\experimental</Filter>
+    </ClInclude>
+    <ClInclude Include="examples\json_customization.h">
+      <Filter>Header Files\examples</Filter>
+    </ClInclude>
+    <ClInclude Include="examples\car.h">
+      <Filter>Header Files\examples</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Main.cpp">
+    <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Functions.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="examples\annotated_supers.cpp">
+      <Filter>Source Files\examples</Filter>
     </ClCompile>
-    <ClCompile Include="Adapters.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="examples\basic_reflection.cpp">
+      <Filter>Source Files\examples</Filter>
+    </ClCompile>
+    <ClCompile Include="examples\functions.cpp">
+      <Filter>Source Files\examples</Filter>
+    </ClCompile>
+    <ClCompile Include="examples\global_reflection.cpp">
+      <Filter>Source Files\examples</Filter>
+    </ClCompile>
+    <ClCompile Include="examples\json_customization.cpp">
+      <Filter>Source Files\examples</Filter>
+    </ClCompile>
+    <ClCompile Include="examples\json_dynamic.cpp">
+      <Filter>Source Files\examples</Filter>
+    </ClCompile>
+    <ClCompile Include="examples\object_mapper.cpp">
+      <Filter>Source Files\examples</Filter>
+    </ClCompile>
+    <ClCompile Include="examples\reflection_limits.cpp">
+      <Filter>Source Files\examples</Filter>
+    </ClCompile>
+    <ClCompile Include="experimental\refactoring.cpp">
+      <Filter>Source Files\experimental</Filter>
+    </ClCompile>
+    <ClCompile Include="experimental\rest.cpp">
+      <Filter>Source Files\experimental</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -1,30 +1,36 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.15.0)
 
 set(This Root)
+
+if ( WIN32 AND NOT "${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU" )
+  cmake_policy(SET CMP0091 NEW)
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
 project(${This} C CXX)
 
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-if ( "${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU" )
-add_compile_options(
-  -Wno-error
-)
-# The following definitions were required for MinGW, they may not be appropriate on every system
-add_definitions(-DEOVERFLOW=132 -D_GLIBCXX_HAVE_EOVERFLOW=1)
-endif ()
+include_directories(PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-if ( "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" )
-add_compile_options(
-  -Wno-switch
-)
+if ( "${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU" )
+  add_compile_options(
+    -pedantic-errors -Wall -Wextra -Wconversion -Wno-switch -Wno-unknown-pragmas
+  )
+  # The following definitions were required for MinGW, they may not be appropriate on every system
+  add_definitions(-DEOVERFLOW=132 -D_GLIBCXX_HAVE_EOVERFLOW=1)
+elseif ( "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" )
+  add_compile_options(
+    -pedantic-errors -Wall -Wextra -Wno-switch -Wconversion -Wno-gnu-zero-variadic-macro-arguments
+  )
 endif ()
 
 if ( MSVC )
-add_compile_options(/permissive-)
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+  add_compile_options(/permissive-)
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
 endif ( MSVC )
 
 enable_testing()
