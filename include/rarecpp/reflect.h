@@ -1,3 +1,4 @@
+// MIT License, Copyright (c) 2019-2023 Justin F https://github.com/TheNitesWhoSay/RareCpp/blob/master/LICENSE
 #ifndef REFLECT_H
 #define REFLECT_H
 #include <array>
