@@ -3402,7 +3402,7 @@ namespace Json
                     Read::boolean<InArray>(is, c, value);
                 else if constexpr ( std::is_const_v<T> )
                     Consume::value<InArray>(is, c);
-                else if constexpr ( std::is_same_v<int, RareTs::remove_cvref_t<decltype(value)>> )
+                else
                     is >> value;
             }
 
