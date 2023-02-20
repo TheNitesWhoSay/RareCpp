@@ -879,8 +879,8 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             template <typename ... Args>
             class overload
             {
-                template <typename Q, size_t I, typename = void> struct ptr : RareTs::type_id<nullptr_t> {
-                    static constexpr nullptr_t pointer = nullptr;
+                template <typename Q, size_t I, typename = void> struct ptr : RareTs::type_id<std::nullptr_t> {
+                    static constexpr std::nullptr_t pointer = nullptr;
                 };
                 template <typename Q, size_t I> struct ptr<Q, I,
                     std::void_t<typename class_t<RareTs::remove_cvref_t<Q>>::template L_<I, Args...>::template W_<Q>>>
@@ -1608,14 +1608,14 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
         template <typename T, size_t MemberIndex> // Overloads (and references on MSVC < 1932 / Visual Studios <= 2019) are unsupported/always private
         inline constexpr AccessMod access_modifier_v = RareTs::Class::template access_modifier<T, MemberIndex>::value;
 
-        struct NullptrType { using type = nullptr_t; };
+        struct NullptrType { using type = std::nullptr_t; };
         struct EmptyComponent {
             using type = void;
             static constexpr std::nullptr_t p = nullptr;
             template <typename T> static constexpr auto & s() { return p; }
             template <typename T> static constexpr auto & i(T &&) { return p; }
         };
-        struct NonPointable { static constexpr nullptr_t p = nullptr; };
+        struct NonPointable { static constexpr std::nullptr_t p = nullptr; };
         struct NonNoted { static constexpr std::tuple notes{}; };
         struct NoOffset { static constexpr size_t o() { return std::numeric_limits<size_t>::max(); }; };
 

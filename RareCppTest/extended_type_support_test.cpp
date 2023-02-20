@@ -261,13 +261,13 @@ TEST(RareTsTest, RemovePointer)
 
 TEST(RareTsTest, IsNonNull)
 {
-    bool isNonNull = RareTs::is_non_null<nullptr_t>::value;
+    bool isNonNull = RareTs::is_non_null<std::nullptr_t>::value;
     EXPECT_FALSE(isNonNull);
-    isNonNull = RareTs::is_non_null<const nullptr_t>::value;
+    isNonNull = RareTs::is_non_null<const std::nullptr_t>::value;
     EXPECT_FALSE(isNonNull);
-    isNonNull = RareTs::is_non_null<volatile nullptr_t>::value;
+    isNonNull = RareTs::is_non_null<volatile std::nullptr_t>::value;
     EXPECT_FALSE(isNonNull);
-    isNonNull = RareTs::is_non_null<const volatile nullptr_t>::value;
+    isNonNull = RareTs::is_non_null<const volatile std::nullptr_t>::value;
     EXPECT_FALSE(isNonNull);
     
     isNonNull = RareTs::is_non_null<void>::value;

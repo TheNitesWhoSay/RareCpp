@@ -1855,7 +1855,7 @@ TEST(ReflectTestValues, Pack)
         EXPECT_TRUE(isSame);
         isSame = std::is_same_v<int, decltype(staticValue)>;
         EXPECT_TRUE(isSame);
-        isSame = std::is_same_v<nullptr_t, decltype(memberValueReference)>;
+        isSame = std::is_same_v<std::nullptr_t, decltype(memberValueReference)>;
         EXPECT_TRUE(isSame);
         isSame = std::is_same_v<int, decltype(staticValueReference)>;
         EXPECT_TRUE(isSame);
@@ -1880,7 +1880,7 @@ TEST(ReflectTestValues, Pack)
         EXPECT_TRUE(isSame);
         isSame = std::is_same_v<int &, decltype(staticValue)>;
         EXPECT_TRUE(isSame);
-        isSame = std::is_same_v<nullptr_t &, decltype(memberValueReference)>;
+        isSame = std::is_same_v<std::nullptr_t &, decltype(memberValueReference)>;
         EXPECT_TRUE(isSame);
         isSame = std::is_same_v<int &, decltype(staticValueReference)>;
         EXPECT_TRUE(isSame);
@@ -1905,7 +1905,7 @@ TEST(ReflectTestValues, Pack)
         EXPECT_TRUE(isSame);
         isSame = std::is_same_v<int &, decltype(staticValue)>;
         EXPECT_TRUE(isSame);
-        isSame = std::is_same_v<nullptr_t &, decltype(memberValueReference)>;
+        isSame = std::is_same_v<std::nullptr_t &, decltype(memberValueReference)>;
         EXPECT_TRUE(isSame);
         isSame = std::is_same_v<int &, decltype(staticValueReference)>;
         EXPECT_TRUE(isSame);
@@ -1930,7 +1930,7 @@ TEST(ReflectTestValues, Pack)
         EXPECT_TRUE(isSame);
         isSame = std::is_same_v<const int, decltype(staticValue)>;
         EXPECT_TRUE(isSame);
-        isSame = std::is_same_v<const nullptr_t, decltype(memberValueReference)>;
+        isSame = std::is_same_v<const std::nullptr_t, decltype(memberValueReference)>;
         EXPECT_TRUE(isSame);
         isSame = std::is_same_v<const int, decltype(staticValueReference)>;
         EXPECT_TRUE(isSame);
@@ -1955,7 +1955,7 @@ TEST(ReflectTestValues, Pack)
         EXPECT_TRUE(isSame);
         isSame = std::is_same_v<const int &, decltype(staticValue)>;
         EXPECT_TRUE(isSame);
-        isSame = std::is_same_v<const nullptr_t &, decltype(memberValueReference)>;
+        isSame = std::is_same_v<const std::nullptr_t &, decltype(memberValueReference)>;
         EXPECT_TRUE(isSame);
         isSame = std::is_same_v<const int &, decltype(staticValueReference)>;
         EXPECT_TRUE(isSame);
@@ -1999,7 +1999,7 @@ TEST(ReflectTestValues, Pack)
         EXPECT_TRUE(isSame);
         isSame = std::is_same_v<int, StaticType>;
         EXPECT_TRUE(isSame);
-        isSame = std::is_same_v<nullptr_t, MemberValueReferenceType>;
+        isSame = std::is_same_v<std::nullptr_t, MemberValueReferenceType>;
         EXPECT_TRUE(isSame);
         isSame = std::is_same_v<int, StaticValueReferenceType>;
         EXPECT_TRUE(isSame);
@@ -2043,7 +2043,7 @@ TEST(ReflectTestValues, Pack)
         EXPECT_TRUE(isSame);
         isSame = std::is_same_v<int &, StaticType>;
         EXPECT_TRUE(isSame);
-        isSame = std::is_same_v<nullptr_t &, MemberValueReferenceType>;
+        isSame = std::is_same_v<std::nullptr_t &, MemberValueReferenceType>;
         EXPECT_TRUE(isSame);
         isSame = std::is_same_v<int &, StaticValueReferenceType>;
         EXPECT_TRUE(isSame);
@@ -2087,7 +2087,7 @@ TEST(ReflectTestValues, Pack)
         EXPECT_TRUE(isSame);
         isSame = std::is_same_v<int &, StaticType>;
         EXPECT_TRUE(isSame);
-        isSame = std::is_same_v<nullptr_t &, MemberValueReferenceType>;
+        isSame = std::is_same_v<std::nullptr_t &, MemberValueReferenceType>;
         EXPECT_TRUE(isSame);
         isSame = std::is_same_v<int &, StaticValueReferenceType>;
         EXPECT_TRUE(isSame);
@@ -2132,7 +2132,7 @@ TEST(ReflectTestValues, Pack)
         EXPECT_TRUE(isSame);
         isSame = std::is_same_v<const int, StaticType>;
         EXPECT_TRUE(isSame);
-        isSame = std::is_same_v<const nullptr_t, MemberValueReferenceType>;
+        isSame = std::is_same_v<const std::nullptr_t, MemberValueReferenceType>;
         EXPECT_TRUE(isSame);
         isSame = std::is_same_v<const int, StaticValueReferenceType>;
         EXPECT_TRUE(isSame);
@@ -2176,7 +2176,7 @@ TEST(ReflectTestValues, Pack)
         EXPECT_TRUE(isSame);
         isSame = std::is_same_v<const int &, StaticType>;
         EXPECT_TRUE(isSame);
-        isSame = std::is_same_v<const nullptr_t &, MemberValueReferenceType>;
+        isSame = std::is_same_v<const std::nullptr_t &, MemberValueReferenceType>;
         EXPECT_TRUE(isSame);
         isSame = std::is_same_v<const int &, StaticValueReferenceType>;
         EXPECT_TRUE(isSame);
