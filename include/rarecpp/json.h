@@ -1992,8 +1992,8 @@ namespace Json
             template <typename Value, typename OpNotes = RareTs::NoNote, typename Member = NoMember>
             struct CustomizeType : public RareTs::Unspecialized
             {
-                // Should return true if you put any output, else you should leave output unchanged
-                static bool as(std::istream & input, Context & context, Value & value) { return false; }
+                // Should return true if you read any input, else you should leave input unchanged
+                static bool as(std::istream & /*input*/, Context & /*context*/, Value & /*value*/) { return false; }
             };
 
             template <typename Object, typename Value, size_t MemberIndex = noMemberIndex, typename OpNotes = RareTs::NoNote, typename Member = NoMember>
