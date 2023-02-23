@@ -202,7 +202,7 @@ namespace Rest
                         //const auto & added = endpoints.back();
                         //std::cout << "Registered method: " << added.method << " \"" << added.uri << "\" controller: " << added.controllerIndex << " member: " << added.memberIndex << std::endl;
                     }
-                    else if constexpr ( RareTs::isOverloaded<RestControllerT, Member::index> )
+                    else if constexpr ( RareTs::is_overloaded_v<RestControllerT, Member::index> )
                     {
                         size_t overloadIndex = 0;
                         Member::Overloads::forEach([&](auto overload) {
@@ -263,7 +263,7 @@ namespace Rest
                                 else
                                     function.invoke(restController, argBuilder);
                             }
-                            else if constexpr ( RareTs::isOverloaded<RestControllerT, Member::index> )
+                            else if constexpr ( RareTs::is_overloaded_v<RestControllerT, Member::index> )
                             {
                                 Member::Overloads::at(endpoint.overloadIndex, [&](auto overload) {
                                     auto function = RareTs::Function(overload.pointer);

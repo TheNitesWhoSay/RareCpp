@@ -45,21 +45,21 @@ NOTE(SpecializedSuperAnnotation,
     Super<TestSuper>('a', Specializable<int>{0}, 'b', Specializable<int>{1}))
 struct SpecializedSuperAnnotation : TestSuper { REFLECT_NOTED(SpecializedSuperAnnotation) };
 
-using SingleSuper_SuperNotes = RareTs::SuperNotes<SingleSuper>;
-using DoubleSuper_SuperNotes = RareTs::SuperNotes<DoubleSuper>;
-using SingleSuperNote_SuperNotes = RareTs::SuperNotes<SingleSuperNote>;
-using SingleSuperOtherNote_SuperNotes = RareTs::SuperNotes<SingleSuperOtherNote>;
-using DoubleSuperNotes_SuperNotes = RareTs::SuperNotes<DoubleSuperNotes>;
-using SpecializedSuperAnnotation_SuperNotes = RareTs::SuperNotes<SpecializedSuperAnnotation>;
+using SingleSuper_SuperNotes = RareTs::Reflection::Inheritance::detail::SuperNotes<SingleSuper>;
+using DoubleSuper_SuperNotes = RareTs::Reflection::Inheritance::detail::SuperNotes<DoubleSuper>;
+using SingleSuperNote_SuperNotes = RareTs::Reflection::Inheritance::detail::SuperNotes<SingleSuperNote>;
+using SingleSuperOtherNote_SuperNotes = RareTs::Reflection::Inheritance::detail::SuperNotes<SingleSuperOtherNote>;
+using DoubleSuperNotes_SuperNotes = RareTs::Reflection::Inheritance::detail::SuperNotes<DoubleSuperNotes>;
+using SpecializedSuperAnnotation_SuperNotes = RareTs::Reflection::Inheritance::detail::SuperNotes<SpecializedSuperAnnotation>;
 
-using SingleSuper_TestSuper_Note = decltype(RareTs::subAnnotationsType<SingleSuper_SuperNotes, 0>(std::make_index_sequence<0>()));
-using DoubleSuper_TestSuper_Note = decltype(RareTs::subAnnotationsType<DoubleSuper_SuperNotes, 0>(std::make_index_sequence<0>()));
-using DoubleSuper_TestOtherSuper_Note = decltype(RareTs::subAnnotationsType<DoubleSuper_SuperNotes, 1>(std::make_index_sequence<0>()));
-using SingleSuperNote_TestSuper_Note = decltype(RareTs::subAnnotationsType<SingleSuperNote_SuperNotes, 0>(std::make_index_sequence<1>()));
-using SingleSuperOtherNote_TestSuper_Note = decltype(RareTs::subAnnotationsType<SingleSuperOtherNote_SuperNotes, 0>(std::make_index_sequence<1>()));
-using DoubleSuperNotes_TestSuper_Note = decltype(RareTs::subAnnotationsType<DoubleSuperNotes_SuperNotes, 0>(std::make_index_sequence<3>()));
-using DoubleSuperNotes_TestOtherSuper_Note = decltype(RareTs::subAnnotationsType<DoubleSuperNotes_SuperNotes, 1>(std::make_index_sequence<2>()));
-using SpecializedSuperAnnotation_TestSuper_Note = decltype(RareTs::subAnnotationsType<SpecializedSuperAnnotation_SuperNotes, 0>(std::make_index_sequence<4>()));
+using SingleSuper_TestSuper_Note = decltype(RareTs::Reflection::Annotations::detail::subAnnotationsType<SingleSuper_SuperNotes, 0>(std::make_index_sequence<0>()));
+using DoubleSuper_TestSuper_Note = decltype(RareTs::Reflection::Annotations::detail::subAnnotationsType<DoubleSuper_SuperNotes, 0>(std::make_index_sequence<0>()));
+using DoubleSuper_TestOtherSuper_Note = decltype(RareTs::Reflection::Annotations::detail::subAnnotationsType<DoubleSuper_SuperNotes, 1>(std::make_index_sequence<0>()));
+using SingleSuperNote_TestSuper_Note = decltype(RareTs::Reflection::Annotations::detail::subAnnotationsType<SingleSuperNote_SuperNotes, 0>(std::make_index_sequence<1>()));
+using SingleSuperOtherNote_TestSuper_Note = decltype(RareTs::Reflection::Annotations::detail::subAnnotationsType<SingleSuperOtherNote_SuperNotes, 0>(std::make_index_sequence<1>()));
+using DoubleSuperNotes_TestSuper_Note = decltype(RareTs::Reflection::Annotations::detail::subAnnotationsType<DoubleSuperNotes_SuperNotes, 0>(std::make_index_sequence<3>()));
+using DoubleSuperNotes_TestOtherSuper_Note = decltype(RareTs::Reflection::Annotations::detail::subAnnotationsType<DoubleSuperNotes_SuperNotes, 1>(std::make_index_sequence<2>()));
+using SpecializedSuperAnnotation_TestSuper_Note = decltype(RareTs::Reflection::Annotations::detail::subAnnotationsType<SpecializedSuperAnnotation_SuperNotes, 0>(std::make_index_sequence<4>()));
 
 TEST(ReflectInheritanceTest, SuperInfo)
 {

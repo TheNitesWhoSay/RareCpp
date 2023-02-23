@@ -95,7 +95,7 @@ void functionExperiment()
         constexpr size_t MemberIndex = decltype(I)::value;
 
         std::cout << RareTs::Class::member_name<bar, MemberIndex>
-            << " " << (RareTs::isOverloaded<bar, MemberIndex> ? "[ovl]" : "[non]")
+            << " " << (RareTs::is_overloaded_v<bar, MemberIndex> ? "[ovl]" : "[non]")
             << " [" << RareTs::toStr<RareTs::Class::member_type<bar, MemberIndex>>() << "]"
             << " [" << RareTs::toStr<RareTs::Class::member_pointer_type<bar, MemberIndex>>() << "]"
             << std::endl;
@@ -103,7 +103,7 @@ void functionExperiment()
         RareTs::Member<bar, MemberIndex>::Overloads::template forEach<bar>([&](auto overload) {
             std::cout << "    Known overload: " << overload << std::endl;
         });
-        if constexpr ( RareTs::isOverloaded<bar, MemberIndex> )
+        if constexpr ( RareTs::is_overloaded_v<bar, MemberIndex> )
         {
             std::cout << "    Unknown overload: " << RareTs::OverloadInfo<bar, MemberIndex, char>{} << std::endl;
             std::cout << "    Unknown overload: " << RareTs::OverloadInfo<bar, MemberIndex, char, int>{} << std::endl;

@@ -150,19 +150,19 @@ TEST(ReflectionTest, IsProxied)
 
 TEST(ReflectionTest, Unproxy)
 {
-    bool isSame = std::is_same_v<RareTs::unproxy_t<UnreflectedObj>, UnreflectedObj>;
+    bool isSame = std::is_same_v<RareTs::Class::unproxy_t<UnreflectedObj>, UnreflectedObj>;
     EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<RareTs::unproxy_t<UnownedObj1>, UnownedObj1>;
+    isSame = std::is_same_v<RareTs::Class::unproxy_t<UnownedObj1>, UnownedObj1>;
     EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<RareTs::unproxy_t<UnownedObj2>, UnownedObj2>;
+    isSame = std::is_same_v<RareTs::Class::unproxy_t<UnownedObj2>, UnownedObj2>;
     EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<RareTs::unproxy_t<OwnedObj>, OwnedObj>;
+    isSame = std::is_same_v<RareTs::Class::unproxy_t<OwnedObj>, OwnedObj>;
     EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<RareTs::unproxy_t<RareTs::Proxy<UnownedObj1>>, UnownedObj1>;
+    isSame = std::is_same_v<RareTs::Class::unproxy_t<RareTs::Proxy<UnownedObj1>>, UnownedObj1>;
     EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<RareTs::unproxy_t<RareTs::Proxy<UnownedObj2>>, UnownedObj2>;
+    isSame = std::is_same_v<RareTs::Class::unproxy_t<RareTs::Proxy<UnownedObj2>>, UnownedObj2>;
     EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<RareTs::unproxy_t<RareTs::Proxy<OwnedObj>>, OwnedObj>;
+    isSame = std::is_same_v<RareTs::Class::unproxy_t<RareTs::Proxy<OwnedObj>>, OwnedObj>;
     EXPECT_TRUE(isSame);
 }
 
@@ -347,12 +347,12 @@ struct ValuedSubNotesSubClass : SubNotesSuper, SubNotesOtherSuper {
 
 TEST(ReflectionTest, SubNotes)
 {
-    using Supers = RareTs::SuperNotes<SubNotesSubClass>;
+    using Supers = RareTs::Reflection::Inheritance::detail::SuperNotes<SubNotesSubClass>;
     constexpr auto & emptySuper = RareTs::sub_notes<Supers, std::integral_constant<size_t, 0>>::value;
     bool isSame = std::is_same_v<std::tuple<>, RareTs::remove_cvref_t<decltype(emptySuper)>>;
     EXPECT_TRUE(isSame);
 
-    using ValuedSupers = RareTs::SuperNotes<ValuedSubNotesSubClass>;
+    using ValuedSupers = RareTs::Reflection::Inheritance::detail::SuperNotes<ValuedSubNotesSubClass>;
     constexpr auto & valuedSuper = RareTs::sub_notes<ValuedSupers, std::integral_constant<size_t, 0>>::value;
     constexpr auto & otherValuedSuper = RareTs::sub_notes<ValuedSupers, std::integral_constant<size_t, 1>>::value;
     isSame = std::is_same_v<std::tuple<int, char, char>, RareTs::remove_cvref_t<decltype(valuedSuper)>>;
@@ -411,13 +411,13 @@ TEST(ReflectionTest, AnnotationsTypeNotes)
     EXPECT_TRUE(isSame);
     EXPECT_EQ(7, std::get<1>(fieldNotes));
 
-    using Supers = RareTs::AnnotationsType<RareTs::SuperNotes<SubNotesSubClass>, std::integral_constant<size_t, 0>>;
+    using Supers = RareTs::AnnotationsType<RareTs::Reflection::Inheritance::detail::SuperNotes<SubNotesSubClass>, std::integral_constant<size_t, 0>>;
     constexpr auto & emptySuper = Supers::notes;
     isSame = std::is_same_v<std::tuple<>, RareTs::remove_cvref_t<decltype(emptySuper)>>;
     EXPECT_TRUE(isSame);
 
-    using ValuedSupers = RareTs::AnnotationsType<RareTs::SuperNotes<ValuedSubNotesSubClass>, std::integral_constant<size_t, 0>, 0, 1, 2>;
-    using OtherValuedSupers = RareTs::AnnotationsType<RareTs::SuperNotes<ValuedSubNotesSubClass>, std::integral_constant<size_t, 1>, 0, 1, 2>;
+    using ValuedSupers = RareTs::AnnotationsType<RareTs::Reflection::Inheritance::detail::SuperNotes<ValuedSubNotesSubClass>, std::integral_constant<size_t, 0>, 0, 1, 2>;
+    using OtherValuedSupers = RareTs::AnnotationsType<RareTs::Reflection::Inheritance::detail::SuperNotes<ValuedSubNotesSubClass>, std::integral_constant<size_t, 1>, 0, 1, 2>;
     constexpr auto & valuedSuper = ValuedSupers::notes;
     constexpr auto & otherValuedSuper = OtherValuedSupers::notes;
     isSame = std::is_same_v<std::tuple<int, char, char>, RareTs::remove_cvref_t<decltype(valuedSuper)>>;
@@ -470,12 +470,12 @@ TEST(ReflectionTest, AnnotationsTypeNotesType)
         typename FieldNotes::Notes>;
     EXPECT_TRUE(isSame);
 
-    using Supers = RareTs::AnnotationsType<RareTs::SuperNotes<SubNotesSubClass>, std::integral_constant<size_t, 0>>;
+    using Supers = RareTs::AnnotationsType<RareTs::Reflection::Inheritance::detail::SuperNotes<SubNotesSubClass>, std::integral_constant<size_t, 0>>;
     isSame = std::is_same_v<std::tuple<>, typename Supers::Notes>;
     EXPECT_TRUE(isSame);
 
-    using ValuedSupers = RareTs::AnnotationsType<RareTs::SuperNotes<ValuedSubNotesSubClass>, std::integral_constant<size_t, 0>, 0, 1, 2>;
-    using OtherValuedSupers = RareTs::AnnotationsType<RareTs::SuperNotes<ValuedSubNotesSubClass>, std::integral_constant<size_t, 1>, 0, 1, 2>;
+    using ValuedSupers = RareTs::AnnotationsType<RareTs::Reflection::Inheritance::detail::SuperNotes<ValuedSubNotesSubClass>, std::integral_constant<size_t, 0>, 0, 1, 2>;
+    using OtherValuedSupers = RareTs::AnnotationsType<RareTs::Reflection::Inheritance::detail::SuperNotes<ValuedSubNotesSubClass>, std::integral_constant<size_t, 1>, 0, 1, 2>;
     isSame = std::is_same_v<std::tuple<int, char, char>, typename ValuedSupers::Notes>;
     EXPECT_TRUE(isSame);
     isSame = std::is_same_v<std::tuple<char, int, char>, typename OtherValuedSupers::Notes>;
@@ -520,14 +520,14 @@ TEST(ReflectionTest, AnnotationsTypeHasNotes)
     hasNote = FieldNotes::hasNote<RareTs::NotedOverload<SubNotesSuper, int, char, char>>();
     EXPECT_FALSE(hasNote);
 
-    using Supers = RareTs::AnnotationsType<RareTs::SuperNotes<SubNotesSubClass>, std::integral_constant<size_t, 0>>;
+    using Supers = RareTs::AnnotationsType<RareTs::Reflection::Inheritance::detail::SuperNotes<SubNotesSubClass>, std::integral_constant<size_t, 0>>;
     EXPECT_FALSE(Supers::hasNote<int>());
     EXPECT_FALSE(Supers::hasNote<char>());
     EXPECT_FALSE(Supers::hasNote<RareTs::SuperClass>());
     EXPECT_FALSE(Supers::hasNote<RareTs::NotedSuper>());
 
-    using ValuedSupers = RareTs::AnnotationsType<RareTs::SuperNotes<ValuedSubNotesSubClass>, std::integral_constant<size_t, 0>, 0, 1, 2>;
-    using OtherValuedSupers = RareTs::AnnotationsType<RareTs::SuperNotes<ValuedSubNotesSubClass>, std::integral_constant<size_t, 1>, 0, 1, 2>;
+    using ValuedSupers = RareTs::AnnotationsType<RareTs::Reflection::Inheritance::detail::SuperNotes<ValuedSubNotesSubClass>, std::integral_constant<size_t, 0>, 0, 1, 2>;
+    using OtherValuedSupers = RareTs::AnnotationsType<RareTs::Reflection::Inheritance::detail::SuperNotes<ValuedSubNotesSubClass>, std::integral_constant<size_t, 1>, 0, 1, 2>;
     EXPECT_TRUE(ValuedSupers::hasNote<int>());
     EXPECT_TRUE(ValuedSupers::hasNote<char>());
     EXPECT_FALSE(ValuedSupers::hasNote<long>());
@@ -562,8 +562,8 @@ TEST(ReflectionTest, AnnotationsTypeGetNote)
     using FieldNotes = RareTs::AnnotationsType<typename RareTs::Class::template member_note_wrapper<ValuedSubNotesSubClass, 0>, void, 0, 1, 2>;
     EXPECT_EQ(7, FieldNotes::getNote<int>());
 
-    using ValuedSupers = RareTs::AnnotationsType<RareTs::SuperNotes<ValuedSubNotesSubClass>, std::integral_constant<size_t, 0>, 0, 1, 2>;
-    using OtherValuedSupers = RareTs::AnnotationsType<RareTs::SuperNotes<ValuedSubNotesSubClass>, std::integral_constant<size_t, 1>, 0, 1, 2>;
+    using ValuedSupers = RareTs::AnnotationsType<RareTs::Reflection::Inheritance::detail::SuperNotes<ValuedSubNotesSubClass>, std::integral_constant<size_t, 0>, 0, 1, 2>;
+    using OtherValuedSupers = RareTs::AnnotationsType<RareTs::Reflection::Inheritance::detail::SuperNotes<ValuedSubNotesSubClass>, std::integral_constant<size_t, 1>, 0, 1, 2>;
     EXPECT_EQ(0, ValuedSupers::getNote<int>());
     EXPECT_EQ('a', ValuedSupers::getNote<char>());
     EXPECT_EQ(1, OtherValuedSupers::getNote<int>());
@@ -725,15 +725,15 @@ TEST(ReflectionTest, AnnotationsTypeForEachNote)
     });
     EXPECT_EQ(2, visitCount);
 
-    using Supers = RareTs::AnnotationsType<RareTs::SuperNotes<SubNotesSubClass>, std::integral_constant<size_t, 0>>;
+    using Supers = RareTs::AnnotationsType<RareTs::Reflection::Inheritance::detail::SuperNotes<SubNotesSubClass>, std::integral_constant<size_t, 0>>;
     visitCount = 0;
     Supers::forEachNote([&](auto &) {
         ++visitCount;
     });
     EXPECT_EQ(0, visitCount);
 
-    using ValuedSupers = RareTs::AnnotationsType<RareTs::SuperNotes<ValuedSubNotesSubClass>, std::integral_constant<size_t, 0>, 0, 1, 2>;
-    using OtherValuedSupers = RareTs::AnnotationsType<RareTs::SuperNotes<ValuedSubNotesSubClass>, std::integral_constant<size_t, 1>, 0, 1, 2>;
+    using ValuedSupers = RareTs::AnnotationsType<RareTs::Reflection::Inheritance::detail::SuperNotes<ValuedSubNotesSubClass>, std::integral_constant<size_t, 0>, 0, 1, 2>;
+    using OtherValuedSupers = RareTs::AnnotationsType<RareTs::Reflection::Inheritance::detail::SuperNotes<ValuedSubNotesSubClass>, std::integral_constant<size_t, 1>, 0, 1, 2>;
     visitCount = 0;
     ValuedSupers::forEachNote([&](auto & note) {
         using Note = RareTs::remove_cvref_t<decltype(note)>;
@@ -1017,7 +1017,7 @@ TEST(ReflectionTest, AnnotationsTypeForEachNote)
 TEST(ReflectionTest, AnnotationsTypeDeductionHelpers)
 {
     using ClassNotes = RareTs::AnnotationsType<RareTs::Class::class_t<ValuedSubNotesSubClass>, void, 0, 1, 2, 3>;
-    using ClassNotesDeduction = decltype(RareTs::annotationsType<Class::class_t<ValuedSubNotesSubClass>>(std::make_index_sequence<4>()));
+    using ClassNotesDeduction = decltype(RareTs::Reflection::Annotations::detail::annotationsType<Class::class_t<ValuedSubNotesSubClass>>(std::make_index_sequence<4>()));
     bool isSame = std::is_same_v<ClassNotes, ClassNotesDeduction>;
     EXPECT_TRUE(isSame);
 
@@ -1026,56 +1026,56 @@ TEST(ReflectionTest, AnnotationsTypeDeductionHelpers)
     isSame = std::is_same_v<FieldNotes, FieldNotesDeduction>;
     EXPECT_TRUE(isSame);
 
-    using Supers = RareTs::AnnotationsType<RareTs::SuperNotes<SubNotesSubClass>, std::integral_constant<size_t, 0>>;
-    using SupersNotez = SuperNotes<SubNotesSubClass>;
+    using Supers = RareTs::AnnotationsType<RareTs::Reflection::Inheritance::detail::SuperNotes<SubNotesSubClass>, std::integral_constant<size_t, 0>>;
+    using SupersNotez = RareTs::Reflection::Inheritance::detail::SuperNotes<SubNotesSubClass>;
     using SupersNotes = RareTs::remove_cvref_t<decltype(SupersNotez::notes)>;
-    using SupersDeduction = decltype(subAnnotationsType<SupersNotez, 0>(
+    using SupersDeduction = decltype(RareTs::Reflection::Annotations::detail::subAnnotationsType<SupersNotez, 0>(
                         std::make_index_sequence<std::tuple_size_v<typename std::remove_reference_t<std::tuple_element_t<0, SupersNotes>>::Notes>>()));
     isSame = std::is_same_v<Supers, SupersDeduction>;
     EXPECT_TRUE(isSame);
 
-    using ValuedSupers = RareTs::AnnotationsType<RareTs::SuperNotes<ValuedSubNotesSubClass>, std::integral_constant<size_t, 0>, 0, 1, 2>;
-    using ValuedSupersNotez = SuperNotes<ValuedSubNotesSubClass>;
+    using ValuedSupers = RareTs::AnnotationsType<RareTs::Reflection::Inheritance::detail::SuperNotes<ValuedSubNotesSubClass>, std::integral_constant<size_t, 0>, 0, 1, 2>;
+    using ValuedSupersNotez = RareTs::Reflection::Inheritance::detail::SuperNotes<ValuedSubNotesSubClass>;
     using ValuedSupersNotes = RareTs::remove_cvref_t<decltype(ValuedSupersNotez::notes)>;
-    using ValuedSupersDeduction = decltype(subAnnotationsType<ValuedSupersNotez, 0>(
+    using ValuedSupersDeduction = decltype(RareTs::Reflection::Annotations::detail::subAnnotationsType<ValuedSupersNotez, 0>(
                         std::make_index_sequence<std::tuple_size_v<typename std::remove_reference_t<std::tuple_element_t<0, ValuedSupersNotes>>::Notes>>()));
     isSame = std::is_same_v<ValuedSupers, ValuedSupersDeduction>;
     EXPECT_TRUE(isSame);
-    using OtherValuedSupers = RareTs::AnnotationsType<RareTs::SuperNotes<ValuedSubNotesSubClass>, std::integral_constant<size_t, 1>, 0, 1, 2>;
-    using OtherValuedSupersNotez = SuperNotes<ValuedSubNotesSubClass>;
+    using OtherValuedSupers = RareTs::AnnotationsType<RareTs::Reflection::Inheritance::detail::SuperNotes<ValuedSubNotesSubClass>, std::integral_constant<size_t, 1>, 0, 1, 2>;
+    using OtherValuedSupersNotez = RareTs::Reflection::Inheritance::detail::SuperNotes<ValuedSubNotesSubClass>;
     using OtherValuedSupersNotes = RareTs::remove_cvref_t<decltype(OtherValuedSupersNotez::notes)>;
-    using OtherValuedSupersDeduction = decltype(subAnnotationsType<OtherValuedSupersNotez, 1>(
+    using OtherValuedSupersDeduction = decltype(RareTs::Reflection::Annotations::detail::subAnnotationsType<OtherValuedSupersNotez, 1>(
                         std::make_index_sequence<std::tuple_size_v<typename std::remove_reference_t<std::tuple_element_t<1, OtherValuedSupersNotes>>::Notes>>()));
     isSame = std::is_same_v<OtherValuedSupers, OtherValuedSupersDeduction>;
     EXPECT_TRUE(isSame);
     
-    using NoArgOvlNoteWrapper = RareTs::AnnotationsType<RareTs::OverloadNotes<RareTs::Class::member_note_wrapper<SubNotesSubClass, 0>>, std::integral_constant<size_t, 0>>;
-    using NoArgOvlNoteWrapperNotez = OverloadNotes<typename RareTs::Class::template member_note_wrapper<SubNotesSubClass, 0>>;
+    using NoArgOvlNoteWrapper = RareTs::AnnotationsType<RareTs::Functions::detail::OverloadNotes<RareTs::Class::member_note_wrapper<SubNotesSubClass, 0>>, std::integral_constant<size_t, 0>>;
+    using NoArgOvlNoteWrapperNotez = RareTs::Functions::detail::OverloadNotes<typename RareTs::Class::template member_note_wrapper<SubNotesSubClass, 0>>;
     using NoArgOvlNoteWrapperNotes = RareTs::remove_cvref_t<decltype(NoArgOvlNoteWrapperNotez::notes)>;
     using NoArgOvlNoteWrapperNote = std::remove_reference_t<std::tuple_element_t<0, NoArgOvlNoteWrapperNotes>>;
-    using NoArgOvlNoteWrapperDeduction = decltype(subAnnotationsType<NoArgOvlNoteWrapperNotez, 0>(std::make_index_sequence<std::tuple_size_v<typename NoArgOvlNoteWrapperNote::Notes>>()));
+    using NoArgOvlNoteWrapperDeduction = decltype(RareTs::Reflection::Annotations::detail::subAnnotationsType<NoArgOvlNoteWrapperNotez, 0>(std::make_index_sequence<std::tuple_size_v<typename NoArgOvlNoteWrapperNote::Notes>>()));
     isSame = std::is_same_v<NoArgOvlNoteWrapper, NoArgOvlNoteWrapperDeduction>;
     EXPECT_TRUE(isSame);
-    using IntOvlNoteWrapper = RareTs::AnnotationsType<RareTs::OverloadNotes<RareTs::Class::member_note_wrapper<SubNotesSubClass, 0>>, std::integral_constant<size_t, 1>>;
-    using IntOvlNoteWrapperNotez = OverloadNotes<typename RareTs::Class::template member_note_wrapper<SubNotesSubClass, 0>>;
+    using IntOvlNoteWrapper = RareTs::AnnotationsType<RareTs::Functions::detail::OverloadNotes<RareTs::Class::member_note_wrapper<SubNotesSubClass, 0>>, std::integral_constant<size_t, 1>>;
+    using IntOvlNoteWrapperNotez = RareTs::Functions::detail::OverloadNotes<typename RareTs::Class::template member_note_wrapper<SubNotesSubClass, 0>>;
     using IntOvlNoteWrapperNotes = RareTs::remove_cvref_t<decltype(IntOvlNoteWrapperNotez::notes)>;
     using IntOvlNoteWrapperNote = std::remove_reference_t<std::tuple_element_t<1, IntOvlNoteWrapperNotes>>;
-    using IntOvlNoteWrapperDeduction = decltype(subAnnotationsType<IntOvlNoteWrapperNotez, 1>(std::make_index_sequence<std::tuple_size_v<typename IntOvlNoteWrapperNote::Notes>>()));
+    using IntOvlNoteWrapperDeduction = decltype(RareTs::Reflection::Annotations::detail::subAnnotationsType<IntOvlNoteWrapperNotez, 1>(std::make_index_sequence<std::tuple_size_v<typename IntOvlNoteWrapperNote::Notes>>()));
     isSame = std::is_same_v<IntOvlNoteWrapper, IntOvlNoteWrapperDeduction>;
     EXPECT_TRUE(isSame);
     
-    using ValuedNoArgOvlNoteWrapper = RareTs::AnnotationsType<RareTs::OverloadNotes<RareTs::Class::member_note_wrapper<ValuedSubNotesSubClass, 0>>, std::integral_constant<size_t, 0>, 0, 1, 2>;
-    using ValuedNoArgOvlNoteWrapperNotez = OverloadNotes<typename RareTs::Class::template member_note_wrapper<ValuedSubNotesSubClass, 0>>;
+    using ValuedNoArgOvlNoteWrapper = RareTs::AnnotationsType<RareTs::Functions::detail::OverloadNotes<RareTs::Class::member_note_wrapper<ValuedSubNotesSubClass, 0>>, std::integral_constant<size_t, 0>, 0, 1, 2>;
+    using ValuedNoArgOvlNoteWrapperNotez = RareTs::Functions::detail::OverloadNotes<typename RareTs::Class::template member_note_wrapper<ValuedSubNotesSubClass, 0>>;
     using ValuedNoArgOvlNoteWrapperNotes = RareTs::remove_cvref_t<decltype(ValuedNoArgOvlNoteWrapperNotez::notes)>;
     using ValuedNoArgOvlNoteWrapperNote = std::remove_reference_t<std::tuple_element_t<0, ValuedNoArgOvlNoteWrapperNotes>>;
-    using ValuedNoArgOvlNoteWrapperDeduction = decltype(subAnnotationsType<ValuedNoArgOvlNoteWrapperNotez, 0>(std::make_index_sequence<std::tuple_size_v<typename ValuedNoArgOvlNoteWrapperNote::Notes>>()));
+    using ValuedNoArgOvlNoteWrapperDeduction = decltype(RareTs::Reflection::Annotations::detail::subAnnotationsType<ValuedNoArgOvlNoteWrapperNotez, 0>(std::make_index_sequence<std::tuple_size_v<typename ValuedNoArgOvlNoteWrapperNote::Notes>>()));
     isSame = std::is_same_v<ValuedNoArgOvlNoteWrapper, ValuedNoArgOvlNoteWrapperDeduction>;
     EXPECT_TRUE(isSame);
-    using ValuedIntArgOvlNoteWrapper = RareTs::AnnotationsType<RareTs::OverloadNotes<RareTs::Class::member_note_wrapper<ValuedSubNotesSubClass, 0>>, std::integral_constant<size_t, 2>, 0, 1, 2>;
-    using ValuedIntArgOvlNoteWrapperNotez = OverloadNotes<typename RareTs::Class::template member_note_wrapper<ValuedSubNotesSubClass, 0>>;
+    using ValuedIntArgOvlNoteWrapper = RareTs::AnnotationsType<RareTs::Functions::detail::OverloadNotes<RareTs::Class::member_note_wrapper<ValuedSubNotesSubClass, 0>>, std::integral_constant<size_t, 2>, 0, 1, 2>;
+    using ValuedIntArgOvlNoteWrapperNotez = RareTs::Functions::detail::OverloadNotes<typename RareTs::Class::template member_note_wrapper<ValuedSubNotesSubClass, 0>>;
     using ValuedIntArgOvlNoteWrapperNotes = RareTs::remove_cvref_t<decltype(ValuedIntArgOvlNoteWrapperNotez::notes)>;
     using ValuedIntArgOvlNoteWrapperNote = std::remove_reference_t<std::tuple_element_t<1, ValuedIntArgOvlNoteWrapperNotes>>;
-    using ValuedIntArgOvlNoteWrapperDeduction = decltype(subAnnotationsType<ValuedIntArgOvlNoteWrapperNotez, 2>(std::make_index_sequence<std::tuple_size_v<typename ValuedIntArgOvlNoteWrapperNote::Notes>>()));
+    using ValuedIntArgOvlNoteWrapperDeduction = decltype(RareTs::Reflection::Annotations::detail::subAnnotationsType<ValuedIntArgOvlNoteWrapperNotez, 2>(std::make_index_sequence<std::tuple_size_v<typename ValuedIntArgOvlNoteWrapperNote::Notes>>()));
     isSame = std::is_same_v<ValuedIntArgOvlNoteWrapper, ValuedIntArgOvlNoteWrapperDeduction>;
     EXPECT_TRUE(isSame);
 }
@@ -1101,21 +1101,21 @@ int & TestIsOverloaded::d = c;
 
 TEST(ReflectionTest, IsOverloaded)
 {
-    bool memberOverloaded = RareTs::isOverloaded<TestIsOverloaded, 0>;
+    bool memberOverloaded = RareTs::is_overloaded_v<TestIsOverloaded, 0>;
     EXPECT_FALSE(memberOverloaded);
-    memberOverloaded = RareTs::isOverloaded<TestIsOverloaded, 1>;
+    memberOverloaded = RareTs::is_overloaded_v<TestIsOverloaded, 1>;
     EXPECT_FALSE(memberOverloaded);
-    memberOverloaded = RareTs::isOverloaded<TestIsOverloaded, 2>;
+    memberOverloaded = RareTs::is_overloaded_v<TestIsOverloaded, 2>;
     EXPECT_FALSE(memberOverloaded);
-    memberOverloaded = RareTs::isOverloaded<TestIsOverloaded, 3>;
+    memberOverloaded = RareTs::is_overloaded_v<TestIsOverloaded, 3>;
     EXPECT_FALSE(memberOverloaded);
-    memberOverloaded = RareTs::isOverloaded<TestIsOverloaded, 4>;
+    memberOverloaded = RareTs::is_overloaded_v<TestIsOverloaded, 4>;
     EXPECT_FALSE(memberOverloaded);
-    memberOverloaded = RareTs::isOverloaded<TestIsOverloaded, 5>;
+    memberOverloaded = RareTs::is_overloaded_v<TestIsOverloaded, 5>;
     EXPECT_FALSE(memberOverloaded);
-    memberOverloaded = RareTs::isOverloaded<TestIsOverloaded, 6>;
+    memberOverloaded = RareTs::is_overloaded_v<TestIsOverloaded, 6>;
     EXPECT_TRUE(memberOverloaded);
-    memberOverloaded = RareTs::isOverloaded<TestIsOverloaded, 7>;
+    memberOverloaded = RareTs::is_overloaded_v<TestIsOverloaded, 7>;
     EXPECT_TRUE(memberOverloaded);
 }
 

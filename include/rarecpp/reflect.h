@@ -453,7 +453,8 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             template <template <typename...> class Of, typename Tuple>
             static constexpr const auto & get(const Tuple & tuple) {
                 constexpr size_t index = indexOfSpecialization<Of, Tuple>;
-                static_assert(index < std::tuple_size_v<Tuple>, "The given specialization \"Of\" does not appear in the tuple at any of the given indexes \"Is...\"");
+                static_assert(index < std::tuple_size_v<Tuple>,
+                    "The given specialization \"Of\" does not appear in the tuple at any of the given indexes \"Is...\"");
                 return std::get<index>(tuple);
             }
 
@@ -678,97 +679,183 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
     // Contains support for working with reflected members, the definition for the REFLECT macro and non-generic supporting macros
     inline namespace Reflection
     {
-        #define NOTE(member, ...) static inline constexpr auto member##_note { std::tuple { __VA_ARGS__ } };
+        inline namespace Annotations
+        {
+            #define NOTE(member, ...) static inline constexpr auto member##_note { std::tuple { __VA_ARGS__ } };
 
-        using NoNote = std::tuple<>;
+            using NoNote = std::tuple<>;
 
-        inline constexpr NoNote noNote {};
+            inline constexpr NoNote noNote {};
 
-        template <typename T> struct Proxy;
-    
-        template <typename T> struct unproxy { using type = T; };
-        template <typename T> struct unproxy<Proxy<T>> { using type = T; };
-        template <typename T> using unproxy_t = typename unproxy<T>::type;
-        
-        template <typename T, typename = void> struct is_proxied : std::false_type {};
-        template <typename T> struct is_proxied<T, std::void_t<decltype(Proxy<T>::Class::I_::N_)>> : std::true_type {};
-        template <typename T> inline constexpr bool is_proxied_v = is_proxied<T>::value;
+            template <class T, typename> struct sub_notes { static constexpr auto & value = T::notes; };
+            template <class T, size_t I> // T has "T::notes", notes with sub-notes have a non-static member "notes"
+            struct sub_notes<T, std::integral_constant<size_t, I>> { static constexpr auto & value = std::get<I>(T::notes).notes; };
+
+            template <typename Root, typename SubIndex = void, size_t ... Is> struct AnnotationsType
+            {
+                static constexpr auto & notes = sub_notes<Root, SubIndex>::value; // Annotation values
+                using Notes = RareTs::remove_cvref_t<decltype(notes)>; // Annotation types
+
+                template <typename Annotation>
+                static constexpr bool hasNote() { return (std::is_same_v<Annotation, std::tuple_element_t<Is, Notes>> || ...); }
+
+                template <template <typename ...> class Of>
+                static constexpr bool hasNote() { return (RareTs::is_specialization_v<std::tuple_element_t<Is, Notes>, Of> || ...); }
+
+                template <typename Annotation>
+                static constexpr auto & getNote() { return RareTs::Masked<Is...>::template get<Annotation, Notes>(notes); }
+
+                template <template <typename ...> class Of>
+                static constexpr auto & getNote() { return RareTs::Masked<Is...>::template get<Of>(notes); }
+
+                template <typename Function>
+                static constexpr void forEachNote(Function function) { (function(std::get<Is>(notes)), ...); }
+            
+                // function(annotation) [filtered to type 'Annotation']
+                template <typename Annotation, typename Function> static constexpr void forEachNote(Function && function) {
+                    RareTs::Masked<Is...>::template forEach<Annotation>(notes, std::forward<Function>(function));
+                }
+
+                // function(annotation) [filtered to annotations specializing 'Of']
+                template <template <typename ...> class Of, typename Function> static constexpr void forEachNote(Function && function) {
+                    RareTs::Masked<Is...>::template forEach<Of>(notes, std::forward<Function>(function));
+                }
+            };
+            template <typename Root, typename SubIndex> struct AnnotationsType<Root, SubIndex>
+            {
+                static constexpr auto & notes = RareTs::noNote; // Annotation values
+                using Notes = RareTs::NoNote; // Annotation types
+                template <typename Annotation> static constexpr bool hasNote() { return false; }
+                template <template <typename ...> class Of> static constexpr bool hasNote() { return false; }
+                template <typename Annotation> static constexpr auto & getNote() = delete;
+                template <template <typename ...> class Of> static constexpr auto & getNote() = delete;
+                template <typename Function> static constexpr void forEachNote(Function) {}
+                template <typename Annotation, typename Function> static constexpr void forEachNote(Function &&) {}
+                template <template <typename ...> class Of, typename Function> static constexpr void forEachNote(Function &&) {}
+            };
+
+            namespace detail {
+                template <typename Root, size_t ... Is>
+                constexpr AnnotationsType<Root, void, Is...> annotationsType(std::index_sequence<Is...>);
+
+                template <typename Root, size_t SubIndex, size_t ... Is>
+                constexpr AnnotationsType<Root, std::integral_constant<size_t, SubIndex>, Is...> subAnnotationsType(std::index_sequence<Is...>);
+            }
+        }
         
         enum class AccessMod {
             Public,
             Protected,
             Private
         };
-
-        template <class T, typename> struct sub_notes { static constexpr auto & value = T::notes; }; // T has "T::notes", notes with sub-notes have a non-static member "notes"
-        template <class T, size_t I> struct sub_notes<T, std::integral_constant<size_t, I>> { static constexpr auto & value = std::get<I>(T::notes).notes; };
-
-        template <typename Root, typename SubIndex = void, size_t ... Is> struct AnnotationsType
-        {
-            static constexpr auto & notes = sub_notes<Root, SubIndex>::value; // Annotation values
-            using Notes = RareTs::remove_cvref_t<decltype(notes)>; // Annotation types
-
-            template <typename Annotation>
-            static constexpr bool hasNote() { return (std::is_same_v<Annotation, std::tuple_element_t<Is, Notes>> || ...); }
-
-            template <template <typename ...> class Of>
-            static constexpr bool hasNote() { return (RareTs::is_specialization_v<std::tuple_element_t<Is, Notes>, Of> || ...); }
-
-            template <typename Annotation>
-            static constexpr auto & getNote() { return RareTs::Masked<Is...>::template get<Annotation, Notes>(notes); }
-
-            template <template <typename ...> class Of>
-            static constexpr auto & getNote() { return RareTs::Masked<Is...>::template get<Of>(notes); }
-
-            template <typename Function>
-            static constexpr void forEachNote(Function function) { (function(std::get<Is>(notes)), ...); }
-            
-            // function(annotation) [filtered to type 'Annotation']
-            template <typename Annotation, typename Function> static constexpr void forEachNote(Function && function) {
-                RareTs::Masked<Is...>::template forEach<Annotation>(notes, std::forward<Function>(function));
-            }
-
-            // function(annotation) [filtered to annotations specializing 'Of']
-            template <template <typename ...> class Of, typename Function> static constexpr void forEachNote(Function && function) {
-                RareTs::Masked<Is...>::template forEach<Of>(notes, std::forward<Function>(function));
-            }
-        };
-        template <typename Root, typename SubIndex> struct AnnotationsType<Root, SubIndex>
-        {
-            static constexpr auto & notes = RareTs::noNote; // Annotation values
-            using Notes = RareTs::NoNote; // Annotation types
-            template <typename Annotation> static constexpr bool hasNote() { return false; }
-            template <template <typename ...> class Of> static constexpr bool hasNote() { return false; }
-            template <typename Annotation> static constexpr auto & getNote() = delete;
-            template <template <typename ...> class Of> static constexpr auto & getNote() = delete;
-            template <typename Function> static constexpr void forEachNote(Function) {}
-            template <typename Annotation, typename Function> static constexpr void forEachNote(Function &&) {}
-            template <template <typename ...> class Of, typename Function> static constexpr void forEachNote(Function &&) {}
-        };
-
-        template <typename Root, size_t ... Is>
-        constexpr AnnotationsType<Root, void, Is...> annotationsType(std::index_sequence<Is...>);
-
-        template <typename Root, size_t SubIndex, size_t ... Is>
-        constexpr AnnotationsType<Root, std::integral_constant<size_t, SubIndex>, Is...> subAnnotationsType(std::index_sequence<Is...>);
-
-        template <typename T> constexpr void classType(T);
+        
+        template <typename T> struct Proxy;
+    
+        template <typename T, typename = void> struct is_proxied : std::false_type {};
+        template <typename T> struct is_proxied<T, std::void_t<decltype(Proxy<T>::Class::I_::N_)>> : std::true_type {};
+        template <typename T> inline constexpr bool is_proxied_v = is_proxied<T>::value;
 
         #ifdef __clang__
+        template <typename T> constexpr void classType(T);
+
         namespace detail {
             template <typename T, size_t MemberIndex>
             struct is_private_member : T
             {
                 template <class AlwaysVoid, template<class...> class Op, class... Args> struct op_exists { static constexpr bool value = false; };
-                template <template<class...> class Op, class... Args> struct op_exists<std::void_t<Op<Args...>>, Op, Args...> { static constexpr bool value = true; };
+                template <template<class...> class Op, class... Args>
+                struct op_exists<std::void_t<Op<Args...>>, Op, Args...> { static constexpr bool value = true; };
 
                 template <typename U = typename decltype(classType(RareTs::type_tag<RareTs::Proxy<RareTs::remove_cvref_t<T>>>{}))::template A_<MemberIndex, T>>
                 static constexpr bool value = !op_exists<void, U::template t, T>::value && !op_exists<void, U::template p, T>::value;
             };
         }
         #endif
+
         struct Class
         {
+            // These 5 structures are used as the defaults/fallbacks inside the REFLECT/REFLECT_NOTED macros for the various member component templates
+            struct NullptrType { using type = std::nullptr_t; };
+            struct EmptyComponent {
+                using type = void;
+                static constexpr std::nullptr_t p = nullptr;
+                template <typename T> static constexpr auto & s() { return p; }
+                template <typename T> static constexpr auto & i(T &&) { return p; }
+            };
+            struct NonPointable { static constexpr std::nullptr_t p = nullptr; };
+            struct NonNoted { static constexpr std::tuple notes{}; };
+            struct NoOffset { static constexpr size_t o() { return std::numeric_limits<size_t>::max(); }; };
+
+            template <typename T, typename R, typename ... Args>
+            struct OverloadIdentifier
+            {
+                template <size_t i, typename = std::remove_reference_t<T>> struct Quals;
+                template <typename D> struct Quals<0, D> {
+                    static constexpr auto of(R(*p)(Args...)) { return p; }
+                    static constexpr auto of(R(*p)(Args...) noexcept) { return p; }
+                    static constexpr auto of(R(D::*p)(Args...)) { return p; };
+                    static constexpr auto of(R(D::*p)(Args...) noexcept) { return p; };
+                };
+                template <typename D> struct Quals<1, D> {
+                    static constexpr auto of(R(D::*p)(Args...) const) { return p; };
+                    static constexpr auto of(R(D::*p)(Args...) const noexcept) { return p; };
+                };
+                template <typename D> struct Quals<2, D> {
+                    static constexpr auto of(R(D::*p)(Args...) volatile) { return p; };
+                    static constexpr auto of(R(D::*p)(Args...) volatile noexcept) { return p; };
+                };
+                template <typename D> struct Quals<3, D> {
+                    static constexpr auto of(R(D::*p)(Args...) const volatile) { return p; };
+                    static constexpr auto of(R(D::*p)(Args...) const volatile noexcept) { return p; };
+                };
+                template <typename D> struct Quals<4, D> {
+                    static constexpr auto of(R(D::*p)(Args...) &) { return p; };
+                    static constexpr auto of(R(D::*p)(Args...) & noexcept) { return p; };
+                };
+                template <typename D> struct Quals<5, D> {
+                    static constexpr auto of(R(D::*p)(Args...) const &) { return p; };
+                    static constexpr auto of(R(D::*p)(Args...) const & noexcept) { return p; };
+                };
+                template <typename D> struct Quals<6, D> {
+                    static constexpr auto of(R(D::*p)(Args...) volatile &) { return p; };
+                    static constexpr auto of(R(D::*p)(Args...) volatile & noexcept) { return p; };
+                };
+                template <typename D> struct Quals<7, D> {
+                    static constexpr auto of(R(D::*p)(Args...) const volatile &) { return p; }; 
+                    static constexpr auto of(R(D::*p)(Args...) const volatile & noexcept) { return p; }; 
+                };
+                template <typename D> struct Quals<8, D> {
+                    static constexpr auto of(R(D::*p)(Args...) &&) { return p; };
+                    static constexpr auto of(R(D::*p)(Args...) && noexcept) { return p; };
+                };
+                template <typename D> struct Quals<9, D> {
+                    static constexpr auto of(R(D::*p)(Args...) const &&) { return p; };
+                    static constexpr auto of(R(D::*p)(Args...) const && noexcept) { return p; };
+                };
+                template <typename D> struct Quals<10, D> {
+                    static constexpr auto of(R(D::*p)(Args...) volatile &&) { return p; };
+                    static constexpr auto of(R(D::*p)(Args...) volatile && noexcept) { return p; };
+                };
+                template <typename D> struct Quals<11, D> {
+                    static constexpr auto of(R(D::*p)(Args...) const volatile &&) { return p; };
+                    static constexpr auto of(R(D::*p)(Args...) const volatile && noexcept) { return p; };
+                };
+    
+                using Id = Quals<(std::is_rvalue_reference_v<T> ? 8 : (std::is_lvalue_reference_v<T> ? 4 : 0))
+                    + (std::is_volatile_v<std::remove_reference_t<T>> ? 2 : 0) + std::is_const_v<std::remove_reference_t<T>>>;
+            };
+
+            template <typename T> struct unproxy { using type = T; };
+            template <typename T> struct unproxy<Proxy<T>> { using type = T; };
+            template <typename T> using unproxy_t = typename unproxy<T>::type;
+
+            template <typename T, typename=typename T::type, typename=typename T::Notes, typename=decltype(T::index)>
+            static constexpr std::true_type typeIsMember(int);
+            template <typename T> static constexpr std::false_type typeIsMember(unsigned int);
+
+            template <template <typename...> class Filter, typename ...Ts> static constexpr Filter<Ts...> filterResult(int);
+            template <template <typename...> class Filter, typename T, typename ...Ts> static constexpr std::false_type filterResult(unsigned);
+
             #if !defined(__clang__)
             template <class T, class=void> struct clazz { using type = void; };
             template <class T> struct clazz<T, std::void_t<typename T::Class>> { using type = typename T::Class; };
@@ -800,7 +887,8 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             template <typename T, size_t ... Is> using member_types = std::tuple<typename class_t<T>::template F_<Is>::type...>;
             template <typename T, size_t ... Is> using member_pointer_types = std::tuple<typename class_t<T>::template Q_<Is>::type...>;
             template <typename T, size_t ... Is> static constexpr auto member_names { class_t<T>::template N_<Is>::n... };
-            template <typename T, size_t ... Is> static constexpr std::string_view member_type_names[] { RareTs::toStr<typename class_t<T>::template F_<Is>::type>()... };
+            template <typename T, size_t ... Is>
+            static constexpr std::string_view member_type_names[] { RareTs::toStr<typename class_t<T>::template F_<Is>::type>()... };
             template <typename T, size_t ... Is> static constexpr auto member_pointers = std::tuple { class_t<T>::template P_<Is>::p... };
             template <typename T, size_t ... Is> static constexpr size_t member_offsets[] = { class_t<T>::template O_<Is>::o()... };
             template <typename T, size_t ... Is> static constexpr auto member_notes = std::forward_as_tuple( class_t<T>::template E_<Is>::notes... );
@@ -902,7 +990,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             template <typename T> using class_notes_t = typename class_notes_type_defaulted<T>::type;
 
             template <typename T, size_t MemberIndex> using MemberAnnotationsType = decltype(
-                annotationsType<typename RareTs::Class::template member_note_wrapper<T, MemberIndex>>(
+                RareTs::Reflection::Annotations::detail::template annotationsType<typename RareTs::Class::template member_note_wrapper<T, MemberIndex>>(
                     std::make_index_sequence<RareTs::Class::template member_note_count<T, MemberIndex>>()));
 
             #ifdef __clang__
@@ -948,33 +1036,35 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
         template <typename T> using is_reflected = typename Class::is_reflected<T>;
         template <typename T> inline constexpr bool is_reflected_v = is_reflected<T>::value;
 
-        template <typename T, typename=typename T::type, typename=typename T::Notes, typename=decltype(T::index)> constexpr std::true_type typeIsMember(int);
-        template <typename T> constexpr std::false_type typeIsMember(unsigned int);
-
-        template <typename T> struct is_member { static constexpr bool value = decltype(typeIsMember<T>(0))::value; };
+        template <typename T> struct is_member { static constexpr bool value = decltype(RareTs::Class::typeIsMember<T>(0))::value; };
         template <typename T> inline constexpr bool is_member_v = is_member<T>::value;
         
         template <typename T> using enable_if_member_t = std::enable_if_t<is_member_v<T>>;
-    
-        template <template <typename...> class Filter, typename ...Ts> constexpr Filter<Ts...> filterResult(int);
-        template <template <typename...> class Filter, typename T, typename ...Ts> constexpr std::false_type filterResult(unsigned);
 
         /** filter_result uses Filter<Member, Ts...> if it results in a valid expression, otherwise it uses Filter<Member::type, Ts...>
             This allows the filter to be based on member metadata (e.g. whether a variable is static), or operate purely on the member type */
-        template <template <typename...> class Filter, typename Member, typename ...Ts> struct passes_filter :
-            std::bool_constant<decltype(filterResult<Filter, Member, Ts...>(0))::value || decltype(filterResult<Filter, typename Member::type, Ts...>(0))::value> {};
-        template <template <typename...> class Filter, typename T, typename ...Ts> inline constexpr bool passes_filter_v = passes_filter<Filter, T, Ts...>::value;
+        template <template <typename...> class Filter, typename Member, typename ...Ts> struct passes_filter : std::bool_constant<
+            decltype(RareTs::Class::filterResult<Filter, Member, Ts...>(0))::value ||
+            decltype(RareTs::Class::filterResult<Filter, typename Member::type, Ts...>(0))::value> {};
+
+        template <template <typename...> class Filter, typename T, typename ...Ts>
+        inline constexpr bool passes_filter_v = passes_filter<Filter, T, Ts...>::value;
 
         struct Filter {
             template <typename Member, typename = enable_if_member_t<Member>> struct None : std::true_type {};
-            template <typename Member, typename = enable_if_member_t<Member>> struct IsData : std::bool_constant<Member::isData> {}; // Data is defined as non-functions (raw data, pointers, references)
+            template <typename Member, typename = enable_if_member_t<Member>>
+            struct IsData : std::bool_constant<Member::isData> {}; // Data is defined as non-functions (raw data, pointers, references)
             template <typename Member, typename = enable_if_member_t<Member>> struct IsFunction : std::bool_constant<Member::isFunction> {};
             template <typename Member, typename = enable_if_member_t<Member>> struct IsInstanceMember : std::bool_constant<!Member::isStatic> {};
             template <typename Member, typename = enable_if_member_t<Member>> struct IsStaticMember: std::bool_constant<Member::isStatic> {};
-            template <typename Member, typename = enable_if_member_t<Member>> struct IsInstanceData : std::bool_constant<!Member::isStatic && Member::isData> {};
-            template <typename Member, typename = enable_if_member_t<Member>> struct IsInstanceFunction : std::bool_constant<!Member::isStatic && Member::isFunction> {};
-            template <typename Member, typename = enable_if_member_t<Member>> struct IsStaticData : std::bool_constant<Member::isStatic && Member::isData> {};
-            template <typename Member, typename = enable_if_member_t<Member>> struct IsStaticFunction : std::bool_constant<Member::isStatic && Member::isFunction> {};
+            template <typename Member, typename = enable_if_member_t<Member>>
+            struct IsInstanceData : std::bool_constant<!Member::isStatic && Member::isData> {};
+            template <typename Member, typename = enable_if_member_t<Member>>
+            struct IsInstanceFunction : std::bool_constant<!Member::isStatic && Member::isFunction> {};
+            template <typename Member, typename = enable_if_member_t<Member>>
+            struct IsStaticData : std::bool_constant<Member::isStatic && Member::isData> {};
+            template <typename Member, typename = enable_if_member_t<Member>>
+            struct IsStaticFunction : std::bool_constant<Member::isStatic && Member::isFunction> {};
 		
             template <template <typename...> class Of> struct Is {
                 template <typename Member, typename = enable_if_member_t<Member>> struct Specialization : std::bool_constant<
@@ -1008,8 +1098,10 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             template <typename T, typename ...Ts> struct is_super<NotedSuper<T, Ts...>> { static constexpr bool value = true; };
             template <typename T> inline constexpr bool is_super_v = is_super<T>::value;
 
-            template <typename T> struct SuperNotes { static constexpr auto notes = RareTs::referenceTuple<is_super>(RareTs::Class::class_notes<T>); };
-            template <typename T> inline constexpr size_t superNoteCount = std::tuple_size_v<std::remove_const_t<decltype(SuperNotes<T>::notes)>>;
+            namespace detail {
+                template <typename T> struct SuperNotes { static constexpr auto notes = RareTs::referenceTuple<is_super>(RareTs::Class::class_notes<T>); };
+                template <typename T> inline constexpr size_t superNoteCount = std::tuple_size_v<std::remove_const_t<decltype(SuperNotes<T>::notes)>>;
+            }
 
             template <size_t SuperIndex, typename SuperType, typename Notes> struct SuperInfo : Notes
             {
@@ -1019,13 +1111,14 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             
             template <typename SubClass, size_t ... Is> class Inherit
             {
-                using Notez = SuperNotes<SubClass>;
+                using Notez = detail::SuperNotes<SubClass>;
                 using Notes = RareTs::remove_cvref_t<decltype(Notez::notes)>;
 
             public:
                 template <size_t I> using SuperType = typename RareTs::remove_cvref_t<std::tuple_element_t<I, Notes>>::type;
-                template <size_t I> using SuperInfo = Inheritance::SuperInfo<I, SuperType<I>, decltype(subAnnotationsType<Notez, I>(
-                        std::make_index_sequence<std::tuple_size_v<typename std::remove_reference_t<std::tuple_element_t<I, Notes>>::Notes>>()))>;
+                template <size_t I> using SuperInfo = Inheritance::SuperInfo<I, SuperType<I>, decltype(
+                    RareTs::Reflection::Annotations::detail::subAnnotationsType<Notez, I>(std::make_index_sequence<std::tuple_size_v<
+                        typename std::remove_reference_t<std::tuple_element_t<I, Notes>>::Notes>>()))>;
                 
                 static constexpr size_t total = sizeof...(Is);
                     
@@ -1095,13 +1188,18 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
                 template <typename Function, typename U> static constexpr void superAt(size_t, U &&, Function) {}
             };
 
-            template <typename SubClass, size_t ... Is> constexpr Inherit<SubClass, Is...> inherit(std::index_sequence<Is...>);
+            namespace detail {
+                template <typename SubClass, size_t ... Is> constexpr Inherit<SubClass, Is...> inherit(std::index_sequence<Is...>);
+            }
         }
 
         inline namespace Functions
         {
-            template <typename T, size_t I> inline constexpr bool isOverloaded = std::is_void_v<RareTs::Class::template member_type<T, I>> &&
-                std::is_null_pointer_v<RareTs::Class::template member_pointer_type<T, I>>;
+            template <typename T, size_t I> struct is_overloaded {
+                static constexpr bool value = std::is_void_v<RareTs::Class::template member_type<T, I>> &&
+                    std::is_null_pointer_v<RareTs::Class::template member_pointer_type<T, I>>;
+            };
+            template <typename T, size_t I> inline constexpr bool is_overloaded_v = is_overloaded<T, I>::value;
 
             template <typename ArgTypes, typename ... Ts> struct NotedOverload {
                 using ArgumentTypes = ArgTypes;
@@ -1121,8 +1219,16 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
 
             template <typename ... Ts> inline constexpr OverloadType<Ts...> Overload{};
 
+            template <typename T> struct is_overload_note : std::bool_constant<
+                RareTs::is_specialization_v<T, OverloadType> || RareTs::is_specialization_v<T, NotedOverload>> {};
+
             namespace detail
             {
+                template <typename Member> struct OverloadNotes { static constexpr auto notes = RareTs::referenceTuple<is_overload_note>(Member::notes); };
+
+                template <typename Member> inline constexpr size_t overloadNoteCount =
+                    std::tuple_size_v<std::remove_const_t<decltype(OverloadNotes<Member>::notes)>>;
+
                 template <typename F, typename ... Ts> constexpr F returnType(F(*&&)(Ts...));
                 template <typename T, typename F, typename ... Ts> constexpr F returnType(F(T::*&&)(Ts...));
                 template <typename T, typename F, typename ... Ts> constexpr F returnType(F(T::*&&)(Ts...) const);
@@ -1137,18 +1243,30 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
                 template <typename T, typename F, typename ... Ts> constexpr F returnType(F(T::*&&)(Ts...) volatile &&);
                 template <typename T, typename F, typename ... Ts> constexpr F returnType(F(T::*&&)(Ts...) const volatile &&);
                 template <size_t I, typename F, typename ... Ts> constexpr std::tuple_element_t<I, std::tuple<Ts...>> argument(F(*&&)(Ts...));
-                template <size_t I, typename T, typename F, typename ... Ts> constexpr std::tuple_element_t<I, std::tuple<Ts...>> argument(F(T::*&&)(Ts...));
-                template <size_t I, typename T, typename F, typename ... Ts> constexpr std::tuple_element_t<I, std::tuple<Ts...>> argument(F(T::*&&)(Ts...) const);
-                template <size_t I, typename T, typename F, typename ... Ts> constexpr std::tuple_element_t<I, std::tuple<Ts...>> argument(F(T::*&&)(Ts...) volatile);
-                template <size_t I, typename T, typename F, typename ... Ts> constexpr std::tuple_element_t<I, std::tuple<Ts...>> argument(F(T::*&&)(Ts...) const volatile);
-                template <size_t I, typename T, typename F, typename ... Ts> constexpr std::tuple_element_t<I, std::tuple<Ts...>> argument(F(T::*&&)(Ts...) &);
-                template <size_t I, typename T, typename F, typename ... Ts> constexpr std::tuple_element_t<I, std::tuple<Ts...>> argument(F(T::*&&)(Ts...) const &);
-                template <size_t I, typename T, typename F, typename ... Ts> constexpr std::tuple_element_t<I, std::tuple<Ts...>> argument(F(T::*&&)(Ts...) volatile &);
-                template <size_t I, typename T, typename F, typename ... Ts> constexpr std::tuple_element_t<I, std::tuple<Ts...>> argument(F(T::*&&)(Ts...) const volatile &);
-                template <size_t I, typename T, typename F, typename ... Ts> constexpr std::tuple_element_t<I, std::tuple<Ts...>> argument(F(T::*&&)(Ts...) &&);
-                template <size_t I, typename T, typename F, typename ... Ts> constexpr std::tuple_element_t<I, std::tuple<Ts...>> argument(F(T::*&&)(Ts...) const &&);
-                template <size_t I, typename T, typename F, typename ... Ts> constexpr std::tuple_element_t<I, std::tuple<Ts...>> argument(F(T::*&&)(Ts...) volatile &&);
-                template <size_t I, typename T, typename F, typename ... Ts> constexpr std::tuple_element_t<I, std::tuple<Ts...>> argument(F(T::*&&)(Ts...) const volatile &&);
+                template <size_t I, typename T, typename F, typename ... Ts> constexpr std::tuple_element_t<I, std::tuple<Ts...>>
+                    argument(F(T::*&&)(Ts...));
+                template <size_t I, typename T, typename F, typename ... Ts> constexpr std::tuple_element_t<I, std::tuple<Ts...>>
+                    argument(F(T::*&&)(Ts...) const);
+                template <size_t I, typename T, typename F, typename ... Ts> constexpr std::tuple_element_t<I, std::tuple<Ts...>>
+                    argument(F(T::*&&)(Ts...) volatile);
+                template <size_t I, typename T, typename F, typename ... Ts> constexpr std::tuple_element_t<I, std::tuple<Ts...>>
+                    argument(F(T::*&&)(Ts...) const volatile);
+                template <size_t I, typename T, typename F, typename ... Ts> constexpr std::tuple_element_t<I, std::tuple<Ts...>>
+                    argument(F(T::*&&)(Ts...) &);
+                template <size_t I, typename T, typename F, typename ... Ts> constexpr std::tuple_element_t<I, std::tuple<Ts...>>
+                    argument(F(T::*&&)(Ts...) const &);
+                template <size_t I, typename T, typename F, typename ... Ts> constexpr std::tuple_element_t<I, std::tuple<Ts...>>
+                    argument(F(T::*&&)(Ts...) volatile &);
+                template <size_t I, typename T, typename F, typename ... Ts> constexpr std::tuple_element_t<I, std::tuple<Ts...>>
+                    argument(F(T::*&&)(Ts...) const volatile &);
+                template <size_t I, typename T, typename F, typename ... Ts> constexpr std::tuple_element_t<I, std::tuple<Ts...>>
+                    argument(F(T::*&&)(Ts...) &&);
+                template <size_t I, typename T, typename F, typename ... Ts> constexpr std::tuple_element_t<I, std::tuple<Ts...>>
+                    argument(F(T::*&&)(Ts...) const &&);
+                template <size_t I, typename T, typename F, typename ... Ts> constexpr std::tuple_element_t<I, std::tuple<Ts...>>
+                    argument(F(T::*&&)(Ts...) volatile &&);
+                template <size_t I, typename T, typename F, typename ... Ts> constexpr std::tuple_element_t<I, std::tuple<Ts...>>
+                    argument(F(T::*&&)(Ts...) const volatile &&);
                 template <typename F, typename ... Ts> constexpr std::tuple<Ts...> arguments(F(*&&)(Ts...));
                 template <typename T, typename F, typename ... Ts> constexpr std::tuple<Ts...> arguments(F(T::*&&)(Ts...));
                 template <typename T, typename F, typename ... Ts> constexpr std::tuple<Ts...> arguments(F(T::*&&)(Ts...) const);
@@ -1247,60 +1365,62 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
                 }
             };
 
-            template <typename ... Ts> struct ResolveQualified // ResolveQualified models compiler overload resolution for a given class qualification
-            {
-                using InputQualifications = std::tuple<Ts...>;
-
-                template <size_t MemberIndex, typename ... Args>
-                struct Overload
+            namespace detail {
+                template <typename ... Ts> struct ResolveQualified // ResolveQualified models compiler overload resolution for a given class qualification
                 {
-                    template <typename Q> struct qualification_exists {
-                    #ifdef __INTELLISENSE__
-                        static constexpr bool value = RareTs::op_exists_v< // This doesn't work with the way clang does friends, but helps with intellisense
-                            RareTs::Class::class_t<RareTs::remove_cvref_t<Q>>::template L_<MemberIndex, Args...>::template W_, Q>;
-                    #else
-                        static constexpr bool value = !std::is_null_pointer_v<
-                            typename RareTs::Class::template overload<Args...>::template pointer_type<Q, MemberIndex>>;
-                    #endif
+                    using InputQualifications = std::tuple<Ts...>;
+
+                    template <size_t MemberIndex, typename ... Args>
+                    struct Overload
+                    {
+                        template <typename Q> struct qualification_exists {
+                        #ifdef __INTELLISENSE__
+                            static constexpr bool value = RareTs::op_exists_v< // This doesn't work with how clang does friends, but helps with intellisense
+                                RareTs::Class::class_t<RareTs::remove_cvref_t<Q>>::template L_<MemberIndex, Args...>::template W_, Q>;
+                        #else
+                            static constexpr bool value = !std::is_null_pointer_v<
+                                typename RareTs::Class::template overload<Args...>::template pointer_type<Q, MemberIndex>>;
+                        #endif
+                        };
+                        using QualificationMask = typename RareTs::type_mask<qualification_exists, Ts...>::indexes;
+                        template <typename F, size_t ... Is> static constexpr decltype(auto) pack(F f, std::index_sequence<Is...>) {
+                            using ovl = typename RareTs::Class::template overload<Args...>;
+                            return f(ovl::template pointer<std::tuple_element_t<Is, InputQualifications>, MemberIndex>...);
+                        }
+                        template <typename F> static constexpr decltype(auto) pack(F && f) {
+                            return pack(std::forward<F>(f), QualificationMask{});
+                        }
+                        static constexpr auto pointers = pack([](auto ... ptr) { // All overloads that could be called for object of qualified type T with Args
+                            return std::tuple { ptr... };
+                        }, QualificationMask{});
+                        static constexpr auto pointer = [](){
+                            if constexpr ( std::tuple_size_v<decltype(pointers)> > 0 )
+                                return std::get<0>(pointers);
+                            else
+                                return nullptr;
+                        }();
+                        using pointer_type = RareTs::remove_cvref_t<decltype(pointer)>;
                     };
-                    using QualificationMask = typename RareTs::type_mask<qualification_exists, Ts...>::indexes;
-                    template <typename F, size_t ... Is> static constexpr decltype(auto) pack(F f, std::index_sequence<Is...>) {
-                        using ovl = typename RareTs::Class::template overload<Args...>;
-                        return f(ovl::template pointer<std::tuple_element_t<Is, InputQualifications>, MemberIndex>...);
-                    }
-                    template <typename F> static constexpr decltype(auto) pack(F && f) {
-                        return pack(std::forward<F>(f), QualificationMask{});
-                    }
-                    static constexpr auto pointers = pack([](auto ... ptr) { // All overloads that could be called for an object of qualified type T with Args
-                        return std::tuple { ptr... };
-                    }, QualificationMask{});
-                    static constexpr auto pointer = [](){
-                        if constexpr ( std::tuple_size_v<decltype(pointers)> > 0 )
-                            return std::get<0>(pointers);
-                        else
-                            return nullptr;
-                    }();
-                    using pointer_type = RareTs::remove_cvref_t<decltype(pointer)>;
                 };
-            };
-            template <typename T> struct ResolveQualified<T> : ResolveQualified<
-                T, const T, volatile T, const volatile T, T &, const T &, volatile T &, const volatile T &> {};
-            template <typename T> struct ResolveQualified<const T> : ResolveQualified<const T, const volatile T, const T &, const volatile T &> {};
-            template <typename T> struct ResolveQualified<volatile T> : ResolveQualified<volatile T, const volatile T, volatile T &, const volatile T &> {};
-            template <typename T> struct ResolveQualified<const volatile T> : ResolveQualified<const volatile T, const volatile T &> {};
-            template <typename T> struct ResolveQualified<T &> : ResolveQualified<
-                T, const T, volatile T, const volatile T, T &, const T &, volatile T &, const volatile T &> {};
-            template <typename T> struct ResolveQualified<const T &> : ResolveQualified<const T, const volatile T, const T &, const volatile T &> {};
-            template <typename T> struct ResolveQualified<volatile T &> : ResolveQualified<
-                volatile T, const volatile T, volatile T &, const volatile T &> {};
-            template <typename T> struct ResolveQualified<const volatile T &> : ResolveQualified<const volatile T, const volatile T &> {};
-            template <typename T> struct ResolveQualified<T &&> : ResolveQualified<
-                T, const T, volatile T, const volatile T, T &&, const T &&, volatile T &&, const volatile T &&, const T &> {};
-            template <typename T> struct ResolveQualified<const T &&> : ResolveQualified<
-                const T, const volatile T, const T &&, const volatile T &&, const T &> {};
-            template <typename T> struct ResolveQualified<volatile T &&> : ResolveQualified<
-                volatile T, const volatile T, volatile T &&, const volatile T &&> {};
-            template <typename T> struct ResolveQualified<const volatile T &&> : ResolveQualified<const volatile T, const volatile T &&> {};
+                template <typename T> struct ResolveQualified<T> : ResolveQualified<
+                    T, const T, volatile T, const volatile T, T &, const T &, volatile T &, const volatile T &> {};
+                template <typename T> struct ResolveQualified<const T> : ResolveQualified<const T, const volatile T, const T &, const volatile T &> {};
+                template <typename T> struct ResolveQualified<volatile T> : ResolveQualified<volatile T, const volatile T, volatile T &, const volatile T &>{};
+                template <typename T> struct ResolveQualified<const volatile T> : ResolveQualified<const volatile T, const volatile T &> {};
+                template <typename T> struct ResolveQualified<T &> : ResolveQualified<
+                    T, const T, volatile T, const volatile T, T &, const T &, volatile T &, const volatile T &> {};
+                template <typename T> struct ResolveQualified<const T &> : ResolveQualified<const T, const volatile T, const T &, const volatile T &> {};
+                template <typename T> struct ResolveQualified<volatile T &> : ResolveQualified<
+                    volatile T, const volatile T, volatile T &, const volatile T &> {};
+                template <typename T> struct ResolveQualified<const volatile T &> : ResolveQualified<const volatile T, const volatile T &> {};
+                template <typename T> struct ResolveQualified<T &&> : ResolveQualified<
+                    T, const T, volatile T, const volatile T, T &&, const T &&, volatile T &&, const volatile T &&, const T &> {};
+                template <typename T> struct ResolveQualified<const T &&> : ResolveQualified<
+                    const T, const volatile T, const T &&, const volatile T &&, const T &> {};
+                template <typename T> struct ResolveQualified<volatile T &&> : ResolveQualified<
+                    volatile T, const volatile T, volatile T &&, const volatile T &&> {};
+                template <typename T> struct ResolveQualified<const volatile T &&> : ResolveQualified<const volatile T, const volatile T &&> {};
+            }
             
             template <typename F, typename ... Args> struct is_instance_method {
                 template <typename R> static constexpr std::false_type id(R(*&&)(Args...));
@@ -1323,7 +1443,8 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
                 template <typename Q = void> using pointer_type = typename RareTs::Class::template overload<Args...>::template pointer_type<Q, MemberIndex>;
                 
                 // Returns the overload pointer type which would be resolved by the compiler if calling the method on qualified-object-type Q
-                template <typename Q> using resolve_pointer_type = typename ResolveQualified<Q>::template Overload<MemberIndex, Args...>::pointer_type;
+                template <typename Q> using resolve_pointer_type =
+                    typename Functions::detail::ResolveQualified<Q>::template Overload<MemberIndex, Args...>::pointer_type;
 
                 static constexpr size_t memberIndex = MemberIndex;
                 static constexpr bool isStatic = !RareTs::is_instance_method_v<pointer_type<Class>, Args...>;
@@ -1332,10 +1453,11 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
                 template <typename Q = void> static constexpr auto pointer = RareTs::Class::template overload<Args...>::template pointer<Q, MemberIndex>;
 
                 // Returns the overload pointer which would be resolved by the compiler if calling the method on qualified-object-type Q
-                template <typename Q> static constexpr auto resolvePointer = ResolveQualified<Q>::template Overload<MemberIndex, Args...>::pointer;
+                template <typename Q> static constexpr auto resolvePointer =
+                    Functions::detail::ResolveQualified<Q>::template Overload<MemberIndex, Args...>::pointer;
 
-                static constexpr auto pointers = ResolveQualified<Class, const Class, volatile Class, const volatile Class, Class &, const Class &,
-                    volatile Class &, const volatile Class &, Class &&, const Class &&, volatile Class &&, const volatile Class &&>
+                static constexpr auto pointers = Functions::detail::ResolveQualified<Class, const Class, volatile Class, const volatile Class, Class &,
+                    const Class &, volatile Class &, const volatile Class &, Class &&, const Class &&, volatile Class &&, const volatile Class &&>
                     ::template Overload<MemberIndex, Args...>::pointers;
 
                 using pointer_types = std::remove_const_t<decltype(pointers)>;
@@ -1343,82 +1465,17 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
                 static constexpr size_t totalQualifications = std::tuple_size_v<pointer_types>; // The total unique qualifications for this overload with args
             };
 
-            template <typename T, typename R, typename ... Args>
-            struct OverloadIdentifier
-            {
-                template <size_t i, typename = std::remove_reference_t<T>> struct Quals;
-                template <typename D> struct Quals<0, D> {
-                    static constexpr auto of(R(*p)(Args...)) { return p; }
-                    static constexpr auto of(R(*p)(Args...) noexcept) { return p; }
-                    static constexpr auto of(R(D::*p)(Args...)) { return p; };
-                    static constexpr auto of(R(D::*p)(Args...) noexcept) { return p; };
-                };
-                template <typename D> struct Quals<1, D> {
-                    static constexpr auto of(R(D::*p)(Args...) const) { return p; };
-                    static constexpr auto of(R(D::*p)(Args...) const noexcept) { return p; };
-                };
-                template <typename D> struct Quals<2, D> {
-                    static constexpr auto of(R(D::*p)(Args...) volatile) { return p; };
-                    static constexpr auto of(R(D::*p)(Args...) volatile noexcept) { return p; };
-                };
-                template <typename D> struct Quals<3, D> {
-                    static constexpr auto of(R(D::*p)(Args...) const volatile) { return p; };
-                    static constexpr auto of(R(D::*p)(Args...) const volatile noexcept) { return p; };
-                };
-                template <typename D> struct Quals<4, D> {
-                    static constexpr auto of(R(D::*p)(Args...) &) { return p; };
-                    static constexpr auto of(R(D::*p)(Args...) & noexcept) { return p; };
-                };
-                template <typename D> struct Quals<5, D> {
-                    static constexpr auto of(R(D::*p)(Args...) const &) { return p; };
-                    static constexpr auto of(R(D::*p)(Args...) const & noexcept) { return p; };
-                };
-                template <typename D> struct Quals<6, D> {
-                    static constexpr auto of(R(D::*p)(Args...) volatile &) { return p; };
-                    static constexpr auto of(R(D::*p)(Args...) volatile & noexcept) { return p; };
-                };
-                template <typename D> struct Quals<7, D> {
-                    static constexpr auto of(R(D::*p)(Args...) const volatile &) { return p; }; 
-                    static constexpr auto of(R(D::*p)(Args...) const volatile & noexcept) { return p; }; 
-                };
-                template <typename D> struct Quals<8, D> {
-                    static constexpr auto of(R(D::*p)(Args...) &&) { return p; };
-                    static constexpr auto of(R(D::*p)(Args...) && noexcept) { return p; };
-                };
-                template <typename D> struct Quals<9, D> {
-                    static constexpr auto of(R(D::*p)(Args...) const &&) { return p; };
-                    static constexpr auto of(R(D::*p)(Args...) const && noexcept) { return p; };
-                };
-                template <typename D> struct Quals<10, D> {
-                    static constexpr auto of(R(D::*p)(Args...) volatile &&) { return p; };
-                    static constexpr auto of(R(D::*p)(Args...) volatile && noexcept) { return p; };
-                };
-                template <typename D> struct Quals<11, D> {
-                    static constexpr auto of(R(D::*p)(Args...) const volatile &&) { return p; };
-                    static constexpr auto of(R(D::*p)(Args...) const volatile && noexcept) { return p; };
-                };
-    
-                using Id = Quals<(std::is_rvalue_reference_v<T> ? 8 : (std::is_lvalue_reference_v<T> ? 4 : 0))
-                    + (std::is_volatile_v<std::remove_reference_t<T>> ? 2 : 0) + std::is_const_v<std::remove_reference_t<T>>>;
-            };
-
-            template <typename T> struct is_overload_note : std::bool_constant<
-                RareTs::is_specialization_v<T, OverloadType> || RareTs::is_specialization_v<T, NotedOverload>> {};
-
-            template <typename Member> struct OverloadNotes { static constexpr auto notes = RareTs::referenceTuple<is_overload_note>(Member::notes); };
-
-            template <typename Member> inline constexpr size_t overloadNoteCount = std::tuple_size_v<std::remove_const_t<decltype(OverloadNotes<Member>::notes)>>;
-
             template <typename T, size_t MemberIndex, typename MemberNotes, size_t ... Is>
             class KnownOverloads
             {
-                using Notes = OverloadNotes<MemberNotes>;
+                using Notes = detail::OverloadNotes<MemberNotes>;
                 template <size_t I> using OvlNote = std::remove_reference_t<std::tuple_element_t<I, RareTs::remove_cvref_t<decltype(Notes::notes)>>>;
 
-                template <typename Q, typename ... Args> using ResolveQual = typename ResolveQualified<Q>::template Overload<MemberIndex, Args...>;
+                template <typename Q, typename ... Args> using ResolveQual = typename detail::ResolveQualified<Q>::template Overload<MemberIndex, Args...>;
 
-                template <typename ... Args> using AllQualifications = typename ResolveQualified<T, const T, volatile T, const volatile T, T &, const T &,
-                    volatile T &, const volatile T &, T &&, const T &&, volatile T &&, const volatile T &&>::template Overload<MemberIndex, Args...>;
+                template <typename ... Args> using AllQualifications = typename detail::ResolveQualified<T, const T, volatile T, const volatile T, T &,
+                    const T &, volatile T &, const volatile T &, T &&, const T &&, volatile T &&, const volatile T &&>
+                    ::template Overload<MemberIndex, Args...>;
             
                 template <typename Q, typename ... Args> struct ptr {
                     using pointer_type = typename RareTs::Class::template overload<Args...>::template pointer_type<Q, MemberIndex>;
@@ -1428,7 +1485,8 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
 
                 template <typename Q, size_t Ovl> struct Qualified
                 { // Note that intellisense (vs2019) is VERY touchy about this section of code, changes must be checked carefully
-                    using Notez = decltype(subAnnotationsType<Notes, Ovl>(std::make_index_sequence<std::tuple_size_v<typename OvlNote<Ovl>::Notes>>()));
+                    using Notez = decltype(RareTs::Reflection::Annotations::detail::template subAnnotationsType<Notes, Ovl>(
+                        std::make_index_sequence<std::tuple_size_v<typename OvlNote<Ovl>::Notes>>()));
 
                     template <typename Ptr, typename ... Args> struct Overload : Notez, Function<typename Ptr::pointer_type> {
                         static constexpr size_t index = Ovl;
@@ -1444,7 +1502,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
                 };
             
                 template <typename Q, typename ... Args> static constexpr auto resolvePtr(RareTs::type_tag<std::tuple<Args...>>)
-                    -> typename ResolveQualified<Q>::template Overload<MemberIndex, Args...>::pointer_type;
+                    -> typename detail::ResolveQualified<Q>::template Overload<MemberIndex, Args...>::pointer_type;
 
                 template <typename Q, size_t I> using ResolvePtr = decltype(resolvePtr<Q>(RareTs::type_tag<typename OvlNote<I>::ArgumentTypes>{}));
 
@@ -1533,8 +1591,10 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
                 template <typename F> static constexpr void pack(F) {} // Pack each argument sets least-qualified overload
             };
 
-            template <typename T, size_t MemberIndex, typename MemberNotes, size_t ... Is>
-            constexpr KnownOverloads<T, MemberIndex, MemberNotes, Is...> knownOverloads(std::index_sequence<Is...>);
+            namespace detail {
+                template <typename T, size_t MemberIndex, typename MemberNotes, size_t ... Is>
+                constexpr KnownOverloads<T, MemberIndex, MemberNotes, Is...> knownOverloads(std::index_sequence<Is...>);
+            }
         }
 
         template <typename T, size_t MemberIndex, typename Notez = typename RareTs::Class::MemberAnnotationsType<T, MemberIndex>>
@@ -1553,7 +1613,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             static constexpr size_t index = MemberIndex;
             static constexpr bool isStatic = !std::is_member_pointer_v<P> && !std::is_same_v<std::nullptr_t, P>;
             static constexpr bool isFunction = std::is_function_v<type> || std::is_member_function_pointer_v<P>;
-            static constexpr bool isOverloaded = RareTs::isOverloaded<T, MemberIndex>;
+            static constexpr bool isOverloaded = RareTs::is_overloaded_v<T, MemberIndex>;
             static constexpr bool isData = !isFunction && !isOverloaded;
             static constexpr bool hasOffset = std::is_member_object_pointer_v<P>;
             static constexpr size_t getOffset() { return RareTs::Class::member_offset<T, MemberIndex>; } // If none, returns std::numeric_limits<size_t>::max()
@@ -1573,41 +1633,32 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
                     return pointer;
             }
 
-            using Overloads = decltype(knownOverloads<T, MemberIndex, typename RareTs::Class::template member_note_wrapper<T, MemberIndex>>(
-                std::make_index_sequence<overloadNoteCount<Notez>>()));
+            using Overloads = decltype(RareTs::Functions::detail::knownOverloads<T, MemberIndex,
+                typename RareTs::Class::template member_note_wrapper<T, MemberIndex>>(
+                    std::make_index_sequence<RareTs::Functions::detail::overloadNoteCount<Notez>>()));
         };
 
-        template <typename T, size_t I = std::numeric_limits<size_t>::max()>
-        struct aggregate_member : RareTs::Class::adapt_member_type<aggregate_member<T>::template type, T, I> {};
+        namespace AggregatedMembers {
+            template <typename T, size_t I = std::numeric_limits<size_t>::max()>
+            struct aggregate_member : RareTs::Class::adapt_member_type<aggregate_member<T>::template type, T, I> {};
 
-        template <typename T>
-        struct aggregate_member<T, std::numeric_limits<size_t>::max()> {
-            template <size_t I> using type = RareTs::Member<T, I>;
-        };
+            template <typename T>
+            struct aggregate_member<T, std::numeric_limits<size_t>::max()> {
+                template <size_t I> using type = RareTs::Member<T, I>;
+            };
 
-        template <typename T, size_t ... Is>
-        struct aggregate_members : RareTs::Class::adapt_member_type<aggregate_member<T>::template type, T, Is> ... {};
+            template <typename T, size_t ... Is>
+            struct aggregate_members : RareTs::Class::adapt_member_type<aggregate_member<T>::template type, T, Is> ... {};
 
-        template <typename T, size_t ... Is>
-        constexpr aggregate_members<T, Is...> aggregateMembers(std::index_sequence<Is...>);
+            template <typename T, size_t ... Is>
+            constexpr aggregate_members<T, Is...> aggregateMembers(std::index_sequence<Is...>);
+        }
 
         template <typename T, size_t MemberIndex> // Overloads (and references on MSVC < 1932 / Visual Studios <= 2019) are unsupported/always private
         inline constexpr AccessMod access_modifier_v = RareTs::Class::template access_modifier<T, MemberIndex>::value;
 
-        struct NullptrType { using type = std::nullptr_t; };
-        struct EmptyComponent {
-            using type = void;
-            static constexpr std::nullptr_t p = nullptr;
-            template <typename T> static constexpr auto & s() { return p; }
-            template <typename T> static constexpr auto & i(T &&) { return p; }
-        };
-        struct NonPointable { static constexpr std::nullptr_t p = nullptr; };
-        struct NonNoted { static constexpr std::tuple notes{}; };
-        struct NoOffset { static constexpr size_t o() { return std::numeric_limits<size_t>::max(); }; };
+        namespace { // REFLECT macros
 
-        // REFLECT macros
-        namespace {
-            
 #ifndef __clang__
 #ifdef _MSC_VER
 #if _MSC_VER < 1932
@@ -1618,7 +1669,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
 
 #ifdef __clang__
 #define RARE_CLASS_FRIEND(x) friend RareTs::Class;\
-friend constexpr inline Class classType(RareTs::type_tag<RareTs::Proxy<RareTs::unproxy_t<x>>>) { return {}; }
+friend constexpr inline Class classType(RareTs::type_tag<RareTs::Proxy<RareTs::Class::unproxy_t<x>>>) { return {}; }
 #else
 #define RARE_CLASS_FRIEND(x) friend RareTs::Class;
 #endif
@@ -1664,7 +1715,7 @@ template <template <size_t> class T_> struct M_<I_::x, T_> { T_<I_::x> x; }; \
 template <template <size_t> class T_> struct D_<I_::x, T_> { using x = T_<I_::x>; }; \
 template <class ... A_> struct L_<I_::x, A_...> { \
     template <class T_> using R_ = decltype(std::declval<T_>().x(std::declval<A_>()...)); \
-    template <class T_> using W_ = decltype(RareTs::OverloadIdentifier<T_,R_<T_>,A_...>::Id::of(&std::remove_reference_t<T_>::x)); \
+    template <class T_> using W_ = decltype(RareTs::Class::OverloadIdentifier<T_,R_<T_>,A_...>::Id::of(&std::remove_reference_t<T_>::x)); \
     template <class T_> static constexpr auto p = static_cast<W_<T_>>(&std::remove_reference_t<T_>::x); \
 }; \
 RARE_ACCESS_MEMBER(x)
@@ -1708,14 +1759,14 @@ RARE_ACCESS_MEMBER(x)
 #define REFLECT(objectType, ...) \
 struct Class { \
     using B_ = objectType; \
-    using C_ = RareTs::unproxy_t<B_>; \
+    using C_ = RareTs::Class::unproxy_t<B_>; \
     struct I_ { enum { RARE_FOR_EACH(RARE_RESTATE_COMMA, __VA_ARGS__) N_ }; }; \
     static constexpr auto & notes = RareTs::noNote; \
-    template <size_t, class T_ = C_, class = void> struct F_ : RareTs::EmptyComponent {}; \
-    template <size_t, class T_ = C_, class = void> struct Q_ : RareTs::NullptrType {}; \
-    template <size_t, class T_ = C_, class = void> struct P_ : RareTs::NonPointable {}; \
-    template <size_t, class T_ = B_, class = void> struct E_ : RareTs::NonNoted {}; \
-    template <size_t, class T_ = C_, class = void> struct O_ : RareTs::NoOffset {}; \
+    template <size_t, class T_ = C_, class = void> struct F_ : RareTs::Class::EmptyComponent {}; \
+    template <size_t, class T_ = C_, class = void> struct Q_ : RareTs::Class::NullptrType {}; \
+    template <size_t, class T_ = C_, class = void> struct P_ : RareTs::Class::NonPointable {}; \
+    template <size_t, class T_ = B_, class = void> struct E_ : RareTs::Class::NonNoted {}; \
+    template <size_t, class T_ = C_, class = void> struct O_ : RareTs::Class::NoOffset {}; \
     template <size_t, template <size_t> class> struct M_; \
     template <size_t, template <size_t> class> struct D_; \
     template <size_t, class T_ = B_> struct N_; \
@@ -1729,14 +1780,14 @@ RARE_CLASS_FRIEND(objectType)
 #define REFLECT_NOTED(objectType, ...) \
 struct Class { \
     using B_ = objectType; \
-    using C_ = RareTs::unproxy_t<B_>; \
+    using C_ = RareTs::Class::unproxy_t<B_>; \
     struct I_ { enum { RARE_FOR_EACH(RARE_RESTATE_COMMA, __VA_ARGS__) N_ }; }; \
     static constexpr auto & notes = objectType##_note; \
-    template <size_t, class T_ = C_, class = void> struct F_ : RareTs::EmptyComponent {}; \
-    template <size_t, class T_ = C_, class = void> struct Q_ : RareTs::NullptrType {}; \
-    template <size_t, class T_ = C_, class = void> struct P_ : RareTs::NonPointable {}; \
-    template <size_t, class T_ = B_, class = void> struct E_ : RareTs::NonNoted {}; \
-    template <size_t, class T_ = C_, class = void> struct O_ : RareTs::NoOffset {}; \
+    template <size_t, class T_ = C_, class = void> struct F_ : RareTs::Class::EmptyComponent {}; \
+    template <size_t, class T_ = C_, class = void> struct Q_ : RareTs::Class::NullptrType {}; \
+    template <size_t, class T_ = C_, class = void> struct P_ : RareTs::Class::NonPointable {}; \
+    template <size_t, class T_ = B_, class = void> struct E_ : RareTs::Class::NonNoted {}; \
+    template <size_t, class T_ = C_, class = void> struct O_ : RareTs::Class::NoOffset {}; \
     template <size_t, template <size_t> class> struct M_; \
     template <size_t, template <size_t> class> struct D_; \
     template <size_t, class T_ = B_> struct N_; \
@@ -1750,7 +1801,7 @@ RARE_CLASS_FRIEND(objectType)
 
         template <typename T> using IndexOf = typename RareTs::Class::index_of<T>;
 
-        template <typename T> using MemberType = decltype(aggregateMembers<T>(std::make_index_sequence<RareTs::Class::member_count<T>>()));
+        template <typename T> using MemberType = decltype(AggregatedMembers::aggregateMembers<T>(std::make_index_sequence<RareTs::Class::member_count<T>>()));
         
         template <typename T> struct Members // Access to member information
         {
@@ -1853,7 +1904,8 @@ RARE_CLASS_FRIEND(objectType)
             }
 
             // t, function(member, value) [filtered]
-            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function, class U, typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
+            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function, class U,
+                typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
             static constexpr void forEach(U && t, Function && function) {
                 RareTs::forIndexes<total>([&](auto I) {
                     if constexpr ( passes_filter_v<Filter, Member<decltype(I)::value>, FilterArgs...> )
@@ -1879,7 +1931,8 @@ RARE_CLASS_FRIEND(objectType)
             
             // function(member) [filtered] or...
             // function(member, value) [filtered, statics only]
-            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function> static constexpr void at(size_t memberIndex, Function && function) {
+            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function>
+            static constexpr void at(size_t memberIndex, Function && function) {
 				RareTs::forIndex<total>(memberIndex, [&](auto I) {
 					if constexpr ( passes_filter_v<Filter, Member<decltype(I)::value>, FilterArgs...> )
                     {
@@ -1903,7 +1956,8 @@ RARE_CLASS_FRIEND(objectType)
             }
 
             // t, function(member, value) [filtered]
-            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function, class U, typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
+            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function, class U,
+                typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
             static constexpr void at(size_t memberIndex, U && t, Function && function) {
                 RareTs::forIndex<total>(memberIndex, [&](auto I) {
                     if constexpr ( passes_filter_v<Filter, Member<decltype(I)::value>, FilterArgs...> )
@@ -1930,7 +1984,8 @@ RARE_CLASS_FRIEND(objectType)
             
             // memberName, function(member) [filtered] or...
             // memberName, function(member, value) [filtered, statics only]
-            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function> static constexpr void named(std::string_view memberName, Function && function) {
+            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function>
+            static constexpr void named(std::string_view memberName, Function && function) {
 			    size_t memberIndex = indexOf<>(memberName);
 			    RareTs::forIndex<total>(memberIndex, [&](auto I) {
 				    if constexpr ( passes_filter_v<Filter, Member<decltype(I)::value>, FilterArgs...> )
@@ -1956,7 +2011,8 @@ RARE_CLASS_FRIEND(objectType)
             }
 
             // t, memberName, function(member, value) [filtered]
-            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function, class U, typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
+            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function, class U,
+                typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
             static constexpr void named(std::string_view memberName, U && t, Function && function) {
                 size_t memberIndex = indexOf<>(memberName);
                 RareTs::forIndex<total>(memberIndex, [&](auto I) {
@@ -2011,7 +2067,8 @@ RARE_CLASS_FRIEND(objectType)
             }
 
             // t, function(value) [filtered]
-            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function, class U, typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
+            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function, class U,
+                typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
             static constexpr void forEach(U && t, Function && function) {
                 RareTs::forIndexes<total>([&](auto I) {
                     if constexpr ( passes_filter_v<Filter, Member<decltype(I)::value>, FilterArgs...> )
@@ -2028,7 +2085,8 @@ RARE_CLASS_FRIEND(objectType)
             }
             
             // function(value) [filtered, statics only]
-            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function> static constexpr void at(size_t memberIndex, Function && function) {
+            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function>
+            static constexpr void at(size_t memberIndex, Function && function) {
                 RareTs::forIndex<total>(memberIndex, [&](auto I) {
                     if constexpr ( Member<decltype(I)::value>::isStatic && passes_filter_v<Filter, Member<decltype(I)::value>, FilterArgs...> )
                         function(Member<decltype(I)::value>::value());
@@ -2044,7 +2102,8 @@ RARE_CLASS_FRIEND(objectType)
             }
             
             // t, function(value) [filtered]
-            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function, class U, typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
+            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function, class U,
+                typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
             static constexpr void at(size_t memberIndex, U && t, Function && function) {
                 RareTs::forIndex<total>(memberIndex, [&](auto I) {
                     if constexpr ( passes_filter_v<Filter, Member<decltype(I)::value>, FilterArgs...> )
@@ -2062,7 +2121,8 @@ RARE_CLASS_FRIEND(objectType)
             }
 
             // memberName, function(value) [filtered, statics only]
-            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function> static constexpr void named(std::string_view memberName, Function && function) {
+            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function>
+            static constexpr void named(std::string_view memberName, Function && function) {
                 size_t memberIndex = Members<T>::template indexOf<>(memberName);
                 RareTs::forIndex<total>(memberIndex, [&](auto I) {
                     if constexpr ( Member<decltype(I)::value>::isStatic && passes_filter_v<Filter, Member<decltype(I)::value>, FilterArgs...> )
@@ -2080,7 +2140,8 @@ RARE_CLASS_FRIEND(objectType)
             }
 
             // t, memberName, function(value) [filtered]
-            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function, class U, typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
+            template <template <typename ...> class Filter, typename ...FilterArgs, typename Function, class U,
+                typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
             static constexpr void named(std::string_view memberName, U && t, Function && function) {
                 size_t memberIndex = Members<T>::template indexOf<>(memberName);
                 RareTs::forIndex<total>(memberIndex, [&](auto I) {
@@ -2090,10 +2151,11 @@ RARE_CLASS_FRIEND(objectType)
             }
         };
 
-        template <typename T> using Notes = decltype(RareTs::annotationsType<RareTs::Class::class_t<T>>(
+        template <typename T> using Notes = decltype(RareTs::Annotations::detail::annotationsType<RareTs::Class::class_t<T>>(
             std::make_index_sequence<RareTs::Class::class_note_count<T>>()));
 
-        template <typename T> using Supers = decltype(RareTs::inherit<T>(std::make_index_sequence<superNoteCount<T>>()));
+        template <typename T> using Supers = decltype(RareTs::Reflection::Inheritance::detail::inherit<T>(
+            std::make_index_sequence<RareTs::Reflection::Inheritance::detail::superNoteCount<T>>()));
 
         template <typename T>
         struct Reflect
@@ -2259,7 +2321,7 @@ namespace RareMapper
                 template <size_t ... Is> static constexpr auto rightAggregate(std::index_sequence<Is...>) // returns type of right-aggregate mapping object
                     -> typename right_aggregate<I, L, R, std::integral_constant<size_t, I>, Ts...>::template type<Is...>;
 
-                template <size_t ... Is> static constexpr auto rightAgg(std::index_sequence<Is...>) -> decltype(rightAggregate( // filter out unmappable members
+                template <size_t ... Is> static constexpr auto rightAgg(std::index_sequence<Is...>) -> decltype(rightAggregate( // filter unmappable members
                     typename RareTs::template type_mask<filter, std::integral_constant<size_t, Is>...>::indexes{}));
 
                 static constexpr decltype(rightAgg(std::make_index_sequence<RareTs::Class::member_count<R>>())) right {};
@@ -2311,13 +2373,13 @@ namespace RareMapper
         template <typename To, typename From> struct NoteMapper<To, From>
             : NoteMapper<To, From, mapping_t<To, From>> {};
 
-        template <typename ... Ts> struct is_shared_pointable : std::false_type {}; // has element_type, weak_type, use_count(), is dereferencable, nullptr-comparable
+        template <typename ... Ts> struct is_shared_pointable : std::false_type {}; // element_type, weak_type, use_count(), dereferencable, nullptr-comparable
         template <typename T> struct is_shared_pointable<RareTs::first_of_t<T, typename T::element_type, typename T::weak_type,
             decltype(std::declval<std::remove_cv_t<T>>().use_count()),
             decltype(*std::declval<std::remove_cv_t<T>>()), decltype(std::declval<std::remove_cv_t<T>>() == nullptr)>> : std::true_type {};
         template <typename T> inline constexpr bool is_shared_pointable_v = is_shared_pointable<T>::value;
 
-        template <typename ... Ts> struct is_unique_pointable : std::false_type {}; // has pointer, element_type, release(), is dereferencable, nullptr-comparable
+        template <typename ... Ts> struct is_unique_pointable : std::false_type {}; // pointer, element_type, release(), dereferencable, nullptr-comparable
         template <typename T> struct is_unique_pointable<RareTs::first_of_t<T, typename T::pointer, typename T::element_type,
             decltype(std::declval<std::remove_cv_t<T>>().release()),
             decltype(*std::declval<std::remove_cv_t<T>>()), decltype(std::declval<std::remove_cv_t<T>>() == nullptr)>> : std::true_type {};
