@@ -183,7 +183,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
 
         template <typename T, typename ... Ts> using first_of_t = T; // Like void_t but with a type
         
-        template <size_t I, typename ... Ts> using as_index = std::integral_constant<size_t, I>;
+        template <size_t I, typename ... Ts> using as_index = std::integral_constant<size_t, I>; // Like void_t but with an index
 
         template <typename T> struct remove_cvref { using type = std::remove_cv_t<std::remove_reference_t<T>>; }; // If in C++20, prefer std::remove_cvref_t
         template <typename T> using remove_cvref_t = typename remove_cvref<T>::type;
@@ -474,13 +474,6 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             }
         };
 
-        template <typename T, typename ... Ts> struct remove_voids { using type = std::tuple<>; };
-        template <> struct remove_voids<std::tuple<void>> { using type = std::tuple<>; };
-        template <typename T> struct remove_voids<std::tuple<T>> { using type = std::tuple<T>; };
-        template <typename T, typename ... Ts> struct remove_voids<std::tuple<T, Ts...>> : RareTs::type_id<decltype(
-            std::tuple_cat(std::declval<typename remove_voids<std::tuple<T>>::type>(), std::declval<typename remove_voids<std::tuple<Ts...>>::type>()))> {};
-        template <typename T> using remove_voids_t = typename remove_voids<T>::type;
-
         template <typename ... Ts> struct type_list {
             template <typename T> struct has : std::bool_constant<(std::is_same_v<Ts, T> || ...)> {};
             template <typename T> static constexpr bool has_v = has<T>::value;
@@ -659,20 +652,12 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
         template <template <typename> class P, typename ... Ts> struct tuple_type_mask;
         template <template <typename> class P, typename ... Ts> struct tuple_type_mask<P, std::tuple<Ts...>> : type_mask<P, Ts...> {};
 
-        template <typename T, size_t ... Is> constexpr auto reference_tuple(const T & t, std::index_sequence<Is...>) {
+        template <typename T, size_t ... Is> constexpr auto referenceTuple(const T & t, std::index_sequence<Is...>) {
             return std::tie(std::get<Is>(t)...);
         }
 
-        template <template <typename> class P, typename T> constexpr auto reference_tuple(const T & t) {
-            return reference_tuple(t, typename tuple_type_mask<P, T>::indexes{});
-        }
-
-        template <typename T, size_t ... Is> constexpr auto filter_tuple(const T & t, std::index_sequence<Is...>) {
-            return std::tuple<std::tuple_element_t<Is, T>...> { std::get<Is>(t)... };
-        }
-
-        template <template <typename> class P, typename T> constexpr auto filter_tuple(const T & t) {
-            return filter_tuple(t, typename tuple_type_mask<P, T>::indexes{});
+        template <template <typename> class P, typename T> constexpr auto referenceTuple(const T & t) {
+            return referenceTuple(t, typename tuple_type_mask<P, T>::indexes{});
         }
 
         template <size_t Remove, size_t ... Is> struct remove_index { // Removes "Remove" from "Is", only valid if count with value "Remove" in Is == 1
@@ -1023,7 +1008,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             template <typename T, typename ...Ts> struct is_super<NotedSuper<T, Ts...>> { static constexpr bool value = true; };
             template <typename T> inline constexpr bool is_super_v = is_super<T>::value;
 
-            template <typename T> struct SuperNotes { static constexpr auto notes = RareTs::reference_tuple<is_super>(RareTs::Class::class_notes<T>); };
+            template <typename T> struct SuperNotes { static constexpr auto notes = RareTs::referenceTuple<is_super>(RareTs::Class::class_notes<T>); };
             template <typename T> inline constexpr size_t superNoteCount = std::tuple_size_v<std::remove_const_t<decltype(SuperNotes<T>::notes)>>;
 
             template <size_t SuperIndex, typename SuperType, typename Notes> struct SuperInfo : Notes
@@ -1420,7 +1405,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             template <typename T> struct is_overload_note : std::bool_constant<
                 RareTs::is_specialization_v<T, OverloadType> || RareTs::is_specialization_v<T, NotedOverload>> {};
 
-            template <typename Member> struct OverloadNotes { static constexpr auto notes = RareTs::reference_tuple<is_overload_note>(Member::notes); };
+            template <typename Member> struct OverloadNotes { static constexpr auto notes = RareTs::referenceTuple<is_overload_note>(Member::notes); };
 
             template <typename Member> inline constexpr size_t overloadNoteCount = std::tuple_size_v<std::remove_const_t<decltype(OverloadNotes<Member>::notes)>>;
 

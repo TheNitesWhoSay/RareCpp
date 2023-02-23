@@ -1694,33 +1694,6 @@ TEST(RareTsTest, MaskedForEach)
     EXPECT_EQ(1, visitCount);
 }
 
-TEST(RareTsTest, RemoveVoids)
-{
-    bool isSame = std::is_same_v<std::tuple<>, RareTs::remove_voids_t<std::tuple<>>>;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<std::tuple<>, RareTs::remove_voids_t<std::tuple<void>>>;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<std::tuple<>, RareTs::remove_voids_t<std::tuple<void, void>>>;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<std::tuple<>, RareTs::remove_voids_t<std::tuple<void, void, void>>>;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<std::tuple<int>, RareTs::remove_voids_t<std::tuple<int>>>;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<std::tuple<int>, RareTs::remove_voids_t<std::tuple<int, void>>>;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<std::tuple<int>, RareTs::remove_voids_t<std::tuple<void, int>>>;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<std::tuple<int, int>, RareTs::remove_voids_t<std::tuple<int, int>>>;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<std::tuple<int, int>, RareTs::remove_voids_t<std::tuple<int, int, void>>>;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<std::tuple<int, int>, RareTs::remove_voids_t<std::tuple<void, int, int>>>;
-    EXPECT_TRUE(isSame);
-    
-    isSame = std::is_same_v<std::tuple<char, int, float, double>, RareTs::remove_voids_t<std::tuple<char, int, void, float, double, void>>>;
-    EXPECT_TRUE(isSame);
-}
-
 TEST(RareTsTest, TypeListHas)
 {
     bool typeListHas = type_list<>::has<void>::value;
@@ -2341,20 +2314,20 @@ TEST(RareTsTest, ReferenceTuple)
 {
     auto tup = std::tuple { 0, 1, 2, std::string("a"), std::string("b") };
 
-    auto evenTup = RareTs::reference_tuple(tup, std::index_sequence<0, 2, 4>{});
+    auto evenTup = RareTs::referenceTuple(tup, std::index_sequence<0, 2, 4>{});
     bool isSame = std::is_same_v<decltype(evenTup), std::tuple<const int &, const int &, const std::string &>>;
     EXPECT_TRUE(isSame);
     EXPECT_EQ(0, std::get<0>(evenTup));
     EXPECT_EQ(2, std::get<1>(evenTup));
     EXPECT_STREQ("b", std::get<2>(evenTup).c_str());
     
-    auto oddTup = RareTs::reference_tuple(tup, std::index_sequence<1, 3>{});
+    auto oddTup = RareTs::referenceTuple(tup, std::index_sequence<1, 3>{});
     isSame = std::is_same_v<decltype(oddTup), std::tuple<const int &, const std::string &>>;
     EXPECT_TRUE(isSame);
     EXPECT_EQ(1, std::get<0>(oddTup));
     EXPECT_STREQ("a", std::get<1>(oddTup).c_str());
 
-    auto integralTup = RareTs::reference_tuple<std::is_integral>(tup);
+    auto integralTup = RareTs::referenceTuple<std::is_integral>(tup);
     isSame = std::is_same_v<decltype(integralTup), std::tuple<const int &, const int &, const int &>>;
     EXPECT_TRUE(isSame);
     EXPECT_EQ(0, std::get<0>(integralTup));
