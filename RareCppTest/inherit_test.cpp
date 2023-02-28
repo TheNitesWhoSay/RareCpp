@@ -190,9 +190,9 @@ struct BaseClass : TestSuper, TestOtherSuper {};
 
 TEST(ReflectInheritanceTest, SuperAnnotation)
 {
-    EXPECT_TRUE(is_super_v<std::remove_reference_t<decltype(std::get<0>(BaseClass_note))>>);
-    EXPECT_TRUE(is_super_v<std::remove_reference_t<decltype(std::get<1>(BaseClass_note))>>);
-    EXPECT_FALSE(is_super_v<std::remove_reference_t<decltype(std::get<2>(BaseClass_note))>>);
+    EXPECT_TRUE(is_super_note_v<std::remove_reference_t<decltype(std::get<0>(BaseClass_note))>>);
+    EXPECT_TRUE(is_super_note_v<std::remove_reference_t<decltype(std::get<1>(BaseClass_note))>>);
+    EXPECT_FALSE(is_super_note_v<std::remove_reference_t<decltype(std::get<2>(BaseClass_note))>>);
 
     auto & firstSuper = std::get<0>(BaseClass_note);
     auto & secondSuper = std::get<1>(BaseClass_note);

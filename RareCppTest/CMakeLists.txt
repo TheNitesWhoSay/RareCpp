@@ -23,6 +23,7 @@ set(Sources
   reflect_test.cpp
   string_buffer_test.cpp
   test_main.cpp
+  whitebox_test.cpp
 )
 
 add_executable(${This} ${Sources} ${Headers})

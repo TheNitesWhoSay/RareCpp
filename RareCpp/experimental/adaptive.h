@@ -131,12 +131,12 @@ namespace Adaptive
                 : RareTs::Class::adapt_member<reference_member<T>::template type, T, Is> {{ RareTs::Class::memberValue<Is>(t) }}... {}
         };
 
-        template <typename T, size_t ... Is> constexpr auto reference_object(T & t, std::index_sequence<Is...>) {
+        template <typename T, size_t ... Is> constexpr auto referenceObject(T & t, std::index_sequence<Is...>) {
             return reference_members_adapter<T, Is...>(t);
         }
 
-        template <typename T> constexpr auto reference_object(T & t) {
-            return reference_object<T>(t, std::make_index_sequence<RareTs::Class::template member_count<T>>());
+        template <typename T> constexpr auto referenceObject(T & t) {
+            return referenceObject<T>(t, std::make_index_sequence<RareTs::Class::template member_count<T>>());
         }
     }
 
@@ -340,7 +340,7 @@ private:
 };
 
 inline std::ostream & operator<<(std::ostream & os, const MyObj & myObj) {
-    auto get = Adaptive::reference_object(myObj);
+    auto get = Adaptive::referenceObject(myObj);
     os << "MyObj: {" << get.myInt << ", " << get.myString << "}" << std::endl << std::endl;
     return os;
 }
@@ -355,7 +355,7 @@ inline void adaptiveStructExperiment()
     MyObj myObj = Adaptive::builder<MyObj>().myInt(42).myString("l33t").build(); // adapted types overload operator()
     std::cout << myObj;
     
-    auto ref = Adaptive::reference_object(myObj); // adapted types are references to the members
+    auto ref = Adaptive::referenceObject(myObj); // adapted types are references to the members
     ref.myInt = 444;
     ref.myString = "asdf";
 

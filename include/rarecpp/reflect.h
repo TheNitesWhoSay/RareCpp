@@ -10,6 +10,10 @@
 #include <type_traits>
 #include <utility>
 
+#ifdef __clang__
+#pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
+#endif
+
 // RareCpp Type Support - general type support and reflection capabilities
 namespace RareTs
 {
@@ -25,8 +29,8 @@ namespace RareTs
 #define ML_C(x,y) x##y
 
 // MacroLoop_ForEach[1, ..., ArgMax]
-#define ML_0(f,...)
-#define ML_1(f,a,...) f(a)
+#define ML_0(...)
+#define ML_1(f,a) f(a)
 #define ML_2(f,a,...) f(a) ML_E(ML_1(f,__VA_ARGS__))
 #define ML_3(f,a,...) f(a) ML_E(ML_2(f,__VA_ARGS__))
 #define ML_4(f,a,...) f(a) ML_E(ML_3(f,__VA_ARGS__))
@@ -1092,14 +1096,14 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
 
             template <typename T> inline constexpr SuperClass<T> Super{};
         
-            template <typename T> struct is_super { static constexpr bool value = false; };
-            template <typename T> struct is_super<const T> { static constexpr bool value = is_super<T>::value; };
-            template <typename T> struct is_super<SuperClass<T>> { static constexpr bool value = true; };
-            template <typename T, typename ...Ts> struct is_super<NotedSuper<T, Ts...>> { static constexpr bool value = true; };
-            template <typename T> inline constexpr bool is_super_v = is_super<T>::value;
+            template <typename T> struct is_super_note { static constexpr bool value = false; };
+            template <typename T> struct is_super_note<const T> { static constexpr bool value = is_super_note<T>::value; };
+            template <typename T> struct is_super_note<SuperClass<T>> { static constexpr bool value = true; };
+            template <typename T, typename ...Ts> struct is_super_note<NotedSuper<T, Ts...>> { static constexpr bool value = true; };
+            template <typename T> inline constexpr bool is_super_note_v = is_super_note<T>::value;
 
             namespace detail {
-                template <typename T> struct SuperNotes { static constexpr auto notes = RareTs::referenceTuple<is_super>(RareTs::Class::class_notes<T>); };
+                template <typename T> struct SuperNotes { static constexpr auto notes = RareTs::referenceTuple<is_super_note>(RareTs::Class::class_notes<T>); };
                 template <typename T> inline constexpr size_t superNoteCount = std::tuple_size_v<std::remove_const_t<decltype(SuperNotes<T>::notes)>>;
             }
 
@@ -2240,6 +2244,27 @@ RARE_CLASS_FRIEND(objectType)
                 template <typename T, size_t ... Is> constexpr auto builder(std::index_sequence<Is...>) {
                     return detail::head_builder<T, Is...>{};
                 }
+
+                template <typename T, size_t I> struct type_wrapper { using type = typename RareTs::Class::template member_type<T, I>; }; // Fixes gcc access bugs
+
+                template <typename T, size_t I = std::numeric_limits<size_t>::max()>
+                struct reference_member : RareTs::Class::adapt_member<reference_member<T>::template type, T, I> {};
+
+                template <typename T>
+                struct reference_member<T, std::numeric_limits<size_t>::max()> {
+                    template <size_t I> using type = std::add_lvalue_reference_t<typename type_wrapper<T, I>::type>;
+                };
+
+                template <typename T, size_t ... Is>
+                struct reference_members_adapter : RareTs::Class::adapt_member<reference_member<T>::template type, T, Is>... // Adapter extends the Ith members type
+                {
+                    constexpr reference_members_adapter(T & t)
+                        : RareTs::Class::adapt_member<reference_member<T>::template type, T, Is> {{ RareTs::Class::memberValue<Is>(t) }}... {}
+                };
+
+                template <typename T, size_t ... Is> constexpr auto whitebox(T & t, std::index_sequence<Is...>) {
+                    return detail::reference_members_adapter<T, Is...>(t);
+                }
             }
     
             template <typename T> constexpr auto builder() {
@@ -2247,9 +2272,17 @@ RARE_CLASS_FRIEND(objectType)
                     return detail::builder<T>(std::index_sequence<RareTs::remove_cvref_t<decltype(member)>::index...>{});
                 });
             }
+
+            template <typename T> constexpr auto whitebox(T & t) {
+                return RareTs::template Members<T>::template pack<RareTs::Filter::IsData>([&](auto & ... member) {
+                    return detail::whitebox(t, std::index_sequence<RareTs::remove_cvref_t<decltype(member)>::index...>{});
+                });
+            }
         }
     }
 }
+
+template <typename T> struct RareBuilder : decltype(RareTs::AdaptiveStructures::builder<T>()) {};
 
 namespace RareMapper
 {
@@ -2384,6 +2417,18 @@ namespace RareMapper
             decltype(std::declval<std::remove_cv_t<T>>().release()),
             decltype(*std::declval<std::remove_cv_t<T>>()), decltype(std::declval<std::remove_cv_t<T>>() == nullptr)>> : std::true_type {};
         template <typename T> inline constexpr bool is_unique_pointable_v = is_unique_pointable<T>::value;
+
+        // Helper method for RareMapper::mapDefault(To &, From &); do not specialize this method
+        template <size_t Index, typename ...To, typename ...From>
+        #pragma warning(suppress: 4100) // MSVC false-positive for "unused" parameters
+        constexpr void mapTuple(std::tuple<To...> & to, const std::tuple<From...> & from)
+        {
+            if constexpr ( Index < sizeof...(To) && Index < sizeof...(From) )
+            {
+                RareMapper::map(std::get<Index>(to), std::get<Index>(from));
+                RareMapper::detail::mapTuple<Index+1>(to, from);
+            }
+        }
     }
     
     template <typename L, typename R> constexpr auto createMapping() {
@@ -2440,18 +2485,6 @@ namespace RareMapper
         To to;
         RareMapper::map(to, from);
         return to;
-    }
-
-    // Helper method for RareMapper::mapDefault(To &, From &); do not specialize this method
-    template <size_t Index, typename ...To, typename ...From>
-    #pragma warning(suppress: 4100) // MSVC false-positive for "unused" parameters
-    constexpr void mapTuple(std::tuple<To...> & to, const std::tuple<From...> & from)
-    {
-        if constexpr ( Index < sizeof...(To) && Index < sizeof...(From) )
-        {
-            RareMapper::map(std::get<Index>(to), std::get<Index>(from));
-            RareMapper::mapTuple<Index+1>(to, from);
-        }
     }
 
     template <typename To, typename From> constexpr void mapDefault(To & to, const From & from)
@@ -2519,7 +2552,7 @@ namespace RareMapper
         }
         else if constexpr ( RareTs::is_tuple_v<To> && RareTs::is_tuple_v<From> )
         {
-            RareMapper::mapTuple<0>(to, from);
+            RareMapper::detail::mapTuple<0>(to, from);
         }
         else if constexpr ( RareTs::is_iterable_v<To> && RareTs::is_iterable_v<From> )
         {
@@ -2577,59 +2610,58 @@ namespace RareMapper
         }
     }
 
-    inline namespace Annotations
-    {
-        template <typename MappedBy, typename Type = void> struct MappedByType { using Object = Type; using DefaultMapping = MappedBy; };
-        template <typename MappedBy> struct MappedByType<MappedBy, void> { using DefaultMapping = MappedBy; };
+    template <typename MappedBy, typename Type = void> struct MappedByType { using Object = Type; using DefaultMapping = MappedBy; };
+    template <typename MappedBy> struct MappedByType<MappedBy, void> { using DefaultMapping = MappedBy; };
 
-        // Member or class-level annotation saying a member or class should be mapped to "T" for activities like serialization
-        template <typename T> inline constexpr MappedByType<T, void> MappedBy{};
+    // Member or class-level annotation saying a member or class should be mapped to "T" for activities like serialization
+    template <typename T> inline constexpr MappedByType<T, void> MappedBy{};
 
-        // Operation annotation saying type "T" should be mapped to type "MappedBy" for activities like serialization
-        template <typename T, typename MappedBy> using UseMapping = MappedByType<MappedBy, T>;
+    // Operation annotation saying type "T" should be mapped to type "MappedBy" for activities like serialization
+    template <typename T, typename MappedBy> using UseMapping = MappedByType<MappedBy, T>;
 
+    namespace detail {
         template <typename T> inline constexpr bool isMappedByNotes = RareTs::type_list<T>::template has_specialization_v<MappedByType>;
-        template <typename T> inline constexpr bool isMappedByClassNote = isMappedByNotes<RareTs::Class::class_notes_t<T>>;
 
         template <typename T, typename Enable = void> struct GetMappingFromNotes { using type = void; };
         template <typename T> struct GetMappingFromNotes<T, std::enable_if_t<isMappedByNotes<T>>>
         { using type = typename RareTs::type_list<T>::template get_specialization_t<MappedByType>::DefaultMapping; };
 
         template <typename T, typename Enable = void> struct GetMappingByClassNote { using type = void; };
-        template <typename T> struct GetMappingByClassNote<T, std::enable_if_t<isMappedByClassNote<T>>>
+        template <typename T> struct GetMappingByClassNote<T, std::enable_if_t<isMappedByNotes<RareTs::Class::class_notes_t<T>>>>
         { using type = typename GetMappingFromNotes<RareTs::Class::class_notes_type<T>>::type; };
-
-        template <typename T> struct SetTags { using DefaultMapping = void; }; // e.g. struct RareMapper::SetTags<Foo> : IsMappedBy<Bar> {};
-        template <typename T> using GetTags = SetTags<T>; // e.g. RareMapper::GetProperty<Foo>::MappedBy::DefaultMapping
-        template <typename T> using IsMappedBy = MappedByType<T>; // Tags a type "T" to be mapped to for activities like serialization
-
-        // Sets default type "mappedBy" which this object "object" should be mapped to for activities like serialization
-        #define SET_DEFAULT_OBJECT_MAPPING(object, mappedBy) template <> struct RareMapper::SetTags<object> : IsMappedBy<mappedBy> {};
-
-        template <typename T> inline constexpr bool isMappedByTags = !std::is_void_v<typename GetTags<T>::DefaultMapping>;
 
         template <typename T, typename Note, typename Enable = void> struct IsUseMappingNote { static constexpr bool value = false; };
         template <typename T, typename Note> struct IsUseMappingNote<T, Note, std::enable_if_t<RareTs::is_specialization_v<Note, MappedByType>>>
         { static constexpr bool value = std::is_same_v<T, typename Note::Object>; };
 
-        template <typename T, typename Notes> struct HasUseMappingNote { static constexpr bool value = false; };
-        template <typename T, typename ...Ts> struct HasUseMappingNote<T, std::tuple<Ts...>>
-        { static constexpr bool value = (IsUseMappingNote<T, Ts>::value || ...); };
-
-        template <typename T, typename Notes, typename Enable = void> struct GetOpNoteMapping { using type = void; };
-        template <typename T, typename Notes> struct GetOpNoteMapping<T, Notes, std::enable_if_t<HasUseMappingNote<T, Notes>::value>>
-        { using type = typename RareTs::type_list<Notes>::template get_specialization_t<MappedByType>::DefaultMapping; };
-
-        // Checks whether the type "T" has a type to use for default mappings for activies like serialization
-        template <typename T, typename MemberNotes = void, typename OpNotes = void> inline constexpr bool hasDefaultMapping =
-            HasUseMappingNote<T, OpNotes>::value || isMappedByNotes<MemberNotes> || isMappedByTags<T> || isMappedByClassNote<T>;
-        
-        // Gets the type which "T" should be mapped to for activities like serialization (or void if no default exists)
-        template <typename T, typename MemberNotes = void, typename OpNotes = void>
-        using GetDefaultMapping = RareTs::replace_void_t<typename GetOpNoteMapping<T, OpNotes>::type,
-            RareTs::replace_void_t<typename GetMappingFromNotes<MemberNotes>::type,
-            RareTs::replace_void_t<typename GetTags<T>::DefaultMapping, typename GetMappingByClassNote<T>::type>>>;
+        template <typename T, typename ...> struct GetOpNoteMapping { using type = void; };
+        template <typename T, typename ... Ts> struct GetOpNoteMapping<T, std::enable_if_t<(IsUseMappingNote<T, Ts>::value || ...)>, std::tuple<Ts...>>
+        { using type = typename RareTs::type_list<std::tuple<Ts...>>::template get_specialization_t<MappedByType>::DefaultMapping; };
     }
+
+    template <typename T> struct SetTags { using DefaultMapping = void; }; // e.g. struct RareMapper::SetTags<Foo> : IsMappedBy<Bar> {};
+    template <typename T> using IsMappedBy = MappedByType<T>; // Tags a type "T" to be mapped to for activities like serialization
+
+    // Sets default type "mappedBy" which this object "object" should be mapped to for activities like serialization
+    #define SET_DEFAULT_OBJECT_MAPPING(object, mappedBy) template <> struct RareMapper::SetTags<object> : IsMappedBy<mappedBy> {};
+    
+    // Gets the type which "T" should be mapped to for activities like serialization (or void if no default exists)
+    template <typename T, typename MemberNotes = void, typename OpNotes = void>
+    struct default_mapping { using type = RareTs::replace_void_t<typename detail::GetOpNoteMapping<T, void, std::remove_const_t<OpNotes>>::type,
+        RareTs::replace_void_t<typename detail::GetMappingFromNotes<MemberNotes>::type,
+        RareTs::replace_void_t<typename SetTags<T>::DefaultMapping, typename detail::GetMappingByClassNote<T>::type>>>; };
+
+    // Gets the type which "T" should be mapped to for activities like serialization (or void if no default exists)
+    template <typename T, typename MemberNotes = void, typename OpNotes = void>
+    using default_mapping_t = typename default_mapping<T, MemberNotes, OpNotes>::type;
+
+    // Checks whether the type "T" has a type to use for default mappings for activies like serialization
+    template <typename T, typename MemberNotes = void, typename OpNotes = void>
+    struct has_default_mapping { static constexpr bool value = !std::is_void_v<default_mapping_t<T, MemberNotes, OpNotes>>; };
+
+    // Checks whether the type "T" has a type to use for default mappings for activies like serialization
+    template <typename T, typename MemberNotes = void, typename OpNotes = void>
+    inline constexpr bool has_default_mapping_v = has_default_mapping<T, MemberNotes, OpNotes>::value;
 }
 
 #endif

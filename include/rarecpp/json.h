@@ -1659,9 +1659,9 @@ namespace Json
                     }
                 }
 
-                if constexpr ( RareMapper::hasDefaultMapping<T, typename Member::Notes, Annotations> )
+                if constexpr ( RareMapper::has_default_mapping_v<T, typename Member::Notes, Annotations> )
                 {
-                    using D = RareMapper::GetDefaultMapping<T, typename Member::Notes, Annotations>;
+                    using D = RareMapper::default_mapping_t<T, typename Member::Notes, Annotations>;
                     D d = RareMapper::map<D>(value);
                     Put::value<Annotations, MockMember<D>, statics, PrettyPrint, IndentLevel, Indent, Object, IsFirst>(os, context, obj, d);
                 }
@@ -3309,9 +3309,9 @@ namespace Json
                     return;
                 }
 
-                if constexpr ( RareMapper::hasDefaultMapping<T, typename Member::Notes, Annotations> )
+                if constexpr ( RareMapper::has_default_mapping_v<T, typename Member::Notes, Annotations> )
                 {
-                    using D = RareMapper::GetDefaultMapping<T, typename Member::Notes, Annotations>;
+                    using D = RareMapper::default_mapping_t<T, typename Member::Notes, Annotations>;
                     D d {};
                     Read::value<Annotations, InArray, MockMember<D>>(is, context, c, object, d);
                     RareMapper::map(value, d);

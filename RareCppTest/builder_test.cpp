@@ -13,27 +13,28 @@ class SimpleObj
 
 public:
     REFLECT(SimpleObj, a, b)
-    
-    inline int getA() { return a; }
-    inline int getB() { return b; }
 };
 
 TEST(BuilderTest, SimpleBuilder)
 {
-    auto simpleObj = RareTs::builder<SimpleObj>().a(1).b(2).build();
+    auto simpleObj = RareBuilder<SimpleObj>().a(1).b(2).build();
     bool isSame = std::is_same_v<SimpleObj, decltype(simpleObj)>;
     EXPECT_TRUE(isSame);
-    EXPECT_EQ(1, simpleObj.getA());
-    EXPECT_EQ(2, simpleObj.getB());
+
+    auto ref = RareTs::whitebox(simpleObj);
+    EXPECT_EQ(1, ref.a);
+    EXPECT_EQ(2, ref.b);
 }
 
 TEST(BuilderTest, ReverseBuilder)
 {
-    auto simpleObj = RareTs::builder<SimpleObj>().b(2).a(1).build();
+    auto simpleObj = RareBuilder<SimpleObj>().b(2).a(1).build();
     bool isSame = std::is_same_v<SimpleObj, decltype(simpleObj)>;
     EXPECT_TRUE(isSame);
-    EXPECT_EQ(1, simpleObj.getA());
-    EXPECT_EQ(2, simpleObj.getB());
+
+    auto ref = RareTs::whitebox(simpleObj);
+    EXPECT_EQ(1, ref.a);
+    EXPECT_EQ(2, ref.b);
 }
 
 struct Aggregate
@@ -50,19 +51,17 @@ class MyObj
 
 public:
     REFLECT(MyObj, a, agg)
-
-    inline auto getA() { return a; }
-    inline auto getAgg() { return agg; }
 };
 
 TEST(BuilderTest, AggregateBuilder)
 {
-    auto myObj = RareTs::builder<MyObj>().a(1337).agg({2, 3.3f, "4"}).build();
-    
-    EXPECT_EQ(1337, myObj.getA());
-    EXPECT_EQ(2, myObj.getAgg().a);
-    EXPECT_EQ(3.3f, myObj.getAgg().b);
-    EXPECT_STREQ("4", myObj.getAgg().c.c_str());
+    auto myObj = RareBuilder<MyObj>().a(1337).agg({2, 3.3f, "4"}).build();
+
+    auto ref = RareTs::whitebox(myObj);
+    EXPECT_EQ(1337, ref.a);
+    EXPECT_EQ(2, ref.agg.a);
+    EXPECT_EQ(3.3f, ref.agg.b);
+    EXPECT_STREQ("4", ref.agg.c.c_str());
 }
 
 NOTE(AlwaysInvalid, RareTs::ValidatedBuilder)
@@ -93,8 +92,6 @@ public:
     {
         return true;
     }
-    inline int getA() { return a; }
-    inline int getB() { return b; }
 };
 
 NOTE(NonNegativeValidator, RareTs::ValidatedBuilder)
@@ -110,15 +107,13 @@ public:
     {
         return a >= 0 && b >= 0;
     }
-    inline int getA() { return a; }
-    inline int getB() { return b; }
 };
 
 TEST(BuilderTest, BoolValidators)
 {
     bool threwException = false;
     try {
-        RareTs::builder<AlwaysInvalid>().a(0).b(1).build();
+        RareBuilder<AlwaysInvalid>().a(0).b(1).build();
     } catch ( std::logic_error & ) {
         threwException = true;
     }
@@ -126,9 +121,10 @@ TEST(BuilderTest, BoolValidators)
     
     threwException = false;
     try {
-        auto alwaysValid = RareTs::builder<AlwaysValid>().a(0).b(1).build();
-        EXPECT_EQ(0, alwaysValid.getA());
-        EXPECT_EQ(1, alwaysValid.getB());
+        auto alwaysValid = RareBuilder<AlwaysValid>().a(0).b(1).build();
+        auto ref = RareTs::whitebox(alwaysValid);
+        EXPECT_EQ(0, ref.a);
+        EXPECT_EQ(1, ref.b);
     } catch ( std::logic_error & ) {
         threwException = true;
     }
@@ -136,7 +132,7 @@ TEST(BuilderTest, BoolValidators)
 
     threwException = false;
     try {
-        RareTs::builder<NonNegativeValidator>().a(-1).b(1).build();
+        RareBuilder<NonNegativeValidator>().a(-1).b(1).build();
     } catch ( std::logic_error & ) {
         threwException = true;
     }
@@ -144,7 +140,7 @@ TEST(BuilderTest, BoolValidators)
 
     threwException = false;
     try {
-        RareTs::builder<NonNegativeValidator>().a(1).b(-1).build();
+        RareBuilder<NonNegativeValidator>().a(1).b(-1).build();
     } catch ( std::logic_error & ) {
         threwException = true;
     }
@@ -152,7 +148,7 @@ TEST(BuilderTest, BoolValidators)
 
     threwException = false;
     try {
-        RareTs::builder<NonNegativeValidator>().a(-1).b(-1).build();
+        RareBuilder<NonNegativeValidator>().a(-1).b(-1).build();
     } catch ( std::logic_error & ) {
         threwException = true;
     }
@@ -160,9 +156,10 @@ TEST(BuilderTest, BoolValidators)
 
     threwException = false;
     try {
-        auto nonNeg = RareTs::builder<NonNegativeValidator>().a(1).b(1).build();
-        EXPECT_EQ(1, nonNeg.getA());
-        EXPECT_EQ(1, nonNeg.getB());
+        auto nonNeg = RareBuilder<NonNegativeValidator>().a(1).b(1).build();
+        auto ref = RareTs::whitebox(nonNeg);
+        EXPECT_EQ(1, ref.a);
+        EXPECT_EQ(1, ref.b);
     } catch ( std::logic_error & ) {
         threwException = true;
     }
@@ -198,8 +195,6 @@ public:
     {
 
     }
-    inline int getA() { return a; }
-    inline int getB() { return b; }
 };
 
 NOTE(NonNegativeValidatorExcept, RareTs::ValidatedBuilder)
@@ -216,15 +211,13 @@ public:
         if ( a < 0 || b < 0 )
             throw std::exception();
     }
-    inline int getA() { return a; }
-    inline int getB() { return b; }
 };
 
 TEST(BuilderTest, ExceptValidators)
 {
     bool threwException = false;
     try {
-        RareTs::builder<AlwaysInvalidExcept>().a(0).b(1).build();
+        RareBuilder<AlwaysInvalidExcept>().a(0).b(1).build();
     } catch ( std::exception & ) {
         threwException = true;
     }
@@ -232,9 +225,10 @@ TEST(BuilderTest, ExceptValidators)
     
     threwException = false;
     try {
-        auto alwaysValid = RareTs::builder<AlwaysValidExcept>().a(0).b(1).build();
-        EXPECT_EQ(0, alwaysValid.getA());
-        EXPECT_EQ(1, alwaysValid.getB());
+        auto alwaysValid = RareBuilder<AlwaysValidExcept>().a(0).b(1).build();
+        auto ref = RareTs::whitebox(alwaysValid);
+        EXPECT_EQ(0, ref.a);
+        EXPECT_EQ(1, ref.b);
     } catch ( std::exception & ) {
         threwException = true;
     }
@@ -242,7 +236,7 @@ TEST(BuilderTest, ExceptValidators)
 
     threwException = false;
     try {
-        RareTs::builder<NonNegativeValidatorExcept>().a(-1).b(1).build();
+        RareBuilder<NonNegativeValidatorExcept>().a(-1).b(1).build();
     } catch ( std::exception & ) {
         threwException = true;
     }
@@ -250,7 +244,7 @@ TEST(BuilderTest, ExceptValidators)
 
     threwException = false;
     try {
-        RareTs::builder<NonNegativeValidatorExcept>().a(1).b(-1).build();
+        RareBuilder<NonNegativeValidatorExcept>().a(1).b(-1).build();
     } catch ( std::exception & ) {
         threwException = true;
     }
@@ -258,7 +252,7 @@ TEST(BuilderTest, ExceptValidators)
 
     threwException = false;
     try {
-        RareTs::builder<NonNegativeValidatorExcept>().a(-1).b(-1).build();
+        RareBuilder<NonNegativeValidatorExcept>().a(-1).b(-1).build();
     } catch ( std::exception & ) {
         threwException = true;
     }
@@ -266,9 +260,10 @@ TEST(BuilderTest, ExceptValidators)
 
     threwException = false;
     try {
-        auto nonNeg = RareTs::builder<NonNegativeValidatorExcept>().a(1).b(1).build();
-        EXPECT_EQ(1, nonNeg.getA());
-        EXPECT_EQ(1, nonNeg.getB());
+        auto nonNeg = RareBuilder<NonNegativeValidatorExcept>().a(1).b(1).build();
+        auto ref = RareTs::whitebox(nonNeg);
+        EXPECT_EQ(1, ref.a);
+        EXPECT_EQ(1, ref.b);
     } catch ( std::exception & ) {
         threwException = true;
     }
@@ -295,7 +290,7 @@ struct Exclusions
 
 TEST(BuilderTest, TestExclusions)
 {
-    auto exclusions = RareTs::builder<Exclusions>()/*.c(1)*/.a(1).b(2).build(); // Fields like c, d, e, f, etc. are not available for use in builders
+    auto exclusions = RareBuilder<Exclusions>()/*.c(1)*/.a(1).b(2).build(); // Fields like c, d, e, f, etc. are not available for use in builders
     EXPECT_EQ(1, exclusions.a);
     EXPECT_EQ(2, exclusions.b);
 }

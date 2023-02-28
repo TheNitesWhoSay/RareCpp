@@ -871,54 +871,54 @@ struct ObjMappedByClassNote { REFLECT_NOTED(ObjMappedByClassNote) };
 
 TEST(RareMapperAnnotationsTest, Tags)
 {
-    bool isSame = std::is_same_v<TypeMappedBy, RareMapper::GetTags<ObjMappedBySpecialization>::DefaultMapping>;
+    bool isSame = std::is_same_v<TypeMappedBy, RareMapper::SetTags<ObjMappedBySpecialization>::DefaultMapping>;
     EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<TypeMappedBy, RareMapper::GetTags<ObjMappedByMacro>::DefaultMapping>;
+    isSame = std::is_same_v<TypeMappedBy, RareMapper::SetTags<ObjMappedByMacro>::DefaultMapping>;
     EXPECT_TRUE(isSame);
 }
 
 TEST(RareMapperAnnotationsTest, HasDefaultMapping)
 {
-    bool hasDefaultMapping = RareMapper::hasDefaultMapping<TypeMappedBy>;
+    bool hasDefaultMapping = RareMapper::has_default_mapping_v<TypeMappedBy>;
     EXPECT_FALSE(hasDefaultMapping);
-    hasDefaultMapping = RareMapper::hasDefaultMapping<ObjMappedBySpecialization>;
+    hasDefaultMapping = RareMapper::has_default_mapping_v<ObjMappedBySpecialization>;
     EXPECT_TRUE(hasDefaultMapping);
-    hasDefaultMapping = RareMapper::hasDefaultMapping<ObjMappedByMacro>;
+    hasDefaultMapping = RareMapper::has_default_mapping_v<ObjMappedByMacro>;
     EXPECT_TRUE(hasDefaultMapping);
-    hasDefaultMapping = RareMapper::hasDefaultMapping<ObjMappedByClassNote>;
+    hasDefaultMapping = RareMapper::has_default_mapping_v<ObjMappedByClassNote>;
     EXPECT_TRUE(hasDefaultMapping);
 
     auto classOrMemberNoteWithMapping = std::tuple { RareMapper::MappedBy<TypeMappedBy> };
     using ClassOrMemberNoteWithMapping = decltype(classOrMemberNoteWithMapping);
     using OpNoteWithMapping = std::tuple<RareMapper::UseMapping<ObjWithoutMapping, TypeMappedBy>>;
-    hasDefaultMapping = RareMapper::hasDefaultMapping<ObjWithoutMapping, ClassOrMemberNoteWithMapping>;
+    hasDefaultMapping = RareMapper::has_default_mapping_v<ObjWithoutMapping, ClassOrMemberNoteWithMapping>;
     EXPECT_TRUE(hasDefaultMapping);
-    hasDefaultMapping = RareMapper::hasDefaultMapping<ObjWithoutMapping, void, OpNoteWithMapping>;
+    hasDefaultMapping = RareMapper::has_default_mapping_v<ObjWithoutMapping, void, OpNoteWithMapping>;
     EXPECT_TRUE(hasDefaultMapping);
-    hasDefaultMapping = RareMapper::hasDefaultMapping<ObjWithoutMapping, ClassOrMemberNoteWithMapping, OpNoteWithMapping>;
+    hasDefaultMapping = RareMapper::has_default_mapping_v<ObjWithoutMapping, ClassOrMemberNoteWithMapping, OpNoteWithMapping>;
     EXPECT_TRUE(hasDefaultMapping);
 }
 
 TEST(RareMapperAnnotationsTest, GetDefaultMapping)
 {
-    bool isVoid = std::is_same_v<void, RareMapper::GetDefaultMapping<TypeMappedBy>>;
+    bool isVoid = std::is_same_v<void, RareMapper::default_mapping_t<TypeMappedBy>>;
     EXPECT_TRUE(isVoid);
 
-    bool isTypeMappedBy = std::is_same_v<TypeMappedBy, RareMapper::GetDefaultMapping<ObjMappedBySpecialization>>;
+    bool isTypeMappedBy = std::is_same_v<TypeMappedBy, RareMapper::default_mapping_t<ObjMappedBySpecialization>>;
     EXPECT_TRUE(isTypeMappedBy);
-    isTypeMappedBy = std::is_same_v<TypeMappedBy, RareMapper::GetDefaultMapping<ObjMappedByMacro>>;
+    isTypeMappedBy = std::is_same_v<TypeMappedBy, RareMapper::default_mapping_t<ObjMappedByMacro>>;
     EXPECT_TRUE(isTypeMappedBy);
-    isTypeMappedBy = std::is_same_v<TypeMappedBy, RareMapper::GetDefaultMapping<ObjMappedByClassNote>>;
+    isTypeMappedBy = std::is_same_v<TypeMappedBy, RareMapper::default_mapping_t<ObjMappedByClassNote>>;
     EXPECT_TRUE(isTypeMappedBy);
 
     auto classOrMemberNoteWithMapping = std::tuple { RareMapper::MappedBy<TypeMappedBy> };
     using ClassOrMemberNoteWithMapping = decltype(classOrMemberNoteWithMapping);
     using OpNoteWithMapping = std::tuple<RareMapper::UseMapping<ObjWithoutMapping, TypeMappedBy>>;
-    isTypeMappedBy = std::is_same_v<TypeMappedBy, RareMapper::GetDefaultMapping<ObjWithoutMapping, ClassOrMemberNoteWithMapping>>;
+    isTypeMappedBy = std::is_same_v<TypeMappedBy, RareMapper::default_mapping_t<ObjWithoutMapping, ClassOrMemberNoteWithMapping>>;
     EXPECT_TRUE(isTypeMappedBy);
-    isTypeMappedBy = std::is_same_v<TypeMappedBy, RareMapper::GetDefaultMapping<ObjWithoutMapping, void, OpNoteWithMapping>>;
+    isTypeMappedBy = std::is_same_v<TypeMappedBy, RareMapper::default_mapping_t<ObjWithoutMapping, void, OpNoteWithMapping>>;
     EXPECT_TRUE(isTypeMappedBy);
-    isTypeMappedBy = std::is_same_v<TypeMappedBy, RareMapper::GetDefaultMapping<ObjWithoutMapping, ClassOrMemberNoteWithMapping, OpNoteWithMapping>>;
+    isTypeMappedBy = std::is_same_v<TypeMappedBy, RareMapper::default_mapping_t<ObjWithoutMapping, ClassOrMemberNoteWithMapping, OpNoteWithMapping>>;
     EXPECT_TRUE(isTypeMappedBy);
 }
 

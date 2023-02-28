@@ -23,7 +23,7 @@ if ( "${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU" )
   add_definitions(-DEOVERFLOW=132 -D_GLIBCXX_HAVE_EOVERFLOW=1)
 elseif ( "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" )
   add_compile_options(
-    -pedantic-errors -Wall -Wextra -Wno-switch -Wconversion -Wno-gnu-zero-variadic-macro-arguments
+    -pedantic-errors -Wall -Wextra -Wno-switch -Wconversion
   )
 endif ()
 
