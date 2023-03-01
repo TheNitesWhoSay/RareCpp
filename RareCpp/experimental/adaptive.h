@@ -330,16 +330,15 @@ struct R
     )
 };
 
-struct MyObj
+struct IntStringObj
 {
-private:
     int myInt = 0;
     std::string myString{};
 
-    REFLECT(MyObj, myInt, myString)
+    REFLECT(IntStringObj, myInt, myString)
 };
 
-inline std::ostream & operator<<(std::ostream & os, const MyObj & myObj) {
+inline std::ostream & operator<<(std::ostream & os, const IntStringObj & myObj) {
     auto get = Adaptive::referenceObject(myObj);
     os << "MyObj: {" << get.myInt << ", " << get.myString << "}" << std::endl << std::endl;
     return os;
@@ -352,7 +351,7 @@ inline void adaptiveStructExperiment()
     RareMapper::map(l, r);
     std::cout << "{" << r.r1 << ", " << r.r2 << "} --> {" << l.l1 << ", " << l.l2 << ", " << l.l3 << "}" << std::endl;
 
-    MyObj myObj = Adaptive::builder<MyObj>().myInt(42).myString("l33t").build(); // adapted types overload operator()
+    IntStringObj myObj = RareBuilder<IntStringObj>().myInt(42).myString("l33t").build(); // adapted types overload operator()
     std::cout << myObj;
     
     auto ref = Adaptive::referenceObject(myObj); // adapted types are references to the members
