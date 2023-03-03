@@ -5,7 +5,7 @@
 #include <string>
 #include <type_traits>
 #include <vector>
-using namespace BufferedStream;
+using namespace RareBufferedStream;
 
 //#define RUN_PERFORMANCE_TESTS
 

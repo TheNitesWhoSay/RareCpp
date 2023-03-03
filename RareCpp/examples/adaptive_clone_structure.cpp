@@ -1,0 +1,5 @@
+
+void adaptiveCloneStructure()
+{
+    // TODO
+}

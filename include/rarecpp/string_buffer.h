@@ -14,7 +14,7 @@
 #include <system_error>
 #include <vector>
 
-namespace BufferedStream
+namespace RareBufferedStream
 {
     struct EndL
     {

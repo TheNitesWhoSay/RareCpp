@@ -1705,8 +1705,8 @@ template <class U_, class ... Ts_> struct A_<I_::x, U_, Ts_...> : Ts_... { \
 #define RARE_RESTATE_COMMA(x) x,
 #define RARE_MEMBER(x) \
 template <class T_> struct F_<I_::x, T_, std::void_t<decltype(T_::x)>> : RareTs::type_id<decltype(T_::x)> { \
-    template <class U_> static constexpr auto & s() { return (decltype(U_::x)&)U_::x; } \
-    template <class U_> static constexpr auto & i(U_ && t) { return (decltype(t.x)&)t.x; } \
+    template <class U_> static constexpr auto & s() { return U_::x; } \
+    template <class U_> static constexpr auto & i(U_ && t) { return t.x; } \
 }; \
 template <class T_> struct Q_<I_::x, T_, std::void_t<decltype(&T_::x)>> : RareTs::type_id<decltype(&T_::x)> {}; \
 template <class T_> struct N_<I_::x, T_> { static constexpr char n[]=#x; }; \

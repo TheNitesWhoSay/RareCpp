@@ -49,7 +49,9 @@ int TestObj::c = 3;
 std::string TestObj::e = "five";
 int* TestObj::f = nullptr;
 
-void refactoringExperiment()
+namespace experimental {
+
+void refactoring()
 {
     std::cout << "total: " << Reflect<TestObj>::Members::total << std::endl;
     std::cout << "a: " << Reflect<TestObj>::Members::indexOf("a") << std::endl;
@@ -191,4 +193,6 @@ void refactoringExperiment()
     RareTs::forIndexes<Reflect<TestObj>::Members::total>([&](auto I) {
         std::cout << Reflect<TestObj>::Members::Member<I>::isStatic << std::endl;
     });
+}
+
 }

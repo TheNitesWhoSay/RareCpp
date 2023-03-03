@@ -5,6 +5,7 @@ set(This RareCpp)
 set(Headers
   examples/car.h
   examples/json_customization.h
+  menu.h
 )
 set(Sources
   examples/annotated_supers.cpp
@@ -15,6 +16,51 @@ set(Sources
   examples/json_dynamic.cpp
   examples/object_mapper.cpp
   examples/reflection_limits.cpp
+  examples/member_define_iterate_modify.cpp
+  examples/member_access_by_constexpr_index.cpp
+  examples/member_access_by_runtime_index.cpp
+  examples/member_access_by_name.cpp
+  examples/member_access_protection_modifier.cpp
+  examples/member_metadata_by_identifier.cpp
+  examples/member_pack_fold.cpp
+  examples/member_filter_constexpr_if.cpp
+  examples/member_filter_predicate.cpp
+  examples/note_class_members.cpp
+  examples/note_class.cpp
+  examples/note_anonymous.cpp
+  examples/note_filtered.cpp
+  examples/super_define_iterate.cpp
+  examples/super_access_by_constexpr_index.cpp
+  examples/super_access_by_runtime_index.cpp
+  examples/super_traverse_tree.cpp
+  examples/function_define_iterate_call.cpp
+  examples/function_argument_and_return_types.cpp
+  examples/function_build_and_call.cpp
+  examples/overload_define_iterate_call.cpp
+  examples/overload_access_by_constexpr_index.cpp
+  examples/overload_access_by_runtime_index.cpp
+  examples/overload_pack_fold.cpp
+  examples/overload_non_noted_argument_sets.cpp
+  examples/overload_cvref_qualifications.cpp
+  examples/misc_type_to_string.cpp
+  examples/misc_runtime_to_constexpr_index.cpp
+  examples/misc_whitebox_testing.cpp
+  examples/misc_make_tuple.cpp
+  examples/adaptive_clone_structure.cpp
+  examples/adaptive_typedef_structure.cpp
+  examples/adaptive_implement_whiteboxer.cpp
+  examples/adaptive_implement_builder.cpp
+  examples/adaptive_implement_change_listener.cpp
+  examples/adaptive_implement_mapper.cpp
+  examples/builder_simple.cpp
+  examples/builder_validated.cpp
+  examples/builder_aggregated.cpp
+  examples/mapper_trivial_mapping.cpp
+  examples/mapper_custom_field_mapping.cpp
+  examples/mapper_using_standard_mappings.cpp
+  examples/json_basic.cpp
+  examples/json_customizations.cpp
+  examples/json_unknown_fields.cpp
   experimental/refactoring.cpp
   experimental/rest.cpp
   main.cpp

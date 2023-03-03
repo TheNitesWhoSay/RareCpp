@@ -37,30 +37,24 @@ std::istream & operator>>(std::istream & is, A::TestEnum & testEnum)
     return is;
 }
 
+A a;
+
 void jsonCustomizationExample()
 {
-    A a;
-    do {
-        try {
-            std::cout << "Enter Class A:" << std::endl;
-            std::cin >> Json::in(a);
-        } catch ( Json::Exception & e ) {
-            std::cout << std::endl << "Exception: " << e.what() << std::endl;
-        }
+    try {
+        std::cout << "Enter Class A:" << std::endl;
+        std::cin >> Json::in(a);
+    } catch ( Json::Exception & e ) {
+        std::cout << std::endl << "Exception: " << e.what() << std::endl;
+    }
 
-        if ( a.putCache )
-        {
-            Json::putClassFieldCache(std::cout);
-            std::cout << "..." << std::endl;
-        }
-        std::cout << "Read in: " << Json::pretty<Statics::Included>(a, std::make_shared<EnhancedContext>(1337)) << std::endl;
+    if ( a.putCache )
+    {
+        Json::putClassFieldCache(std::cout);
         std::cout << "..." << std::endl;
-        std::cin.clear();
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    } while ( true );
-
-    std::cout << std::endl << "Press enter to exit." << std::endl;
+    }
+    std::cout << "Read in: " << Json::pretty<Statics::Included>(a, std::make_shared<EnhancedContext>(1337)) << std::endl;
+    std::cout << "..." << std::endl;
     std::cin.clear();
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    std::cin.get();
 }

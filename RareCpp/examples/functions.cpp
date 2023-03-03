@@ -88,7 +88,7 @@ struct bar
     REFLECT(bar, foo, refFoo, staticFoo, a, b, c, d, e, f)
 };
 
-void functionExperiment()
+void functionReflectionExample()
 {
     RareTs::forIndexes<RareTs::Class::member_count<bar>>([&](auto I) {
         

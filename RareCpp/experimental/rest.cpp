@@ -8,6 +8,9 @@
 #include <utility>
 #include <vector>
 
+namespace experimental
+{
+
 namespace Http
 {
     enum class Method : size_t
@@ -338,10 +341,12 @@ struct AnotherTestController
 
 Rest::Engine restEngine(TestController{}, AnotherTestController{});
 
-void restExperiment()
+void rest()
 {
     restEngine.handleRestEvent(Http::Method::GET, "/my/path/hello/1/a");
     restEngine.handleRestEvent(Http::Method::GET, "/my/path/altHello/1");
 
     decltype(restEngine)::Debug();
+}
+
 }

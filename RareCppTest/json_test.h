@@ -4,7 +4,7 @@
 #include <rarecpp/reflect.h>
 #include <rarecpp/string_buffer.h>
 using namespace RareTs;
-using namespace BufferedStream;
+using namespace RareBufferedStream;
 using Json::Statics;
 
 struct CustomizeNoSpecialization

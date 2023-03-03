@@ -344,7 +344,9 @@ inline std::ostream & operator<<(std::ostream & os, const IntStringObj & myObj) 
     return os;
 }
 
-inline void adaptiveStructExperiment()
+namespace experimental {
+
+inline void adaptive()
 {
     L l {};
     R r {1, 2};
@@ -367,6 +369,8 @@ inline void adaptiveStructExperiment()
     myTappedObj.myInt = 1;
     myTappedObj.myString = "qwerty";
     std::cout << myObj;
+}
+
 }
 
 #endif

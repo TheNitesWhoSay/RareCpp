@@ -29,9 +29,9 @@
 namespace Json
 {
 #ifdef USE_BUFFERED_STREAMS
-    using namespace BufferedStream;
+    using namespace RareBufferedStream;
     using OutStreamType = StringBuffer;
-    inline constexpr BufferedStream::EndL endl = {};
+    inline constexpr RareBufferedStream::EndL endl = {};
 #else
     using OutStreamType = std::ostream;
     struct endl_type {};
