@@ -1,0 +1,1 @@
+Library code (headers) are the "[root]/include" directory! This directory just contains the visual studios project metadata.

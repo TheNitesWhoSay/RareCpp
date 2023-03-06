@@ -18,6 +18,11 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\include\rarecpp\json.h" />
+    <ClInclude Include="..\include\rarecpp\reflect.h" />
+    <ClInclude Include="..\include\rarecpp\string_buffer.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <ProjectGuid>{B8361C48-C63D-4A50-8A71-F4BC21159D06}</ProjectGuid>
@@ -145,11 +150,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClInclude Include="Json.h" />
-    <ClInclude Include="Reflect.h" />
-    <ClInclude Include="StringBuffer.h" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

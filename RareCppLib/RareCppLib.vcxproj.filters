@@ -11,13 +11,13 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Json.h">
+    <ClInclude Include="..\include\rarecpp\json.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Reflect.h">
+    <ClInclude Include="..\include\rarecpp\reflect.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="StringBuffer.h">
+    <ClInclude Include="..\include\rarecpp\string_buffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

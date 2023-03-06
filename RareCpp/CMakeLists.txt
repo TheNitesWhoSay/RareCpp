@@ -1,12 +1,69 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.15.0)
 
 set(This RareCpp)
 
 set(Headers
-  Main.h
+  examples/car.h
+  examples/declare_examples.h
+  examples/json_customization.h
+  experimental/structure_browser.h
+  menu.h
 )
 set(Sources
-  Main.cpp
+  examples/adaptive_clone_structure.cpp
+  examples/adaptive_implement_builder.cpp
+  examples/adaptive_implement_change_listener.cpp
+  examples/adaptive_implement_mapper.cpp
+  examples/adaptive_implement_whiteboxer.cpp
+  examples/adaptive_typedef_structure.cpp
+  examples/legacy_annotated_supers.cpp
+  examples/legacy_basic_reflection.cpp
+  examples/legacy_functions.cpp
+  examples/legacy_global_reflection.cpp
+  examples/legacy_json_customization.cpp
+  examples/legacy_json_dynamic.cpp
+  examples/legacy_object_mapper.cpp
+  examples/legacy_reflection_limits.cpp
+  examples/builder_aggregated.cpp
+  examples/builder_simple.cpp
+  examples/builder_validated.cpp
+  examples/function_build_and_call.cpp
+  examples/function_define_iterate_call.cpp
+  examples/json_basic.cpp
+  examples/json_customizations.cpp
+  examples/json_unknown_fields.cpp
+  examples/mapper_custom_field_mapping.cpp
+  examples/mapper_trivial_mapping.cpp
+  examples/mapper_using_standard_mappings.cpp
+  examples/member_access_by_constexpr_index.cpp
+  examples/member_access_by_name.cpp
+  examples/member_access_by_runtime_index.cpp
+  examples/member_access_protection_modifier.cpp
+  examples/member_define_iterate_modify.cpp
+  examples/member_filter_constexpr_if.cpp
+  examples/member_filter_predicate.cpp
+  examples/member_metadata_by_identifier.cpp
+  examples/member_pack_fold.cpp
+  examples/misc_make_tuple.cpp
+  examples/misc_runtime_to_constexpr_index.cpp
+  examples/misc_type_to_string.cpp
+  examples/misc_whitebox_testing.cpp
+  examples/note_anonymous.cpp
+  examples/note_class.cpp
+  examples/note_class_members.cpp
+  examples/note_filtered.cpp
+  examples/overload_access_by_constexpr_index.cpp
+  examples/overload_access_by_runtime_index.cpp
+  examples/overload_cvref_qualifications.cpp
+  examples/overload_define_iterate_call.cpp
+  examples/overload_non_noted_argument_sets.cpp
+  examples/overload_pack_expand.cpp
+  examples/super_access_by_constexpr_index.cpp
+  examples/super_access_by_runtime_index.cpp
+  examples/super_define_iterate.cpp
+  examples/super_traverse_tree.cpp
+  experimental/rest.cpp
+  main.cpp
 )
 
 add_executable(${This} ${Sources} ${Headers})

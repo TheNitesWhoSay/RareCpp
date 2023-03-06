@@ -18,60 +18,69 @@
     <Filter Include="Source Files\ReflectTest">
       <UniqueIdentifier>{130fa6d8-e04e-4817-ad39-0d9a23121594}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\JsonTest\Definition">
+    <Filter Include="Source Files\JsonTest\definition">
       <UniqueIdentifier>{e908698b-aa91-4fe9-b3a5-b79599f34b2e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="JsonInputTest.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="JsonTest.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="TestMain.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="json_input_test_buffered.cpp">
+      <Filter>Source Files\JsonTest\definition</Filter>
     </ClCompile>
-    <ClCompile Include="ExtendedTypeSupportTest.cpp">
-      <Filter>Source Files\ReflectTest</Filter>
+    <ClCompile Include="json_input_test_unbuffered.cpp">
+      <Filter>Source Files\JsonTest\definition</Filter>
     </ClCompile>
-    <ClCompile Include="FieldTest.cpp">
-      <Filter>Source Files\ReflectTest</Filter>
+    <ClCompile Include="json_test_run_buffered.cpp">
+      <Filter>Source Files\JsonTest\definition</Filter>
     </ClCompile>
-    <ClCompile Include="ReflectTest.cpp">
-      <Filter>Source Files\ReflectTest</Filter>
+    <ClCompile Include="json_test_run_unbuffered.cpp">
+      <Filter>Source Files\JsonTest\definition</Filter>
     </ClCompile>
-    <ClCompile Include="JsonInputTest.cpp">
+    <ClCompile Include="json_input_test.cpp">
       <Filter>Source Files\JsonTest</Filter>
     </ClCompile>
-    <ClCompile Include="JsonTest.cpp">
+    <ClCompile Include="json_test.cpp">
       <Filter>Source Files\JsonTest</Filter>
     </ClCompile>
-    <ClCompile Include="StringBufferTest.cpp">
+    <ClCompile Include="extended_type_support_test.cpp">
+      <Filter>Source Files\ReflectTest</Filter>
+    </ClCompile>
+    <ClCompile Include="member_test.cpp">
+      <Filter>Source Files\ReflectTest</Filter>
+    </ClCompile>
+    <ClCompile Include="generic_macro_test.cpp">
+      <Filter>Source Files\ReflectTest</Filter>
+    </ClCompile>
+    <ClCompile Include="inherit_test.cpp">
+      <Filter>Source Files\ReflectTest</Filter>
+    </ClCompile>
+    <ClCompile Include="object_mapper_test.cpp">
+      <Filter>Source Files\ReflectTest</Filter>
+    </ClCompile>
+    <ClCompile Include="reflect_test.cpp">
+      <Filter>Source Files\ReflectTest</Filter>
+    </ClCompile>
+    <ClCompile Include="reflection_test.cpp">
+      <Filter>Source Files\ReflectTest</Filter>
+    </ClCompile>
+    <ClCompile Include="string_buffer_test.cpp">
       <Filter>Source Files\StringBufferTest</Filter>
     </ClCompile>
-    <ClCompile Include="JsonInputTestBuffered.cpp">
-      <Filter>Source Files\JsonTest\Definition</Filter>
+    <ClCompile Include="test_main.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="JsonInputTestUnbuffered.cpp">
-      <Filter>Source Files\JsonTest\Definition</Filter>
-    </ClCompile>
-    <ClCompile Include="JsonTestRunBuffered.cpp">
-      <Filter>Source Files\JsonTest\Definition</Filter>
-    </ClCompile>
-    <ClCompile Include="JsonTestRunUnbuffered.cpp">
-      <Filter>Source Files\JsonTest\Definition</Filter>
-    </ClCompile>
-    <ClCompile Include="InheritTest.cpp">
+    <ClCompile Include="builder_test.cpp">
       <Filter>Source Files\ReflectTest</Filter>
     </ClCompile>
-    <ClCompile Include="GenericMacroTest.cpp">
+    <ClCompile Include="whitebox_test.cpp">
       <Filter>Source Files\ReflectTest</Filter>
     </ClCompile>
-    <ClCompile Include="ObjectMapperTest.cpp">
-      <Filter>Source Files\ReflectTest</Filter>
-    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="json_input_test.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="json_test.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
