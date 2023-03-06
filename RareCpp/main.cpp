@@ -1,3 +1,4 @@
+#include "examples/declare_examples.h"
 #include "menu.h"
 
 // Experimental
@@ -5,80 +6,6 @@ namespace experimental {
     void rest();
     void refactoring();
 }
-
-// Legacy examples
-void basicReflectionExamples();
-void globalReflectionExample();
-void annotatedSupersExample();
-void objectMapperExamples();
-void dynamicJsonIoExample();
-void jsonCustomizationExample();
-void functionReflectionExample();
-
-// Member examples
-void memberDefineIterateModify();
-void memberAccessByConstexprIndex();
-void memberAccessByRuntimeIndex();
-void memberAccessByName();
-void memberAccessProtectionModifier();
-void memberMetadataByIdentifier();
-void memberPackFold();
-void memberFilterConstexprIf();
-void memberFilterPredicate();
-
-// Note examples
-void noteClassMembers();
-void noteClass();
-void noteAnonymous();
-void noteFiltered();
-
-// Super-class examples
-void superDefineIterate();
-void superAccessByConstexprIndex();
-void superAccessByRuntimeIndex();
-void superTraverseTree();
-
-// Function examples
-void functionDefineIterateCall();
-void functionArgumentAndReturnTypes();
-void functionBuildAndCall();
-
-// Overload examples
-void overloadDefineIterateCall();
-void overloadAccessByConstexprIndex();
-void overloadAccessByRuntimeIndex();
-void overloadPackFold();
-void overloadNonNotedArgumentSets();
-void overloadCvrefQualifications();
-
-// Misc examples
-void miscTypeToString();
-void miscRuntimeToConstexprIndex();
-void miscWhiteboxTesting();
-void miscMakeTuple();
-
-// Adaptive structure examples
-void adaptiveCloneStructure();
-void adaptiveTypedefStructure();
-void adaptiveImplementWhiteboxer();
-void adaptiveImplementBuilder();
-void adaptiveImplementChangeListener();
-void adaptiveImplementMapper();
-
-// Builder examples
-void builderSimple();
-void builderValidated();
-void builderAggregated();
-
-// Mapper examples
-void mapperTrivialMapping();
-void mapperCustomFieldMapping();
-void mapperUsingStandardMappings();
-
-// Json examples
-void jsonBasic();
-void jsonCustomizations();
-void jsonUnknownFields();
 
 // No-op
 void none() {}
@@ -89,7 +16,6 @@ void openMenu()
         .item(
             Menu("Experimental", "Select an experiment: ")
             .item("Rest experiment", &experimental::rest)
-            .item("Refactoring experiment", &experimental::refactoring)
         ).item(
             Menu("Legacy examples", "Select an example: ")
             .item("Basic reflection", &basicReflectionExamples)
@@ -125,14 +51,13 @@ void openMenu()
         ).item(
             Menu{"Function examples", "Select an example: "}
             .item("Define, iterate & call functions", &functionDefineIterateCall)
-            .item("Get argument & return types", &functionArgumentAndReturnTypes)
             .item("Iteratively build arguments & call function", &functionBuildAndCall)
         ).item(
             Menu{"Overload examples", "Select an example: "}
             .item("Define, iterate & call overloads", &overloadDefineIterateCall)
             .item("Access known overload by constexpr index", &overloadAccessByConstexprIndex)
             .item("Access known overload by runtime index", &overloadAccessByRuntimeIndex)
-            .item("Pack known overloads", &overloadPackFold)
+            .item("Pack known overloads", &overloadPackExpand)
             .item("Access unknown overload (non-noted argument set)", &overloadNonNotedArgumentSets)
             .item("Working with cv-ref qualified overloads", &overloadCvrefQualifications)
         ).item(

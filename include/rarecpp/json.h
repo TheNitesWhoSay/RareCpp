@@ -1895,16 +1895,19 @@ namespace Json
                 Reflect<Object>::Supers::forEach(obj, [&](auto superInfo, auto & superObj) {
                     using SuperInfo = decltype(superInfo);
                     using Super = RareTs::remove_cvref_t<decltype(superObj)>;
-                    if constexpr ( SuperInfo::template hasNote<Json::Name>() )
+                    if constexpr ( !SuperInfo::template hasNote<Json::IgnoreType>() )
                     {
-                        const auto & superName = superInfo.template getNote<Json::Name>().value;
-                        Put::super<Annotations, decltype(superInfo)::index, Super, statics, PrettyPrint, IndentLevel, Indent, Object>(
-                            os, context, obj, superName);
-                    }
-                    else
-                    {
-                        Put::super<Annotations, decltype(superInfo)::index, Super, statics, PrettyPrint, IndentLevel, Indent, Object>(
-                            os, context, obj, superTypeToJsonFieldName<Super>());
+                        if constexpr ( SuperInfo::template hasNote<Json::Name>() )
+                        {
+                            const auto & superName = superInfo.template getNote<Json::Name>().value;
+                            Put::super<Annotations, decltype(superInfo)::index, Super, statics, PrettyPrint, IndentLevel, Indent, Object>(
+                                os, context, obj, superName);
+                        }
+                        else
+                        {
+                            Put::super<Annotations, decltype(superInfo)::index, Super, statics, PrettyPrint, IndentLevel, Indent, Object>(
+                                os, context, obj, superTypeToJsonFieldName<Super>());
+                        }
                     }
                 });
             }

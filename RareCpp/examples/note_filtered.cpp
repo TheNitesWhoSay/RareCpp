@@ -1,43 +1,46 @@
-#include <rarecpp/reflect.h>
 #include <rarecpp/json.h>
+#include <rarecpp/reflect.h>
 #include <iostream>
 
-using Alias = std::string_view;
-
-struct NotedMembers
+inline namespace note_filtered
 {
-    NOTE(a, 0, "asdf", 1, 2, Alias{"ayy"}, "qwerty")
-    int a = 1;
+    using Alias = std::string_view;
 
-    int b = 2;
+    struct NotedMembers
+    {
+        NOTE(a, 0, "asdf", 1, 2, Alias{"ayy"}, "qwerty")
+        int a = 1;
 
-    int c = 3;
+        int b = 2;
 
-    REFLECT(NotedMembers, a, b, c)
-};
+        int c = 3;
 
-void noteFiltered()
-{
-    // The note interface can use predicate-based filtering on the type of the values given in the NOTE
-    std::cout << "first const char*: " << RareTs::MemberType<NotedMembers>::a::getNote<const char*>() << std::endl;
-    std::cout << "first int: " << RareTs::MemberType<NotedMembers>::a::getNote<int>() << std::endl;
-    std::cout << "first alias: " << RareTs::MemberType<NotedMembers>::a::getNote<Alias>() << std::endl;
+        REFLECT(NotedMembers, a, b, c)
+    };
+
+    void noteFiltered()
+    {
+        // The note interface can use predicate-based filtering on the type of the values given in the NOTE
+        std::cout << "first const char*: " << RareTs::MemberType<NotedMembers>::a::getNote<const char*>() << std::endl;
+        std::cout << "first int: " << RareTs::MemberType<NotedMembers>::a::getNote<int>() << std::endl;
+        std::cout << "first alias: " << RareTs::MemberType<NotedMembers>::a::getNote<Alias>() << std::endl;
     
-    std::cout << "all const char*'s: ";
-    RareTs::MemberType<NotedMembers>::a::forEachNote<const char*>([&](auto & note) {
-        std::cout << note << ", ";
-    });
-    std::cout << std::endl;
+        std::cout << "all const char*'s: ";
+        RareTs::MemberType<NotedMembers>::a::forEachNote<const char*>([&](auto & note) {
+            std::cout << note << ", ";
+        });
+        std::cout << std::endl;
 
-    std::cout << "all ints: ";
-    RareTs::MemberType<NotedMembers>::a::forEachNote<int>([&](auto & note) {
-        std::cout << note << ", ";
-    });
-    std::cout << std::endl;
+        std::cout << "all ints: ";
+        RareTs::MemberType<NotedMembers>::a::forEachNote<int>([&](auto & note) {
+            std::cout << note << ", ";
+        });
+        std::cout << std::endl;
 
-    std::cout << "all aliases: ";
-    RareTs::MemberType<NotedMembers>::a::forEachNote<Alias>([&](auto & note) {
-        std::cout << note << ", ";
-    });
-    std::cout << std::endl;
+        std::cout << "all aliases: ";
+        RareTs::MemberType<NotedMembers>::a::forEachNote<Alias>([&](auto & note) {
+            std::cout << note << ", ";
+        });
+        std::cout << std::endl;
+    }
 }

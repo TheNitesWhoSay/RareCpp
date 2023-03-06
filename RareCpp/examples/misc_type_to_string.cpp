@@ -1,5 +1,16 @@
+#include <rarecpp/reflect.h>
+#include <iostream>
 
-void miscTypeToString()
+inline namespace misc_type_to_string
 {
-    // TODO
+    struct structure {};
+
+    template <typename T> struct templated {};
+
+    void miscTypeToString()
+    {
+        std::cout << "int: " << RareTs::toStr<int>() << std::endl;
+        std::cout << "structure: " << RareTs::toStr<structure>() << std::endl;
+        std::cout << "templated<float>: " << RareTs::toStr<templated<float>>() << std::endl;
+    }
 }

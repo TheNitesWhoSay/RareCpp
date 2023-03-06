@@ -21,9 +21,6 @@
     <Filter Include="Header Files\examples">
       <UniqueIdentifier>{4d497e52-a0ad-49f7-afa8-1f34e4eea2ba}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\examples\old">
-      <UniqueIdentifier>{51ef38f5-68e8-405b-b56d-298dbf3d9124}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\examples\reflect_members">
       <UniqueIdentifier>{82bdb680-8926-4e98-9baf-359b67586b51}</UniqueIdentifier>
     </Filter>
@@ -45,28 +42,28 @@
     <Filter Include="Source Files\examples\adaptive_structures">
       <UniqueIdentifier>{ce3f59fd-51dc-4c4a-886f-dc1835c235d1}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\examples\builder">
+    <Filter Include="Header Files\examples\legacy">
+      <UniqueIdentifier>{51ef38f5-68e8-405b-b56d-298dbf3d9124}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\examples\rare_builder">
       <UniqueIdentifier>{8f3eb3b3-c98b-46e4-9d83-0961d57ce890}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\examples\mapper">
-      <UniqueIdentifier>{30be93d4-33a2-4de8-8138-d3aa7803c98a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\examples\json">
+    <Filter Include="Source Files\examples\rare_json">
       <UniqueIdentifier>{bccc3b95-b951-4de2-8700-7e60b986b50e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\examples\notes">
+    <Filter Include="Source Files\examples\reflection_notes">
       <UniqueIdentifier>{803d1629-00a9-4f17-acc0-31f542d7c208}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\examples\rare_mapper">
+      <UniqueIdentifier>{30be93d4-33a2-4de8-8138-d3aa7803c98a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="experimental\adaptive.h">
-      <Filter>Header Files\experimental</Filter>
-    </ClInclude>
     <ClInclude Include="examples\car.h">
-      <Filter>Header Files\examples\old</Filter>
+      <Filter>Header Files\examples\legacy</Filter>
     </ClInclude>
     <ClInclude Include="examples\json_customization.h">
-      <Filter>Header Files\examples\old</Filter>
+      <Filter>Header Files\examples\legacy</Filter>
     </ClInclude>
     <ClInclude Include="experimental\structure_browser.h">
       <Filter>Header Files\experimental</Filter>
@@ -74,39 +71,39 @@
     <ClInclude Include="menu.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="examples\declare_examples.h">
+      <Filter>Header Files\examples</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="experimental\refactoring.cpp">
-      <Filter>Source Files\experimental</Filter>
-    </ClCompile>
     <ClCompile Include="experimental\rest.cpp">
       <Filter>Source Files\experimental</Filter>
     </ClCompile>
-    <ClCompile Include="examples\reflection_limits.cpp">
+    <ClCompile Include="examples\legacy_reflection_limits.cpp">
       <Filter>Source Files\examples\legacy</Filter>
     </ClCompile>
-    <ClCompile Include="examples\annotated_supers.cpp">
+    <ClCompile Include="examples\legacy_annotated_supers.cpp">
       <Filter>Source Files\examples\legacy</Filter>
     </ClCompile>
-    <ClCompile Include="examples\basic_reflection.cpp">
+    <ClCompile Include="examples\legacy_basic_reflection.cpp">
       <Filter>Source Files\examples\legacy</Filter>
     </ClCompile>
-    <ClCompile Include="examples\functions.cpp">
+    <ClCompile Include="examples\legacy_functions.cpp">
       <Filter>Source Files\examples\legacy</Filter>
     </ClCompile>
-    <ClCompile Include="examples\global_reflection.cpp">
+    <ClCompile Include="examples\legacy_global_reflection.cpp">
       <Filter>Source Files\examples\legacy</Filter>
     </ClCompile>
-    <ClCompile Include="examples\json_customization.cpp">
+    <ClCompile Include="examples\legacy_json_customization.cpp">
       <Filter>Source Files\examples\legacy</Filter>
     </ClCompile>
-    <ClCompile Include="examples\json_dynamic.cpp">
+    <ClCompile Include="examples\legacy_json_dynamic.cpp">
       <Filter>Source Files\examples\legacy</Filter>
     </ClCompile>
-    <ClCompile Include="examples\object_mapper.cpp">
+    <ClCompile Include="examples\legacy_object_mapper.cpp">
       <Filter>Source Files\examples\legacy</Filter>
     </ClCompile>
     <ClCompile Include="examples\member_access_by_constexpr_index.cpp">
@@ -148,9 +145,6 @@
     <ClCompile Include="examples\super_traverse_tree.cpp">
       <Filter>Source Files\examples\reflect_supers</Filter>
     </ClCompile>
-    <ClCompile Include="examples\function_argument_and_return_types.cpp">
-      <Filter>Source Files\examples\reflect_functions</Filter>
-    </ClCompile>
     <ClCompile Include="examples\function_build_and_call.cpp">
       <Filter>Source Files\examples\reflect_functions</Filter>
     </ClCompile>
@@ -172,7 +166,7 @@
     <ClCompile Include="examples\overload_non_noted_argument_sets.cpp">
       <Filter>Source Files\examples\reflect_overloads</Filter>
     </ClCompile>
-    <ClCompile Include="examples\overload_pack_fold.cpp">
+    <ClCompile Include="examples\overload_pack_expand.cpp">
       <Filter>Source Files\examples\reflect_overloads</Filter>
     </ClCompile>
     <ClCompile Include="examples\misc_make_tuple.cpp">
@@ -206,43 +200,43 @@
       <Filter>Source Files\examples\adaptive_structures</Filter>
     </ClCompile>
     <ClCompile Include="examples\builder_aggregated.cpp">
-      <Filter>Source Files\examples\builder</Filter>
+      <Filter>Source Files\examples\rare_builder</Filter>
     </ClCompile>
     <ClCompile Include="examples\builder_simple.cpp">
-      <Filter>Source Files\examples\builder</Filter>
+      <Filter>Source Files\examples\rare_builder</Filter>
     </ClCompile>
     <ClCompile Include="examples\builder_validated.cpp">
-      <Filter>Source Files\examples\builder</Filter>
+      <Filter>Source Files\examples\rare_builder</Filter>
     </ClCompile>
     <ClCompile Include="examples\mapper_custom_field_mapping.cpp">
-      <Filter>Source Files\examples\mapper</Filter>
+      <Filter>Source Files\examples\rare_mapper</Filter>
     </ClCompile>
     <ClCompile Include="examples\mapper_trivial_mapping.cpp">
-      <Filter>Source Files\examples\mapper</Filter>
+      <Filter>Source Files\examples\rare_mapper</Filter>
     </ClCompile>
     <ClCompile Include="examples\mapper_using_standard_mappings.cpp">
-      <Filter>Source Files\examples\mapper</Filter>
+      <Filter>Source Files\examples\rare_mapper</Filter>
     </ClCompile>
     <ClCompile Include="examples\json_basic.cpp">
-      <Filter>Source Files\examples\json</Filter>
+      <Filter>Source Files\examples\rare_json</Filter>
     </ClCompile>
     <ClCompile Include="examples\json_customizations.cpp">
-      <Filter>Source Files\examples\json</Filter>
+      <Filter>Source Files\examples\rare_json</Filter>
     </ClCompile>
     <ClCompile Include="examples\json_unknown_fields.cpp">
-      <Filter>Source Files\examples\json</Filter>
+      <Filter>Source Files\examples\rare_json</Filter>
     </ClCompile>
     <ClCompile Include="examples\note_anonymous.cpp">
-      <Filter>Source Files\examples\notes</Filter>
+      <Filter>Source Files\examples\reflection_notes</Filter>
     </ClCompile>
     <ClCompile Include="examples\note_class.cpp">
-      <Filter>Source Files\examples\notes</Filter>
+      <Filter>Source Files\examples\reflection_notes</Filter>
     </ClCompile>
     <ClCompile Include="examples\note_class_members.cpp">
-      <Filter>Source Files\examples\notes</Filter>
+      <Filter>Source Files\examples\reflection_notes</Filter>
     </ClCompile>
     <ClCompile Include="examples\note_filtered.cpp">
-      <Filter>Source Files\examples\notes</Filter>
+      <Filter>Source Files\examples\reflection_notes</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

@@ -1,5 +1,34 @@
+#include <rarecpp/reflect.h>
+#include <iostream>
+#include <string_view>
 
-void overloadDefineIterateCall()
+inline namespace overload_define_iterate_call
 {
-    // TODO
+    struct MyObj
+    {
+        NOTE(foo, RareTs::Overload<int, float>, RareTs::Overload<std::string_view>)
+        void foo(int i, float f) {
+            std::cout << "  called foo(int, float) with: " << i << ", " << f << std::endl;
+        }
+
+        void foo(std::string_view s) {
+            std::cout << "  called foo(std::string_view) with: " << s << std::endl;
+        }
+
+        REFLECT(MyObj, foo)
+    };
+
+    void overloadDefineIterateCall()
+    {
+        MyObj myObj{};
+        RareTs::MemberType<MyObj>::foo::Overloads::forEach(myObj, [&](auto overloadInfo) {
+            using OverloadInfo = decltype(overloadInfo);
+            using ArgumentTypes = typename OverloadInfo::Arguments;
+        
+            if constexpr ( std::is_same_v<std::tuple<int, float>, ArgumentTypes> )
+                (myObj.*(overloadInfo.pointer))(0, 1.1f);
+            else
+                (myObj.*(overloadInfo.pointer))("qwerty");
+        });
+    }
 }

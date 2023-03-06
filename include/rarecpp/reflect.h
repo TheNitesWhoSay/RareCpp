@@ -1309,14 +1309,28 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             {
                 template <typename T, size_t I> struct Argument : RareTs::type_id<T> { static constexpr size_t index = I; };
 
-                template <typename Function, typename ArgBuilder, size_t... I>
-                static constexpr decltype(auto) invoke(Function && function, ArgBuilder && argBuilder, std::index_sequence<I...>) {
-                    return function(argBuilder(Argument<Ts, I>{})...);
+                template <size_t I, typename Function, typename ArgBuilder, typename ... Us>
+                #pragma warning(suppress: 4100) // MSVC false-positive for "unused" parameters
+                static constexpr decltype(auto) invoke(Function && function, ArgBuilder && argBuilder, Us && ... args) {
+                    if constexpr ( I < sizeof...(Ts) )
+                    {
+                        return invoke<I+1>(std::forward<Function>(function), std::forward<ArgBuilder>(argBuilder),
+                            std::forward<Us>(args)..., argBuilder(Argument<std::tuple_element_t<I, std::tuple<Ts...>>, I>{}));
+                    }
+                    else
+                        return function(std::forward<Us>(args)...);
                 }
 
-                template <typename Function, typename ArgBuilder, typename T, size_t... I>
-                static constexpr decltype(auto) invoke(T && t, Function && function, ArgBuilder && argBuilder, std::index_sequence<I...>) {
-                    return (t.*function)(argBuilder(Argument<Ts, I>{})...);
+                template <size_t I, typename Function, typename ArgBuilder, typename T, typename ... Us>
+                #pragma warning(suppress: 4100) // MSVC false-positive for "unused" parameters
+                static constexpr decltype(auto) invokeInstance(T && t, Function && function, ArgBuilder && argBuilder, Us && ... args) {
+                    if constexpr ( I < sizeof...(Ts) )
+                    {
+                        return invokeInstance<I+1>(std::forward<T>(t), std::forward<Function>(function), std::forward<ArgBuilder>(argBuilder),
+                            std::forward<Us>(args)..., argBuilder(Argument<std::tuple_element_t<I, std::tuple<Ts...>>, I>{}));
+                    }
+                    else
+                        return (t.*function)(std::forward<Us>(args)...);
                 }
             };
             template <typename ... Ts> struct ArgumentBuilder<std::tuple<Ts...>> : ArgumentBuilder<Ts...> {};
@@ -1338,8 +1352,8 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
 
                 template <typename ArgBuilder> constexpr auto invoke(ArgBuilder && argBuilder) const
                 {
-                    return ArgumentBuilder<Arguments>::template invoke(
-                        pointer, std::forward<ArgBuilder>(argBuilder), std::make_index_sequence<ArgumentCount>{});
+                    return ArgumentBuilder<Arguments>::template invoke<0>(
+                        pointer, std::forward<ArgBuilder>(argBuilder));
                 }
 
                 template <typename T, typename ArgBuilder> constexpr auto invoke(T && t, ArgBuilder && argBuilder) const
@@ -1351,21 +1365,21 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
                             constexpr size_t index = RareTs::index_of_v<MemberOf, T>;
                             if constexpr ( index < std::tuple_size_v<RareTs::remove_cvref_t<T>> )
                             {
-                                return ArgumentBuilder<Arguments>::template invoke(std::get<index>(std::forward<T>(t)),
-                                    pointer, std::forward<ArgBuilder>(argBuilder), std::make_index_sequence<ArgumentCount>{});
+                                return ArgumentBuilder<Arguments>::template invokeInstance(std::get<index>(std::forward<T>(t)),
+                                    pointer, std::forward<ArgBuilder>(argBuilder));
                             }
                             else
                                 return nullptr;
                         }
                         else
                         {
-                            return ArgumentBuilder<Arguments>::template invoke(
-                                std::forward<T>(t), pointer, std::forward<ArgBuilder>(argBuilder), std::make_index_sequence<ArgumentCount>{});
+                            return ArgumentBuilder<Arguments>::template invokeInstance<0>(
+                                std::forward<T>(t), pointer, std::forward<ArgBuilder>(argBuilder));
                         }
                     }
                     else
-                        return ArgumentBuilder<Arguments>::template invoke(
-                            pointer, std::forward<ArgBuilder>(argBuilder), std::make_index_sequence<ArgumentCount>{});
+                        return ArgumentBuilder<Arguments>::template invoke<0>(
+                            pointer, std::forward<ArgBuilder>(argBuilder));
                 }
             };
 
@@ -1443,8 +1457,15 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
                 using class_type = Class;
                 using argument_types = std::tuple<Args...>;
 
+                static constexpr auto pointers = Functions::detail::ResolveQualified<Class, const Class, volatile Class, const volatile Class, Class &,
+                    const Class &, volatile Class &, const volatile Class &, Class &&, const Class &&, volatile Class &&, const volatile Class &&>
+                    ::template Overload<MemberIndex, Args...>::pointers;
+
+                using pointer_types = std::remove_const_t<decltype(pointers)>;
+
                 // Returns the pointer type for the overload with the fewest qualifications if Q=void, or the exact same qualifications as Q otherwise
-                template <typename Q = void> using pointer_type = typename RareTs::Class::template overload<Args...>::template pointer_type<Q, MemberIndex>;
+                template <typename Q = void> using pointer_type = std::conditional_t<std::is_void_v<Q>, std::tuple_element_t<0, pointer_types>,
+                    typename RareTs::Class::template overload<Args...>::template pointer_type<Q, MemberIndex>>;
                 
                 // Returns the overload pointer type which would be resolved by the compiler if calling the method on qualified-object-type Q
                 template <typename Q> using resolve_pointer_type =
@@ -1453,20 +1474,20 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
                 static constexpr size_t memberIndex = MemberIndex;
                 static constexpr bool isStatic = !RareTs::is_instance_method_v<pointer_type<Class>, Args...>;
 
-                // Returns the pointer for the overload with the fewest qualifications if Q=void, or the exact same qualifications as Q otherwise
-                template <typename Q = void> static constexpr auto pointer = RareTs::Class::template overload<Args...>::template pointer<Q, MemberIndex>;
-
                 // Returns the overload pointer which would be resolved by the compiler if calling the method on qualified-object-type Q
                 template <typename Q> static constexpr auto resolvePointer =
                     Functions::detail::ResolveQualified<Q>::template Overload<MemberIndex, Args...>::pointer;
 
-                static constexpr auto pointers = Functions::detail::ResolveQualified<Class, const Class, volatile Class, const volatile Class, Class &,
-                    const Class &, volatile Class &, const volatile Class &, Class &&, const Class &&, volatile Class &&, const volatile Class &&>
-                    ::template Overload<MemberIndex, Args...>::pointers;
-
-                using pointer_types = std::remove_const_t<decltype(pointers)>;
-
                 static constexpr size_t totalQualifications = std::tuple_size_v<pointer_types>; // The total unique qualifications for this overload with args
+
+            private:
+                template <class Q, class = void>
+                struct ptr { static constexpr auto value = RareTs::Class::template overload<Args...>::template pointer<Q, MemberIndex>; };
+                template <class Void> struct ptr<void, Void> { static constexpr auto value = std::get<0>(pointers); };
+
+            public:
+                // Returns the pointer for the overload with the fewest qualifications if Q=void, or the exact same qualifications as Q otherwise
+                template <typename Q = void> static constexpr auto pointer = ptr<Q>::value;
             };
 
             template <typename T, size_t MemberIndex, typename MemberNotes, size_t ... Is>
