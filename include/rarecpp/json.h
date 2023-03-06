@@ -385,15 +385,15 @@ namespace Json
             virtual std::vector<bool> & boolArray() = 0;
             virtual std::vector<std::string> & numberArray() = 0;
             virtual std::vector<std::string> & stringArray() = 0;
-	        virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() = 0;
-	        virtual std::vector<std::shared_ptr<Value>> & mixedArray() = 0;
+            virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() = 0;
+            virtual std::vector<std::shared_ptr<Value>> & mixedArray() = 0;
             
             virtual const size_t & nullArray() const = 0;
             virtual const std::vector<bool> & boolArray() const = 0;
             virtual const std::vector<std::string> & numberArray() const = 0;
             virtual const std::vector<std::string> & stringArray() const = 0;
-	        virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const = 0;
-	        virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const = 0;
+            virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const = 0;
+            virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const = 0;
 
             template <typename T>
             bool getNumber(T & num) const
@@ -439,7 +439,7 @@ namespace Json
             std::vector<bool> & boolArray() final { throw TypeMismatch(Value::Type::Boolean, Value::Type::BoolArray, "boolArray"); }
             std::vector<std::string> & numberArray() final { throw TypeMismatch(Value::Type::Boolean, Value::Type::NumberArray, "numberArray"); }
             std::vector<std::string> & stringArray() final { throw TypeMismatch(Value::Type::Boolean, Value::Type::StringArray, "stringArray"); }
-	        std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final {
+            std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final {
                 throw TypeMismatch(Value::Type::Boolean, Value::Type::ObjectArray, "objectArray");
             }
             std::vector<std::shared_ptr<Value>> & mixedArray() final { throw TypeMismatch(Value::Type::Boolean, Value::Type::MixedArray, "mixedArray"); }
@@ -448,7 +448,7 @@ namespace Json
             const std::vector<bool> & boolArray() const final { throw TypeMismatch(Value::Type::Boolean, Value::Type::BoolArray, "boolArray"); }
             const std::vector<std::string> & numberArray() const final { throw TypeMismatch(Value::Type::Boolean, Value::Type::NumberArray, "numberArray"); }
             const std::vector<std::string> & stringArray() const final { throw TypeMismatch(Value::Type::Boolean, Value::Type::StringArray, "stringArray"); }
-	        const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final {
+            const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final {
                 throw TypeMismatch(Value::Type::Boolean, Value::Type::ObjectArray, "objectArray");
             }
             const std::vector<std::shared_ptr<Value>> & mixedArray() const final {
@@ -456,7 +456,7 @@ namespace Json
             }
 
         private:
-	        bool value;
+            bool value;
         };
         class Number final : public Value {
         public:
@@ -490,7 +490,7 @@ namespace Json
             std::vector<bool> & boolArray() final { throw TypeMismatch(Value::Type::Number, Value::Type::BoolArray, "boolArray"); }
             std::vector<std::string> & numberArray() final { throw TypeMismatch(Value::Type::Number, Value::Type::NumberArray, "numberArray"); }
             std::vector<std::string> & stringArray() final { throw TypeMismatch(Value::Type::Number, Value::Type::StringArray, "stringArray"); }
-	        std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final {
+            std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final {
                 throw TypeMismatch(Value::Type::Number, Value::Type::ObjectArray, "objectArray");
             }
             std::vector<std::shared_ptr<Value>> & mixedArray() final { throw TypeMismatch(Value::Type::Number, Value::Type::MixedArray, "mixedArray"); }
@@ -499,7 +499,7 @@ namespace Json
             const std::vector<bool> & boolArray() const final { throw TypeMismatch(Value::Type::Number, Value::Type::BoolArray, "boolArray"); }
             const std::vector<std::string> & numberArray() const final { throw TypeMismatch(Value::Type::Number, Value::Type::NumberArray, "numberArray"); }
             const std::vector<std::string> & stringArray() const final { throw TypeMismatch(Value::Type::Number, Value::Type::StringArray, "stringArray"); }
-	        const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final {
+            const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final {
                 throw TypeMismatch(Value::Type::Number, Value::Type::ObjectArray, "objectArray");
             }
             const std::vector<std::shared_ptr<Value>> & mixedArray() const final {
@@ -507,7 +507,7 @@ namespace Json
             }
             
         private:
-	        std::string value;
+            std::string value;
         };
         class String final : public Value {
         public:
@@ -538,7 +538,7 @@ namespace Json
             std::vector<bool> & boolArray() final { throw TypeMismatch(Value::Type::String, Value::Type::BoolArray, "boolArray"); }
             std::vector<std::string> & numberArray() final { throw TypeMismatch(Value::Type::String, Value::Type::NumberArray, "numberArray"); }
             std::vector<std::string> & stringArray() final { throw TypeMismatch(Value::Type::String, Value::Type::StringArray, "stringArray"); }
-	        std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final {
+            std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final {
                 throw TypeMismatch(Value::Type::String, Value::Type::ObjectArray, "objectArray");
             }
             std::vector<std::shared_ptr<Value>> & mixedArray() final { throw TypeMismatch(Value::Type::String, Value::Type::MixedArray, "mixedArray"); }
@@ -547,7 +547,7 @@ namespace Json
             const std::vector<bool> & boolArray() const final { throw TypeMismatch(Value::Type::String, Value::Type::BoolArray, "boolArray"); }
             const std::vector<std::string> & numberArray() const final { throw TypeMismatch(Value::Type::String, Value::Type::NumberArray, "numberArray"); }
             const std::vector<std::string> & stringArray() const final { throw TypeMismatch(Value::Type::String, Value::Type::StringArray, "stringArray"); }
-	        const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final {
+            const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final {
                 throw TypeMismatch(Value::Type::String, Value::Type::ObjectArray, "objectArray");
             }
             const std::vector<std::shared_ptr<Value>> & mixedArray() const final {
@@ -555,7 +555,7 @@ namespace Json
             }
             
         private:
-	        std::string value;
+            std::string value;
         };
         class Object : public Value {
         public:
@@ -585,7 +585,7 @@ namespace Json
             std::vector<bool> & boolArray() final { throw TypeMismatch(Value::Type::Object, Value::Type::BoolArray, "boolArray"); }
             std::vector<std::string> & numberArray() final { throw TypeMismatch(Value::Type::Object, Value::Type::NumberArray, "numberArray"); }
             std::vector<std::string> & stringArray() final { throw TypeMismatch(Value::Type::Object, Value::Type::StringArray, "stringArray"); }
-	        std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final {
+            std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final {
                 throw TypeMismatch(Value::Type::Object, Value::Type::ObjectArray, "objectArray");
             }
             std::vector<std::shared_ptr<Value>> & mixedArray() final { throw TypeMismatch(Value::Type::Object, Value::Type::MixedArray, "mixedArray"); }
@@ -594,7 +594,7 @@ namespace Json
             const std::vector<bool> & boolArray() const final { throw TypeMismatch(Value::Type::Object, Value::Type::BoolArray, "boolArray"); }
             const std::vector<std::string> & numberArray() const final { throw TypeMismatch(Value::Type::Object, Value::Type::NumberArray, "numberArray"); }
             const std::vector<std::string> & stringArray() const final { throw TypeMismatch(Value::Type::Object, Value::Type::StringArray, "stringArray"); }
-	        const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final {
+            const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final {
                 throw TypeMismatch(Value::Type::Object, Value::Type::ObjectArray, "objectArray");
             }
             const std::vector<std::shared_ptr<Value>> & mixedArray() const final {
@@ -607,9 +607,9 @@ namespace Json
             }
             
         private:
-	        std::map<std::string, std::shared_ptr<Value>> value;
+            std::map<std::string, std::shared_ptr<Value>> value;
         };
-	    
+        
         class NullArray final : public Value {
         public:
             NullArray() : nullCount(0) {}
@@ -639,7 +639,7 @@ namespace Json
             std::vector<bool> & boolArray() final { throw TypeMismatch(Value::Type::NullArray, Value::Type::BoolArray, "boolArray"); }
             std::vector<std::string> & numberArray() final { throw TypeMismatch(Value::Type::NullArray, Value::Type::NumberArray, "numberArray"); }
             std::vector<std::string> & stringArray() final { throw TypeMismatch(Value::Type::NullArray, Value::Type::StringArray, "stringArray"); }
-	        std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final {
+            std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final {
                 throw TypeMismatch(Value::Type::NullArray, Value::Type::ObjectArray, "objectArray");
             }
             std::vector<std::shared_ptr<Value>> & mixedArray() final { throw TypeMismatch(Value::Type::NullArray, Value::Type::MixedArray, "mixedArray"); }
@@ -652,7 +652,7 @@ namespace Json
             const std::vector<std::string> & stringArray() const final {
                 throw TypeMismatch(Value::Type::NullArray, Value::Type::StringArray, "stringArray");
             }
-	        const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final {
+            const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final {
                 throw TypeMismatch(Value::Type::NullArray, Value::Type::ObjectArray, "objectArray");
             }
             const std::vector<std::shared_ptr<Value>> & mixedArray() const final {
@@ -660,7 +660,7 @@ namespace Json
             }
 
         private:
-	        size_t nullCount;
+            size_t nullCount;
         };
         class BoolArray final : public Value {
         public:
@@ -691,7 +691,7 @@ namespace Json
             std::vector<bool> & boolArray() final { return values; }
             std::vector<std::string> & numberArray() final { throw TypeMismatch(Value::Type::BoolArray, Value::Type::NumberArray, "numberArray"); }
             std::vector<std::string> & stringArray() final { throw TypeMismatch(Value::Type::BoolArray, Value::Type::StringArray, "stringArray"); }
-	        std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final {
+            std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final {
                 throw TypeMismatch(Value::Type::BoolArray, Value::Type::ObjectArray, "objectArray");
             }
             std::vector<std::shared_ptr<Value>> & mixedArray() final { throw TypeMismatch(Value::Type::BoolArray, Value::Type::MixedArray, "mixedArray"); }
@@ -704,7 +704,7 @@ namespace Json
             const std::vector<std::string> & stringArray() const final {
                 throw TypeMismatch(Value::Type::BoolArray, Value::Type::StringArray, "stringArray");
             }
-	        const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final {
+            const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final {
                 throw TypeMismatch(Value::Type::BoolArray, Value::Type::ObjectArray, "objectArray");
             }
             const std::vector<std::shared_ptr<Value>> & mixedArray() const final {
@@ -712,7 +712,7 @@ namespace Json
             }
             
         private:
-	        std::vector<bool> values;
+            std::vector<bool> values;
         };
         class NumberArray final : public Value {
         public:
@@ -743,7 +743,7 @@ namespace Json
             std::vector<bool> & boolArray() final { throw TypeMismatch(Value::Type::NumberArray, Value::Type::BoolArray, "boolArray"); }
             std::vector<std::string> & numberArray() final { return values; }
             std::vector<std::string> & stringArray() final { throw TypeMismatch(Value::Type::NumberArray, Value::Type::StringArray, "stringArray"); }
-	        std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final {
+            std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final {
                 throw TypeMismatch(Value::Type::NumberArray, Value::Type::ObjectArray, "objectArray");
             }
             std::vector<std::shared_ptr<Value>> & mixedArray() final { throw TypeMismatch(Value::Type::NumberArray, Value::Type::MixedArray, "mixedArray"); }
@@ -754,7 +754,7 @@ namespace Json
             const std::vector<std::string> & stringArray() const final {
                 throw TypeMismatch(Value::Type::NumberArray, Value::Type::StringArray, "stringArray");
             }
-	        const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final {
+            const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final {
                 throw TypeMismatch(Value::Type::NumberArray, Value::Type::ObjectArray, "objectArray");
             }
             const std::vector<std::shared_ptr<Value>> & mixedArray() const final {
@@ -762,7 +762,7 @@ namespace Json
             }
             
         private:
-	        std::vector<std::string> values;
+            std::vector<std::string> values;
         };
         class StringArray final : public Value {
         public:
@@ -793,7 +793,7 @@ namespace Json
             std::vector<bool> & boolArray() final { throw TypeMismatch(Value::Type::StringArray, Value::Type::BoolArray, "boolArray"); }
             std::vector<std::string> & numberArray() final { throw TypeMismatch(Value::Type::StringArray, Value::Type::NumberArray, "numberArray"); }
             std::vector<std::string> & stringArray() final { return values; }
-	        std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final {
+            std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final {
                 throw TypeMismatch(Value::Type::StringArray, Value::Type::ObjectArray, "objectArray");
             }
             std::vector<std::shared_ptr<Value>> & mixedArray() final { throw TypeMismatch(Value::Type::StringArray, Value::Type::MixedArray, "mixedArray"); }
@@ -804,7 +804,7 @@ namespace Json
                 throw TypeMismatch(Value::Type::StringArray, Value::Type::NumberArray, "numberArray");
             }
             const std::vector<std::string> & stringArray() const final { return values; }
-	        const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final {
+            const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final {
                 throw TypeMismatch(Value::Type::StringArray, Value::Type::ObjectArray, "objectArray");
             }
             const std::vector<std::shared_ptr<Value>> & mixedArray() const final {
@@ -812,7 +812,7 @@ namespace Json
             }
 
         private:
-	        std::vector<std::string> values;
+            std::vector<std::string> values;
         };
         class ObjectArray final : public Value {
         public:
@@ -860,7 +860,7 @@ namespace Json
             }
             
         private:
-	        std::vector<std::map<std::string, std::shared_ptr<Value>>> values;
+            std::vector<std::map<std::string, std::shared_ptr<Value>>> values;
         };
         class MixedArray final : public Value {
         public:
@@ -891,7 +891,7 @@ namespace Json
             std::vector<bool> & boolArray() final { throw TypeMismatch(Value::Type::MixedArray, Value::Type::BoolArray, "boolArray"); }
             std::vector<std::string> & numberArray() final { throw TypeMismatch(Value::Type::MixedArray, Value::Type::NumberArray, "numberArray"); }
             std::vector<std::string> & stringArray() final { throw TypeMismatch(Value::Type::MixedArray, Value::Type::StringArray, "stringArray"); }
-	        std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final {
+            std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final {
                 throw TypeMismatch(Value::Type::MixedArray, Value::Type::ObjectArray, "objectArray");
             }
             std::vector<std::shared_ptr<Value>> & mixedArray() final { return values; }
@@ -904,7 +904,7 @@ namespace Json
             const std::vector<std::string> & stringArray() const final {
                 throw TypeMismatch(Value::Type::MixedArray, Value::Type::StringArray, "stringArray");
             }
-	        const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final {
+            const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final {
                 throw TypeMismatch(Value::Type::MixedArray, Value::Type::ObjectArray, "objectArray");
             }
             const std::vector<std::shared_ptr<Value>> & mixedArray() const final { return values; }

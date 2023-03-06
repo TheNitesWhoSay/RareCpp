@@ -59,7 +59,5 @@ inline namespace adaptive_implement_whiteboxer
         ref.b++;
         ref.c++;
         std::cout << myObj.checksum() << std::endl;
-
-        // TODO
     }
 }
