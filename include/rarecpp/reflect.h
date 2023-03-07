@@ -14,6 +14,12 @@
 #pragma clang diagnostic ignored "-Wgnu-zero-variadic-macro-arguments"
 #endif
 
+#ifdef _MSC_VER
+#define MSVC_UNUSED_FALSE_POSITIVE _Pragma("warning(suppress: 4100)")
+#else
+#define MSVC_UNUSED_FALSE_POSITIVE 
+#endif
+
 // RareCpp Type Support - general type support and reflection capabilities
 namespace RareTs
 {
@@ -1156,8 +1162,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
                     });
                 }
 
-                template <typename Function, typename U, typename = std::enable_if_t<std::is_same_v<SubClass,std::decay_t<U>>>>
-                #pragma warning(suppress: 4100) // MSVC false-positive for "unused" parameters
+                template <typename Function, typename U, typename = std::enable_if_t<std::is_same_v<SubClass,std::decay_t<U>>>> MSVC_UNUSED_FALSE_POSITIVE
                 static constexpr void at(size_t superIndex, U && object, Function function) {
                     RareTs::forIndex<total>(superIndex, [&](auto I) {
                         constexpr size_t i = decltype(I)::value;
@@ -1309,8 +1314,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             {
                 template <typename T, size_t I> struct Argument : RareTs::type_id<T> { static constexpr size_t index = I; };
 
-                template <size_t I, typename Function, typename ArgBuilder, typename ... Us>
-                #pragma warning(suppress: 4100) // MSVC false-positive for "unused" parameters
+                template <size_t I, typename Function, typename ArgBuilder, typename ... Us> MSVC_UNUSED_FALSE_POSITIVE
                 static constexpr decltype(auto) invoke(Function && function, ArgBuilder && argBuilder, Us && ... args) {
                     if constexpr ( I < sizeof...(Ts) )
                     {
@@ -1321,8 +1325,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
                         return function(std::forward<Us>(args)...);
                 }
 
-                template <size_t I, typename Function, typename ArgBuilder, typename T, typename ... Us>
-                #pragma warning(suppress: 4100) // MSVC false-positive for "unused" parameters
+                template <size_t I, typename Function, typename ArgBuilder, typename T, typename ... Us> MSVC_UNUSED_FALSE_POSITIVE
                 static constexpr decltype(auto) invokeInstance(T && t, Function && function, ArgBuilder && argBuilder, Us && ... args) {
                     if constexpr ( I < sizeof...(Ts) )
                     {
@@ -2440,8 +2443,7 @@ namespace RareMapper
         template <typename T> inline constexpr bool is_unique_pointable_v = is_unique_pointable<T>::value;
 
         // Helper method for RareMapper::mapDefault(To &, From &); do not specialize this method
-        template <size_t Index, typename ...To, typename ...From>
-        #pragma warning(suppress: 4100) // MSVC false-positive for "unused" parameters
+        template <size_t Index, typename ...To, typename ...From> MSVC_UNUSED_FALSE_POSITIVE
         constexpr void mapTuple(std::tuple<To...> & to, const std::tuple<From...> & from)
         {
             if constexpr ( Index < sizeof...(To) && Index < sizeof...(From) )

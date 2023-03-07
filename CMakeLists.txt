@@ -17,13 +17,13 @@ include_directories(PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 if ( "${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU" )
   add_compile_options(
-    -pedantic-errors -Wall -Wextra -Wconversion -Wno-switch -Wno-unknown-pragmas
+    -pedantic-errors -Wall -Wextra -Wconversion
   )
   # The following definitions were required for MinGW, they may not be appropriate on every system
   add_definitions(-DEOVERFLOW=132 -D_GLIBCXX_HAVE_EOVERFLOW=1)
 elseif ( "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang" )
   add_compile_options(
-    -pedantic-errors -Wall -Wextra -Wno-switch -Wconversion
+    -pedantic-errors -Wall -Wextra -Wconversion
   )
 endif ()
 

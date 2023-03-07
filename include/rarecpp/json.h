@@ -269,8 +269,8 @@ namespace Json
                         case Value::Type::ObjectArray: return "ObjectArray";
                         case Value::Type::MixedArray: return "MixedArray";
                         case Value::Type::FieldCluster: return "FieldCluster";
+                        default: return "Unknown";
                     }
-                    return "Unknown";
                 }
 
                 TypeMismatch(Type valueType, Type functionType, const std::string & functionName)
@@ -1528,6 +1528,7 @@ namespace Json
                         }
                     }
                     break;
+                    case Generic::Value::Type::None: case Generic::Value::Type::Null: case Generic::Value::Type::Array: break; // Unused cases
                 }
             }
             
@@ -1641,6 +1642,8 @@ namespace Json
                         }
                     }
                     break;
+                    case Generic::Value::Type::None: case Generic::Value::Type::Null: case Generic::Value::Type::Boolean: case Generic::Value::Type::Number:
+                    case Generic::Value::Type::String: case Generic::Value::Type::Array: case Generic::Value::Type::FieldCluster: break; // Unused cases
                 }
                 Put::nestedSuffix<PrettyPrint, Indent>(os, !isObject, containsPrimitives, isEmpty, indentLevel);
             }
@@ -3176,6 +3179,9 @@ namespace Json
                     case Generic::Value::Type::String: result = Generic::Value::Assigner::make<Generic::StringArray>(); break;
                     case Generic::Value::Type::Object: result = Generic::Value::Assigner::make<Generic::ObjectArray>(); break;
                     case Generic::Value::Type::Array: result = Generic::Value::Assigner::make<Generic::MixedArray>(); break;
+                    case Generic::Value::Type::None: case Generic::Value::Type::NullArray: case Generic::Value::Type::BoolArray:
+                    case Generic::Value::Type::NumberArray: case Generic::Value::Type::StringArray: case Generic::Value::Type::ObjectArray:
+                    case Generic::Value::Type::MixedArray: case Generic::Value::Type::FieldCluster: break; // Unused cases
                 }
 
                 Generic::Value::Type elementType = Generic::Value::Type::None;
@@ -3225,6 +3231,9 @@ namespace Json
                                     mixedArray.push_back(std::make_shared<Generic::Object>(objectArray[i]));
                             }
                             break;
+                            case Generic::Value::Type::None: case Generic::Value::Type::Array: case Generic::Value::Type::NullArray: // Unused cases
+                            case Generic::Value::Type::BoolArray: case Generic::Value::Type::NumberArray: case Generic::Value::Type::StringArray:
+                            case Generic::Value::Type::ObjectArray: case Generic::Value::Type::MixedArray: case Generic::Value::Type::FieldCluster: break;
                         }
                         arrayElementType = Generic::Value::Type::Array;
                         result = newResult;
@@ -3243,6 +3252,9 @@ namespace Json
                                 result->get()->mixedArray().push_back(std::make_shared<Generic::String>(Read::string<>(is, c))); break;
                             case Generic::Value::Type::Object: result->get()->mixedArray().push_back(Read::genericObject(is, context, c)->out()); break;
                             case Generic::Value::Type::Array: result->get()->mixedArray().push_back(Read::genericArray<true>(is, context, c)->out()); break;
+                            case Generic::Value::Type::None: case Generic::Value::Type::NullArray: // Unused cases
+                            case Generic::Value::Type::BoolArray: case Generic::Value::Type::NumberArray: case Generic::Value::Type::StringArray:
+                            case Generic::Value::Type::ObjectArray: case Generic::Value::Type::MixedArray: case Generic::Value::Type::FieldCluster: break;
                         }
                     }
                     else
@@ -3256,6 +3268,9 @@ namespace Json
                             case Generic::Value::Type::Object: result->get()->objectArray().push_back(Read::genericObject(is, context, c)->out()->object());
                                 break;
                             case Generic::Value::Type::Array: result->get()->mixedArray().push_back(Read::genericArray<true>(is, context, c)->out()); break;
+                            case Generic::Value::Type::None: case Generic::Value::Type::NullArray: // Unused cases
+                            case Generic::Value::Type::BoolArray: case Generic::Value::Type::NumberArray: case Generic::Value::Type::StringArray:
+                            case Generic::Value::Type::ObjectArray: case Generic::Value::Type::MixedArray: case Generic::Value::Type::FieldCluster: break;
                         }
                     }
                 }
