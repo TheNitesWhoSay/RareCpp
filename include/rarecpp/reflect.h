@@ -20,7 +20,7 @@ namespace RareTs
     // Generic Macros: Contains everything neccessary to loop over varadic macro arguments
     namespace {
 
-// ArgMax: 125 (derived from the C spec limiting macros to 126 arguments and the RARECPP_RARE_COUNT_ARGUMENTS helper macro "ML_M" requiring ArgMax+1 arguments)
+// ArgMax: 125 (derived from the C spec requiring at least 127 arguments and the RARE_COUNT_ARGUMENTS macro requiring ArgMax+2 arguments)
 
 // MacroLoop_Expand
 #define ML_E(x) x
@@ -1780,7 +1780,7 @@ RARE_ACCESS_MEMBER(x)
         p = pointer
 */
 
-// After the objectType can be 0 to 124 member names, e.g. REFLECT(MyObj, myInt, myString, myOtherObj)
+// After the objectType can be 0 to 125 member names, e.g. REFLECT(MyObj, myInt, myString, myOtherObj)
 #define REFLECT(objectType, ...) \
 struct Class { \
     using B_ = objectType; \

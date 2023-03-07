@@ -1,4 +1,5 @@
 #include <rarecpp/reflect.h>
+#include <iostream>
 
 class MassiveObject {
 public:
@@ -10,7 +11,7 @@ public:
     int f076; int f077; int f078; int f079; int f080; int f081; int f082; int f083; int f084; int f085; int f086; int f087; int f088; int f089; int f090;
     int f091; int f092; int f093; int f094; int f095; int f096; int f097; int f098; int f099; int f100; int f101; int f102; int f103; int f104; int f105;
     int f106; int f107; int f108; int f109; int f110; int f111; int f112; int f113; int f114; int f115; int f116; int f117; int f118; int f119; int f120;
-    int f121; int f122; int f123; int f124; int f125;
+    int f121; int f122; int f123; int f124; int f125; int f126;
 
     REFLECT(MassiveObject,
         f001, f002, f003, f004, f005, f006, f007, f008,
@@ -28,18 +29,18 @@ public:
         f097, f098, f099, f100, f101, f102, f103, f104,
         f105, f106, f107, f108, f109, f110, f111, f112,
         f113, f114, f115, f116, f117, f118, f119, f120,
-        f121, f122, f123, f124//, f125 // This will exceed the max capacity of macro loops and cause compilation errors
+        f121, f122, f123, f124, f125 //, 126 // This will exceed the max capacity of macro loops and cause compilation errors
     )
 };
 
 void reflectionLimitsExample()
 {
-    /*Reflect<MassiveObject>::Members::ForEach([](auto & member) {
-        if ( member.index % 16 == 0 && member.index > 0 )
+    RareTs::Members<MassiveObject>::forEach([](auto & member) {
+        if constexpr ( member.index % 16 == 0 && member.index > 0 )
             std::cout << std::endl << member.name << ", ";
-        else if ( member.index+1 < Reflect<MassiveObject>::Members::total )
+        else if constexpr ( member.index+1 < RareTs::Members<MassiveObject>::total )
             std::cout << member.name << ", ";
         else
             std::cout << member.name << std::endl;
-    });*/
+    });
 }

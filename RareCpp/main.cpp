@@ -25,6 +25,7 @@ void openMenu()
             .item("Dynamic JSON I/O", &dynamicJsonIoExample)
             .item("Function reflection", &functionReflectionExample)
             .item("Json customization", &jsonCustomizationExample)
+            .item("Reflection limits example", &reflectionLimitsExample)
         ).item(
             Menu{"Member Examples", "Select an example: "}
             .item("Define, iterate & modify class members", &memberDefineIterateModify)

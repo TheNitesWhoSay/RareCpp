@@ -9,6 +9,7 @@ void objectMapperExamples();
 void dynamicJsonIoExample();
 void jsonCustomizationExample();
 void functionReflectionExample();
+void reflectionLimitsExample();
 
 // Member examples
 inline namespace member_define_iterate_modify { void memberDefineIterateModify(); }
