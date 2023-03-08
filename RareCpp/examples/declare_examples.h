@@ -21,6 +21,7 @@ inline namespace member_metadata_by_identifier { void memberMetadataByIdentifier
 inline namespace member_pack_fold { void memberPackFold(); }
 inline namespace member_filter_constexpr_if { void memberFilterConstexprIf(); }
 inline namespace member_filter_predicate { void memberFilterPredicate(); }
+inline namespace member_reflect_outside_of_class { void memberReflectOutsideOfClass(); }
 
 // Note examples
 inline namespace note_class_members { void noteClassMembers(); }

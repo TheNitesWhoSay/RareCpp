@@ -37,6 +37,7 @@ void openMenu()
             .item("Pack & fold class members", &memberPackFold)
             .item("Filter members using constexpr ifs", &memberFilterConstexprIf)
             .item("Filter members using RareCpp filtering", &memberFilterPredicate)
+            .item("Reflect members outside of class", &memberReflectOutsideOfClass)
         ).item(
             Menu{"Note Examples", "Select an example: "}
             .item("Member annotations", &noteClassMembers)

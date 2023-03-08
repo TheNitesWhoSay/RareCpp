@@ -859,6 +859,20 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             template <typename T> struct unproxy<Proxy<T>> { using type = T; };
             template <typename T> using unproxy_t = typename unproxy<T>::type;
 
+            template <typename P, typename T> struct forward_proxy { using type = P &; };
+            template <typename P, typename T> struct forward_proxy<P, const T> { using type = const P &; };
+            template <typename P, typename T> struct forward_proxy<P, volatile T> { using type = volatile P &; };
+            template <typename P, typename T> struct forward_proxy<P, const volatile T> { using type = const volatile P &; };
+            template <typename P, typename T> struct forward_proxy<P, T &> { using type = P &; };
+            template <typename P, typename T> struct forward_proxy<P, const T &> { using type = const P &; };
+            template <typename P, typename T> struct forward_proxy<P, volatile T &> { using type = volatile P &; };
+            template <typename P, typename T> struct forward_proxy<P, const volatile T &> { using type = const volatile P &; };
+            template <typename P, typename T> struct forward_proxy<P, T &&> { using type = P &&; };
+            template <typename P, typename T> struct forward_proxy<P, const T &&> { using type = const P &&; };
+            template <typename P, typename T> struct forward_proxy<P, volatile T &&> { using type = volatile P &&; };
+            template <typename P, typename T> struct forward_proxy<P, const volatile T &&> { using type = const volatile P &&; };
+            template <typename P, typename T> using forward_proxy_t = typename forward_proxy<P, T>::type;
+
             template <typename T, typename=typename T::type, typename=typename T::Notes, typename=decltype(T::index)>
             static constexpr std::true_type typeIsMember(int);
             template <typename T> static constexpr std::false_type typeIsMember(unsigned int);
@@ -889,9 +903,13 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             template <typename T, size_t I> using member_note_wrapper = typename class_t<T>::template E_<I>;
             template <typename T, size_t I> using member_note_type = RareTs::remove_cvref_t<decltype(class_t<T>::template E_<I>::notes)>;
             template <typename T, size_t I> static constexpr size_t member_note_count = std::tuple_size_v<member_note_type<T, I>>;
-            template <typename T, size_t I> static constexpr auto & memberValue() { return class_t<T>::template F_<I>::template s<T>(); }
+            template <typename T, size_t I> static constexpr auto & memberValue() {
+                using U = class_t<RareTs::remove_cvref_t<T>>;
+                return U::template F_<I>::template s<typename U::B_>();
+            }
             template <size_t I, typename T> static constexpr auto & memberValue(T && t) {
-                return class_t<RareTs::remove_cvref_t<T>>::template F_<I>::template i(std::forward<T>(t));
+                using U = class_t<RareTs::remove_cvref_t<T>>;
+                return U::template F_<I>::template i(static_cast<forward_proxy_t<typename U::B_, T>>(t));
             }
 
             template <typename T, size_t ... Is> using member_types = std::tuple<typename class_t<T>::template F_<Is>::type...>;
@@ -904,11 +922,12 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             template <typename T, size_t ... Is> static constexpr auto member_notes = std::forward_as_tuple( class_t<T>::template E_<Is>::notes... );
             template <typename T, size_t ... Is> using member_note_types = std::tuple<decltype(class_t<T>::template E_<Is>::notes)...>;
             template <typename T, size_t ... Is> static constexpr auto memberValues() {
-                return std::forward_as_tuple( class_t<T>::template F_<Is>::template s<T>()... );
+                using U = class_t<RareTs::remove_cvref_t<T>>;
+                return std::forward_as_tuple( U::template F_<Is>::template s<typename U::B_>()... );
             }
             template <size_t ... Is, typename T> static constexpr auto memberValues(T && t) {
                 using U = class_t<RareTs::remove_cvref_t<T>>;
-                return std::forward_as_tuple( class_t<U>::template F_<Is>::i(std::forward<T>(t))... );
+                return std::forward_as_tuple( U::template F_<Is>::i(static_cast<forward_proxy_t<typename U::B_, T>>(t))... );
             }
 
             template <typename T, size_t I> static constexpr bool is_function =
@@ -1790,11 +1809,11 @@ struct Class { \
     using C_ = RareTs::Class::unproxy_t<B_>; \
     struct I_ { enum { RARE_FOR_EACH(RARE_RESTATE_COMMA, __VA_ARGS__) N_ }; }; \
     static constexpr auto & notes = RareTs::noNote; \
-    template <size_t, class T_ = C_, class = void> struct F_ : RareTs::Class::EmptyComponent {}; \
-    template <size_t, class T_ = C_, class = void> struct Q_ : RareTs::Class::NullptrType {}; \
-    template <size_t, class T_ = C_, class = void> struct P_ : RareTs::Class::NonPointable {}; \
+    template <size_t, class T_ = B_, class = void> struct F_ : RareTs::Class::EmptyComponent {}; \
+    template <size_t, class T_ = B_, class = void> struct Q_ : RareTs::Class::NullptrType {}; \
+    template <size_t, class T_ = B_, class = void> struct P_ : RareTs::Class::NonPointable {}; \
     template <size_t, class T_ = B_, class = void> struct E_ : RareTs::Class::NonNoted {}; \
-    template <size_t, class T_ = C_, class = void> struct O_ : RareTs::Class::NoOffset {}; \
+    template <size_t, class T_ = B_, class = void> struct O_ : RareTs::Class::NoOffset {}; \
     template <size_t, template <size_t> class> struct M_; \
     template <size_t, template <size_t> class> struct D_; \
     template <size_t, class T_ = B_> struct N_; \
@@ -1811,11 +1830,11 @@ struct Class { \
     using C_ = RareTs::Class::unproxy_t<B_>; \
     struct I_ { enum { RARE_FOR_EACH(RARE_RESTATE_COMMA, __VA_ARGS__) N_ }; }; \
     static constexpr auto & notes = objectType##_note; \
-    template <size_t, class T_ = C_, class = void> struct F_ : RareTs::Class::EmptyComponent {}; \
-    template <size_t, class T_ = C_, class = void> struct Q_ : RareTs::Class::NullptrType {}; \
-    template <size_t, class T_ = C_, class = void> struct P_ : RareTs::Class::NonPointable {}; \
+    template <size_t, class T_ = B_, class = void> struct F_ : RareTs::Class::EmptyComponent {}; \
+    template <size_t, class T_ = B_, class = void> struct Q_ : RareTs::Class::NullptrType {}; \
+    template <size_t, class T_ = B_, class = void> struct P_ : RareTs::Class::NonPointable {}; \
     template <size_t, class T_ = B_, class = void> struct E_ : RareTs::Class::NonNoted {}; \
-    template <size_t, class T_ = C_, class = void> struct O_ : RareTs::Class::NoOffset {}; \
+    template <size_t, class T_ = B_, class = void> struct O_ : RareTs::Class::NoOffset {}; \
     template <size_t, template <size_t> class> struct M_; \
     template <size_t, template <size_t> class> struct D_; \
     template <size_t, class T_ = B_> struct N_; \

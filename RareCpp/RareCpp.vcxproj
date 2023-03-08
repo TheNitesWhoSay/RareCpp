@@ -225,6 +225,7 @@
     <ClCompile Include="examples\member_filter_predicate.cpp" />
     <ClCompile Include="examples\member_metadata_by_identifier.cpp" />
     <ClCompile Include="examples\member_pack_fold.cpp" />
+    <ClCompile Include="examples\member_reflect_outside_of_class.cpp" />
     <ClCompile Include="examples\misc_make_tuple.cpp" />
     <ClCompile Include="examples\misc_runtime_to_constexpr_index.cpp" />
     <ClCompile Include="examples\misc_type_to_string.cpp" />

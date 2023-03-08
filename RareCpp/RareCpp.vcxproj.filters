@@ -238,5 +238,8 @@
     <ClCompile Include="examples\note_filtered.cpp">
       <Filter>Source Files\examples\reflection_notes</Filter>
     </ClCompile>
+    <ClCompile Include="examples\member_reflect_outside_of_class.cpp">
+      <Filter>Source Files\examples\reflect_members</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
