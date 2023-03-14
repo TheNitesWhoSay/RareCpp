@@ -199,6 +199,7 @@
     <ClCompile Include="examples\adaptive_implement_mapper.cpp" />
     <ClCompile Include="examples\adaptive_implement_whiteboxer.cpp" />
     <ClCompile Include="examples\adaptive_typedef_structure.cpp" />
+    <ClCompile Include="examples\builder_member_availability.cpp" />
     <ClCompile Include="examples\legacy_annotated_supers.cpp" />
     <ClCompile Include="examples\legacy_basic_reflection.cpp" />
     <ClCompile Include="examples\builder_aggregated.cpp" />

@@ -241,5 +241,8 @@
     <ClCompile Include="examples\member_reflect_outside_of_class.cpp">
       <Filter>Source Files\examples\reflect_members</Filter>
     </ClCompile>
+    <ClCompile Include="examples\builder_member_availability.cpp">
+      <Filter>Source Files\examples\rare_builder</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

@@ -81,6 +81,7 @@ void openMenu()
             .item("Simple builder", &builderSimple)
             .item("Validated builders", &builderValidated)
             .item("Aggregated builders", &builderAggregated)
+            .item("Member availability", &builderMemberAvailability)
         ).item(
             Menu{"Mapper examples", "Select an example: "}
             .item("Trivial mapping", &mapperTrivialMapping)

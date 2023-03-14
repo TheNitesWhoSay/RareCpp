@@ -671,7 +671,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             return referenceTuple(t, typename tuple_type_mask<P, T>::indexes{});
         }
 
-        template <size_t Remove, size_t ... Is> struct remove_index { // Removes "Remove" from "Is", only valid if count with value "Remove" in Is == 1
+        template <size_t Remove, size_t ... Is> class remove_index { // Removes "Remove" from "Is", only valid if count with value "Remove" in Is == 1
             struct calc {
                 size_t total = 0;
                 size_t index[sizeof...(Is)]{};
@@ -1651,6 +1651,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             static constexpr TypeName<M> typeStrStorage {};
             using P = RareTs::Class::member_pointer_type<T, MemberIndex>;
         public:
+            using object_type = T;
             using type = RareTs::replace_void_t<M, P>;
             using pointer_type = std::conditional_t<std::is_reference_v<type>, std::nullptr_t, P>;
 
@@ -2219,11 +2220,16 @@ RARE_CLASS_FRIEND(objectType)
 
         inline namespace AdaptiveStructures
         {
-            struct ValidatedBuilderType {};
-            inline constexpr ValidatedBuilderType ValidatedBuilder {};
+            struct BuildableType {};
+            inline constexpr BuildableType Buildable {};
 
             struct BuilderIgnoreType {};
             inline constexpr BuilderIgnoreType BuilderIgnore {};
+            
+            template <typename T, typename = void> struct is_validatable { static constexpr bool value = false; };
+            template <typename T> struct is_validatable<T, std::enable_if_t<std::is_same_v<bool, decltype(std::declval<T>().validate())>>> : std::true_type {};
+            template <typename T> struct is_validatable<T, std::enable_if_t<std::is_same_v<void, decltype(std::declval<T>().validate())>>> : std::true_type {};
+            template <typename T> inline constexpr bool is_validatable_v = is_validatable<T>::value;
 
             namespace detail {
                 template <typename T, size_t ... Is> class sub_builder;
@@ -2248,22 +2254,19 @@ RARE_CLASS_FRIEND(objectType)
                 {
                     T & t;
 
-                    void validateBuild()
-                    {
-                        if constexpr ( std::is_same_v<bool, decltype(t.validate())> ) // Boolean validate method
-                        {
-                            if ( !t.validate() ) // validate should return false if the build was not accepted
-                                throw std::logic_error("Builder validation failed!");
-                        }
-                        else // Non-boolean validate method
-                            t.validate(); // validate should throw an exception if the build was not accepted
-                    }
-
                 public:
                     constexpr T build()
                     {
-                        if constexpr ( RareTs::Notes<T>::template hasNote<ValidatedBuilderType>() )
-                            validateBuild();
+                        if constexpr ( is_validatable_v<T> )
+                        {
+                            if constexpr ( std::is_same_v<bool, decltype(std::declval<T>().validate())> ) // Has bool validate method
+                            {
+                                if ( !t.validate() ) // validate should return false if the build was not accepted
+                                    throw std::logic_error("Builder validation failed!");
+                            }
+                            else if constexpr ( std::is_same_v<void, decltype(std::declval<T>().validate())> ) // Has a void validate method
+                                t.validate(); // validate should throw an exception if the build was not accepted
+                        }
 
                         return t;
                     }
@@ -2280,8 +2283,20 @@ RARE_CLASS_FRIEND(objectType)
                     constexpr head_builder() : sub_builder<T, Is...>(t), t({}) {}
                 };
 
+                template <typename T> struct is_public_only_builder {
+                    static constexpr bool value =
+                        !RareTs::Notes<T>::template hasNote<BuildableType>() &&
+                        !RareTs::Notes<T>::template hasNote<BuilderIgnoreType>() &&
+                        !RareTs::is_validatable_v<T> &&
+                        !RareTs::Members<T>::pack([](auto ... member) {
+                            return (member.template hasNote<BuilderIgnoreType>() || ...);
+                        });
+                };
+
                 template <typename T, typename = enable_if_member_t<T>> struct is_builder_member {
-                    static constexpr bool value = T::isData && !T::isStatic && !T::template hasNote<BuilderIgnoreType>();
+                    using object_type = typename T::object_type;
+                    static constexpr bool value = T::isData && !T::isStatic && !T::template hasNote<BuilderIgnoreType>() &&
+                        (!is_public_only_builder<object_type>::value || access_modifier_v<object_type, T::index> == AccessMod::Public);
                 };
 
                 template <typename T, size_t ... Is> constexpr auto builder(std::index_sequence<Is...>) {
@@ -2311,6 +2326,7 @@ RARE_CLASS_FRIEND(objectType)
             }
     
             template <typename T> constexpr auto builder() {
+                static_assert(!RareTs::Notes<T>::template hasNote<BuilderIgnoreType>(), "Cannot build type annotated with BuilderIgnore");
                 return RareTs::template Members<T>::template pack<detail::is_builder_member>([&](auto & ... member) {
                     return detail::builder<T>(std::index_sequence<RareTs::remove_cvref_t<decltype(member)>::index...>{});
                 });

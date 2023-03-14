@@ -65,6 +65,7 @@ inline namespace adaptive_implement_mapper { void adaptiveImplementMapper(); }
 inline namespace builder_simple { void builderSimple(); }
 inline namespace builder_validated { void builderValidated(); }
 inline namespace builder_aggregated { void builderAggregated(); }
+inline namespace builder_member_availability { void builderMemberAvailability(); }
 
 // Mapper examples
 inline namespace mapper_trivial_mapping { void mapperTrivialMapping(); }

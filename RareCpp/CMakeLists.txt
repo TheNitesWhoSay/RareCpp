@@ -25,6 +25,7 @@ set(Sources
   examples/legacy_object_mapper.cpp
   examples/legacy_reflection_limits.cpp
   examples/builder_aggregated.cpp
+  examples/builder_member_availability.cpp
   examples/builder_simple.cpp
   examples/builder_validated.cpp
   examples/function_build_and_call.cpp

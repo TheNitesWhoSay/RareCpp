@@ -18,7 +18,10 @@ TEST(ReflectionMemberTest, MemberTemplated)
     EXPECT_STREQ("testVal", IntMember::name);
     EXPECT_STREQ("int", IntMember::typeStr);
     
-    bool isEqual = std::is_same_v<int, IntMember::type>;
+    bool isEqual = std::is_same_v<TestStruct, IntMember::object_type>;
+    EXPECT_TRUE(isEqual);
+    
+    isEqual = std::is_same_v<int, IntMember::type>;
     EXPECT_TRUE(isEqual);
 
     isEqual = std::is_same_v<decltype(&TestStruct::testVal), IntMember::pointer_type>;
@@ -63,7 +66,10 @@ TEST(ReflectionMemberTest, ReferencesMemberTemplated)
     EXPECT_STREQ("testVal", IntMember::name);
     EXPECT_STREQ(std::string(RareTs::toStr<IntMember::type>()).c_str(), IntMember::typeStr);
     
-    bool isEqual = std::is_same_v<int&, IntMember::type>;
+    bool isEqual = std::is_same_v<ReferencesTestStruct, IntMember::object_type>;
+    EXPECT_TRUE(isEqual);
+    
+    isEqual = std::is_same_v<int&, IntMember::type>;
     EXPECT_TRUE(isEqual);
 
     isEqual = std::is_same_v<std::nullptr_t, IntMember::pointer_type>;
@@ -116,7 +122,10 @@ TEST(ReflectionMemberTest, MethodsAndFunctions)
     EXPECT_STREQ("reflectedFunction", FunctionMember::name);
     EXPECT_STREQ("void", FunctionMember::typeStr);
     
-    bool isEqual = std::is_same_v<decltype(&TestFunctions::reflectedFunction), FunctionMember::type>;
+    bool isEqual = std::is_same_v<TestFunctions, FunctionMember::object_type>;
+    EXPECT_TRUE(isEqual);
+    
+    isEqual = std::is_same_v<decltype(&TestFunctions::reflectedFunction), FunctionMember::type>;
     EXPECT_TRUE(isEqual);
 
     isEqual = std::is_same_v<decltype(&TestFunctions::reflectedFunction), FunctionMember::pointer_type>;
@@ -140,6 +149,9 @@ TEST(ReflectionMemberTest, MethodsAndFunctions)
     
     EXPECT_STREQ("staticReflectedFunction", StaticFunctionMember::name);
     EXPECT_STREQ(std::string(RareTs::toStr<StaticFunctionMember::type>()).c_str(), StaticFunctionMember::typeStr);
+    
+    isEqual = std::is_same_v<TestFunctions, StaticFunctionMember::object_type>;
+    EXPECT_TRUE(isEqual);
     
     isEqual = std::is_same_v<decltype(TestFunctions::staticReflectedFunction), StaticFunctionMember::type>;
     EXPECT_TRUE(isEqual);

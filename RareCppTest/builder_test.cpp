@@ -6,12 +6,11 @@
 #include <string>
 #include <type_traits>
 
-class SimpleObj
+struct SimpleObj
 {
     int a;
     int b;
 
-public:
     REFLECT(SimpleObj, a, b)
 };
 
@@ -44,13 +43,14 @@ struct Aggregate
     std::string c;
 };
 
+NOTE(MyObj, RareTs::Buildable)
 class MyObj
 {
     int a;
     Aggregate agg;
 
 public:
-    REFLECT(MyObj, a, agg)
+    REFLECT_NOTED(MyObj, a, agg)
 };
 
 TEST(BuilderTest, AggregateBuilder)
@@ -64,14 +64,13 @@ TEST(BuilderTest, AggregateBuilder)
     EXPECT_STREQ("4", ref.agg.c.c_str());
 }
 
-NOTE(AlwaysInvalid, RareTs::ValidatedBuilder)
 class AlwaysInvalid
 {
     int a;
     int b;
     
 public:
-    REFLECT_NOTED(AlwaysInvalid, a, b)
+    REFLECT(AlwaysInvalid, a, b)
 
     bool validate()
     {
@@ -79,14 +78,13 @@ public:
     }
 };
 
-NOTE(AlwaysValid, RareTs::ValidatedBuilder)
 class AlwaysValid
 {
     int a;
     int b;
     
 public:
-    REFLECT_NOTED(AlwaysValid, a, b)
+    REFLECT(AlwaysValid, a, b)
 
     bool validate()
     {
@@ -94,14 +92,13 @@ public:
     }
 };
 
-NOTE(NonNegativeValidator, RareTs::ValidatedBuilder)
 class NonNegativeValidator
 {
     int a;
     int b;
 
 public:
-    REFLECT_NOTED(NonNegativeValidator, a, b)
+    REFLECT(NonNegativeValidator, a, b)
 
     bool validate()
     {
@@ -166,14 +163,13 @@ TEST(BuilderTest, BoolValidators)
     EXPECT_FALSE(threwException);
 }
 
-NOTE(AlwaysInvalidExcept, RareTs::ValidatedBuilder)
 class AlwaysInvalidExcept
 {
     int a;
     int b;
 
 public:
-    REFLECT_NOTED(AlwaysInvalidExcept, a, b)
+    REFLECT(AlwaysInvalidExcept, a, b)
 
     void validate()
     {
@@ -182,14 +178,13 @@ public:
     }
 };
 
-NOTE(AlwaysValidExcept, RareTs::ValidatedBuilder)
 class AlwaysValidExcept
 {
     int a;
     int b;
     
 public:
-    REFLECT_NOTED(AlwaysValidExcept, a, b)
+    REFLECT(AlwaysValidExcept, a, b)
 
     void validate()
     {
@@ -197,14 +192,13 @@ public:
     }
 };
 
-NOTE(NonNegativeValidatorExcept, RareTs::ValidatedBuilder)
 class NonNegativeValidatorExcept
 {
     int a;
     int b;
     
 public:
-    REFLECT_NOTED(NonNegativeValidatorExcept, a, b)
+    REFLECT(NonNegativeValidatorExcept, a, b)
 
     void validate()
     {

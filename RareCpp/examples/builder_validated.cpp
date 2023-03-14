@@ -5,31 +5,33 @@
 
 inline namespace builder_validated
 {
-    NOTE(MyObj, RareTs::ValidatedBuilder)
     class MyObj
     {
         int a;
         int b;
 
     public:
-        REFLECT_NOTED(MyObj, a, b)
+        REFLECT(MyObj, a, b)
 
-        bool validate() // You may use either a boolean or a void method with exceptions to perform validation
+        // Having a "bool validate()" method signals that private data should be buidlable unless RareTs::BuilderIgnore'd
+        bool validate() // You may use either a boolean, or a void method with exceptions, to perform validation
         {
             return a >= 0 && b >= 0; // Returns boolean indicating whether the built structure was valid
         }
     };
     
-    NOTE(MyOtherObj, RareTs::ValidatedBuilder)
     class MyOtherObj
     {
         int a;
         int b;
 
-    public:
-        REFLECT_NOTED(MyOtherObj, a, b)
+        NOTE(c, RareTs::BuilderIgnore)
+        int c = 0;
 
-        void validate()
+    public:
+        REFLECT(MyOtherObj, a, b, c)
+
+        void validate() // Having a "void validate()" method signals that private data should be buidlable unless RareTs::BuilderIgnore'd
         {
             if ( a < 0 || b < 0 ) // Throws an exception indicating what was invalid
                 throw std::logic_error("a and b must both be non-negative!");
@@ -54,5 +56,7 @@ inline namespace builder_validated
 
         auto myOtherObj = RareBuilder<MyOtherObj>().a(3).b(4).build();
         std::cout << "Built MyOtherObj: " << Json::pretty(myOtherObj) << std::endl;
+
+        //RareBuilder<MyOtherObj>().c(1).build(); // "c" was annotated with RareTs::BuilderIgnore so this is not a buildable member/is a compile error
     }
 }
