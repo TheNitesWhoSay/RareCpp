@@ -2659,8 +2659,8 @@ namespace RareMapper
         }
         else if constexpr ( RareTs::is_reflected_v<To> && RareTs::is_reflected_v<From> )
         {
-            RareTs::Reflect<To>::Members::forEach(to, [&](auto & toMember, auto & toValue) {
-                RareTs::Reflect<From>::Members::forEach(from, [&](auto & fromMember, auto & fromValue) {
+            RareTs::Reflect<To>::Members::forEach(to, [&](auto toMember, auto & toValue) {
+                RareTs::Reflect<From>::Members::forEach(from, [&](auto fromMember, auto & fromValue) {
                     if constexpr ( std::string_view(toMember.name) == std::string_view(fromMember.name) )
                         RareMapper::map(toValue, fromValue);
                 });
