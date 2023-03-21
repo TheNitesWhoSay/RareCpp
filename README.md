@@ -1,5 +1,11 @@
 # RareCpp
+
+[![MIT License](https://img.shields.io/badge/license-MIT-informational)](https://github.com/TheNitesWhoSay/RareCpp/blob/master/LICENSE) [![Header Only](https://img.shields.io/static/v1?label=format&message=Header%20Only&color=informational)](https://github.com/TheNitesWhoSay/RareCpp/wiki/1.1.-Overview:-Quick-Start#setupinclusion) [![C++17](https://img.shields.io/static/v1?label=c%2B%2B&message=%3E%3D%2017&color=informational)](https://github.com/TheNitesWhoSay/RareCpp/wiki/1.1.-Overview:-Quick-Start#setupinclusion) [![GCC 10.1](https://img.shields.io/static/v1?label=gcc&message=%3E%3D%2010.1&color=informational)](https://github.com/TheNitesWhoSay/RareCpp/wiki/1.1.-Overview:-Quick-Start#compiler-compatibility) [![Clang 9.0.0](https://img.shields.io/static/v1?label=clang&message=%3E%3D%209.0.0&color=informational)](https://github.com/TheNitesWhoSay/RareCpp/wiki/1.1.-Overview:-Quick-Start#compiler-compatibility) [![MSVC 19.26](https://img.shields.io/static/v1?label=msvc&message=%3E%3D%2019.26&color=informational)](https://github.com/TheNitesWhoSay/RareCpp/wiki/1.1.-Overview:-Quick-Start#compiler-compatibility) [![579 Tests Passed](https://img.shields.io/badge/passed%20tests-579-success)](https://github.com/TheNitesWhoSay/RareCpp/tree/master/RareCppTest)
+
 ***C++** **R**andom **A**ccess **R**eflection & **E**xtensions: adding a simple, intuitive means of reflection to C++ and leveraging it to create powerful extensions.*
+
+
+***
 
 To include reflection in your project you simply need to copy the [Reflect.h](https://github.com/TheNitesWhoSay/RareCpp/blob/master/RareCppLib/Reflect.h) file into your project and (optionally) use the Reflect namespace; then within the class(es) you're looking to reflect you place the REFLECT macro.
 
