@@ -3073,7 +3073,12 @@ namespace Json
                 std::stringstream ss;
                 Read::string<ExpectQuotes>(is, c, ss);
                 if constexpr ( !std::is_const_v<T> )
-                    ss >> t;
+                {
+                    if constexpr ( std::is_same_v<RareTs::remove_cvref_t<T>, std::string> )
+                        t.assign(std::istreambuf_iterator<char>(ss), {});
+                    else
+                        ss >> t;
+                }
             }
         
             template <bool ExpectQuotes = true>
