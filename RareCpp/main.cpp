@@ -4,7 +4,6 @@
 // Experimental
 namespace experimental {
     void rest();
-    void refactoring();
 }
 
 // No-op
