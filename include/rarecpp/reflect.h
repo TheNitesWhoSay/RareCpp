@@ -335,22 +335,22 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
         template <typename T> struct has_clear { static constexpr bool value = op_exists_v<detail::ClearOp, T>; };
         template <typename T> inline constexpr bool has_clear_v = has_clear<T>::value;
     
-        template <typename Iterable, typename Element>
-        constexpr void append(Iterable & iterable, Element && element)
+        template <typename Container, typename Element>
+        constexpr void append(Container & container, Element && element)
         {
-            if constexpr ( std::is_const_v<Iterable> )
+            if constexpr ( std::is_const_v<Container> )
                 return;
-            else if constexpr ( has_push_back_v<Iterable, Element> )
-                iterable.push_back(std::forward<Element>(element));
-            else if constexpr ( has_push_v<Iterable, Element> )
-                iterable.push(std::forward<Element>(element));
-            else if constexpr ( has_insert_v<Iterable, Element> )
-                iterable.insert(std::forward<Element>(element));
-            else if constexpr ( has_insert_after_v<Iterable, Element> )
+            else if constexpr ( has_push_back_v<Container, Element> )
+                container.push_back(std::forward<Element>(element));
+            else if constexpr ( has_push_v<Container, Element> )
+                container.push(std::forward<Element>(element));
+            else if constexpr ( has_insert_v<Container, Element> )
+                container.insert(std::forward<Element>(element));
+            else if constexpr ( has_insert_after_v<Container, Element> )
             {
-                auto last = iterable.before_begin();
-                for ( auto curr = last; curr != iterable.end(); last = curr++);
-                iterable.insert_after(last, std::forward<Element>(element));
+                auto last = container.before_begin();
+                for ( auto curr = last; curr != container.end(); last = curr++);
+                container.insert_after(last, std::forward<Element>(element));
             }
         }
 
@@ -381,7 +381,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
         template <typename T> struct is_specialized { static constexpr bool value = !std::is_base_of_v<Unspecialized, T>; };
         template <typename T> inline constexpr bool is_specialized_v = is_specialized<T>::value;
 
-        template <typename F, size_t ...Is>
+        template <typename F, size_t ... Is>
         constexpr void forIndex(size_t i, std::index_sequence<Is...>, F f) {
             (void)((i == Is && (f(std::integral_constant<size_t, Is>{}), true)) || ...);
         }
@@ -691,7 +691,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
     {
         inline namespace Annotations
         {
-            #define NOTE(member, ...) static inline constexpr auto member##_note { std::tuple { __VA_ARGS__ } };
+            #define NOTE(target, ...) static inline constexpr auto target##_note { std::tuple { __VA_ARGS__ } };
 
             using NoNote = std::tuple<>;
 
@@ -1566,7 +1566,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
                 // Returns the overload for argument set I which would be resolved by the compiler if calling the method on qualified-object-type Q
                 template <size_t I, typename Q> using ResolveOverload = decltype(Qualified<Q, I>::res(RareTs::type_tag<typename OvlNote<I>::ArgumentTypes>{}));
 
-                template <typename Q, typename F> static constexpr void forEach(Q &&, F function) { // Overloads resolved on qualified class "U"
+                template <typename Q, typename F> static constexpr void forEach(Q &&, F function) { // Overloads resolved on qualified class "Q"
                     RareTs::packIndexes(typename type_mask<RareTs::is_non_null, ResolvePtr<Q, Is>...>::indexes{}, [&](auto ... I) {
                         (function(ResolveOverload<decltype(I)::value, Q>{}), ...);
                     });
