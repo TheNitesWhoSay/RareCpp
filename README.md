@@ -2,6 +2,12 @@
 
 ***C++** **R**andom **A**ccess **R**eflection & **E**xtensions: adding a simple, intuitive means of reflection to C++*
 
+***
+
+### NOTICE March 22nd: Documentation Overhaul - [release 2.0.0](https://github.com/TheNitesWhoSay/RareCpp/issues/98) is nearly finalized, the documentation still has many placeholders, the examples are actively being filled-in to the documentation, for now refer to the [code examples](https://github.com/TheNitesWhoSay/RareCpp/tree/development/RareCpp/examples) as needed.
+
+***
+
 [Documentation Home](https://github.com/TheNitesWhoSay/RareCpp/wiki)
 
 [Quick-Start Guide](https://github.com/TheNitesWhoSay/RareCpp/wiki/1.1.-Overview:-Quick-Start)
