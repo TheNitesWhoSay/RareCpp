@@ -30,6 +30,8 @@
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
+    <EnableASAN>
+    </EnableASAN>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -37,12 +39,16 @@
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
+    <EnableASAN>
+    </EnableASAN>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
+    <EnableASAN>
+    </EnableASAN>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -50,6 +56,8 @@
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
+    <EnableASAN>
+    </EnableASAN>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -74,54 +82,68 @@
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <LibraryPath>$(SolutionDir)$(Platform)\$(Configuration)\;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
+    <IncludePath>..\include\;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <LibraryPath>$(SolutionDir)$(Platform)\$(Configuration)\;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
+    <IncludePath>..\include\;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
     <LibraryPath>$(SolutionDir)$(Platform)\$(Configuration)\;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);$(NETFXKitsDir)Lib\um\x86</LibraryPath>
+    <IncludePath>..\include\;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <LibraryPath>$(SolutionDir)$(Platform)\$(Configuration)\;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(NETFXKitsDir)Lib\um\x64</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IncludePath>..\include\;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <DisableSpecificWarnings>
+      </DisableSpecificWarnings>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
+      <AdditionalOptions>/volatile:iso /Zc:__cplusplus /Zc:throwingNew %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>NotSet</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalOptions>/ODR %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <DisableSpecificWarnings>
+      </DisableSpecificWarnings>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
+      <AdditionalOptions>/volatile:iso /Zc:__cplusplus /Zc:throwingNew %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>NotSet</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalOptions>/ODR %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
@@ -129,6 +151,10 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <DisableSpecificWarnings>
+      </DisableSpecificWarnings>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
+      <AdditionalOptions>/volatile:iso /Zc:__cplusplus /Zc:throwingNew %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>NotSet</SubSystem>
@@ -139,7 +165,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
@@ -147,6 +173,10 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <DisableSpecificWarnings>
+      </DisableSpecificWarnings>
+      <AdditionalOptions>/volatile:iso /Zc:__cplusplus /Zc:throwingNew %(AdditionalOptions)</AdditionalOptions>
+      <UseStandardPreprocessor>true</UseStandardPreprocessor>
     </ClCompile>
     <Link>
       <SubSystem>NotSet</SubSystem>
@@ -156,10 +186,69 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Main.h" />
+    <ClInclude Include="examples\car.h" />
+    <ClInclude Include="examples\declare_examples.h" />
+    <ClInclude Include="examples\json_customization.h" />
+    <ClInclude Include="experimental\structure_browser.h" />
+    <ClInclude Include="menu.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Main.cpp" />
+    <ClCompile Include="examples\adaptive_clone_structure.cpp" />
+    <ClCompile Include="examples\adaptive_implement_builder.cpp" />
+    <ClCompile Include="examples\adaptive_implement_change_listener.cpp" />
+    <ClCompile Include="examples\adaptive_implement_mapper.cpp" />
+    <ClCompile Include="examples\adaptive_implement_whiteboxer.cpp" />
+    <ClCompile Include="examples\adaptive_typedef_structure.cpp" />
+    <ClCompile Include="examples\builder_member_availability.cpp" />
+    <ClCompile Include="examples\legacy_annotated_supers.cpp" />
+    <ClCompile Include="examples\legacy_basic_reflection.cpp" />
+    <ClCompile Include="examples\builder_aggregated.cpp" />
+    <ClCompile Include="examples\builder_simple.cpp" />
+    <ClCompile Include="examples\builder_validated.cpp" />
+    <ClCompile Include="examples\legacy_functions.cpp" />
+    <ClCompile Include="examples\function_build_and_call.cpp" />
+    <ClCompile Include="examples\function_define_iterate_call.cpp" />
+    <ClCompile Include="examples\legacy_global_reflection.cpp" />
+    <ClCompile Include="examples\json_basic.cpp" />
+    <ClCompile Include="examples\legacy_json_customization.cpp" />
+    <ClCompile Include="examples\json_customizations.cpp" />
+    <ClCompile Include="examples\legacy_json_dynamic.cpp" />
+    <ClCompile Include="examples\json_unknown_fields.cpp" />
+    <ClCompile Include="examples\mapper_custom_field_mapping.cpp" />
+    <ClCompile Include="examples\mapper_trivial_mapping.cpp" />
+    <ClCompile Include="examples\mapper_using_standard_mappings.cpp" />
+    <ClCompile Include="examples\member_access_by_constexpr_index.cpp" />
+    <ClCompile Include="examples\member_access_by_name.cpp" />
+    <ClCompile Include="examples\member_access_by_runtime_index.cpp" />
+    <ClCompile Include="examples\member_access_protection_modifier.cpp" />
+    <ClCompile Include="examples\member_define_iterate_modify.cpp" />
+    <ClCompile Include="examples\member_filter_constexpr_if.cpp" />
+    <ClCompile Include="examples\member_filter_predicate.cpp" />
+    <ClCompile Include="examples\member_metadata_by_identifier.cpp" />
+    <ClCompile Include="examples\member_pack_fold.cpp" />
+    <ClCompile Include="examples\member_reflect_outside_of_class.cpp" />
+    <ClCompile Include="examples\misc_make_tuple.cpp" />
+    <ClCompile Include="examples\misc_runtime_to_constexpr_index.cpp" />
+    <ClCompile Include="examples\misc_type_to_string.cpp" />
+    <ClCompile Include="examples\misc_whitebox_testing.cpp" />
+    <ClCompile Include="examples\note_anonymous.cpp" />
+    <ClCompile Include="examples\note_class.cpp" />
+    <ClCompile Include="examples\note_class_members.cpp" />
+    <ClCompile Include="examples\note_filtered.cpp" />
+    <ClCompile Include="examples\legacy_object_mapper.cpp" />
+    <ClCompile Include="examples\overload_access_by_constexpr_index.cpp" />
+    <ClCompile Include="examples\overload_access_by_runtime_index.cpp" />
+    <ClCompile Include="examples\overload_cvref_qualifications.cpp" />
+    <ClCompile Include="examples\overload_define_iterate_call.cpp" />
+    <ClCompile Include="examples\overload_non_noted_argument_sets.cpp" />
+    <ClCompile Include="examples\overload_pack_expand.cpp" />
+    <ClCompile Include="examples\legacy_reflection_limits.cpp" />
+    <ClCompile Include="examples\super_access_by_constexpr_index.cpp" />
+    <ClCompile Include="examples\super_access_by_runtime_index.cpp" />
+    <ClCompile Include="examples\super_define_iterate.cpp" />
+    <ClCompile Include="examples\super_traverse_tree.cpp" />
+    <ClCompile Include="experimental\rest.cpp" />
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
