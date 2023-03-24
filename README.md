@@ -50,7 +50,6 @@ JSON & Builders Example: <a target="_blank" href="https://godbolt.org/z/1zn9bYa9
 ```cpp
 struct Point
 {
-
     float x;
     float y;
 
