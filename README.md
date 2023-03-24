@@ -10,14 +10,14 @@
 
 | Component | Summary | Examples |
 | --------- | ------- | -------- |
-| [RareTs](https://github.com/TheNitesWhoSay/RareCpp/wiki/3.0.-RareTs) | Reflection & type support | <a target="_blank" href="https://godbolt.org/z/vdPdx1E7d">![link descr][run1]</a><a target="_blank" href="https://godbolt.org/z/ErTvW8oaT">![link descr][run2]</a><a target="_blank" href="https://godbolt.org/z/n1oqrEafq">![link descr][run3]</a><a target="_blank" href="https://github.com/TheNitesWhoSay/RareCpp/wiki/1.2.-Overview:-How-To...">![link descr][more]</a> |
+| [RareTs](https://github.com/TheNitesWhoSay/RareCpp/wiki/1.1.-Overview:-Quick-Start) | Reflection & type support | <a target="_blank" href="https://godbolt.org/z/vdPdx1E7d">![link descr][run1]</a><a target="_blank" href="https://godbolt.org/z/ErTvW8oaT">![link descr][run2]</a><a target="_blank" href="https://godbolt.org/z/n1oqrEafq">![link descr][run3]</a><a target="_blank" href="https://github.com/TheNitesWhoSay/RareCpp/wiki/1.2.-Overview:-How-To...">![link descr][more]</a> |
 | [RareBuilder](https://github.com/TheNitesWhoSay/RareCpp/wiki/4.0.-RareBuilder) | Adaptive object builder | <a target="_blank" href="https://godbolt.org/z/rWKx7P583">![link descr][run1]</a><a target="_blank" href="https://godbolt.org/z/hhcG1x4M1">![link descr][run2]</a><a target="_blank" href="https://godbolt.org/z/Wscbb4Tfn">![link descr][run3]</a><a target="_blank" href="https://github.com/TheNitesWhoSay/RareCpp/wiki/1.2.-Overview:-How-To...">![link descr][more]</a> |
 | [RareMapper](https://github.com/TheNitesWhoSay/RareCpp/wiki/5.0.-RareMapper) | Dynamic type mapping | <a target="_blank" href="https://godbolt.org/z/rv5P9Wo6s">![link descr][run1]</a><a target="_blank" href="https://godbolt.org/z/jqPYadPWG">![link descr][run2]</a><a target="_blank" href="https://godbolt.org/z/7bKK1vbTE">![link descr][run3]</a><a target="_blank" href="https://github.com/TheNitesWhoSay/RareCpp/wiki/1.2.-Overview:-How-To...">![link descr][more]</a> |
 | [RareJson](https://github.com/TheNitesWhoSay/RareCpp/wiki/6.0.-RareJson) | Reflection-based JSON I/O | <a target="_blank" href="https://godbolt.org/z/PjPsxshf5">![link descr][run1]</a><a target="_blank" href="https://godbolt.org/z/WP5jr4hM7">![link descr][run2]</a><a target="_blank" href="https://godbolt.org/z/EcdbcshdW">![link descr][run3]</a><a target="_blank" href="https://github.com/TheNitesWhoSay/RareCpp/wiki/1.2.-Overview:-How-To...">![link descr][more]</a> |
 
 ***
 
-# Feature Preview
+# Examples
 
 Simple Example: <a target="_blank" href="https://godbolt.org/z/WzqGh8Gje">![Run][run]</a>
 ```cpp
@@ -106,6 +106,74 @@ Output:
 ```
 
 [More Examples / How to...](https://github.com/TheNitesWhoSay/RareCpp/wiki/1.2.-Overview:-How-To...">)
+
+# Features
+### Reflect
+* REFLECT classes and up to 125 class members
+* REFLECT from inside the class definition
+* REFLECT from outside the class definition*
+* REFLECT static & non-static members
+* REFLECT data members
+* REFLECT reference members
+* REFLECT functions
+* REFLECT overloaded-functions
+* REFLECT super-classes
+* REFLECT templated-classes
+* REFLECT templated-members**
+
+_\* Reflection from outside the class definition is limited to public and protected members_
+
+_\*\* Any members based on the class-level template parameters and any functions for which template parameters are inferred from parameters are reflectable, reflecting other templated members is not always possible._
+
+### Annotate
+* NOTE classes, members, super-classes and overloads to tag them with additional compile-time information
+* NOTE using any data available in constexpr, user-defined or library-specific
+* Common interface to check for note-of-type presence and get note values on particular members/classes/supers/overloads
+* Common interface to filter and iterate notes on particular members/classes/supers/overloads
+
+### Member Information
+* Iterate members
+* Access members by constexpr index
+* Access members by runtime index
+* Access members by name string
+* Access members by identifier
+* Get member static value, instance value, type, pointer type, name, index, staticness, access-protection modifier, offset, and overloads
+
+### Access supers
+* In lambda loops
+* By constexpr index
+* By runtime index
+
+### Extensions
+* Adaptive Structures (dynamically create structures consisting of one some combination/subset of one or more classes members)
+* RareBuilder - Type-safe, adaptive-struct-based builder implementation
+* RareMapper - Reflection-based object mapper
+* RareJson - JSON I/O for reflected structures
+
+# Limitations
+### C++ Version
+* C++17 and up required
+
+### Supported Compilers
+RareCpp minimizes use of compiler-specific features wherever possible, other compilers may work without modification and may or may not be possible to add to supported compilers upon request.
+
+Use of compiler versions lower than preferred may disable or cause bugs with certain features.
+
+* GCC Minimum: 10.1 (10.3.0 and up preferred)
+* Clang Minimum: 9.0.0 (15.0.0 and up preferred)
+* MSVC Minimum: 19.26 (MSVC 19.29/Visual Studios 2019 version 16.11.2 and up preferred)
+
+### Known Compiler Issues
+* Unable to use the REFLECT macro in non-public sections in GCC versions before 12, recommended to use public sections for the REFLECT macro until GCC 12 has wider support & adoption
+* MSVC 1932 (Visual Studio 2022 version 17.2.2) and up is required to accurately detect the access-protection level of protected members
+
+### Known General Limitations
+* Cannot currently reflect type alias-members
+* Cannot currently reflect nested classes
+* Cannot currently detect the access-protection level of overloads (they will default to private)
+* Cannot currently reflect all template members (cannot reflect templated data members not-based on class-level template parameters nor templated functions with parameters that can't be deduced from function parameters)
+
+[Documentation Home](https://github.com/TheNitesWhoSay/RareCpp/wiki)
 
 # Video Preview
 
