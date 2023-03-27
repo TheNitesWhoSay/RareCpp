@@ -168,7 +168,7 @@ Use of compiler versions lower than preferred may disable or cause bugs with cer
 
 ### Known General Limitations
 * Cannot currently reflect type alias-members
-* Cannot currently reflect nested classes
+* Cannot currently reflect the relationship between parent and nested classes (nested classes themselves can be reflected)
 * Cannot currently detect the access-protection level of overloads (they will default to private)
 * Cannot currently reflect all template members (cannot reflect templated data members not-based on class-level template parameters nor templated functions with parameters that can't be deduced from function parameters)
 
