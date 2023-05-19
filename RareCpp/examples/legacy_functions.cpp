@@ -56,13 +56,15 @@ std::ostream & operator<<(std::ostream & os, const RareTs::OverloadInfo<ClassTyp
 
 struct bar
 {
+    NOTE(foo)
     int foo(char) { return 1; }
     int foo(char) const noexcept { return 2; }
     int foo(char) volatile { return 3; }
     int foo(char) const volatile { return 4; }
 
     int foo(char, int) { return 5; }
-
+    
+    NOTE(refFoo)
     int refFoo(char) & { return 5; }
     int refFoo(char) const & { return 6; }
     int refFoo(char) volatile & { return 7; }

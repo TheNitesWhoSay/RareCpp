@@ -40,6 +40,7 @@ struct Involved
 
     inline static void e() {}
 
+    NOTE(f)
     inline void f(int) {}
     inline void f(float) {}
 

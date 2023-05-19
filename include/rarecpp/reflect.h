@@ -893,6 +893,24 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
 
             template <typename T> static constexpr size_t member_count = class_t<T>::I_::N_;
 
+            template <typename ReflectedObject, size_t MemberIndex> struct validate
+            {
+                #if defined(__GNUC__) && !defined(__clang__)
+                template <class U> static constexpr std::enable_if_t<!std::is_void_v<typename U::type>, int> member(int) { return 0; }
+                template <class> [[deprecated(
+                    "Invalid member present in REFLECT member list. Suppress for overloads by adding a NOTE for the member or defining RARE_NO_VALIDATE.")]]
+                static constexpr int member(unsigned) { return 0; }
+                #else
+                template <class Field, class PointerType, class Notes> static constexpr std::enable_if_t<
+                    !std::is_base_of_v<EmptyComponent, Field> || !std::is_base_of_v<NullptrType, PointerType> || !std::is_base_of_v<NonNoted, Notes>, int>
+                member(int) { return 0; }
+
+                template <class, class, class> [[deprecated(
+                    "Invalid member present in REFLECT member list. Suppress for overloads by adding a NOTE for the member or defining RARE_NO_VALIDATE.")]]
+                static constexpr int member(unsigned) { return 0; }
+                #endif
+            };
+
             template <typename T, size_t I> using member_type = typename class_t<T>::template F_<I>::type;
             template <typename T, size_t I> using member_pointer_type = typename class_t<T>::template Q_<I>::type;
             template <typename T, size_t I> static constexpr auto member_name = class_t<T>::template N_<I>::n;
@@ -1746,6 +1764,18 @@ template <class U_, class ... Ts_> struct A_<I_::x, U_, Ts_...> : Ts_... { \
 #endif
 #endif
 
+#if defined(RARE_NO_VALIDATE)
+#define RARE_MEMBER_VALIDATOR(x)
+#elif defined(__GNUC__) && !defined(__clang__)
+#define RARE_MEMBER_VALIDATOR(x) template <typename T_> static constexpr RareTs::type_id<decltype(T_::x)> x##_V_(int, int); \
+template <typename T_> static constexpr RareTs::type_id<decltype(&T_::x)> x##_V_(int, unsigned); \
+template <typename T_> static constexpr RareTs::type_id<decltype(T_::x##_note)> x##_V_(unsigned, unsigned); \
+template <typename T_> static constexpr RareTs::type_id<void> x##_V_(...); \
+static constexpr auto x##_validate = RareTs::Class::validate<C_, I_::x>::template member<decltype(x##_V_<B_>(0, 0))>(0);
+#else
+#define RARE_MEMBER_VALIDATOR(x) static constexpr auto x##_validate = RareTs::Class::validate<C_, I_::x>::template member<F_<I_::x>, Q_<I_::x>, E_<I_::x>>(0);
+#endif
+
 #define RARE_RESTATE_COMMA(x) x,
 #define RARE_MEMBER(x) \
 template <class T_> struct F_<I_::x, T_, std::void_t<decltype(T_::x)>> : RareTs::type_id<decltype(T_::x)> { \
@@ -1766,6 +1796,7 @@ template <class ... A_> struct L_<I_::x, A_...> { \
     template <class T_> using W_ = decltype(RareTs::Class::OverloadIdentifier<T_,R_<T_>,A_...>::Id::of(&std::remove_reference_t<T_>::x)); \
     template <class T_> static constexpr auto p = static_cast<W_<T_>>(&std::remove_reference_t<T_>::x); \
 }; \
+RARE_MEMBER_VALIDATOR(x) \
 RARE_ACCESS_MEMBER(x)
 
 /*
