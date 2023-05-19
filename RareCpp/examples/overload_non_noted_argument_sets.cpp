@@ -6,6 +6,7 @@ inline namespace overload_non_noted_argument_sets
 {
     struct MyObj
     {
+        NOTE(foo)
         void foo(int i, float f) {
             std::cout << "  called foo(int, float) with: " << i << ", " << f << std::endl;
         }
