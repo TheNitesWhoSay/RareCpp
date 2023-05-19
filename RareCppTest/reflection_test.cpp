@@ -1088,8 +1088,10 @@ struct TestIsOverloaded
     static int & d;
     void e() {}
     void f() {}
+    NOTE(g)
     void g() {}
     void g(int) {}
+    NOTE(h)
     void h() {}
     void h() const {}
 
@@ -1127,6 +1129,7 @@ class MyObjAccess {
         static int & aStaticRef;
         void aFunc();
         static void aStaticFunc();
+        NOTE(aOvl)
         void aOvl(int);
         void aOvl(float);
     protected:
@@ -1136,6 +1139,7 @@ class MyObjAccess {
         static int & bStaticRef;
         void bFunc();
         static void bStaticFunc();
+        NOTE(bOvl)
         void bOvl(int);
         void bOvl(float);
     private:
@@ -1145,6 +1149,7 @@ class MyObjAccess {
         static int & cStaticRef;
         void cFunc();
         static void cStaticFunc();
+        NOTE(cOvl)
         void cOvl(int);
         void cOvl(float);
 

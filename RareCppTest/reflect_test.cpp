@@ -3967,6 +3967,7 @@ TEST(ReflectionTest, ReflectSpecializationOnly)
 
 struct TestOverloads
 {
+    NOTE(foo)
     int foo(char) { return 1; }
     int foo(char) const noexcept { return 2; }
     int foo(char) volatile { return 3; }
@@ -3974,6 +3975,7 @@ struct TestOverloads
 
     int foo(char, int) { return 5; }
 
+    NOTE(refFoo)
     int refFoo(char) & { return 5; }
     int refFoo(char) const & { return 6; }
     int refFoo(char) volatile & { return 7; }
@@ -4598,6 +4600,7 @@ TEST(ReflectionTest, ReflectKnownOverloads)
 struct TestUnknowns
 {
 private:
+    NOTE(foo)
     int foo(char) { return 1; }
     int foo(char) const noexcept { return 2; }
     int foo(char) volatile { return 3; }
@@ -4605,6 +4608,7 @@ private:
 
     int foo(char, int) { return 5; }
 
+    NOTE(refFoo)
     int refFoo(char) & { return 5; }
     int refFoo(char) const & { return 6; }
     int refFoo(char) volatile & { return 7; }
@@ -4616,6 +4620,7 @@ private:
 
     int refFoo(char, int) & { return 1337; }
     
+    NOTE(staticFoo)
     static int staticFoo(char) { return 13; }
     static int staticFoo(char, int) { return 13; }
 
