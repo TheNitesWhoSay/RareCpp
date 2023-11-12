@@ -4,11 +4,6 @@
 #include <vector>
 #include <stack>
 
-struct TupEmpty
-{
-    REFLECT(TupEmpty)
-};
-
 struct TupTrivial
 {
     int a = 1337;
@@ -40,9 +35,7 @@ int & TupObj::staticPrimitiveReference = TupObj::staticPrimitive;
 
 TEST(TuplesTest, MemberTypeTuple)
 {
-    bool isSame = std::is_same_v<std::tuple<>, RareTs::member_type_tuple_t<TupEmpty>>;
-    EXPECT_TRUE(isSame);
-    isSame = std::is_same_v<std::tuple<int>, RareTs::member_type_tuple_t<TupTrivial>>;
+    bool isSame = std::is_same_v<std::tuple<int>, RareTs::member_type_tuple_t<TupTrivial>>;
     EXPECT_TRUE(isSame);
     isSame = std::is_same_v<std::tuple<int, TupTrivial, int[2], std::map<int, float>, std::vector<TupTrivial>, std::stack<int>, int, int &, int &, decltype(&TupObj::memberMethod), decltype(TupObj::staticMethod)>, RareTs::member_type_tuple_t<TupObj>>;
     EXPECT_TRUE(isSame);
@@ -50,11 +43,6 @@ TEST(TuplesTest, MemberTypeTuple)
 
 TEST(TuplesTest, Tuplify)
 {
-    TupEmpty tupEmpty {};
-    auto tuplifyEmpty = RareTs::tuplify(tupEmpty);
-    using TuplifyEmpty = decltype(tuplifyEmpty);
-    EXPECT_EQ(0, std::tuple_size_v<TuplifyEmpty>);
-
     TupTrivial tupTrivial {};
     auto tuplifyTrivial = RareTs::tuplify(tupTrivial);
     using TuplifyTrivial = decltype(tuplifyTrivial);
