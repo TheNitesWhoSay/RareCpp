@@ -2431,10 +2431,10 @@ namespace std // Exclusively used to add a few tuple specializations
     };
     template <size_t I, typename QualT> constexpr auto & get(RareTs::Tuplified<QualT> && o) {
         return RareTs::Member<RareTs::remove_cvref_t<QualT>, I>::value(o.object);
-    };
+    }
     template <size_t I, typename QualT> constexpr auto & get(const RareTs::Tuplified<QualT> && o) {
         return RareTs::Member<RareTs::remove_cvref_t<QualT>, I>::value(o.object);
-    };
+    }
     template <size_t I, typename QualT> constexpr auto & get(RareTs::Tuplified<QualT> & o) {
         return RareTs::Member<RareTs::remove_cvref_t<QualT>, I>::value(o.object);
     }
