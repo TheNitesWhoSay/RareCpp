@@ -46,6 +46,7 @@ set(Sources
   examples/member_metadata_by_identifier.cpp
   examples/member_pack_fold.cpp
   examples/member_reflect_outside_of_class.cpp
+  examples/misc_direct_tuplification.cpp
   examples/misc_make_tuple.cpp
   examples/misc_runtime_to_constexpr_index.cpp
   examples/misc_tuplify.cpp

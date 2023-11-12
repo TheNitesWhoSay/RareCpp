@@ -68,6 +68,7 @@ void openMenu()
             .item("White-box testing", &miscWhiteboxTesting)
             .item("Making tuples", &miscMakeTuple)
             .item("Tuplifying", &miscTuplify)
+            .item("Direct tuplification", &miscDirectTuplification)
         ).item(
             Menu{"Adaptive structure examples", "Select an example: "}
             .item("Clone reflected structure", &adaptiveCloneStructure)

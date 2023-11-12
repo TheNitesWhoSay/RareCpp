@@ -247,5 +247,8 @@
     <ClCompile Include="misc_tuplify.cpp">
       <Filter>Source Files\examples\misc</Filter>
     </ClCompile>
+    <ClCompile Include="misc_direct_tuplification.cpp">
+      <Filter>Source Files\examples\misc</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
