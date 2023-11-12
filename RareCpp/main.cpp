@@ -67,6 +67,7 @@ void openMenu()
             .item("Runtime to constexpr index", &miscRuntimeToConstexprIndex)
             .item("White-box testing", &miscWhiteboxTesting)
             .item("Making tuples", &miscMakeTuple)
+            .item("Tuplifying", &miscTuplify)
         ).item(
             Menu{"Adaptive structure examples", "Select an example: "}
             .item("Clone reflected structure", &adaptiveCloneStructure)

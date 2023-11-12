@@ -249,6 +249,7 @@
     <ClCompile Include="examples\super_traverse_tree.cpp" />
     <ClCompile Include="experimental\rest.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="misc_tuplify.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

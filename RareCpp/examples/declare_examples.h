@@ -50,6 +50,7 @@ inline namespace overload_cvref_qualifications { void overloadCvrefQualification
 // Misc examples
 inline namespace misc_type_to_string { void miscTypeToString(); }
 inline namespace misc_runtime_to_constexpr_index { void miscRuntimeToConstexprIndex(); }
+inline namespace misc_tuplify { void miscTuplify(); }
 inline namespace misc_whitebox_testing { void miscWhiteboxTesting(); }
 inline namespace misc_make_tuple { void miscMakeTuple(); }
 

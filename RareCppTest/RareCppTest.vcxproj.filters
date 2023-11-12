@@ -74,6 +74,9 @@
     <ClCompile Include="whitebox_test.cpp">
       <Filter>Source Files\ReflectTest</Filter>
     </ClCompile>
+    <ClCompile Include="tuples_test.cpp">
+      <Filter>Source Files\ReflectTest</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="json_input_test.h">
