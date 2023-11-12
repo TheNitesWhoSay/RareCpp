@@ -2369,6 +2369,77 @@ RARE_CLASS_FRIEND(objectType)
                 });
             }
         }
+
+        inline namespace Tuples
+        {
+            template <typename T, template <typename ...> class Filter = Filter::None>
+            class member_type_tuple
+            {
+                template <size_t ... Is> static constexpr auto tupleType(std::index_sequence<Is...>)
+                    -> std::tuple<typename RareTs::Member<T, Is>::type...>;
+
+                template <size_t ... Is> static constexpr auto filterTupleType(std::index_sequence<Is...>)
+                    -> decltype(tupleType(typename RareTs::type_mask<Filter, RareTs::Member<T, Is>...>::indexes{}));
+
+            public:
+                using type = decltype(filterTupleType(std::make_index_sequence<RareTs::Members<T>::total>()));
+            };
+
+            template <typename T, template<typename ...> class Filter = Filter::None>
+            using member_type_tuple_t = typename member_type_tuple<T>::type;
+
+            template <typename QualT>
+            struct Tuplified
+            {
+                using type = RareTs::remove_cvref_t<QualT>;
+                static_assert(RareTs::is_reflected_v<type>, "Only reflected types may be tuplified");
+
+                std::conditional_t<std::is_rvalue_reference_v<QualT>, std::remove_reference_t<QualT>, QualT> object;
+
+                template <size_t I> friend constexpr auto & get(RareTs::Tuplified<QualT> && o) { return RareTs::Member<type, I>::value(o.object); }
+                template <size_t I> friend constexpr auto & get(const RareTs::Tuplified<QualT> && o) { return RareTs::Member<type, I>::value(o.object); }
+                template <size_t I> friend constexpr auto & get(RareTs::Tuplified<QualT> & o) { return RareTs::Member<type, I>::value(o.object); }
+                template <size_t I> friend constexpr auto & get(const RareTs::Tuplified<QualT> & o) { return RareTs::Member<type, I>::value(o.object); }
+            };
+
+            template <typename T>
+            constexpr auto tuplify(T && t)
+            { // Unless t is an lvalue-reference, the type passed in would not live beyond the end of the statement that called tuplify
+                static_assert(RareTs::is_reflected_v<RareTs::remove_cvref_t<T>>, "Only reflected types may be tuplified");
+                using U = decltype(std::forward<T>(t));
+                if constexpr ( std::is_lvalue_reference_v<U> ) // It's a reference, copy reference into storage
+                    return Tuplified<U>{std::forward<T>(t)};
+                else if constexpr ( std::is_move_constructible_v<U> ) // It's a temporary and move-constructible, move into storage
+                    return Tuplified<U>{std::move(t)};
+                else if constexpr ( std::is_copy_constructible_v<U> ) // It's a temporary and copy-constructible, copy into storage
+                    return Tuplified<U>{t};
+                else
+                    static_assert(std::is_lvalue_reference_v<U>,
+                        "Only moveable or copyable temporaries may be passed to tuplify, create your object on a separate line");
+            }
+        }
+    }
+}
+
+namespace std // Exclusively used to add a few tuple specializations
+{
+    template <typename QualT> struct tuple_size<RareTs::Tuplified<QualT>> {
+        static constexpr size_t value = RareTs::Members<RareTs::remove_cvref_t<QualT>>::total;
+    };
+    template <size_t I, typename QualT> struct tuple_element<I, RareTs::Tuplified<QualT>> {
+        using type = typename RareTs::Member<RareTs::remove_cvref_t<QualT>, I>::type;
+    };
+    template <size_t I, typename QualT> constexpr auto & get(RareTs::Tuplified<QualT> && o) {
+        return RareTs::Member<RareTs::remove_cvref_t<QualT>, I>::value(o.object);
+    }
+    template <size_t I, typename QualT> constexpr auto & get(const RareTs::Tuplified<QualT> && o) {
+        return RareTs::Member<RareTs::remove_cvref_t<QualT>, I>::value(o.object);
+    }
+    template <size_t I, typename QualT> constexpr auto & get(RareTs::Tuplified<QualT> & o) {
+        return RareTs::Member<RareTs::remove_cvref_t<QualT>, I>::value(o.object);
+    }
+    template <size_t I, typename QualT> constexpr auto & get(const RareTs::Tuplified<QualT> & o) {
+        return RareTs::Member<RareTs::remove_cvref_t<QualT>, I>::value(o.object);
     }
 }
 
