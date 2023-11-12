@@ -546,22 +546,22 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             return AdaptorSubClass::get(adaptor);
         }
 
-	    constexpr size_t fnv1aHash(const std::string_view & str) noexcept { // Returns a fnv1a hash of the given string
-		    constexpr size_t seed = static_cast<size_t>([](){
+        constexpr size_t fnv1aHash(const std::string_view & str) noexcept { // Returns a fnv1a hash of the given string
+            constexpr size_t seed = static_cast<size_t>([](){
                 if constexpr ( sizeof(size_t) >= 8 ) return 14695981039346656037ULL;
                 else return 2166136261U;
             }());
-		    constexpr size_t factor = static_cast<size_t>([](){
+            constexpr size_t factor = static_cast<size_t>([](){
                 if constexpr ( sizeof(size_t) >= 8 ) return 1099511628211ULL;
                 else return 16777619U;
             }());
-		    size_t hash = seed;
-		    for ( auto c : str ) {
-			    hash ^= static_cast<size_t>(c);
-			    hash *= factor;
-		    }
-		    return hash;
-	    }
+            size_t hash = seed;
+            for ( auto c : str ) {
+                hash ^= static_cast<size_t>(c);
+                hash *= factor;
+            }
+            return hash;
+        }
     
         template <const char* ... s>
         struct StringIndexMap { // Constexpr map from a set of unique strings to the indexes at which they're passed in
@@ -1112,7 +1112,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             struct IsStaticData : std::bool_constant<Member::isStatic && Member::isData> {};
             template <typename Member, typename = enable_if_member_t<Member>>
             struct IsStaticFunction : std::bool_constant<Member::isStatic && Member::isFunction> {};
-		
+
             template <template <typename...> class Of> struct Is {
                 template <typename Member, typename = enable_if_member_t<Member>> struct Specialization : std::bool_constant<
                     RareTs::is_specialization_v<typename Member::type, Of>> {};
@@ -1894,10 +1894,10 @@ RARE_CLASS_FRIEND(objectType)
 
         protected:
             template <size_t ... I> static constexpr auto memberIndexMap(std::index_sequence<I...>) {
-				if constexpr ( sizeof...(I) > 0 )
-					return RareTs::StringIndexMap<(RareTs::Class::member_name<T, I>)...>();
-				else
-					return RareTs::StringIndexMap<>();
+                if constexpr ( sizeof...(I) > 0 )
+                    return RareTs::StringIndexMap<(RareTs::Class::member_name<T, I>)...>();
+                else
+                    return RareTs::StringIndexMap<>();
             }
 
             using MemberNames = decltype(memberIndexMap(std::make_index_sequence<total>()));
@@ -2000,35 +2000,35 @@ RARE_CLASS_FRIEND(objectType)
             // function(member) or...
             // function(member, value) [statics only]
             template <typename Function> static constexpr void at(size_t memberIndex, Function && function) {
-				RareTs::forIndex<total>(memberIndex, [&](auto I) {
-					if constexpr ( decltype(onlyUsesMember<decltype(I)::value>(std::forward<Function>(function)))::value )
-						function(member<decltype(I)::value>);
+                RareTs::forIndex<total>(memberIndex, [&](auto I) {
+                    if constexpr ( decltype(onlyUsesMember<decltype(I)::value>(std::forward<Function>(function)))::value )
+                        function(member<decltype(I)::value>);
                     else if constexpr ( Member<decltype(I)::value>::isStatic )
                         function(member<decltype(I)::value>, Member<decltype(I)::value>::value());
-				});
+                });
             }
             
             // function(member) [filtered] or...
             // function(member, value) [filtered, statics only]
             template <template <typename ...> class Filter, typename ...FilterArgs, typename Function>
             static constexpr void at(size_t memberIndex, Function && function) {
-				RareTs::forIndex<total>(memberIndex, [&](auto I) {
-					if constexpr ( passes_filter_v<Filter, Member<decltype(I)::value>, FilterArgs...> )
+                RareTs::forIndex<total>(memberIndex, [&](auto I) {
+                    if constexpr ( passes_filter_v<Filter, Member<decltype(I)::value>, FilterArgs...> )
                     {
-					    if constexpr ( decltype(onlyUsesMember<decltype(I)::value>(std::forward<Function>(function)))::value )
-							function(member<decltype(I)::value>);
+                        if constexpr ( decltype(onlyUsesMember<decltype(I)::value>(std::forward<Function>(function)))::value )
+                            function(member<decltype(I)::value>);
                         else if constexpr ( Member<decltype(I)::value>::isStatic )
                             function(member<decltype(I)::value>, Member<decltype(I)::value>::value());
                     }
-				});
+                });
             }
 
             // t, function(member, value)
             template <typename Function, class U, typename = std::enable_if_t<std::is_same_v<T,std::decay_t<U>>>>
             static constexpr void at(size_t memberIndex, U && t, Function && function) {
                 RareTs::forIndex<total>(memberIndex, [&](auto I) {
-					if constexpr ( decltype(onlyUsesMember<decltype(I)::value>(std::forward<Function>(function)))::value )
-						function(member<decltype(I)::value>);
+                    if constexpr ( decltype(onlyUsesMember<decltype(I)::value>(std::forward<Function>(function)))::value )
+                        function(member<decltype(I)::value>);
                     else
                         function(member<decltype(I)::value>, Member<decltype(I)::value>::value(t));
                 });
@@ -2041,8 +2041,8 @@ RARE_CLASS_FRIEND(objectType)
                 RareTs::forIndex<total>(memberIndex, [&](auto I) {
                     if constexpr ( passes_filter_v<Filter, Member<decltype(I)::value>, FilterArgs...> )
                     {
-					    if constexpr ( decltype(onlyUsesMember<decltype(I)::value>(std::forward<Function>(function)))::value )
-							function(member<decltype(I)::value>);
+                        if constexpr ( decltype(onlyUsesMember<decltype(I)::value>(std::forward<Function>(function)))::value )
+                            function(member<decltype(I)::value>);
                         else
                             function(member<decltype(I)::value>, Member<decltype(I)::value>::value(t));
                     }
@@ -2052,29 +2052,29 @@ RARE_CLASS_FRIEND(objectType)
             // memberName, function(member) or...
             // memberName, function(member, value) [statics only]
             template <typename Function> static constexpr void named(std::string_view memberName, Function && function) {
-			    size_t memberIndex = indexOf<>(memberName);
-			    RareTs::forIndex<total>(memberIndex, [&](auto I) {
-				    if constexpr ( decltype(onlyUsesMember<decltype(I)::value>(std::forward<Function>(function)))::value )
-					    function(member<decltype(I)::value>);
-				    else if constexpr ( Member<decltype(I)::value>::isStatic )
+                size_t memberIndex = indexOf<>(memberName);
+                RareTs::forIndex<total>(memberIndex, [&](auto I) {
+                    if constexpr ( decltype(onlyUsesMember<decltype(I)::value>(std::forward<Function>(function)))::value )
+                        function(member<decltype(I)::value>);
+                    else if constexpr ( Member<decltype(I)::value>::isStatic )
                         function(member<decltype(I)::value>, Member<decltype(I)::value>::value());
-			    });
+                });
             }
             
             // memberName, function(member) [filtered] or...
             // memberName, function(member, value) [filtered, statics only]
             template <template <typename ...> class Filter, typename ...FilterArgs, typename Function>
             static constexpr void named(std::string_view memberName, Function && function) {
-			    size_t memberIndex = indexOf<>(memberName);
-			    RareTs::forIndex<total>(memberIndex, [&](auto I) {
-				    if constexpr ( passes_filter_v<Filter, Member<decltype(I)::value>, FilterArgs...> )
-				    {
-					    if constexpr ( decltype(onlyUsesMember<decltype(I)::value>(std::forward<Function>(function)))::value )
-						    function(member<decltype(I)::value>);
-					    else if constexpr ( Member<decltype(I)::value>::isStatic )
+                size_t memberIndex = indexOf<>(memberName);
+                RareTs::forIndex<total>(memberIndex, [&](auto I) {
+                    if constexpr ( passes_filter_v<Filter, Member<decltype(I)::value>, FilterArgs...> )
+                    {
+                        if constexpr ( decltype(onlyUsesMember<decltype(I)::value>(std::forward<Function>(function)))::value )
+                            function(member<decltype(I)::value>);
+                        else if constexpr ( Member<decltype(I)::value>::isStatic )
                             function(member<decltype(I)::value>, Member<decltype(I)::value>::value());
-				    }
-			    });
+                    }
+                });
             }
 
             // t, memberName, function(member, value)
@@ -2082,8 +2082,8 @@ RARE_CLASS_FRIEND(objectType)
             static constexpr void named(std::string_view memberName, U && t, Function && function) {
                 size_t memberIndex = indexOf<>(memberName);
                 RareTs::forIndex<total>(memberIndex, [&](auto I) {
-					if constexpr ( decltype(onlyUsesMember<decltype(I)::value>(std::forward<Function>(function)))::value )
-						function(member<decltype(I)::value>);
+                    if constexpr ( decltype(onlyUsesMember<decltype(I)::value>(std::forward<Function>(function)))::value )
+                        function(member<decltype(I)::value>);
                     else
                         function(member<decltype(I)::value>, Member<decltype(I)::value>::value(t));
                 });
@@ -2097,8 +2097,8 @@ RARE_CLASS_FRIEND(objectType)
                 RareTs::forIndex<total>(memberIndex, [&](auto I) {
                     if constexpr ( passes_filter_v<Filter, Member<decltype(I)::value>, FilterArgs...> )
                     {
-					    if constexpr ( decltype(onlyUsesMember<decltype(I)::value>(std::forward<Function>(function)))::value )
-							function(member<decltype(I)::value>);
+                        if constexpr ( decltype(onlyUsesMember<decltype(I)::value>(std::forward<Function>(function)))::value )
+                            function(member<decltype(I)::value>);
                         else
                             function(member<decltype(I)::value>, Member<decltype(I)::value>::value(t));
                     }
@@ -2369,6 +2369,77 @@ RARE_CLASS_FRIEND(objectType)
                 });
             }
         }
+
+        inline namespace Tuples
+        {
+            template <typename T, template <typename ...> class Filter = Filter::None>
+            class member_type_tuple
+            {
+                template <size_t ... Is> static constexpr auto tupleType(std::index_sequence<Is...>)
+                    -> std::tuple<typename RareTs::Member<T, Is>::type...>;
+
+                template <size_t ... Is> static constexpr auto filterTupleType(std::index_sequence<Is...>)
+                    -> decltype(tupleType(typename RareTs::type_mask<Filter, RareTs::Member<T, Is>...>::indexes{}));
+
+            public:
+                using type = decltype(filterTupleType(std::make_index_sequence<RareTs::Members<T>::total>()));
+            };
+
+            template <typename T, template<typename ...> class Filter = Filter::None>
+            using member_type_tuple_t = typename member_type_tuple<T>::type;
+
+            template <typename QualT>
+            struct Tuplified
+            {
+                using type = RareTs::remove_cvref_t<QualT>;
+                static_assert(RareTs::is_reflected_v<type>, "Only reflected types may be tuplified");
+
+                std::conditional_t<std::is_rvalue_reference_v<QualT>, std::remove_reference_t<QualT>, QualT> object;
+
+                template <size_t I> friend constexpr auto & get(RareTs::Tuplified<QualT> && o) { return RareTs::Member<type, I>::value(o.object); }
+                template <size_t I> friend constexpr auto & get(const RareTs::Tuplified<QualT> && o) { return RareTs::Member<type, I>::value(o.object); }
+                template <size_t I> friend constexpr auto & get(RareTs::Tuplified<QualT> & o) { return RareTs::Member<type, I>::value(o.object); }
+                template <size_t I> friend constexpr auto & get(const RareTs::Tuplified<QualT> & o) { return RareTs::Member<type, I>::value(o.object); }
+            };
+
+            template <typename T>
+            constexpr auto tuplify(T && t)
+            { // Unless t is an lvalue-reference, the type passed in would not live beyond the end of the statement that called tuplify
+                static_assert(RareTs::is_reflected_v<RareTs::remove_cvref_t<T>>, "Only reflected types may be tuplified");
+                using U = decltype(std::forward<T>(t));
+                if constexpr ( std::is_lvalue_reference_v<U> ) // It's a reference, copy reference into storage
+                    return Tuplified<U>{std::forward<T>(t)};
+                else if constexpr ( std::is_move_constructible_v<U> ) // It's a temporary and move-constructible, move into storage
+                    return Tuplified<U>{std::move(t)};
+                else if constexpr ( std::is_copy_constructible_v<U> ) // It's a temporary and copy-constructible, copy into storage
+                    return Tuplified<U>{t};
+                else
+                    static_assert(std::is_lvalue_reference_v<U>,
+                        "Only moveable or copyable temporaries may be passed to tuplify, create your object on a separate line");
+            }
+        }
+    }
+}
+
+namespace std // Exclusively used to add a few tuple specializations
+{
+    template <typename QualT> struct tuple_size<RareTs::Tuplified<QualT>> {
+        static constexpr size_t value = RareTs::Members<RareTs::remove_cvref_t<QualT>>::total;
+    };
+    template <size_t I, typename QualT> struct tuple_element<I, RareTs::Tuplified<QualT>> {
+        using type = typename RareTs::Member<RareTs::remove_cvref_t<QualT>, I>::type;
+    };
+    template <size_t I, typename QualT> constexpr auto & get(RareTs::Tuplified<QualT> && o) {
+        return RareTs::Member<RareTs::remove_cvref_t<QualT>, I>::value(o.object);
+    }
+    template <size_t I, typename QualT> constexpr auto & get(const RareTs::Tuplified<QualT> && o) {
+        return RareTs::Member<RareTs::remove_cvref_t<QualT>, I>::value(o.object);
+    }
+    template <size_t I, typename QualT> constexpr auto & get(RareTs::Tuplified<QualT> & o) {
+        return RareTs::Member<RareTs::remove_cvref_t<QualT>, I>::value(o.object);
+    }
+    template <size_t I, typename QualT> constexpr auto & get(const RareTs::Tuplified<QualT> & o) {
+        return RareTs::Member<RareTs::remove_cvref_t<QualT>, I>::value(o.object);
     }
 }
 

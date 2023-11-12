@@ -244,5 +244,11 @@
     <ClCompile Include="examples\builder_member_availability.cpp">
       <Filter>Source Files\examples\rare_builder</Filter>
     </ClCompile>
+    <ClCompile Include="examples\misc_direct_tuplification.cpp">
+      <Filter>Source Files\examples\misc</Filter>
+    </ClCompile>
+    <ClCompile Include="examples\misc_tuplify.cpp">
+      <Filter>Source Files\examples\misc</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

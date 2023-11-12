@@ -48,8 +48,10 @@ inline namespace overload_non_noted_argument_sets { void overloadNonNotedArgumen
 inline namespace overload_cvref_qualifications { void overloadCvrefQualifications(); }
 
 // Misc examples
+inline namespace misc_direct_tuplification { void miscDirectTuplification(); }
 inline namespace misc_type_to_string { void miscTypeToString(); }
 inline namespace misc_runtime_to_constexpr_index { void miscRuntimeToConstexprIndex(); }
+inline namespace misc_tuplify { void miscTuplify(); }
 inline namespace misc_whitebox_testing { void miscWhiteboxTesting(); }
 inline namespace misc_make_tuple { void miscMakeTuple(); }
 

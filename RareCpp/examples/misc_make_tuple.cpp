@@ -23,8 +23,8 @@ inline namespace misc_make_tuple
 
     void miscMakeTuple()
     {
-        MyObj myObj {1, 2, "3"}; // I don't generally recommend forming tuples out of structures, generally it's unnecessary indirection/unhelpful
-        auto tup = toTuple(myObj); // But if you get something out of doing it, go for it
+        MyObj myObj {1, 2, "3"}; // I don't generally recommend forming instances of std::tuple from objects, generally it's unnecessary indirection/unhelpful
+        auto tup = toTuple(myObj); // You'll lose detail & likely face lifetime issues, but if you get something out of doing it, go for it
     
         std::cout << RareTs::toStr<decltype(tup)>() << std::endl;
         std::cout << std::get<0>(tup) << std::endl;
