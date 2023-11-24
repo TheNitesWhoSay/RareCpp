@@ -184,6 +184,40 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
 // Call "f" for each argument
 #define RARE_FOR_EACH(f,...) ML_N(RARE_COUNT_ARGUMENTS(__VA_ARGS__),f,__VA_ARGS__)
 
+/// Selects the count of varadic arguments (cannot count 0 arguments, but can count parenthesized arguments)
+#define RARE_COUNT_POSITIVE_ARGUMENTS(...) ML_S(__VA_ARGS__,ML_G())
+
+#define RARE_FOR_EACH_POSITIVE(f,...) ML_N(RARE_COUNT_POSITIVE_ARGUMENTS(__VA_ARGS__),f,__VA_ARGS__)
+
+// MacroLoop_Extractor_WrapAndAppendComma
+#define ML_W(...) (__VA_ARGS__),
+
+// MacroLoop_Expand_Variadic
+#define ML_X(...) __VA_ARGS__
+
+// MacroLoop_Extractor_First
+#define ML_F(x, ...) ML_X x
+
+// MacroLoop_Extractor_GetFirst
+#define ML_R(x, y) ML_F(x, y)
+
+// MacroLoop_Extractor_Blank (when you append "ML_B" with an expression of the form "(LHS) RHS", the "(LHS)" gets blanked out and you're left with just RHS
+#define ML_B(...)
+
+// If x takes the form "(LHS) RHS", then this macro returns LHS
+#define LHS(x) ML_R(ML_W x,)
+
+// If x takes the form "(LHS)(RHS)", then this macro returns RHS
+#define RHS(x) LHS(ML_B x())
+
+#define RARE_STRINGIFY(x) #x
+
+#define RARE_INVOKE(f,x) f(x)
+
+#define RARE_POSTSCORE(x) ML_C(x, _)
+
+#define RARE_STRINGIFY_LHS(x) RARE_INVOKE(RARE_STRINGIFY, LHS(x))
+
     }
 
     // Non-reflection specific type-support
@@ -245,6 +279,11 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
         template <typename T> struct remove_pointer<T* volatile> { using type = T; };
         template <typename T> struct remove_pointer<T* const volatile> { using type = T; };
         template <typename T> using remove_pointer_t = typename remove_pointer<T>::type;
+
+        template <typename T> struct remove_member_pointer_impl { using type = std::remove_pointer_t<T>; };
+        template <typename C, typename T> struct remove_member_pointer_impl<T C::*> { using type = T; };
+        template <typename T> struct remove_member_pointer : remove_member_pointer_impl<RareTs::remove_cvref_t<T>> {};
+        template <typename T> using remove_member_pointer_t = typename remove_member_pointer<T>::type;
 
         template <typename T> struct is_pointable : std::bool_constant<!std::is_same_v<T, remove_pointer_t<T>>> {};
         template <typename T> inline constexpr bool is_pointable_v = is_pointable<T>::value;
@@ -684,6 +723,20 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
         public:
             using type = decltype(filterSeq(std::make_index_sequence<sizeof...(Is)-1>()));
         };
+
+        template <auto ... Data> struct NttpTuple {
+            template <size_t I, auto Head, auto ... Tail> static constexpr auto get(RareTs::NttpTuple<Head, Tail...>)
+            {
+                if constexpr ( I == 0 )
+                    return Head;
+                else if constexpr ( I <= sizeof...(Tail) )
+                    return get<I-1>(RareTs::NttpTuple<Tail...>{});
+                else
+                    static_assert(I <= sizeof...(Tail), "Tuple index out of range");
+            }
+            template <size_t I> static constexpr auto get() { return RareTs::NttpTuple<>::template get<I>(RareTs::NttpTuple<Data...>{}); }
+            template <size_t I> using element_type = decltype(get<I>());
+        };
     }
 
     // Contains support for working with reflected members, the definition for the REFLECT macro and non-generic supporting macros
@@ -761,6 +814,13 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
         
         template <typename T> struct Proxy;
         template <typename T> struct GlobalClass;
+        
+        template <typename T, auto ... MembPointers> struct PrivateObject {
+            template <size_t I> using pointer_type = typename NttpTuple<MembPointers...>::template element_type<I>;
+            template <size_t I> using type = remove_member_pointer_t<pointer_type<I>>;
+            template <size_t I> static constexpr auto pointer() { return NttpTuple<MembPointers...>::template get<I>(); }
+            template <size_t I> static constexpr bool isStatic = !std::is_member_pointer_v<pointer_type<I>>;
+        };
     
         template <typename T, typename = void> struct is_proxied : std::false_type {};
         template <typename T> struct is_proxied<T, std::void_t<decltype(Proxy<T>::Class::I_::N_)>> : std::true_type {};
@@ -1742,8 +1802,11 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
 #ifdef __clang__
 #define RARE_CLASS_FRIEND(x) friend RareTs::Class;\
 friend constexpr inline Class classType(RareTs::type_tag<RareTs::Proxy<RareTs::Class::unproxy_t<x>>>) { return {}; }
+#define RARE_PRIVATE_CLASS_FRIEND(x) \
+constexpr inline RareTs::GlobalClass<x> classType(RareTs::type_tag<RareTs::Proxy<x>>) { return {}; }
 #else
 #define RARE_CLASS_FRIEND(x) friend RareTs::Class;
+#define RARE_PRIVATE_CLASS_FRIEND(x)
 #endif
 
 #ifdef __clang__
@@ -1804,6 +1867,55 @@ template <class ... A_> struct L_<I_::x, A_...> { \
 }; \
 RARE_MEMBER_VALIDATOR(x) \
 RARE_ACCESS_MEMBER(x)
+#define RARE_MEMBER_POINTER(x) ,&T_::x
+#define RARE_MEMBER_POINTER_NOTED(x) ,&T_::LHS(x)
+#define RARE_LHS_COMMA(x) LHS(x),
+
+#define RARE_PRIVATE_MEMBER(x) \
+template <class T_> struct P_<I_::x, T_> { \
+    static constexpr auto p = RareTs::PrivateObject<RareTs::remove_cvref_t<T_>>::template pointer<I_::x>(); \
+}; \
+template <class T_> struct Q_<I_::x, T_> : RareTs::type_id< \
+    typename RareTs::PrivateObject<RareTs::remove_cvref_t<T_>>::template pointer_type<I_::x> \
+> {}; \
+template <class T_> struct F_<I_::x, T_, void> : RareTs::type_id<typename RareTs::PrivateObject<T_>::template type<I_::x>> { \
+    template <class U_> static constexpr bool is_mp_ = std::is_member_pointer_v<typename Q_<I_::x, U_>::type>; \
+    template <class U_, std::enable_if_t<is_mp_<U_>>* = nullptr> static constexpr auto s() { return P_<I_::x, U_>::p; } \
+    template <class U_, std::enable_if_t<!is_mp_<U_>>* = nullptr> static constexpr auto s() { return *P_<I_::x, U_>::p; } \
+    template <class U_, std::enable_if_t<is_mp_<U_>>* = nullptr> static constexpr auto & i(U_ && t) { return t.*P_<I_::x, U_>::p; } \
+    template <class U_, std::enable_if_t<!is_mp_<U_>>* = nullptr> static constexpr auto & i(U_ &&) { return *P_<I_::x, U_>::p; } \
+}; \
+template <class T_> struct N_<I_::x, T_> { static constexpr char n[]=#x; }; \
+template <class T_> struct E_<I_::x, T_> { static constexpr auto notes = std::tuple {}; }; \
+template <class T_> struct O_<I_::x, T_, std::enable_if_t<std::is_member_object_pointer_v<decltype(&T_::x)>>> { \
+    static constexpr size_t o() { return offsetof(T_,x); }; \
+}; \
+template <template <size_t> class T_> struct M_<I_::x, T_> { T_<I_::x> x; }; \
+template <template <size_t> class T_> struct D_<I_::x, T_> { using x = T_<I_::x>; }; \
+RARE_ACCESS_MEMBER(x)
+
+#define RARE_PRIVATE_MEMBER_NOTED(x) \
+template <class T_> struct P_<I_::LHS(x), T_> { \
+    static constexpr auto p = RareTs::PrivateObject<RareTs::remove_cvref_t<T_>>::template pointer<I_::LHS(x)>(); \
+}; \
+template <class T_> struct Q_<I_::LHS(x), T_> : RareTs::type_id< \
+    typename RareTs::PrivateObject<RareTs::remove_cvref_t<T_>>::template pointer_type<I_::LHS(x)> \
+> {}; \
+template <class T_> struct F_<I_::LHS(x), T_, void> : RareTs::type_id<typename RareTs::PrivateObject<T_>::template type<I_::LHS(x)>> { \
+    template <class U_> static constexpr bool is_mp_ = std::is_member_pointer_v<typename Q_<I_::LHS(x), U_>::type>; \
+    template <class U_, std::enable_if_t<is_mp_<U_>>* = nullptr> static constexpr auto s() { return P_<I_::LHS(x), U_>::p; } \
+    template <class U_, std::enable_if_t<!is_mp_<U_>>* = nullptr> static constexpr auto s() { return *P_<I_::LHS(x), U_>::p; } \
+    template <class U_, std::enable_if_t<is_mp_<U_>>* = nullptr> static constexpr auto & i(U_ && t) { return t.*P_<I_::LHS(x), U_>::p; } \
+    template <class U_, std::enable_if_t<!is_mp_<U_>>* = nullptr> static constexpr auto & i(U_ &&) { return *P_<I_::LHS(x), U_>::p; } \
+}; \
+template <class T_> struct N_<I_::LHS(x), T_> { static constexpr char n[]=RARE_STRINGIFY_LHS(x); }; \
+template <class T_> struct E_<I_::LHS(x), T_> { static constexpr auto notes = std::tuple { RHS(x) }; }; \
+template <class T_> struct O_<I_::LHS(x), T_, std::enable_if_t<std::is_member_object_pointer_v<decltype(&T_::LHS(x))>>> { \
+    static constexpr size_t o() { return offsetof(T_,LHS(x)); }; \
+}; \
+template <template <size_t> class T_> struct M_<I_::LHS(x), T_> { T_<I_::LHS(x)> LHS(x); }; \
+template <template <size_t> class T_> struct D_<I_::LHS(x), T_> { using LHS(x) = T_<I_::LHS(x)>; }; \
+RARE_ACCESS_MEMBER(LHS(x))
 
 /*
     I_: "Index Of" (field index enum) - always required
@@ -1881,6 +1993,90 @@ struct Class { \
     RARE_FOR_EACH(RARE_MEMBER, __VA_ARGS__) \
 }; \
 RARE_CLASS_FRIEND(objectType)
+
+/* REFLECT_PRIVATE_NOTED is placed in the global scope to reflect unowned types including private members, after objectType can be 1 to TODO member names e.g.
+    REFLECT_PRIVATE(MyObj, myInt, myString, myOtherObj) */
+#define REFLECT_PRIVATE(objectType, ...) \
+namespace RareTs::z::objectType##_ { \
+    using T_ = objectType; \
+    constexpr auto F_(RareTs::type_tag<T_>); \
+    template <class, auto ... M_> struct E_ { friend constexpr auto F_(RareTs::type_tag<T_>) { return RareTs::PrivateObject<T_, M_...>{}; } }; \
+    template struct E_<void RARE_FOR_EACH_POSITIVE(RARE_MEMBER_POINTER, __VA_ARGS__)>; \
+} \
+template <> struct RareTs::PrivateObject<objectType> : decltype(RareTs::z::objectType##_::F_(RareTs::type_tag<objectType>{})) {}; \
+template <> struct RareTs::GlobalClass<objectType> { \
+    using B_ = objectType; \
+    using C_ = objectType; \
+    struct I_ { enum { RARE_FOR_EACH_POSITIVE(RARE_RESTATE_COMMA, __VA_ARGS__) N_ }; }; \
+    static constexpr auto notes = std::tuple {}; \
+    template <size_t, class T_ = B_, class = void> struct F_ : RareTs::Class::EmptyComponent {}; \
+    template <size_t, class T_ = B_, class = void> struct Q_ : RareTs::Class::NullptrType {}; \
+    template <size_t, class T_ = B_, class = void> struct P_ : RareTs::Class::NonPointable {}; \
+    template <size_t, class T_ = B_, class = void> struct E_ : RareTs::Class::NonNoted {}; \
+    template <size_t, class T_ = B_, class = void> struct O_ : RareTs::Class::NoOffset {}; \
+    template <size_t, template <size_t> class> struct M_; \
+    template <size_t, template <size_t> class> struct D_; \
+    template <size_t, class T_ = B_> struct N_; \
+    template <size_t, class...> struct L_; \
+    RARE_ACCESS_HEADER \
+    RARE_FOR_EACH_POSITIVE(RARE_PRIVATE_MEMBER, __VA_ARGS__) \
+}; \
+RARE_PRIVATE_CLASS_FRIEND(objectType)
+
+/* REFLECT_PRIVATE_NOTED is placed in the global scope to reflect unowned types including private members, after objectType can be 1 to TODO member names e.g.
+    REFLECT_PRIVATE_NOTED(
+        (MyObj) (RareTs::Buildable),
+        (myInt) (Json::Ignore),
+        (myString) (Json::Name{"testName"}, Json::Stringify),
+        (myOtherObj) ()
+    ) */
+#define REFLECT_PRIVATE_NOTED(objectType, ...) \
+namespace RareTs::z::RARE_POSTSCORE(LHS(objectType)) { \
+    using T_ = LHS(objectType); \
+    constexpr auto F_(RareTs::type_tag<T_>); \
+    template <class, auto ... M_> struct E_ { friend constexpr auto F_(RareTs::type_tag<T_>) { return RareTs::PrivateObject<T_, M_...>{}; } }; \
+    template struct E_<void RARE_FOR_EACH_POSITIVE(RARE_MEMBER_POINTER_NOTED, __VA_ARGS__)>; \
+} \
+template <> struct RareTs::PrivateObject<LHS(objectType)> : decltype(RareTs::z::RARE_POSTSCORE(LHS(objectType))::F_(RareTs::type_tag<LHS(objectType)>{})) {}; \
+template <> struct RareTs::GlobalClass<LHS(objectType)> { \
+    using B_ = LHS(objectType); \
+    using C_ = LHS(objectType); \
+    struct I_ { enum { RARE_FOR_EACH_POSITIVE(RARE_LHS_COMMA, __VA_ARGS__) N_ }; }; \
+    static constexpr auto notes = std::tuple { RHS(objectType) }; \
+    template <size_t, class T_ = B_, class = void> struct F_ : RareTs::Class::EmptyComponent {}; \
+    template <size_t, class T_ = B_, class = void> struct Q_ : RareTs::Class::NullptrType {}; \
+    template <size_t, class T_ = B_, class = void> struct P_ : RareTs::Class::NonPointable {}; \
+    template <size_t, class T_ = B_, class = void> struct E_ : RareTs::Class::NonNoted {}; \
+    template <size_t, class T_ = B_, class = void> struct O_ : RareTs::Class::NoOffset {}; \
+    template <size_t, template <size_t> class> struct M_; \
+    template <size_t, template <size_t> class> struct D_; \
+    template <size_t, class T_ = B_> struct N_; \
+    template <size_t, class...> struct L_; \
+    RARE_ACCESS_HEADER \
+    RARE_FOR_EACH_POSITIVE(RARE_PRIVATE_MEMBER_NOTED, __VA_ARGS__) \
+}; \
+RARE_PRIVATE_CLASS_FRIEND(typename RareTs::GlobalClass<LHS(objectType)>::B_)
+
+/* REFLECT_PRIVATE_EMPTY is placed in the global scope to reflect a type without any reflected members, after objectType can be 1 to TODO notes e.g.
+    REFLECT_PRIVATE_EMPTY(MyObj, RareTs::Super<MyParentObj>) */
+#define REFLECT_PRIVATE_EMPTY(objectType, ...) \
+template <> struct RareTs::GlobalClass<objectType> { \
+    using B_ = objectType; \
+    using C_ = objectType; \
+    struct I_ { enum { N_ }; }; \
+    static constexpr auto notes = std::tuple { __VA_ARGS__ }; \
+    template <size_t, class T_ = B_, class = void> struct F_ : RareTs::Class::EmptyComponent {}; \
+    template <size_t, class T_ = B_, class = void> struct Q_ : RareTs::Class::NullptrType {}; \
+    template <size_t, class T_ = B_, class = void> struct P_ : RareTs::Class::NonPointable {}; \
+    template <size_t, class T_ = B_, class = void> struct E_ : RareTs::Class::NonNoted {}; \
+    template <size_t, class T_ = B_, class = void> struct O_ : RareTs::Class::NoOffset {}; \
+    template <size_t, template <size_t> class> struct M_; \
+    template <size_t, template <size_t> class> struct D_; \
+    template <size_t, class T_ = B_> struct N_; \
+    template <size_t, class...> struct L_; \
+    RARE_ACCESS_HEADER \
+}; \
+RARE_PRIVATE_CLASS_FRIEND(typename RareTs::GlobalClass<objectType>::B_)
 
         }
 
