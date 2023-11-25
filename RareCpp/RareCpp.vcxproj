@@ -115,6 +115,7 @@
       </DisableSpecificWarnings>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
       <AdditionalOptions>/volatile:iso /Zc:__cplusplus /Zc:throwingNew %(AdditionalOptions)</AdditionalOptions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>NotSet</SubSystem>
@@ -134,6 +135,7 @@
       </DisableSpecificWarnings>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
       <AdditionalOptions>/volatile:iso /Zc:__cplusplus /Zc:throwingNew %(AdditionalOptions)</AdditionalOptions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>NotSet</SubSystem>
@@ -155,6 +157,7 @@
       </DisableSpecificWarnings>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
       <AdditionalOptions>/volatile:iso /Zc:__cplusplus /Zc:throwingNew %(AdditionalOptions)</AdditionalOptions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>NotSet</SubSystem>
@@ -177,6 +180,7 @@
       </DisableSpecificWarnings>
       <AdditionalOptions>/volatile:iso /Zc:__cplusplus /Zc:throwingNew %(AdditionalOptions)</AdditionalOptions>
       <UseStandardPreprocessor>true</UseStandardPreprocessor>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>NotSet</SubSystem>
@@ -249,6 +253,8 @@
     <ClCompile Include="examples\super_access_by_runtime_index.cpp" />
     <ClCompile Include="examples\super_define_iterate.cpp" />
     <ClCompile Include="examples\super_traverse_tree.cpp" />
+    <ClCompile Include="examples\unowned_private_notes.cpp" />
+    <ClCompile Include="examples\unowned_private_reflect.cpp" />
     <ClCompile Include="experimental\rest.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
