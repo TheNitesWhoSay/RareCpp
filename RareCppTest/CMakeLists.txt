@@ -21,6 +21,7 @@ set(Sources
   object_mapper_test.cpp
   reflection_test.cpp
   reflect_test.cpp
+  reflect_private_test.cpp
   string_buffer_test.cpp
   test_main.cpp
   tuples_test.cpp

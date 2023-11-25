@@ -37,6 +37,8 @@ void openMenu()
             .item("Filter members using constexpr ifs", &memberFilterConstexprIf)
             .item("Filter members using RareCpp filtering", &memberFilterPredicate)
             .item("Reflect members outside of class", &memberReflectOutsideOfClass)
+            .item("Reflect private members outside of class", &unownedPrivateReflect)
+            .item("Reflect noted private members outside of class", &unownedPrivateReflectNoted)
         ).item(
             Menu{"Note Examples", "Select an example: "}
             .item("Member annotations", &noteClassMembers)

@@ -198,6 +198,7 @@
     <ClCompile Include="json_test_run_buffered.cpp" />
     <ClCompile Include="json_test_run_unbuffered.cpp" />
     <ClCompile Include="object_mapper_test.cpp" />
+    <ClCompile Include="reflect_private_test.cpp" />
     <ClCompile Include="tuples_test.cpp" />
     <ClCompile Include="whitebox_test.cpp" />
     <ClCompile Include="reflection_test.cpp" />

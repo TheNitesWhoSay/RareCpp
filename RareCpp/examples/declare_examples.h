@@ -23,6 +23,10 @@ inline namespace member_filter_constexpr_if { void memberFilterConstexprIf(); }
 inline namespace member_filter_predicate { void memberFilterPredicate(); }
 inline namespace member_reflect_outside_of_class { void memberReflectOutsideOfClass(); }
 
+// Unowned private examples
+inline namespace unowned_private_reflect { void unownedPrivateReflect(); }
+inline namespace unowned_private_noted { void unownedPrivateReflectNoted(); }
+
 // Note examples
 inline namespace note_class_members { void noteClassMembers(); }
 inline namespace note_class { void noteClass(); }
