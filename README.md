@@ -120,7 +120,7 @@ Output:
 * REFLECT templated-classes
 * REFLECT templated-members**
 
-_\* Reflection from outside the class definition is limited to public and protected members_
+_\* Reflection from outside the class definition can be done on public and protected members - or - with more [limitations](https://github.com/TheNitesWhoSay/RareCpp/wiki/2.1.-Reflection:-REFLECT-Macro#reflect-from-outside-class-bodies) than the in-class macro, on private members._
 
 _\*\* Any members based on the class-level template parameters and any functions for which template parameters are inferred from parameters are reflectable, reflecting other templated members is not always possible._
 
