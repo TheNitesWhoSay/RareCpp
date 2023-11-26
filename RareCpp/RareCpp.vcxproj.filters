@@ -57,6 +57,9 @@
     <Filter Include="Source Files\examples\rare_mapper">
       <UniqueIdentifier>{30be93d4-33a2-4de8-8138-d3aa7803c98a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\examples\reflect_private">
+      <UniqueIdentifier>{3a86c3e8-3db1-4e94-9412-74ce5dc60ef3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="examples\car.h">
@@ -249,6 +252,12 @@
     </ClCompile>
     <ClCompile Include="examples\misc_tuplify.cpp">
       <Filter>Source Files\examples\misc</Filter>
+    </ClCompile>
+    <ClCompile Include="examples\unowned_private_notes.cpp">
+      <Filter>Source Files\examples\reflect_private</Filter>
+    </ClCompile>
+    <ClCompile Include="examples\unowned_private_reflect.cpp">
+      <Filter>Source Files\examples\reflect_private</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

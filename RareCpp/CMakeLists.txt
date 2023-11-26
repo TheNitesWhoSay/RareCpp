@@ -66,6 +66,8 @@ set(Sources
   examples/super_access_by_runtime_index.cpp
   examples/super_define_iterate.cpp
   examples/super_traverse_tree.cpp
+  examples/unowned_private_notes.cpp
+  examples/unowned_private_reflect.cpp
   experimental/rest.cpp
   main.cpp
 )

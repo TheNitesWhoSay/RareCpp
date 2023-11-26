@@ -49,6 +49,6 @@ inline namespace adaptive_clone_structure
         partitionObj.a = 1;
         //partitionObj.b = 2; // the field "b" at index 1 was not cloned, only fields 0 and 2 were cloned
         partitionObj.c = 3;
-        std::cout << "Made partition {a, c}" << std::endl;
+        std::cout << "Made partition {a:" << partitionObj.a << ", c:" << partitionObj.c << "}" << std::endl;
     }
 }
