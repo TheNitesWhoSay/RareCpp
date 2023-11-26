@@ -281,9 +281,11 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
         template <typename T> struct remove_pointer<T* const volatile> { using type = T; };
         template <typename T> using remove_pointer_t = typename remove_pointer<T>::type;
 
-        template <typename T> struct remove_member_pointer_impl { using type = std::remove_pointer_t<T>; };
-        template <typename C, typename T> struct remove_member_pointer_impl<T C::*> { using type = T; };
-        template <typename T> struct remove_member_pointer : remove_member_pointer_impl<RareTs::remove_cvref_t<T>> {};
+        template <typename T> struct remove_member_pointer {
+            template <typename U> struct detail { using type = std::remove_pointer_t<U>; };
+            template <typename C, typename U> struct detail<U C::*> { using type = U; };
+            using type = typename detail<T>::type;
+        };
         template <typename T> using remove_member_pointer_t = typename remove_member_pointer<T>::type;
 
         template <typename T> struct is_pointable : std::bool_constant<!std::is_same_v<T, remove_pointer_t<T>>> {};
