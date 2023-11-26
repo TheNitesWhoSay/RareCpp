@@ -205,7 +205,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
 // MacroLoop_Extractor_Blank (when you append "ML_B" with an expression of the form "(LHS) RHS", the "(LHS)" gets blanked out and you're left with just RHS
 #define ML_B(...)
 
-// If x takes the form "(LHS) RHS", then this macro returns LHS
+// If x takes the form "(LHS)(RHS)", then this macro returns LHS
 #define LHS(x) ML_R(ML_W x,)
 
 // If x takes the form "(LHS)(RHS)", then this macro returns RHS
