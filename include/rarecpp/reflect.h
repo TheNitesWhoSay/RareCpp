@@ -181,12 +181,13 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
 // Selects the count of varadic arguments (can count 0 arguments, but cannot count parenthesized arguments)
 #define RARE_COUNT_ARGUMENTS(...) ML_S(ML##__VA_ARGS__##_G(),ML_G())
 
-// Call "f" for each argument
+// Call "f" for each argument (may have zero arguments)
 #define RARE_FOR_EACH(f,...) ML_N(RARE_COUNT_ARGUMENTS(__VA_ARGS__),f,__VA_ARGS__)
 
 /// Selects the count of varadic arguments (cannot count 0 arguments, but can count parenthesized arguments)
 #define RARE_COUNT_POSITIVE_ARGUMENTS(...) ML_S(__VA_ARGS__,ML_G())
 
+// Call "f" for each argument (must have at least one argument)
 #define RARE_FOR_EACH_POSITIVE(f,...) ML_N(RARE_COUNT_POSITIVE_ARGUMENTS(__VA_ARGS__),f,__VA_ARGS__)
 
 // MacroLoop_Extractor_WrapAndAppendComma
