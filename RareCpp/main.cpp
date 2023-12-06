@@ -4,6 +4,7 @@
 // Experimental
 namespace experimental {
     void rest();
+    void aggregates();
 }
 
 // No-op
@@ -102,7 +103,7 @@ void openMenu()
 int main()
 {
     // Set to whatever function you want called on startup (reset to &none when finished)
-    auto specificCall = &none;
+    auto specificCall = &experimental::aggregates;
 
     specificCall();
     openMenu();

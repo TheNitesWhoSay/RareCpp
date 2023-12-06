@@ -259,5 +259,8 @@
     <ClCompile Include="examples\unowned_private_reflect.cpp">
       <Filter>Source Files\examples\reflect_private</Filter>
     </ClCompile>
+    <ClCompile Include="aggregate_refl_experiment.cpp">
+      <Filter>Source Files\experimental</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

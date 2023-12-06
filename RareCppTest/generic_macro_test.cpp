@@ -6,6 +6,13 @@
 #include <utility>
 #include <vector>
 
+// Largely procedurally-generated macro test code
+
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmisleading-indentation"
+#endif
+
 TEST(GenericMacroTest, MacroCountArguments)
 {
     EXPECT_EQ(0, RARE_COUNT_ARGUMENTS());
@@ -920,3 +927,8 @@ TEST(GenericMacroTest, MacroForEach)
     EXPECT_EQ(size_t(125), test.size());
     for ( size_t i=0; i<125; i++ ) EXPECT_STREQ(std::string("a" + std::to_string(i+1)).c_str(), test[i].c_str()); test.clear();
 }
+
+
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif

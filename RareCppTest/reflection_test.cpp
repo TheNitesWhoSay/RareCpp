@@ -99,7 +99,11 @@ TEST(ReflectionTest, NoteMacro)
     EXPECT_STREQ("2nd", std::string(std::get<3>(ComplexNoted::second_note).second.value).c_str());
 }
 
-struct UnreflectedObj {};
+class UnreflectedObj {
+    int a;
+public:
+    auto getA() { return a; }
+};
 
 struct UnownedObj1
 {
@@ -166,7 +170,11 @@ TEST(ReflectionTest, Unproxy)
     EXPECT_TRUE(isSame);
 }
 
-struct does_not_have_reflected_class {};
+class does_not_have_reflected_class {
+    int a;
+public:
+    auto getA() { return a; }
+};
 struct does_have_reflected_class {
     struct Class {};
     friend constexpr Class classType(RareTs::type_tag<RareTs::Proxy<does_have_reflected_class>>);

@@ -817,13 +817,197 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
         
         template <typename T> struct Proxy;
         template <typename T> struct GlobalClass;
+
+        namespace Aggregates
+        {
+            namespace detail
+            {
+                struct any { template <class T> constexpr operator T(); };
+
+                template <typename T> requires std::is_aggregate_v<T>
+                struct member_counter
+                { // Credit for algorithm: https://github.com/Tsche/repr/blob/master/include/librepr/reflection/detail/arity.h (MIT License)
+                    template <typename ... Ts>
+                    static consteval auto len(auto ... args) {
+                        static_assert(sizeof...(Ts) + sizeof...(args) <= 128, "For auto-reflected types change large C-arrays to std::array");
+                        if constexpr ( requires { T{args..., {Ts{}..., any{}}}; } )
+                            return len<Ts..., any>(args...);
+                        else
+                            return sizeof...(Ts);
+                    }
+
+                    static consteval auto count_simple(auto ... args) {
+                        if constexpr ( requires { T{args..., any{}}; } )
+                            return count_simple(args..., any{});
+                        else
+                            return sizeof...(args);
+                    }
+
+                    template <typename ... Ts>
+                    static consteval auto count_agg(auto ... args) {
+                        if constexpr ( requires { T{args..., {any{}, any{}}, Ts{}..., any{}}; } )
+                            return count_agg<Ts..., any>(args...);
+                        else
+                            return sizeof...(Ts) + sizeof...(args) + 1;
+                    }
+
+                    static consteval auto count(size_t skip = 0, auto ... args) {
+                        if constexpr ( requires { T{args..., {any{}, any{}}}; } ) {
+                            if constexpr ( count_agg(args...) != count_simple(args...) )
+                                skip += len(args...) - 1;
+                
+                            return count(skip, args..., any{});
+                        }
+                        else if constexpr ( requires { T{args..., any{}}; } )
+                            return count(skip, args..., any{});
+                        else
+                            return sizeof...(args) - skip;
+                    }
+                };
+
+                template <typename ... Ts>
+                struct unref_tuple_elements {
+                    using type = std::tuple<std::remove_reference_t<Ts>...>;
+                };
+                template <template <typename...> class Tup, typename ... Ts>
+                struct unref_tuple_elements<Tup<Ts...>> : unref_tuple_elements<Ts...> {};
+
+                template <typename T> using unref_tuple_elements_t = typename unref_tuple_elements<T>::type;
+                
+                #if defined(__clang__)
+                #pragma clang diagnostic ignored "-Wundefined-var-template"
+                template <class T> struct val_wrapper { T v; };
+                template <class T> constexpr auto make_val_wrapper(T v) { return val_wrapper<T>{v}; }
+                #endif
+
+                template <class T>
+                extern const T fake_obj;
+
+                template <size_t N>
+                struct stored_name {
+                    char value[N+1] {};
+                    constexpr stored_name(const char* s) noexcept {
+                        for ( size_t i=0; i<N; i++ )
+                            value[i] = s[i];
+
+                        value[N] = '\0';
+                    }
+                    constexpr operator const char*() const noexcept { return &value[0]; };
+                };
+
+                template <class T, auto MemberAddr> constexpr auto name() noexcept
+                {
+                    #if defined(_MSC_VER) && !defined(__clang__)
+                    constexpr auto member = [](std::string_view s) {
+                        s.remove_prefix(s.find("->")+2);
+                        s.remove_suffix(s.size()-s.find_first_of(">"));
+                        return s;
+                    }(__FUNCSIG__);
+                    #elif defined(__GNUC__) && !defined(__clang__)
+                    constexpr auto member = [](std::string_view s) {
+                        s.remove_prefix(s.find_last_of("::")+1);
+                        s.remove_suffix(s.size()-s.find_first_of(")]"));
+                        return s;
+                    }(__PRETTY_FUNCTION__);
+                    #else // Assume __clang__/clang-like formatting
+                    constexpr auto member = [](std::string_view s) {
+                        s.remove_prefix(s.find_last_of(".")+1);
+                        s.remove_suffix(s.size()-s.find_first_of("}]"));
+                        return s;
+                    }(__PRETTY_FUNCTION__);
+                    #endif
+                    return stored_name<member.size()>{member.data()};
+                }
+            
+                template <class T, auto MemberAddr> inline constexpr auto stored_member_name = detail::name<T, MemberAddr>();
+            }
+
+            template <typename T> requires std::is_aggregate_v<T>
+            inline constexpr size_t member_count = Aggregates::detail::member_counter<T>::count();
+
+            template <typename T>
+            requires (std::is_aggregate_v<std::remove_cvref_t<T>> && !std::is_array_v<std::remove_cvref_t<T>>)
+            constexpr auto members_of(T && o) {
+                constexpr auto count = member_count<std::remove_cvref_t<T>>;
+                if constexpr ( count == 0 ) {
+                    return std::tie();
+                } else if constexpr ( count == 1 ) {
+                    auto & [a] = o;
+                    return std::tie(a);
+                } else if constexpr ( count == 2 ) {
+                    auto & [a, b] = o;
+                    return std::tie(a, b);
+                } else if constexpr ( count == 3 ) {
+                    auto [a, b, c] = o;
+                    return std::tie(a, b, c);
+                } else if constexpr ( count == 4 ) {
+                    auto & [a, b, c, d] = o;
+                    return std::tie(a, b, c, d);
+                } else if constexpr ( count == 5 ) {
+                    auto & [a, b, c, d, e] = o;
+                    return std::tie(a, b, c, d, e);
+                } else {
+                    static_assert(std::is_void_v<T>, "TODO: More members unimplemented");
+                }
+            }
+
+            template <class T> using member_types = Aggregates::detail::unref_tuple_elements_t<decltype(members_of(std::declval<T>()))>;
+
+            template <size_t I, class T> using member_type = std::tuple_element_t<I, member_types<T>>;
+
+            template <size_t I, class T> constexpr decltype(auto) member_ref(T && t) {
+                return std::get<I>(members_of(std::forward<T>(t)));
+            }
+
+            template <size_t I, class T> inline constexpr const char* const member_name = Aggregates::detail::stored_member_name<T,
+            #if defined(__clang__)
+                Aggregates::detail::make_val_wrapper(std::addressof(std::get<I>(members_of(Aggregates::detail::fake_obj<T>)))) >;
+            #else
+                std::addressof(std::get<I>(members_of(Aggregates::detail::fake_obj<T>))) >;
+            #endif
+        }
         
+        template <typename T>
+        struct AggregateClass
+        {
+            using B_ = std::remove_cvref_t<T>;
+            using C_ = B_;
+            struct I_ { enum { N_ = std::tuple_size_v<RareTs::Aggregates::member_types<C_>> }; };
+            static constexpr auto notes = std::tuple {};
+            template <size_t I, class T_ = B_, bool Empty = I_::N_==0> struct F_ {
+                using type = void;
+                static constexpr std::nullptr_t p = nullptr;
+                template <class U_> static constexpr auto & s() { return p; }
+                template <class U_> static constexpr auto & i(U_ &&) { return p; }
+            };
+            template <size_t I, class T_> struct F_<I, T_, false> {
+                using type = typename RareTs::Aggregates::template member_type<I, T_>;
+                static constexpr std::nullptr_t p = nullptr;
+                template <class U_> static constexpr auto & s() { return p; }
+                template <class U_> static constexpr auto & i(U_ && t) { return RareTs::Aggregates::member_ref<I>(t); }
+            };
+            template <size_t, class T_ = B_, class = void> struct Q_ { using type = std::nullptr_t; };
+            template <size_t, class T_ = B_, class = void> struct P_ { static constexpr std::nullptr_t p = nullptr; };
+            template <size_t, class T_ = B_, class = void> struct E_ { static constexpr std::tuple notes{}; };
+            template <size_t, class T_ = B_, class = void> struct O_ { static constexpr size_t o() { return std::numeric_limits<size_t>::max(); }; };
+            template <size_t, template <size_t> class> struct M_;
+            template <size_t, template <size_t> class> struct D_;
+            template <size_t I, class T_ = B_, bool Empty = I_::N_==0> struct N_ { static constexpr char n[] {""}; };
+            template <size_t I, class T_> struct N_<I, T_, false> { static constexpr auto n = RareTs::Aggregates::member_name<I, T_>; };
+            template <size_t, class...> struct L_;
+            template <size_t, class=void> struct A_;
+        };
+
         template <typename T, auto ... MembPointers> struct PrivateObject {
             template <size_t I> using pointer_type = typename NttpTuple<MembPointers...>::template element_type<I>;
             template <size_t I> using type = remove_member_pointer_t<pointer_type<I>>;
             template <size_t I> static constexpr auto pointer() { return NttpTuple<MembPointers...>::template get<I>(); }
             template <size_t I> static constexpr bool isStatic = !std::is_member_pointer_v<pointer_type<I>>;
         };
+
+        template <typename T, typename = void> struct is_in_class_reflected : std::false_type {};
+        template <typename T> struct is_in_class_reflected <T, std::void_t<decltype(T::Class::I_::N_)>> : std::true_type {};
+        template <typename T> inline constexpr bool is_in_class_reflected_v = is_in_class_reflected<T>::value;
     
         template <typename T, typename = void> struct is_proxied : std::false_type {};
         template <typename T> struct is_proxied<T, std::void_t<decltype(Proxy<T>::Class::I_::N_)>> : std::true_type {};
@@ -832,6 +1016,10 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
         template <typename T, typename = void> struct is_private_reflected : std::false_type {};
         template <typename T> struct is_private_reflected<T, std::void_t<decltype(GlobalClass<T>::I_::N_)>> : std::true_type {};
         template <typename T> inline constexpr bool is_private_reflected_v = is_private_reflected<T>::value;
+
+        template <typename T, typename = void> struct is_aggregate_reflected : std::bool_constant<
+            std::is_aggregate_v<T> && !std::is_array_v<T> && !is_in_class_reflected_v<T> && !is_proxied_v<T> && !is_private_reflected_v<T>> {};
+        template <typename T> inline constexpr bool is_aggregate_reflected_v = is_aggregate_reflected<T>::value;
 
         #ifdef __clang__
         template <typename T> constexpr void classType(T);
@@ -949,13 +1137,26 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             template <template <typename...> class Filter, typename T, typename ...Ts> static constexpr std::false_type filterResult(unsigned);
 
             #if !defined(__clang__)
-            template <class T, class=void> struct clazz { using type = void; };
+            template <class T, class=void> struct clazz {
+                template <class U, class=void> struct last { using type = void; };
+                template <class U> struct last<U, std::enable_if_t<std::is_aggregate_v<U> && !std::is_array_v<U>>> { using type = typename RareTs::AggregateClass<U>; };
+                using type = typename last<T>::type;
+            };
             template <class T> struct clazz<T, std::void_t<typename T::Class>> { using type = typename T::Class; };
             template <class T> struct clazz<T, std::void_t<typename Proxy<T>::Class>> { using type = typename Proxy<T>::Class; };
             template <class T> struct clazz<T, std::void_t<typename RareTs::template GlobalClass<T>::B_>> { using type = typename RareTs::GlobalClass<T>; };
             template <typename T> using class_t = typename clazz<T>::type;
             #else
-            template <typename T> using class_t = decltype(classType(RareTs::type_tag<RareTs::Proxy<RareTs::remove_cvref_t<T>>>{}));
+            template <typename T, typename = std::enable_if_t<!std::is_void_v<decltype(classType(RareTs::type_tag<RareTs::Proxy<T>>{}))>>>
+            static constexpr decltype(classType(RareTs::type_tag<RareTs::Proxy<T>>{})) clazz(int);
+            template <typename T, typename = std::enable_if_t<std::is_void_v<decltype(classType(RareTs::type_tag<RareTs::Proxy<T>>{}))>>>
+            static constexpr auto clazz(unsigned) {
+                if constexpr ( std::is_aggregate_v<T> && !RareTs::is_static_array_v<T> )
+                    return RareTs::AggregateClass<T>{};
+                else
+                    return;
+            } 
+            template <typename T> using class_t = decltype(clazz<RareTs::remove_cvref_t<T>>(0));
             #endif
 
             template <typename T> struct is_reflected { static constexpr bool value = !std::is_void_v<class_t<T>>; };
@@ -1551,7 +1752,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             
             template <typename F, typename ... Args> struct is_instance_method {
                 template <typename R> static constexpr std::false_type id(R(*&&)(Args...));
-                #ifdef __clang__
+                #if !defined(_MSC_VER) || defined(__clang__)
                 template <typename R> static constexpr std::false_type id(R(*&&)(Args...) noexcept);
                 #endif
                 template <typename T> static constexpr std::true_type id(T && t);
@@ -2099,12 +2300,12 @@ RARE_PRIVATE_CLASS_FRIEND(typename RareTs::GlobalClass<objectType>::B_)
                     return RareTs::StringIndexMap<>();
             }
 
-            using MemberNames = decltype(memberIndexMap(std::make_index_sequence<total>()));
+            template <typename U> using MemberNames = decltype(memberIndexMap(std::make_index_sequence<Members<U>::total>()));
 
-            template <size_t I = 0, typename F, typename = std::void_t<decltype(std::declval<F>()(member<I>))>>
+            template <size_t I, typename F, typename = std::void_t<decltype(std::declval<F>()(member<I>))>>
             static constexpr std::true_type onlyUsesMember(F && f);
 
-            template <size_t I = 0> static constexpr std::false_type onlyUsesMember(...);
+            template <size_t I> static constexpr std::false_type onlyUsesMember(...);
 
             template <typename F, size_t ... Is> static constexpr auto packMembers(F && f, std::index_sequence<Is...>) {
                 return f(member<Is>...);
@@ -2113,7 +2314,7 @@ RARE_PRIVATE_CLASS_FRIEND(typename RareTs::GlobalClass<objectType>::B_)
         public:
             // Gets the index of a member using the member name
             template <class U=T> static constexpr size_t indexOf(std::string_view memberName) {
-                return MemberNames::indexOf(memberName);
+                return MemberNames<U>::indexOf(memberName);
             }
 
             // Forwards all members to function as a parameter pack
@@ -2148,7 +2349,7 @@ RARE_PRIVATE_CLASS_FRIEND(typename RareTs::GlobalClass<objectType>::B_)
             // function(member, value) [statics only]
             template <typename Function> static constexpr void forEach(Function && function) {
                 RareTs::forIndexes<total>([&](auto I) {
-                    if constexpr ( decltype(onlyUsesMember(std::forward<Function>(function)))::value )
+                    if constexpr ( decltype(onlyUsesMember<decltype(I)::value>(std::forward<Function>(function)))::value )
                         function(member<decltype(I)::value>);
                     else if constexpr ( Member<decltype(I)::value>::isStatic )
                         function(member<decltype(I)::value>, Member<decltype(I)::value>::value());
@@ -2161,7 +2362,7 @@ RARE_PRIVATE_CLASS_FRIEND(typename RareTs::GlobalClass<objectType>::B_)
                 RareTs::forIndexes<total>([&](auto I) {
                     if constexpr ( passes_filter_v<Filter, Member<decltype(I)::value>, FilterArgs...> )
                     {
-                        if constexpr ( decltype(onlyUsesMember(std::forward<Function>(function)))::value )
+                        if constexpr ( decltype(onlyUsesMember<decltype(I)::value>(std::forward<Function>(function)))::value )
                             function(member<decltype(I)::value>);
                         else if constexpr ( Member<decltype(I)::value>::isStatic )
                             function(member<decltype(I)::value>, Member<decltype(I)::value>::value());
@@ -2174,7 +2375,7 @@ RARE_PRIVATE_CLASS_FRIEND(typename RareTs::GlobalClass<objectType>::B_)
             static constexpr void forEach(U && t, Function && function) {
                 
                 RareTs::forIndexes<total>([&](auto I) {
-                    if constexpr ( decltype(onlyUsesMember(std::forward<Function>(function)))::value )
+                    if constexpr ( decltype(onlyUsesMember<decltype(I)::value>(std::forward<Function>(function)))::value )
                         function(member<decltype(I)::value>);
                     else
                         function(member<decltype(I)::value>, Member<decltype(I)::value>::value(t));

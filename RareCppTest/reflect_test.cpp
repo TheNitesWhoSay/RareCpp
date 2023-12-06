@@ -3855,8 +3855,11 @@ struct ReflectPartialSpecialization<uint16_t>
 template <>
 struct ReflectPartialSpecialization<int16_t>
 {
+private:
     int b;
     int c;
+public:
+    auto getSum() { return b+c; }
 };
 
 TEST(ReflectionTest, ReflectPartialSpecialization)
@@ -3911,7 +3914,10 @@ TEST(ReflectionTest, ReflectPartialSpecialization)
 template <typename T>
 struct ReflectSpecializationOnly
 {
+private:
     int a;
+public:
+    auto getA() { return a; }
 };
 
 template <>

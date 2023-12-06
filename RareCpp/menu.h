@@ -2,6 +2,7 @@
 #define MAIN_MENU_H
 #include <cstddef>
 #include <functional>
+#include <limits>
 #include <string>
 #include <string_view>
 #include <variant>

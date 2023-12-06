@@ -69,6 +69,7 @@ set(Sources
   examples/unowned_private_notes.cpp
   examples/unowned_private_reflect.cpp
   experimental/rest.cpp
+  aggregate_refl_experiment.cpp
   main.cpp
 )
 

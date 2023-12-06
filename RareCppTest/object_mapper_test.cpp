@@ -494,28 +494,29 @@ TEST(RareMapperTest, MapPointables)
     EXPECT_TRUE(pointableDest.n == nullptr);
 }
 
+struct R1
+{
+    int a;
+};
+struct L1
+{
+    int b;
+    L1 & operator=(const R1 & rhs) { b = rhs.a; return *this; }
+};
+
 TEST(RareMapperTest, MapAssignables)
 {
-    struct R1
-    {
-        int a;
-    };
-    struct L1
-    {
-        int a;
-        L1 & operator=(const R1 & rhs) { a = rhs.a; return *this; }
-    };
     L1 l1 { 0 };
     R1 r1 { 1 };
-    EXPECT_EQ(l1.a, 0);
+    EXPECT_EQ(l1.b, 0);
     EXPECT_EQ(r1.a, 1);
     RareMapper::map(l1, r1); // Assignment operator enables mapping
-    EXPECT_EQ(l1.a, 1);
+    EXPECT_EQ(l1.b, 1);
     EXPECT_EQ(r1.a, 1);
-    l1.a = 0;
+    l1.b = 0;
     r1.a = 1;
     RareMapper::map(r1, l1); // No assignment operator for reverse direction/no mapping
-    EXPECT_EQ(l1.a, 0);
+    EXPECT_EQ(l1.b, 0);
     EXPECT_EQ(r1.a, 1);
 
     struct R3
