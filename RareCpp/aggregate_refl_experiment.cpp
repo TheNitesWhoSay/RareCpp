@@ -22,5 +22,12 @@ namespace experimental
         RareTs::Members<QTest>::forEach(QTest{}, [&](auto member, auto & value) {
             std::cout << member.name << ": " << value << std::endl;
         });
+        std::string a = "a";
+        RareTs::Members<QTest>::named("a", [&](auto member) {
+            std::cout << "Found \"" << member.name << "\" at index " << member.index << "\n";
+        });
+        RareTs::Members<QTest>::named("some_fairly_long_complex_identifier", [&](auto member) {
+            std::cout << "Found \"" << member.name << "\" at index " << member.index << "\n";
+        });
     }
 }

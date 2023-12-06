@@ -605,7 +605,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             return hash;
         }
     
-        template <const char* ... s>
+        template <auto ... s>
         struct StringIndexMap { // Constexpr map from a set of unique strings to the indexes at which they're passed in
 
             static constexpr size_t total = sizeof...(s); // The total number of strings in the map
@@ -652,8 +652,8 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             };
 
             template <size_t ... I> static constexpr auto buildHashMap(std::index_sequence<I...>) noexcept {
-                HashMap hashMap {{}, {{std::string_view(s), I}...}};
-                size_t dupedHashes[total] { (fnv1aHash(std::string_view(s)) & mask)... };
+                HashMap hashMap {{}, {{std::string_view(s.value), I}...}};
+                size_t dupedHashes[total] { (fnv1aHash(std::string_view(s.value)) & mask)... };
             
                 hashMap.sort(dupedHashes); // Sort stringBucket, mirroring any swaps performed to stringBucket in stringIndexes and strings)
                 size_t last = !dupedHashes[0]; // Set last to anything other than the value of the first hash
@@ -667,7 +667,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             }
 
             static constexpr HashMap hashMap = buildHashMap(std::make_index_sequence<total>());
-            static constexpr size_t dupedHashes[total] { (fnv1aHash(std::string_view(s)) & mask)... };
+            static constexpr size_t dupedHashes[total] { (fnv1aHash(std::string_view(s.value)) & mask)... };
 
         public:
             static constexpr size_t indexOf(const std::string_view & str) noexcept {
@@ -892,7 +892,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
 
                         value[N] = '\0';
                     }
-                    constexpr operator const char*() const noexcept { return &value[0]; };
+                    constexpr operator const char*() const noexcept { return value; };
                 };
 
                 template <class T, auto MemberAddr> constexpr auto name() noexcept
@@ -992,8 +992,8 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             template <size_t, class T_ = B_, class = void> struct O_ { static constexpr size_t o() { return std::numeric_limits<size_t>::max(); }; };
             template <size_t, template <size_t> class> struct M_;
             template <size_t, template <size_t> class> struct D_;
-            template <size_t I, class T_ = B_, bool Empty = I_::N_==0> struct N_ { static constexpr char n[] {""}; };
-            template <size_t I, class T_> struct N_<I, T_, false> { static constexpr auto n = RareTs::Aggregates::member_name<I, T_>; };
+            template <size_t I, class T_ = B_, bool Empty = I_::N_==0> struct N_ { static constexpr char value[] {""}; };
+            template <size_t I, class T_> struct N_<I, T_, false> { static constexpr auto value = RareTs::Aggregates::member_name<I, T_>; };
             template <size_t, class...> struct L_;
             template <size_t, class=void> struct A_;
         };
@@ -1183,7 +1183,8 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
 
             template <typename T, size_t I> using member_type = typename class_t<T>::template F_<I>::type;
             template <typename T, size_t I> using member_pointer_type = typename class_t<T>::template Q_<I>::type;
-            template <typename T, size_t I> static constexpr auto member_name = class_t<T>::template N_<I>::n;
+            template <typename T, size_t I> static constexpr auto member_name_wrapper = typename class_t<T>::template N_<I>{};
+            template <typename T, size_t I> static constexpr auto member_name = class_t<T>::template N_<I>::value;
             template <typename T, size_t I> static constexpr std::string_view member_type_name { RareTs::toStr<typename class_t<T>::template F_<I>::type>() };
             template <typename T, size_t I> static constexpr auto member_pointer = class_t<T>::template P_<I>::p;
             template <typename T, size_t I> static constexpr size_t member_offset = class_t<T>::template O_<I>::o();
@@ -1202,7 +1203,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
 
             template <typename T, size_t ... Is> using member_types = std::tuple<typename class_t<T>::template F_<Is>::type...>;
             template <typename T, size_t ... Is> using member_pointer_types = std::tuple<typename class_t<T>::template Q_<Is>::type...>;
-            template <typename T, size_t ... Is> static constexpr auto member_names { class_t<T>::template N_<Is>::n... };
+            template <typename T, size_t ... Is> static constexpr auto member_names { class_t<T>::template N_<Is>::value... };
             template <typename T, size_t ... Is>
             static constexpr std::string_view member_type_names[] { RareTs::toStr<typename class_t<T>::template F_<Is>::type>()... };
             template <typename T, size_t ... Is> static constexpr auto member_pointers = std::tuple { class_t<T>::template P_<Is>::p... };
@@ -2056,7 +2057,7 @@ template <class T_> struct F_<I_::x, T_, std::void_t<decltype(T_::x)>> : RareTs:
     template <class U_> static constexpr auto & i(U_ && t) { return t.x; } \
 }; \
 template <class T_> struct Q_<I_::x, T_, std::void_t<decltype(&T_::x)>> : RareTs::type_id<decltype(&T_::x)> {}; \
-template <class T_> struct N_<I_::x, T_> { static constexpr char n[]=#x; }; \
+template <class T_> struct N_<I_::x, T_> { static constexpr char value[]=#x; }; \
 template <class T_> struct P_<I_::x, T_, RareTs::enable_if_constexpr<decltype(&T_::x), &T_::x>> { static constexpr auto p = &T_::x; }; \
 template <class T_> struct E_<I_::x, T_, std::void_t<decltype(T_::x##_note)>> { static constexpr auto & notes = T_::x##_note; }; \
 template <class T_> struct O_<I_::x, T_, std::enable_if_t<std::is_member_object_pointer_v<decltype(&T_::x)>>> { \
@@ -2089,7 +2090,7 @@ template <class T_> struct F_<I_::x, T_, void> : RareTs::type_id<typename RareTs
     template <class U_, std::enable_if_t<is_mp_<U_>>* = nullptr> static constexpr auto & i(U_ && t) { return t.*P_<I_::x, U_>::p; } \
     template <class U_, std::enable_if_t<!is_mp_<U_>>* = nullptr> static constexpr auto & i(U_ &&) { return *P_<I_::x, U_>::p; } \
 }; \
-template <class T_> struct N_<I_::x, T_> { static constexpr char n[]=#x; }; \
+template <class T_> struct N_<I_::x, T_> { static constexpr char value[]=#x; }; \
 template <class T_> struct E_<I_::x, T_> { static constexpr auto notes = std::tuple {}; }; \
 template <template <size_t> class T_> struct M_<I_::x, T_> { T_<I_::x> x; }; \
 template <template <size_t> class T_> struct D_<I_::x, T_> { using x = T_<I_::x>; }; \
@@ -2109,7 +2110,7 @@ template <class T_> struct F_<I_::LHS(x), T_, void> : RareTs::type_id<typename R
     template <class U_, std::enable_if_t<is_mp_<U_>>* = nullptr> static constexpr auto & i(U_ && t) { return t.*P_<I_::LHS(x), U_>::p; } \
     template <class U_, std::enable_if_t<!is_mp_<U_>>* = nullptr> static constexpr auto & i(U_ &&) { return *P_<I_::LHS(x), U_>::p; } \
 }; \
-template <class T_> struct N_<I_::LHS(x), T_> { static constexpr char n[]=RARE_STRINGIFY_LHS(x); }; \
+template <class T_> struct N_<I_::LHS(x), T_> { static constexpr char value[]=RARE_STRINGIFY_LHS(x); }; \
 template <class T_> struct E_<I_::LHS(x), T_> { static constexpr auto notes = std::tuple { RHS(x) }; }; \
 template <template <size_t> class T_> struct M_<I_::LHS(x), T_> { T_<I_::LHS(x)> LHS(x); }; \
 template <template <size_t> class T_> struct D_<I_::LHS(x), T_> { using LHS(x) = T_<I_::LHS(x)>; }; \
@@ -2127,7 +2128,7 @@ RARE_ACCESS_MEMBER(LHS(x))
         type = decltype(&T::x)
 
     N_: "Name" - usually required, will not have field names otherwise
-        n = name
+        value = name
 
     P_: "Pointer Value" - usually required, cannot support functions otherwise
         p = pointer value
@@ -2295,7 +2296,7 @@ RARE_PRIVATE_CLASS_FRIEND(typename RareTs::GlobalClass<objectType>::B_)
         protected:
             template <size_t ... I> static constexpr auto memberIndexMap(std::index_sequence<I...>) {
                 if constexpr ( sizeof...(I) > 0 )
-                    return RareTs::StringIndexMap<(RareTs::Class::member_name<T, I>)...>();
+                    return RareTs::StringIndexMap<(RareTs::Class::member_name_wrapper<T, I>)...>();
                 else
                     return RareTs::StringIndexMap<>();
             }
