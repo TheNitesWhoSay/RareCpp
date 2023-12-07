@@ -851,7 +851,10 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
                             return sizeof...(Ts) + sizeof...(args) + 1;
                     }
 
-                    static consteval auto count(size_t skip = 0, auto ... args) {
+                    static consteval auto count(size_t skip, auto ... args) {
+                        #ifdef __INTELLISENSE__
+                        return skip;
+                        #else
                         if constexpr ( requires { T{args..., {any{}, any{}}}; } ) {
                             if constexpr ( count_agg(args...) != count_simple(args...) )
                                 skip += len(args...) - 1;
@@ -862,6 +865,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
                             return count(skip, args..., any{});
                         else
                             return sizeof...(args) - skip;
+                        #endif
                     }
                 };
 
@@ -923,7 +927,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             }
 
             template <typename T> requires std::is_aggregate_v<T>
-            inline constexpr size_t member_count = Aggregates::detail::member_counter<T>::count();
+            inline constexpr size_t member_count = Aggregates::detail::member_counter<T>::count(0);
 
             template <typename T>
             requires (std::is_aggregate_v<std::remove_cvref_t<T>> && !std::is_array_v<std::remove_cvref_t<T>>)
