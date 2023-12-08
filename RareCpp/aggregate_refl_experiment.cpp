@@ -3,6 +3,7 @@
 
 namespace experimental
 {
+#ifndef RARE_NO_CPP_20
     struct QTest
     {
         int a = 0;
@@ -30,4 +31,10 @@ namespace experimental
             std::cout << "Found \"" << member.name << "\" at index " << member.index << "\n";
         });
     }
+#else
+    void aggregates()
+    {
+        std::cout << "Aggregates require C++20 or higher to use" << std::endl;
+    }
+#endif
 }

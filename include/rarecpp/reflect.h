@@ -20,6 +20,13 @@
 #define MSVC_UNUSED_FALSE_POSITIVE 
 #endif
 
+#if __cplusplus < 202002L
+#define RARE_NO_CPP_20
+#define RARE_STRING_VALUE s
+#else
+#define RARE_STRING_VALUE s.value
+#endif
+
 // RareCpp Type Support - general type support and reflection capabilities
 namespace RareTs
 {
@@ -652,8 +659,8 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             };
 
             template <size_t ... I> static constexpr auto buildHashMap(std::index_sequence<I...>) noexcept {
-                HashMap hashMap {{}, {{std::string_view(s.value), I}...}};
-                size_t dupedHashes[total] { (fnv1aHash(std::string_view(s.value)) & mask)... };
+                HashMap hashMap {{}, {{std::string_view(RARE_STRING_VALUE), I}...}};
+                size_t dupedHashes[total] { (fnv1aHash(std::string_view(RARE_STRING_VALUE)) & mask)... };
             
                 hashMap.sort(dupedHashes); // Sort stringBucket, mirroring any swaps performed to stringBucket in stringIndexes and strings)
                 size_t last = !dupedHashes[0]; // Set last to anything other than the value of the first hash
@@ -667,7 +674,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             }
 
             static constexpr HashMap hashMap = buildHashMap(std::make_index_sequence<total>());
-            static constexpr size_t dupedHashes[total] { (fnv1aHash(std::string_view(s.value)) & mask)... };
+            static constexpr size_t dupedHashes[total] { (fnv1aHash(std::string_view(RARE_STRING_VALUE)) & mask)... };
 
         public:
             static constexpr size_t indexOf(const std::string_view & str) noexcept {
@@ -818,6 +825,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
         template <typename T> struct Proxy;
         template <typename T> struct GlobalClass;
 
+        #ifndef RARE_NO_CPP_20
         namespace Aggregates
         {
             namespace detail
@@ -1001,6 +1009,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             template <size_t, class...> struct L_;
             template <size_t, class=void> struct A_;
         };
+        #endif
 
         template <typename T, auto ... MembPointers> struct PrivateObject {
             template <size_t I> using pointer_type = typename NttpTuple<MembPointers...>::template element_type<I>;
@@ -1021,9 +1030,13 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
         template <typename T> struct is_private_reflected<T, std::void_t<decltype(GlobalClass<T>::I_::N_)>> : std::true_type {};
         template <typename T> inline constexpr bool is_private_reflected_v = is_private_reflected<T>::value;
 
+        #ifndef RARE_NO_CPP_20
         template <typename T, typename = void> struct is_aggregate_reflected : std::bool_constant<
             std::is_aggregate_v<T> && !std::is_array_v<T> && !is_in_class_reflected_v<T> && !is_proxied_v<T> && !is_private_reflected_v<T>> {};
         template <typename T> inline constexpr bool is_aggregate_reflected_v = is_aggregate_reflected<T>::value;
+        #else
+        template <typename T, typename = void> struct is_aggregate_reflected : std::false_type {};
+        #endif
 
         #ifdef __clang__
         template <typename T> constexpr void classType(T);
@@ -1143,13 +1156,17 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             #if !defined(__clang__)
             template <class T, class=void> struct clazz {
                 template <class U, class=void> struct last { using type = void; };
+                #ifndef RARE_NO_CPP_20
                 template <class U> struct last<U, std::enable_if_t<std::is_aggregate_v<U> && !std::is_array_v<U>>> { using type = typename RareTs::AggregateClass<U>; };
+                #endif
                 using type = typename last<T>::type;
             };
             template <class T> struct clazz<T, std::void_t<typename T::Class>> { using type = typename T::Class; };
             template <class T> struct clazz<T, std::void_t<typename Proxy<T>::Class>> { using type = typename Proxy<T>::Class; };
             template <class T> struct clazz<T, std::void_t<typename RareTs::template GlobalClass<T>::B_>> { using type = typename RareTs::GlobalClass<T>; };
             template <typename T> using class_t = typename clazz<T>::type;
+            #elif defined(RARE_NO_CPP_20)
+            template <typename T> using class_t = decltype(classType(RareTs::type_tag<RareTs::Proxy<RareTs::remove_cvref_t<T>>>{}));
             #else
             template <typename T, typename = std::enable_if_t<!std::is_void_v<decltype(classType(RareTs::type_tag<RareTs::Proxy<T>>{}))>>>
             static constexpr decltype(classType(RareTs::type_tag<RareTs::Proxy<T>>{})) clazz(int);
@@ -2299,8 +2316,13 @@ RARE_PRIVATE_CLASS_FRIEND(typename RareTs::GlobalClass<objectType>::B_)
 
         protected:
             template <size_t ... I> static constexpr auto memberIndexMap(std::index_sequence<I...>) {
-                if constexpr ( sizeof...(I) > 0 )
+                if constexpr ( sizeof...(I) > 0 ) {
+                    #ifdef RARE_NO_CPP_20
+                    return RareTs::StringIndexMap<(RareTs::Class::member_name<T, I>)...>();
+                    #else
                     return RareTs::StringIndexMap<(RareTs::Class::member_name_wrapper<T, I>)...>();
+                    #endif
+                }
                 else
                     return RareTs::StringIndexMap<>();
             }
