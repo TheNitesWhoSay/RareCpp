@@ -92,6 +92,10 @@ public:
                     {
                         try {
                             item.function();
+                        } catch ( std::exception & e ) {
+                            is.clear();
+                            is.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                            os << "Unhandled exception in example! " << e.what() << std::endl;
                         } catch ( ... ) {
                             is.clear();
                             is.ignore(std::numeric_limits<std::streamsize>::max(), '\n');

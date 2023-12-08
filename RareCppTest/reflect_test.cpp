@@ -70,7 +70,7 @@ public:
     std::stack<int> stack;
     static int staticPrimitive;
     int & primitiveReference;
-    static int & staticPrimitiveReference;
+    static constexpr int & staticPrimitiveReference = staticPrimitive;
     int memberMethod() { return 1; }
     static int staticMethod() { return 2; }
 
@@ -89,7 +89,7 @@ class PrivateIndexOf
     std::stack<int> stack;
     static int staticPrimitive;
     int & primitiveReference;
-    static int & staticPrimitiveReference;
+    static constexpr int & staticPrimitiveReference = staticPrimitive;
     int memberMethod() { return 1; }
     static int staticMethod() { return 2; }
     
@@ -109,7 +109,6 @@ class PrivateIndexOf
 };
 
 int ReflectObj::staticPrimitive = 33;
-int & ReflectObj::staticPrimitiveReference = ReflectObj::staticPrimitive;
 
 TEST(ReflectTest, IndexOf)
 {
@@ -252,7 +251,7 @@ public:
     int memberValue = 1;
     static int staticValue; // = 2
     int & memberValueReference;
-    static int & staticValueReference;
+    static constexpr int & staticValueReference = staticValue;
     int memberMethod() { return 5; }
     static int staticMethod() { return 6; }
 
@@ -262,7 +261,6 @@ public:
 };
 
 int ReflectPackTest::staticValue = 2;
-int & ReflectPackTest::staticValueReference = ReflectPackTest::staticValue;
 
 namespace TestFilters {
     template <typename Member, typename = enable_if_member_t<Member>> struct Integers : std::bool_constant<
@@ -3586,13 +3584,12 @@ struct ReflectReferences
     int primitive;
     int & primitiveReference;
     static int staticPrimitive;
-    static int & staticPrimitiveReference;
+    static constexpr int & staticPrimitiveReference = staticPrimitive;
 
     REFLECT(ReflectReferences, primitive, primitiveReference, staticPrimitive, staticPrimitiveReference)
 };
 
 int ReflectReferences::staticPrimitive = 33;
-int & ReflectReferences::staticPrimitiveReference = ReflectReferences::staticPrimitive;
 
 TEST(ReflectTest, RfMacroReflectReferences)
 {    

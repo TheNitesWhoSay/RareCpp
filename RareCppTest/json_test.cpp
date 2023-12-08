@@ -3331,13 +3331,12 @@ struct JsonReferences
     int primitive;
     int & primitiveReference;
     static int staticPrimitive;
-    static int & staticPrimitiveReference;
+    static constexpr int & staticPrimitiveReference = staticPrimitive;
 
     REFLECT(JsonReferences, primitive, primitiveReference, staticPrimitive, staticPrimitiveReference)
 };
 
 int JsonReferences::staticPrimitive = 33;
-int & JsonReferences::staticPrimitiveReference = JsonReferences::staticPrimitive;
 
 TEST_HEADER(JsonOutputTest, JsonOutReferences)
 {

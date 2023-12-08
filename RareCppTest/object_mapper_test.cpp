@@ -768,10 +768,12 @@ TEST(RareMapperTest, MapIterables)
     destRay[0] = 0;
     destRay[1] = 0;
     destRay[2] = 0;
+#ifndef __clang__ // Test results are correct on various clang versions, but causes internal compiler errors on others
     RareMapper::map(destRay, srcVec);
     EXPECT_EQ(0, destRay[0]);
     EXPECT_EQ(2, destRay[1]);
     EXPECT_EQ(4, destRay[2]);
+#endif
 }
 
 struct MapSource
