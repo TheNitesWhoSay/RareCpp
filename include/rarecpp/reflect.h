@@ -955,7 +955,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
                     auto & [a, b] = o;
                     return std::tie(a, b);
                 } else if constexpr ( count == 3 ) {
-                    auto [a, b, c] = o;
+                    auto & [a, b, c] = o;
                     return std::tie(a, b, c);
                 } else if constexpr ( count == 4 ) {
                     auto & [a, b, c, d] = o;
