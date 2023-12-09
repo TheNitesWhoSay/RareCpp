@@ -15,13 +15,18 @@
 #endif
 
 #ifdef _MSC_VER
-#define MSVC_UNUSED_FALSE_POSITIVE _Pragma("warning(suppress: 4100)")
+    #if _MSVC_LANG < 202002L
+        #define RARE_NO_CPP_20
+    #endif
+    #define MSVC_UNUSED_FALSE_POSITIVE _Pragma("warning(suppress: 4100)")
 #else
-#define MSVC_UNUSED_FALSE_POSITIVE 
+    #if __cplusplus < 202002L
+        #define RARE_NO_CPP_20
+    #endif
+    #define MSVC_UNUSED_FALSE_POSITIVE 
 #endif
 
-#if __cplusplus < 202002L
-#define RARE_NO_CPP_20
+#ifdef RARE_NO_CPP_20
 #define RARE_STRING_VALUE s
 #else
 #define RARE_STRING_VALUE s.value
