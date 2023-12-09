@@ -891,14 +891,15 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
 
                 template <typename T> using unref_tuple_elements_t = typename unref_tuple_elements<T>::type;
                 
+                template <class T> struct val_wrapper { T v; };
+
                 #if defined(__clang__)
                 #pragma clang diagnostic ignored "-Wundefined-var-template"
-                template <class T> struct val_wrapper { T v; };
                 template <class T> constexpr auto make_val_wrapper(T v) { return val_wrapper<T>{v}; }
                 #endif
 
                 template <class T>
-                extern const T fake_obj;
+                extern const val_wrapper<T> fake_obj;
 
                 template <size_t N>
                 struct stored_name {
@@ -916,7 +917,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
                 {
                     #if defined(_MSC_VER) && !defined(__clang__)
                     constexpr auto member = [](std::string_view s) {
-                        s.remove_prefix(s.find("->")+2);
+                        s.remove_prefix(s.rfind("->")+2);
                         s.remove_suffix(s.size()-s.find_first_of(">"));
                         return s;
                     }(__FUNCSIG__);
@@ -943,7 +944,6 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             inline constexpr size_t member_count = Aggregates::detail::member_counter<T>::count(0);
 
             template <typename T>
-            requires (std::is_aggregate_v<std::remove_cvref_t<T>> && !std::is_array_v<std::remove_cvref_t<T>>)
             constexpr auto members_of(T && o) {
                 constexpr auto count = member_count<std::remove_cvref_t<T>>;
                 if constexpr ( count == 0 ) {
@@ -978,9 +978,9 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
 
             template <size_t I, class T> inline constexpr const char* const member_name = Aggregates::detail::stored_member_name<T,
             #if defined(__clang__)
-                Aggregates::detail::make_val_wrapper(std::addressof(std::get<I>(members_of(Aggregates::detail::fake_obj<T>)))) >;
+                Aggregates::detail::make_val_wrapper(std::addressof(std::get<I>(members_of(Aggregates::detail::fake_obj<T>.v)))) >;
             #else
-                std::addressof(std::get<I>(members_of(Aggregates::detail::fake_obj<T>))) >;
+                std::addressof(std::get<I>(members_of(Aggregates::detail::fake_obj<T>.v))) >;
             #endif
         }
         
