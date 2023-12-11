@@ -176,7 +176,9 @@ public:
     auto getA() { return a; }
 };
 struct does_have_reflected_class {
-    struct Class {};
+    struct Class {
+        struct I_ { enum { N_ }; };
+    };
     friend constexpr Class classType(RareTs::type_tag<RareTs::Proxy<does_have_reflected_class>>);
 };
 struct is_reflected_REFLECT {
@@ -194,6 +196,133 @@ NOTE(is_reflected_REFLECT_EMPTY)
 struct is_reflected_REFLECT_EMPTY {
     REFLECT_NOTED(is_reflected_REFLECT_EMPTY)
 };
+class is_reflected_REFLECT_PRIVATE_EMPTY {};
+REFLECT_PRIVATE_EMPTY(is_reflected_REFLECT_PRIVATE_EMPTY, "note")
+class is_reflected_REFLECT_PRIVATE { int a; };
+REFLECT_PRIVATE(is_reflected_REFLECT_PRIVATE, a)
+struct is_reflected_REFLECT_PRIVATE_NOTED { int a; };
+REFLECT_PRIVATE_NOTED(
+    (is_reflected_REFLECT_PRIVATE_NOTED)(),
+    (a)()
+)
+struct is_reflected_empty_aggregate {};
+struct is_reflected_aggregate_int { int a; };
+struct is_reflected_aggregate_int_int { int a; int b; };
+struct is_reflected_aggregate_intray { int a[12]; };
+struct is_reflected_aggregate_intray_intray { int a[12]; int b[12]; };
+
+TEST(ReflectionTest, IsInClassReflected)
+{
+    EXPECT_FALSE(is_in_class_reflected<does_not_have_reflected_class>::value);
+    EXPECT_TRUE(is_in_class_reflected<does_have_reflected_class>::value);
+    EXPECT_TRUE(is_in_class_reflected<is_reflected_REFLECT>::value);
+    EXPECT_TRUE(is_in_class_reflected<is_reflected_REFLECT_NOTED>::value);
+    EXPECT_FALSE(is_in_class_reflected<is_reflected_REFLECT_PRIVATE_EMPTY>::value);
+    EXPECT_FALSE(is_in_class_reflected<is_reflected_REFLECT_PRIVATE>::value);
+    EXPECT_FALSE(is_in_class_reflected<is_reflected_REFLECT_PRIVATE_NOTED>::value);
+    EXPECT_FALSE(is_in_class_reflected<is_reflected_empty_aggregate>::value);
+    EXPECT_FALSE(is_in_class_reflected<is_reflected_aggregate_int>::value);
+    EXPECT_FALSE(is_in_class_reflected<is_reflected_aggregate_int_int>::value);
+    EXPECT_FALSE(is_in_class_reflected<is_reflected_aggregate_intray>::value);
+    EXPECT_FALSE(is_in_class_reflected<is_reflected_aggregate_intray_intray>::value);
+    EXPECT_FALSE(is_in_class_reflected<UnreflectedObj>::value);
+    EXPECT_FALSE(is_in_class_reflected<UnownedObj1>::value);
+    EXPECT_FALSE(is_in_class_reflected<UnownedObj2>::value);
+    EXPECT_TRUE(is_in_class_reflected<OwnedObj>::value);
+
+    EXPECT_FALSE(is_in_class_reflected_v<does_not_have_reflected_class>);
+    EXPECT_TRUE(is_in_class_reflected_v<does_have_reflected_class>);
+    EXPECT_TRUE(is_in_class_reflected_v<is_reflected_REFLECT>);
+    EXPECT_TRUE(is_in_class_reflected_v<is_reflected_REFLECT_NOTED>);
+    EXPECT_FALSE(is_in_class_reflected_v<is_reflected_REFLECT_PRIVATE_EMPTY>);
+    EXPECT_FALSE(is_in_class_reflected_v<is_reflected_REFLECT_PRIVATE>);
+    EXPECT_FALSE(is_in_class_reflected_v<is_reflected_REFLECT_PRIVATE_NOTED>);
+    EXPECT_FALSE(is_in_class_reflected_v<is_reflected_empty_aggregate>);
+    EXPECT_FALSE(is_in_class_reflected_v<is_reflected_aggregate_int>);
+    EXPECT_FALSE(is_in_class_reflected_v<is_reflected_aggregate_int_int>);
+    EXPECT_FALSE(is_in_class_reflected_v<is_reflected_aggregate_intray>);
+    EXPECT_FALSE(is_in_class_reflected_v<is_reflected_aggregate_intray_intray>);
+    EXPECT_FALSE(is_in_class_reflected_v<UnreflectedObj>);
+    EXPECT_FALSE(is_in_class_reflected_v<UnownedObj1>);
+    EXPECT_FALSE(is_in_class_reflected_v<UnownedObj2>);
+    EXPECT_TRUE(is_in_class_reflected_v<OwnedObj>);
+}
+
+TEST(ReflectionTest, IsPrivateReflected)
+{
+    EXPECT_FALSE(is_private_reflected<does_not_have_reflected_class>::value);
+    EXPECT_FALSE(is_private_reflected<does_have_reflected_class>::value);
+    EXPECT_FALSE(is_private_reflected<is_reflected_REFLECT>::value);
+    EXPECT_FALSE(is_private_reflected<is_reflected_REFLECT_NOTED>::value);
+    EXPECT_TRUE(is_private_reflected<is_reflected_REFLECT_PRIVATE_EMPTY>::value);
+    EXPECT_TRUE(is_private_reflected<is_reflected_REFLECT_PRIVATE>::value);
+    EXPECT_TRUE(is_private_reflected<is_reflected_REFLECT_PRIVATE_NOTED>::value);
+    EXPECT_FALSE(is_private_reflected<is_reflected_empty_aggregate>::value);
+    EXPECT_FALSE(is_private_reflected<is_reflected_aggregate_int>::value);
+    EXPECT_FALSE(is_private_reflected<is_reflected_aggregate_int_int>::value);
+    EXPECT_FALSE(is_private_reflected<is_reflected_aggregate_intray>::value);
+    EXPECT_FALSE(is_private_reflected<is_reflected_aggregate_intray_intray>::value);
+    EXPECT_FALSE(is_private_reflected<UnreflectedObj>::value);
+    EXPECT_FALSE(is_private_reflected<UnownedObj1>::value);
+    EXPECT_FALSE(is_private_reflected<UnownedObj2>::value);
+    EXPECT_FALSE(is_private_reflected<OwnedObj>::value);
+
+    EXPECT_FALSE(is_private_reflected_v<does_not_have_reflected_class>);
+    EXPECT_FALSE(is_private_reflected_v<does_have_reflected_class>);
+    EXPECT_FALSE(is_private_reflected_v<is_reflected_REFLECT>);
+    EXPECT_FALSE(is_private_reflected_v<is_reflected_REFLECT_NOTED>);
+    EXPECT_TRUE(is_private_reflected_v<is_reflected_REFLECT_PRIVATE_EMPTY>);
+    EXPECT_TRUE(is_private_reflected_v<is_reflected_REFLECT_PRIVATE>);
+    EXPECT_TRUE(is_private_reflected_v<is_reflected_REFLECT_PRIVATE_NOTED>);
+    EXPECT_FALSE(is_private_reflected_v<is_reflected_empty_aggregate>);
+    EXPECT_FALSE(is_private_reflected_v<is_reflected_aggregate_int>);
+    EXPECT_FALSE(is_private_reflected_v<is_reflected_aggregate_int_int>);
+    EXPECT_FALSE(is_private_reflected_v<is_reflected_aggregate_intray>);
+    EXPECT_FALSE(is_private_reflected_v<is_reflected_aggregate_intray_intray>);
+    EXPECT_FALSE(is_private_reflected_v<UnreflectedObj>);
+    EXPECT_FALSE(is_private_reflected_v<UnownedObj1>);
+    EXPECT_FALSE(is_private_reflected_v<UnownedObj2>);
+    EXPECT_FALSE(is_private_reflected_v<OwnedObj>);
+}
+
+#ifndef RARE_NO_CPP_20
+TEST(ReflectionTest, IsAggregateReflected)
+{
+    EXPECT_FALSE(is_aggregate_reflected<does_not_have_reflected_class>::value);
+    EXPECT_FALSE(is_aggregate_reflected<does_have_reflected_class>::value);
+    EXPECT_FALSE(is_aggregate_reflected<is_reflected_REFLECT>::value);
+    EXPECT_FALSE(is_aggregate_reflected<is_reflected_REFLECT_NOTED>::value);
+    EXPECT_FALSE(is_aggregate_reflected<is_reflected_REFLECT_PRIVATE_EMPTY>::value);
+    EXPECT_FALSE(is_aggregate_reflected<is_reflected_REFLECT_PRIVATE>::value);
+    EXPECT_FALSE(is_aggregate_reflected<is_reflected_REFLECT_PRIVATE_NOTED>::value);
+    EXPECT_TRUE(is_aggregate_reflected<is_reflected_empty_aggregate>::value);
+    EXPECT_TRUE(is_aggregate_reflected<is_reflected_aggregate_int>::value);
+    EXPECT_TRUE(is_aggregate_reflected<is_reflected_aggregate_int_int>::value);
+    EXPECT_TRUE(is_aggregate_reflected<is_reflected_aggregate_intray>::value);
+    EXPECT_TRUE(is_aggregate_reflected<is_reflected_aggregate_intray_intray>::value);
+    EXPECT_FALSE(is_aggregate_reflected<UnreflectedObj>::value);
+    EXPECT_FALSE(is_aggregate_reflected<UnownedObj1>::value);
+    EXPECT_FALSE(is_aggregate_reflected<UnownedObj2>::value);
+    EXPECT_FALSE(is_aggregate_reflected<OwnedObj>::value);
+
+    EXPECT_FALSE(is_aggregate_reflected_v<does_not_have_reflected_class>);
+    EXPECT_FALSE(is_aggregate_reflected_v<does_have_reflected_class>);
+    EXPECT_FALSE(is_aggregate_reflected_v<is_reflected_REFLECT>);
+    EXPECT_FALSE(is_aggregate_reflected_v<is_reflected_REFLECT_NOTED>);
+    EXPECT_FALSE(is_aggregate_reflected_v<is_reflected_REFLECT_PRIVATE_EMPTY>);
+    EXPECT_FALSE(is_aggregate_reflected_v<is_reflected_REFLECT_PRIVATE>);
+    EXPECT_FALSE(is_aggregate_reflected_v<is_reflected_REFLECT_PRIVATE_NOTED>);
+    EXPECT_TRUE(is_aggregate_reflected_v<is_reflected_empty_aggregate>);
+    EXPECT_TRUE(is_aggregate_reflected_v<is_reflected_aggregate_int>);
+    EXPECT_TRUE(is_aggregate_reflected_v<is_reflected_aggregate_int_int>);
+    EXPECT_TRUE(is_aggregate_reflected_v<is_reflected_aggregate_intray>);
+    EXPECT_TRUE(is_aggregate_reflected_v<is_reflected_aggregate_intray_intray>);
+    EXPECT_FALSE(is_aggregate_reflected_v<UnreflectedObj>);
+    EXPECT_FALSE(is_aggregate_reflected_v<UnownedObj1>);
+    EXPECT_FALSE(is_aggregate_reflected_v<UnownedObj2>);
+    EXPECT_FALSE(is_aggregate_reflected_v<OwnedObj>);
+}
+#endif
 
 TEST(ReflectionTest, IsReflected)
 {
@@ -201,6 +330,22 @@ TEST(ReflectionTest, IsReflected)
     EXPECT_TRUE(is_reflected<does_have_reflected_class>::value);
     EXPECT_TRUE(is_reflected<is_reflected_REFLECT>::value);
     EXPECT_TRUE(is_reflected<is_reflected_REFLECT_NOTED>::value);
+    EXPECT_TRUE(is_reflected<is_reflected_REFLECT_PRIVATE_EMPTY>::value);
+    EXPECT_TRUE(is_reflected<is_reflected_REFLECT_PRIVATE>::value);
+    EXPECT_TRUE(is_reflected<is_reflected_REFLECT_PRIVATE_NOTED>::value);
+#ifdef RARE_NO_CPP_20
+    EXPECT_FALSE(is_reflected<is_reflected_empty_aggregate>::value);
+    EXPECT_FALSE(is_reflected<is_reflected_aggregate_int>::value);
+    EXPECT_FALSE(is_reflected<is_reflected_aggregate_int_int>::value);
+    EXPECT_FALSE(is_reflected<is_reflected_aggregate_intray>::value);
+    EXPECT_FALSE(is_reflected<is_reflected_aggregate_intray_intray>::value);
+#else
+    EXPECT_TRUE(is_reflected<is_reflected_empty_aggregate>::value);
+    EXPECT_TRUE(is_reflected<is_reflected_aggregate_int>::value);
+    EXPECT_TRUE(is_reflected<is_reflected_aggregate_int_int>::value);
+    EXPECT_TRUE(is_reflected<is_reflected_aggregate_intray>::value);
+    EXPECT_TRUE(is_reflected<is_reflected_aggregate_intray_intray>::value);
+#endif
     EXPECT_FALSE(is_reflected<UnreflectedObj>::value);
     EXPECT_TRUE(is_reflected<UnownedObj1>::value);
     EXPECT_TRUE(is_reflected<UnownedObj2>::value);
@@ -210,6 +355,22 @@ TEST(ReflectionTest, IsReflected)
     EXPECT_TRUE(is_reflected_v<does_have_reflected_class>);
     EXPECT_TRUE(is_reflected_v<is_reflected_REFLECT>);
     EXPECT_TRUE(is_reflected_v<is_reflected_REFLECT_NOTED>);
+    EXPECT_TRUE(is_reflected_v<is_reflected_REFLECT_PRIVATE_EMPTY>);
+    EXPECT_TRUE(is_reflected_v<is_reflected_REFLECT_PRIVATE>);
+    EXPECT_TRUE(is_reflected_v<is_reflected_REFLECT_PRIVATE_NOTED>);
+#ifdef RARE_NO_CPP_20
+    EXPECT_FALSE(is_reflected_v<is_reflected_empty_aggregate>);
+    EXPECT_FALSE(is_reflected_v<is_reflected_aggregate_int>);
+    EXPECT_FALSE(is_reflected_v<is_reflected_aggregate_int_int>);
+    EXPECT_FALSE(is_reflected_v<is_reflected_aggregate_intray>);
+    EXPECT_FALSE(is_reflected_v<is_reflected_aggregate_intray_intray>);
+#else
+    EXPECT_TRUE(is_reflected_v<is_reflected_empty_aggregate>);
+    EXPECT_TRUE(is_reflected_v<is_reflected_aggregate_int>);
+    EXPECT_TRUE(is_reflected_v<is_reflected_aggregate_int_int>);
+    EXPECT_TRUE(is_reflected_v<is_reflected_aggregate_intray>);
+    EXPECT_TRUE(is_reflected_v<is_reflected_aggregate_intray_intray>);
+#endif
     EXPECT_FALSE(is_reflected_v<UnreflectedObj>);
     EXPECT_TRUE(is_reflected_v<UnownedObj1>);
     EXPECT_TRUE(is_reflected_v<UnownedObj2>);

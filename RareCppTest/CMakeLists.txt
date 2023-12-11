@@ -20,6 +20,7 @@ set(Sources
   json_test_run_unbuffered.cpp
   object_mapper_test.cpp
   reflection_test.cpp
+  reflect_aggregate_test.cpp
   reflect_test.cpp
   reflect_private_test.cpp
   string_buffer_test.cpp
