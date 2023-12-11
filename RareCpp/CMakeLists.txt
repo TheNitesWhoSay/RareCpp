@@ -10,6 +10,7 @@ set(Headers
   menu.h
 )
 set(Sources
+  examples/auto_reflect_aggregate.cpp
   examples/adaptive_clone_structure.cpp
   examples/adaptive_implement_builder.cpp
   examples/adaptive_implement_change_listener.cpp
@@ -69,7 +70,6 @@ set(Sources
   examples/unowned_private_notes.cpp
   examples/unowned_private_reflect.cpp
   experimental/rest.cpp
-  aggregate_refl_experiment.cpp
   main.cpp
 )
 
