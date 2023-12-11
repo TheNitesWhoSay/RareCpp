@@ -4,7 +4,6 @@
 // Experimental
 namespace experimental {
     void rest();
-    void aggregates();
 }
 
 // No-op
@@ -40,6 +39,9 @@ void openMenu()
             .item("Reflect members outside of class", &memberReflectOutsideOfClass)
             .item("Reflect private members outside of class", &unownedPrivateReflect)
             .item("Reflect noted private members outside of class", &unownedPrivateReflectNoted)
+        ).item(
+            Menu{"Aggregate Examples", "Select an example: "}
+            .item("Auto-reflect aggregates", &autoReflectAggregate)
         ).item(
             Menu{"Note Examples", "Select an example: "}
             .item("Member annotations", &noteClassMembers)
@@ -103,7 +105,7 @@ void openMenu()
 int main()
 {
     // Set to whatever function you want called on startup (reset to &none when finished)
-    auto specificCall = &experimental::aggregates;
+    auto specificCall = &none;
 
     specificCall();
     openMenu();

@@ -60,6 +60,9 @@
     <Filter Include="Source Files\examples\reflect_private">
       <UniqueIdentifier>{3a86c3e8-3db1-4e94-9412-74ce5dc60ef3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\examples\reflect_aggregate">
+      <UniqueIdentifier>{a410b6d2-702b-4094-ba97-32101a340ee0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="examples\car.h">
@@ -259,8 +262,8 @@
     <ClCompile Include="examples\unowned_private_reflect.cpp">
       <Filter>Source Files\examples\reflect_private</Filter>
     </ClCompile>
-    <ClCompile Include="aggregate_refl_experiment.cpp">
-      <Filter>Source Files\experimental</Filter>
+    <ClCompile Include="examples\auto_reflect_aggregate.cpp">
+      <Filter>Source Files\examples\reflect_aggregate</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
