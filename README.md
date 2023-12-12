@@ -1,4 +1,4 @@
-# RareCpp [![MIT License](https://img.shields.io/badge/license-MIT-blueviolet)](https://github.com/TheNitesWhoSay/RareCpp/blob/master/LICENSE) [![Header Only](https://img.shields.io/static/v1?label=format&message=Header%20Only&color=blueviolet)](https://github.com/TheNitesWhoSay/RareCpp/wiki/1.1.-Overview:-Quick-Start#setupinclusion) [![C++17](https://img.shields.io/static/v1?label=c%2B%2B&message=%3E%3D%2017&color=informational)](https://github.com/TheNitesWhoSay/RareCpp/wiki/1.1.-Overview:-Quick-Start#setupinclusion) [![GCC 10.1](https://img.shields.io/static/v1?label=gcc&message=%3E%3D%2010.1&color=informational)](https://github.com/TheNitesWhoSay/RareCpp/wiki/1.1.-Overview:-Quick-Start#compiler-compatibility) [![Clang 9.0.0](https://img.shields.io/static/v1?label=clang&message=%3E%3D%209.0.0&color=informational)](https://github.com/TheNitesWhoSay/RareCpp/wiki/1.1.-Overview:-Quick-Start#compiler-compatibility) [![MSVC 19.26](https://img.shields.io/static/v1?label=msvc&message=%3E%3D%2019.26&color=informational)](https://github.com/TheNitesWhoSay/RareCpp/wiki/1.1.-Overview:-Quick-Start#compiler-compatibility) [![579 Tests Passed](https://img.shields.io/badge/passed%20tests-579-success)](https://github.com/TheNitesWhoSay/RareCpp/tree/master/RareCppTest)
+# RareCpp [![MIT License](https://img.shields.io/badge/license-MIT-blueviolet)](https://github.com/TheNitesWhoSay/RareCpp/blob/master/LICENSE) [![Header Only](https://img.shields.io/static/v1?label=format&message=Header%20Only&color=blueviolet)](https://github.com/TheNitesWhoSay/RareCpp/wiki/1.1.-Overview:-Quick-Start#setupinclusion) [![C++17](https://img.shields.io/static/v1?label=c%2B%2B&message=%3E%3D%2017&color=informational)](https://github.com/TheNitesWhoSay/RareCpp/wiki/1.1.-Overview:-Quick-Start#setupinclusion) [![GCC 10.1](https://img.shields.io/static/v1?label=gcc&message=%3E%3D%2010.1&color=informational)](https://github.com/TheNitesWhoSay/RareCpp/wiki/1.1.-Overview:-Quick-Start#compiler-compatibility) [![Clang 9.0.0](https://img.shields.io/static/v1?label=clang&message=%3E%3D%209.0.0&color=informational)](https://github.com/TheNitesWhoSay/RareCpp/wiki/1.1.-Overview:-Quick-Start#compiler-compatibility) [![MSVC 19.26](https://img.shields.io/static/v1?label=msvc&message=%3E%3D%2019.26&color=informational)](https://github.com/TheNitesWhoSay/RareCpp/wiki/1.1.-Overview:-Quick-Start#compiler-compatibility) [![644 Tests Passed](https://img.shields.io/badge/passed%20tests-644-success)](https://github.com/TheNitesWhoSay/RareCpp/tree/master/RareCppTest)
 
 ***C++** **R**andom **A**ccess **R**eflection & **E**xtensions: adding a simple, intuitive means of reflection to C++*
 
@@ -100,6 +100,37 @@ Output:
     {"x": 1.9,"y": 3.2},
     {"x": 1.3,"y": -2.5},
     {"x": -4.2,"y": -1.2}
+  ]
+}
+```
+
+Auto-Reflection Example (requires C++20): <a target="_blank" href="https://godbolt.org/z/K75dhj5K4">![Run][run]</a>
+```cpp
+struct Item
+{
+    int id = 0;
+    std::string name {};
+};
+
+struct Collection
+{
+    std::string description {};
+    std::vector<Item> items {};
+};
+
+int main()
+{
+    Collection collection { "my collection", {{0, "first"}, {1, "second"}} };
+    std::cout << Json::pretty(collection);
+}
+```
+Output:
+```
+{
+  "description": "my collection",
+  "items": [
+    { "id": 0, "name": "first" },
+    { "id": 1, "name": "second" }
   ]
 }
 ```
