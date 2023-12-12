@@ -5,7 +5,6 @@
 using Json::Statics;
 
 int A::second = 0;
-int & A::secondReference = A::second;
 
 const std::unordered_map<std::string, A::TestEnum> A::TestEnumCache {
     { "first", A::TestEnum::first },

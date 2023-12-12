@@ -1523,7 +1523,7 @@ TEST_HEADER(JsonIdentifiersTest, IsTuplePair)
 
 TEST_HEADER(JsonOutputCustomizersTest, CustomizeNoSpecialization)
 {
-    CustomizeNoSpecialization noSpecialization;
+    CustomizeNoSpecialization noSpecialization {};
 
     bool isSpecialized = Json::Output::Customize<CustomizeNoSpecialization, int, Reflect<CustomizeNoSpecialization>::IndexOf::integer,
         NoNote, Reflect<CustomizeNoSpecialization>::MemberType::integer, Json::Statics::Included, true, 0, Json::twoSpaces>
@@ -1542,7 +1542,7 @@ TEST_HEADER(JsonOutputCustomizersTest, CustomizeNoSpecialization)
 
 TEST_HEADER(JsonOutputCustomizersTest, CustomizeFullySpecialized)
 {
-    CustomizeFullySpecialized fullySpecialized;
+    CustomizeFullySpecialized fullySpecialized {};
 
     bool isSpecialized = Json::Output::Customize<CustomizeFullySpecialized, int, Reflect<CustomizeFullySpecialized>::IndexOf::firstField,
         NoNote, Reflect<CustomizeFullySpecialized>::MemberType::firstField, Json::Statics::Included, true, 0, Json::twoSpaces>
@@ -1571,7 +1571,7 @@ TEST_HEADER(JsonOutputCustomizersTest, CustomizeFullySpecialized)
 
 TEST_HEADER(JsonOutputCustomizersTest, Customize5ArgSpecialized)
 {
-    Customize5ArgSpecialized fiveArgSpecialized;
+    Customize5ArgSpecialized fiveArgSpecialized {};
 
     bool isSpecialized = Json::Output::Customize<Customize5ArgSpecialized, int, Reflect<Customize5ArgSpecialized>::IndexOf::firstField,
         NoNote, Reflect<Customize5ArgSpecialized>::MemberType::firstField>::as(os, Json::defaultContext, fiveArgSpecialized, fiveArgSpecialized.firstField);
@@ -1597,7 +1597,7 @@ TEST_HEADER(JsonOutputCustomizersTest, Customize5ArgSpecialized)
 
 TEST_HEADER(JsonOutputCustomizersTest, Customize4ArgSpecialized)
 {
-    Customize4ArgSpecialized fourArgSpecialized;
+    Customize4ArgSpecialized fourArgSpecialized {};
 
     bool isSpecialized = Json::Output::Customize<Customize4ArgSpecialized, int, Reflect<Customize4ArgSpecialized>::IndexOf::firstField,
         NoNote>::as(os, Json::defaultContext, fourArgSpecialized, fourArgSpecialized.firstField);
@@ -1623,7 +1623,7 @@ TEST_HEADER(JsonOutputCustomizersTest, Customize4ArgSpecialized)
 
 TEST_HEADER(JsonOutputCustomizersTest, Customize3ArgSpecialized)
 {
-    Customize3ArgSpecialized threeArgSpecialized;
+    Customize3ArgSpecialized threeArgSpecialized {};
 
     bool isSpecialized = Json::Output::Customize<Customize3ArgSpecialized, int, Reflect<Customize3ArgSpecialized>::IndexOf::firstField>
         ::as(os, Json::defaultContext, threeArgSpecialized, threeArgSpecialized.firstField);
@@ -1646,7 +1646,7 @@ TEST_HEADER(JsonOutputCustomizersTest, Customize3ArgSpecialized)
 
 TEST_HEADER(JsonOutputCustomizersTest, Customize2ArgSpecialized)
 {
-    Customize2ArgSpecialized twoArgSpecialized;
+    Customize2ArgSpecialized twoArgSpecialized {};
 
     bool isSpecialized = Json::Output::Customize<Customize2ArgSpecialized, int>
         ::as(os, Json::defaultContext, twoArgSpecialized, twoArgSpecialized.firstField);
@@ -1669,7 +1669,7 @@ TEST_HEADER(JsonOutputCustomizersTest, Customize2ArgSpecialized)
 
 TEST_HEADER(JsonOutputCustomizersTest, Customize5ArgSpecialized_OpAnnotationsDefaulted)
 {
-    Customize5ArgSpecialized_OpAnnotationsDefaulted fiveArgSpecialized_OpAnnotationsDefaulted;
+    Customize5ArgSpecialized_OpAnnotationsDefaulted fiveArgSpecialized_OpAnnotationsDefaulted {};
 
     bool isSpecialized = Json::Output::Customize<Customize5ArgSpecialized_OpAnnotationsDefaulted, int, Reflect<Customize5ArgSpecialized_OpAnnotationsDefaulted>::IndexOf::firstField,
         NoNote, Reflect<Customize5ArgSpecialized_OpAnnotationsDefaulted>::MemberType::firstField>
@@ -1698,7 +1698,7 @@ TEST_HEADER(JsonOutputCustomizersTest, Customize5ArgSpecialized_OpAnnotationsDef
 
 TEST_HEADER(JsonOutputCustomizersTest, Customize5ArgSpecialized_MemberIndexDefaulted)
 {
-    Customize5ArgSpecialized_MemberIndexDefaulted fiveArgSpecialized_MemberIndexDefaulted;
+    Customize5ArgSpecialized_MemberIndexDefaulted fiveArgSpecialized_MemberIndexDefaulted {};
 
     bool isSpecialized = Json::Output::Customize<Customize5ArgSpecialized_MemberIndexDefaulted, int, Json::noMemberIndex,
         NoNote, Reflect<Customize5ArgSpecialized_MemberIndexDefaulted>::MemberType::firstField>
@@ -1727,7 +1727,7 @@ TEST_HEADER(JsonOutputCustomizersTest, Customize5ArgSpecialized_MemberIndexDefau
 
 TEST_HEADER(JsonOutputCustomizersTest, Customize5ArgSpecialized_BothDefaulted)
 {
-    Customize5ArgSpecialized_BothDefaulted fiveArgSpecialized_BothDefaulted;
+    Customize5ArgSpecialized_BothDefaulted fiveArgSpecialized_BothDefaulted {};
 
     bool isSpecialized = Json::Output::Customize<Customize5ArgSpecialized_BothDefaulted, int, Json::noMemberIndex,
         NoNote, Reflect<Customize5ArgSpecialized_BothDefaulted>::MemberType::firstField>
@@ -1756,7 +1756,7 @@ TEST_HEADER(JsonOutputCustomizersTest, Customize5ArgSpecialized_BothDefaulted)
 
 TEST_HEADER(JsonOutputCustomizersTest, Customize4ArgSpecialized_MemberIndexDefaulted)
 {
-    Customize4ArgSpecialized_MemberIndexDefaulted fourArgSpecialized_MemberIndexDefaulted;
+    Customize4ArgSpecialized_MemberIndexDefaulted fourArgSpecialized_MemberIndexDefaulted {};
 
     bool isSpecialized = Json::Output::Customize<Customize4ArgSpecialized_MemberIndexDefaulted, int, Json::noMemberIndex, NoNote>
         ::as(os, Json::defaultContext, fourArgSpecialized_MemberIndexDefaulted, fourArgSpecialized_MemberIndexDefaulted.firstField);
@@ -1779,7 +1779,7 @@ TEST_HEADER(JsonOutputCustomizersTest, Customize4ArgSpecialized_MemberIndexDefau
 
 TEST_HEADER(JsonOutputCustomizersTest, CustomizeTypeUnspecialized)
 {
-    ContainsUnspecialized containsUnspecialized;
+    ContainsUnspecialized containsUnspecialized {};
 
     bool isSpecialized = Json::Output::CustomizeType<UnspecializedType, NoNote, Reflect<ContainsUnspecialized>::MemberType::unspecializedType,
         Json::Statics::Included, true, 0, Json::twoSpaces>::as(os, Json::defaultContext, containsUnspecialized.unspecializedType);
@@ -1791,7 +1791,7 @@ TEST_HEADER(JsonOutputCustomizersTest, CustomizeTypeUnspecialized)
 
 TEST_HEADER(JsonOutputCustomizersTest, CustomizeTypeFullySpecialized)
 {
-    ContainsFullySpecialized containsFullySpecialized;
+    ContainsFullySpecialized containsFullySpecialized {};
 
     bool isSpecialized = Json::Output::CustomizeType<FullySpecializedType, NoNote, Reflect<ContainsFullySpecialized>::MemberType::fullySpecializedType,
         Json::Statics::Included, true, 0, Json::twoSpaces>::as(os, Json::defaultContext, containsFullySpecialized.fullySpecializedType);
@@ -1803,7 +1803,7 @@ TEST_HEADER(JsonOutputCustomizersTest, CustomizeTypeFullySpecialized)
 
 TEST_HEADER(JsonOutputCustomizersTest, CustomizeTypeThreeArgSpecialized)
 {
-    ContainsThreeArgSpecialized containsThreeArgSpecialized;
+    ContainsThreeArgSpecialized containsThreeArgSpecialized {};
 
     bool isSpecialized = Json::Output::CustomizeType<ThreeArgSpecializedType, NoNote, Reflect<ContainsThreeArgSpecialized>::MemberType::threeArgSpecializedType>
         ::as(os, Json::defaultContext, containsThreeArgSpecialized.threeArgSpecializedType);
@@ -1814,7 +1814,7 @@ TEST_HEADER(JsonOutputCustomizersTest, CustomizeTypeThreeArgSpecialized)
 
 TEST_HEADER(JsonOutputCustomizersTest, CustomizeTypeTwoArgSpecialized)
 {
-    ContainsTwoArgSpecialized containsTwoArgSpecialized;
+    ContainsTwoArgSpecialized containsTwoArgSpecialized {};
 
     bool isSpecialized = Json::Output::CustomizeType<TwoArgSpecializedType, NoNote>
         ::as(os, Json::defaultContext, containsTwoArgSpecialized.twoArgSpecializedType);
@@ -1825,7 +1825,7 @@ TEST_HEADER(JsonOutputCustomizersTest, CustomizeTypeTwoArgSpecialized)
 
 TEST_HEADER(JsonOutputCustomizersTest, CustomizeTypeOneArgSpecialized)
 {
-    ContainsOneArgSpecialized containsOneArgSpecialized;
+    ContainsOneArgSpecialized containsOneArgSpecialized {};
 
     bool isSpecialized = Json::Output::CustomizeType<OneArgSpecializedType>
         ::as(os, Json::defaultContext, containsOneArgSpecialized.oneArgSpecializedType);
@@ -1836,7 +1836,7 @@ TEST_HEADER(JsonOutputCustomizersTest, CustomizeTypeOneArgSpecialized)
 
 TEST_HEADER(JsonOutputCustomizersTest, CustomizeTypeThreeArgSpecialized_OpAnnotationsDefaulted)
 {
-    ContainsThreeArgSpecializedType_OpAnnotationsDefaulted containsThreeArgSpecializedType_OpAnnotationsDefaulted;
+    ContainsThreeArgSpecializedType_OpAnnotationsDefaulted containsThreeArgSpecializedType_OpAnnotationsDefaulted {};
 
     bool isSpecialized = Json::Output::CustomizeType<ThreeArgSpecializedType_OpAnnotationsDefaulted, NoNote,
         Reflect<ContainsThreeArgSpecializedType_OpAnnotationsDefaulted>::MemberType::threeArgSpecializedType_OpAnnotationsDefaulted>
@@ -3331,13 +3331,12 @@ struct JsonReferences
     int primitive;
     int & primitiveReference;
     static int staticPrimitive;
-    static int & staticPrimitiveReference;
+    static constexpr int & staticPrimitiveReference = staticPrimitive;
 
     REFLECT(JsonReferences, primitive, primitiveReference, staticPrimitive, staticPrimitiveReference)
 };
 
 int JsonReferences::staticPrimitive = 33;
-int & JsonReferences::staticPrimitiveReference = JsonReferences::staticPrimitive;
 
 TEST_HEADER(JsonOutputTest, JsonOutReferences)
 {

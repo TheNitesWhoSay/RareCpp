@@ -2035,6 +2035,147 @@ TEST(RareTsTest, Fnv1aHash)
     EXPECT_GT(cHash, size_t(0));
 }
 
+inline namespace StringIndexMappingTestData
+{
+    struct a_ { static constexpr const char value[] = "a"; };
+    struct b_ { static constexpr const char value[] = "b"; };
+    struct c_ { static constexpr const char value[] = "c"; };
+    struct d_ { static constexpr const char value[] = "d"; };
+    struct e_ { static constexpr const char value[] = "e"; };
+    struct f_ { static constexpr const char value[] = "f"; };
+    struct emptyString_ { static constexpr const char value[] = ""; };
+    struct asdf_ { static constexpr const char value[] = "asdf"; };
+    struct A_ { static constexpr const char value[] = "A"; };
+    struct a_underscore { static constexpr const char value[] = "a_"; };
+    
+    struct Some_ { static constexpr const char value[] = "Some"; };
+    struct slightly_ { static constexpr const char value[] = "slightly"; };
+    struct moreComplex_ { static constexpr const char value[] = "moreComplex"; };
+    struct stringy_thingies_ { static constexpr const char value[] = "stringy_thingies"; };
+    struct dot { static constexpr const char value[] = "."; };
+
+    struct g_ { static constexpr const char value[] = "g"; };
+    struct h_ { static constexpr const char value[] = "h"; };
+    struct i_ { static constexpr const char value[] = "i"; };
+    struct j_ { static constexpr const char value[] = "j"; };
+    struct k_ { static constexpr const char value[] = "k"; };
+    struct l_ { static constexpr const char value[] = "l"; };
+    struct m_ { static constexpr const char value[] = "m"; };
+    struct n_ { static constexpr const char value[] = "n"; };
+    struct o_ { static constexpr const char value[] = "o"; };
+    struct p_ { static constexpr const char value[] = "p"; };
+    struct q_ { static constexpr const char value[] = "q"; };
+    struct r_ { static constexpr const char value[] = "r"; };
+    struct s_ { static constexpr const char value[] = "s"; };
+    struct t_ { static constexpr const char value[] = "t"; };
+    struct u_ { static constexpr const char value[] = "u"; };
+    struct v_ { static constexpr const char value[] = "v"; };
+    struct w_ { static constexpr const char value[] = "w"; };
+    struct x_ { static constexpr const char value[] = "x"; };
+    struct y_ { static constexpr const char value[] = "y"; };
+    struct z_ { static constexpr const char value[] = "z"; };
+    struct a0 { static constexpr const char value[] = "a0"; };
+    struct a1 { static constexpr const char value[] = "a1"; };
+    struct a2 { static constexpr const char value[] = "a2"; };
+    struct a3 { static constexpr const char value[] = "a3"; };
+    struct a4 { static constexpr const char value[] = "a4"; };
+    struct a5 { static constexpr const char value[] = "a5"; };
+    struct a6 { static constexpr const char value[] = "a6"; };
+    struct a7 { static constexpr const char value[] = "a7"; };
+    struct a8 { static constexpr const char value[] = "a8"; };
+    struct a9 { static constexpr const char value[] = "a9"; };
+    struct b0 { static constexpr const char value[] = "b0"; };
+    struct b1 { static constexpr const char value[] = "b1"; };
+    struct b2 { static constexpr const char value[] = "b2"; };
+    struct b3 { static constexpr const char value[] = "b3"; };
+    struct b4 { static constexpr const char value[] = "b4"; };
+    struct b5 { static constexpr const char value[] = "b5"; };
+    struct b6 { static constexpr const char value[] = "b6"; };
+    struct b7 { static constexpr const char value[] = "b7"; };
+    struct b8 { static constexpr const char value[] = "b8"; };
+    struct b9 { static constexpr const char value[] = "b9"; };
+    struct c0 { static constexpr const char value[] = "c0"; };
+    struct c1 { static constexpr const char value[] = "c1"; };
+    struct c2 { static constexpr const char value[] = "c2"; };
+    struct c3 { static constexpr const char value[] = "c3"; };
+    struct c4 { static constexpr const char value[] = "c4"; };
+    struct c5 { static constexpr const char value[] = "c5"; };
+    struct c6 { static constexpr const char value[] = "c6"; };
+    struct c7 { static constexpr const char value[] = "c7"; };
+    struct c8 { static constexpr const char value[] = "c8"; };
+    struct c9 { static constexpr const char value[] = "c9"; };
+    struct d0 { static constexpr const char value[] = "d0"; };
+    struct d1 { static constexpr const char value[] = "d1"; };
+    struct d2 { static constexpr const char value[] = "d2"; };
+    struct d3 { static constexpr const char value[] = "d3"; };
+    struct d4 { static constexpr const char value[] = "d4"; };
+    struct d5 { static constexpr const char value[] = "d5"; };
+    struct d6 { static constexpr const char value[] = "d6"; };
+    struct d7 { static constexpr const char value[] = "d7"; };
+    struct d8 { static constexpr const char value[] = "d8"; };
+    struct d9 { static constexpr const char value[] = "d9"; };
+    struct e0 { static constexpr const char value[] = "e0"; };
+    struct e1 { static constexpr const char value[] = "e1"; };
+    struct e2 { static constexpr const char value[] = "e2"; };
+    struct e3 { static constexpr const char value[] = "e3"; };
+    struct e4 { static constexpr const char value[] = "e4"; };
+    struct e5 { static constexpr const char value[] = "e5"; };
+    struct e6 { static constexpr const char value[] = "e6"; };
+    struct e7 { static constexpr const char value[] = "e7"; };
+    struct e8 { static constexpr const char value[] = "e8"; };
+    struct e9 { static constexpr const char value[] = "e9"; };
+    struct f0 { static constexpr const char value[] = "f0"; };
+    struct f1 { static constexpr const char value[] = "f1"; };
+    struct f2 { static constexpr const char value[] = "f2"; };
+    struct f3 { static constexpr const char value[] = "f3"; };
+    struct f4 { static constexpr const char value[] = "f4"; };
+    struct f5 { static constexpr const char value[] = "f5"; };
+    struct f6 { static constexpr const char value[] = "f6"; };
+    struct f7 { static constexpr const char value[] = "f7"; };
+    struct f8 { static constexpr const char value[] = "f8"; };
+    struct f9 { static constexpr const char value[] = "f9"; };
+    struct g0 { static constexpr const char value[] = "g0"; };
+    struct g1 { static constexpr const char value[] = "g1"; };
+    struct g2 { static constexpr const char value[] = "g2"; };
+    struct g3 { static constexpr const char value[] = "g3"; };
+    struct g4 { static constexpr const char value[] = "g4"; };
+    struct g5 { static constexpr const char value[] = "g5"; };
+    struct g6 { static constexpr const char value[] = "g6"; };
+    struct g7 { static constexpr const char value[] = "g7"; };
+    struct g8 { static constexpr const char value[] = "g8"; };
+    struct g9 { static constexpr const char value[] = "g9"; };
+    struct h0 { static constexpr const char value[] = "h0"; };
+    struct h1 { static constexpr const char value[] = "h1"; };
+    struct h2 { static constexpr const char value[] = "h2"; };
+    struct h3 { static constexpr const char value[] = "h3"; };
+    struct h4 { static constexpr const char value[] = "h4"; };
+    struct h5 { static constexpr const char value[] = "h5"; };
+    struct h6 { static constexpr const char value[] = "h6"; };
+    struct h7 { static constexpr const char value[] = "h7"; };
+    struct h8 { static constexpr const char value[] = "h8"; };
+    struct h9 { static constexpr const char value[] = "h9"; };
+    struct i0 { static constexpr const char value[] = "i0"; };
+    struct i1 { static constexpr const char value[] = "i1"; };
+    struct i2 { static constexpr const char value[] = "i2"; };
+    struct i3 { static constexpr const char value[] = "i3"; };
+    struct i4 { static constexpr const char value[] = "i4"; };
+    struct i5 { static constexpr const char value[] = "i5"; };
+    struct i6 { static constexpr const char value[] = "i6"; };
+    struct i7 { static constexpr const char value[] = "i7"; };
+    struct i8 { static constexpr const char value[] = "i8"; };
+    struct i9 { static constexpr const char value[] = "i9"; };
+    struct j0 { static constexpr const char value[] = "j0"; };
+    struct j1 { static constexpr const char value[] = "j1"; };
+    struct j2 { static constexpr const char value[] = "j2"; };
+    struct j3 { static constexpr const char value[] = "j3"; };
+    struct j4 { static constexpr const char value[] = "j4"; };
+    struct j5 { static constexpr const char value[] = "j5"; };
+    struct j6 { static constexpr const char value[] = "j6"; };
+    struct j7 { static constexpr const char value[] = "j7"; };
+    struct last { static constexpr const char value[] = "last"; };
+}
+
+#ifdef RARE_NO_CPP_20
 TEST(RareTsTest, StringIndexMapping)
 {
     static constexpr const char a_[] = "a";
@@ -2057,14 +2198,14 @@ TEST(RareTsTest, StringIndexMapping)
     EXPECT_EQ(size_t(0), EmptyString::indexOf(""));
     EXPECT_EQ(std::numeric_limits<size_t>::max(), EmptyString::indexOf("a"));
     EXPECT_EQ(std::numeric_limits<size_t>::max(), EmptyString::indexOf("asdf"));
-    
+
     using AString = StringIndexMap<a_>;
     constexpr size_t aStringTotal = AString::total;
     EXPECT_EQ(size_t(1), aStringTotal);
     EXPECT_EQ(std::numeric_limits<size_t>::max(), AString::indexOf(""));
     EXPECT_EQ(size_t(0), AString::indexOf("a"));
     EXPECT_EQ(std::numeric_limits<size_t>::max(), AString::indexOf("asdf"));
-    
+
     static constexpr const char asdf_[] = "asdf";
     using AsdfString = StringIndexMap<asdf_>;
     constexpr size_t asdfStringTotal = AsdfString::total;
@@ -2106,7 +2247,7 @@ TEST(RareTsTest, StringIndexMapping)
     EXPECT_EQ(size_t(1), Bac::indexOf("a"));
     EXPECT_EQ(size_t(2), Bac::indexOf("c"));
     EXPECT_EQ(std::numeric_limits<size_t>::max(), Bac::indexOf("B"));
-    
+
     static constexpr const char A_[] = "A";
     static constexpr const char a_underscore[] = "a_";
     using Aaa_ = StringIndexMap<A_, a_, a_underscore>;
@@ -2124,7 +2265,7 @@ TEST(RareTsTest, StringIndexMapping)
     EXPECT_EQ(size_t(1), FourArg::indexOf("b"));
     EXPECT_EQ(size_t(2), FourArg::indexOf("c"));
     EXPECT_EQ(size_t(3), FourArg::indexOf("d"));
-    
+
     static constexpr const char Some_[] = "Some";
     static constexpr const char slightly_[] = "slightly";
     static constexpr const char moreComplex_[] = "moreComplex";
@@ -2140,7 +2281,7 @@ TEST(RareTsTest, StringIndexMapping)
     EXPECT_EQ(size_t(4), SlightlyComplex::indexOf("."));
 
     using SixArg = StringIndexMap<f_, e_, d_, c_, b_, a_>;
-    
+
     EXPECT_EQ(size_t(6), SixArg::total);
     EXPECT_EQ(size_t(0), SixArg::indexOf("f"));
     EXPECT_EQ(size_t(1), SixArg::indexOf("e"));
@@ -2148,7 +2289,7 @@ TEST(RareTsTest, StringIndexMapping)
     EXPECT_EQ(size_t(3), SixArg::indexOf("c"));
     EXPECT_EQ(size_t(4), SixArg::indexOf("b"));
     EXPECT_EQ(size_t(5), SixArg::indexOf("a"));
-    
+
     static constexpr const char g_[] = "g";
     static constexpr const char h_[] = "h";
     static constexpr const char i_[] = "i";
@@ -2268,11 +2409,129 @@ TEST(RareTsTest, StringIndexMapping)
     static constexpr const char j6[] = "j6";
     static constexpr const char j7[] = "j7";
     static constexpr const char last[] = "last";
-    using ManyArgs = StringIndexMap<a_,b_,c_,d_,e_,f_,g_,h_,i_,j_,k_,l_,m_,n_,o_,p_,q_,r_,s_,t_,u_,v_,w_,x_,y_,z_,
-        a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,b0,b1,b2,b3,b4,b5,b6,b7,b8,b9,c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,
-        d0,d1,d2,d3,d4,d5,d6,d7,d8,d9,e0,e1,e2,e3,e4,e5,e6,e7,e8,e9,f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,
-        g0,g1,g2,g3,g4,g5,g6,g7,g8,g9,h0,h1,h2,h3,h4,h5,h6,h7,h8,h9,i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,
-        j0,j1,j2,j3,j4,j5,j6,j7,last>;
+    using ManyArgs = StringIndexMap<a_, b_, c_, d_, e_, f_, g_, h_, i_, j_, k_, l_, m_, n_, o_, p_, q_, r_, s_, t_, u_, v_, w_, x_, y_, z_,
+        a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9,
+        d0, d1, d2, d3, d4, d5, d6, d7, d8, d9, e0, e1, e2, e3, e4, e5, e6, e7, e8, e9, f0, f1, f2, f3, f4, f5, f6, f7, f8, f9,
+        g0, g1, g2, g3, g4, g5, g6, g7, g8, g9, h0, h1, h2, h3, h4, h5, h6, h7, h8, h9, i0, i1, i2, i3, i4, i5, i6, i7, i8, i9,
+        j0, j1, j2, j3, j4, j5, j6, j7, last>;
+    EXPECT_EQ(size_t(125), ManyArgs::total);
+
+    constexpr std::string_view manyStrings[]{
+        "a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z",
+        "a0","a1","a2","a3","a4","a5","a6","a7","a8","a9","b0","b1","b2","b3","b4","b5","b6","b7","b8","b9",
+        "c0","c1","c2","c3","c4","c5","c6","c7","c8","c9","d0","d1","d2","d3","d4","d5","d6","d7","d8","d9",
+        "e0","e1","e2","e3","e4","e5","e6","e7","e8","e9","f0","f1","f2","f3","f4","f5","f6","f7","f8","f9",
+        "g0","g1","g2","g3","g4","g5","g6","g7","g8","g9","h0","h1","h2","h3","h4","h5","h6","h7","h8","h9",
+        "i0","i1","i2","i3","i4","i5","i6","i7","i8","i9","j0","j1","j2","j3","j4","j5","j6","j7","last"
+    };
+    EXPECT_EQ(size_t(0), ManyArgs::indexOf("a"));
+    for (size_t i = 0; i < 125; ++i) {
+        EXPECT_EQ(i, ManyArgs::indexOf(manyStrings[i]));
+    }
+}
+#else
+TEST(RareTsTest, StringIndexMapping)
+{
+    using ZeroStrings = StringIndexMap<>;
+    EXPECT_EQ(size_t(0), ZeroStrings::total);
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), ZeroStrings::indexOf(""));
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), ZeroStrings::indexOf("a"));
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), ZeroStrings::indexOf("asdf"));
+
+    using EmptyString = StringIndexMap<emptyString_{}>;
+    constexpr size_t emptyStringTotal = EmptyString::total;
+    EXPECT_EQ(size_t(1), emptyStringTotal);
+    EXPECT_EQ(size_t(0), EmptyString::indexOf(""));
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), EmptyString::indexOf("a"));
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), EmptyString::indexOf("asdf"));
+    
+    using AString = StringIndexMap<a_{}>;
+    constexpr size_t aStringTotal = AString::total;
+    EXPECT_EQ(size_t(1), aStringTotal);
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), AString::indexOf(""));
+    EXPECT_EQ(size_t(0), AString::indexOf("a"));
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), AString::indexOf("asdf"));
+    
+    using AsdfString = StringIndexMap<asdf_{}>;
+    constexpr size_t asdfStringTotal = AsdfString::total;
+    EXPECT_EQ(size_t(1), asdfStringTotal);
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), AsdfString::indexOf(""));
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), AsdfString::indexOf("a"));
+    EXPECT_EQ(size_t(0), AsdfString::indexOf("asdf"));
+
+    using Ab = StringIndexMap<a_{}, b_{}>;
+    constexpr size_t abTotal = Ab::total;
+    EXPECT_EQ(size_t(2), abTotal);
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), Ab::indexOf(""));
+    EXPECT_EQ(size_t(0), Ab::indexOf("a"));
+    EXPECT_EQ(size_t(1), Ab::indexOf("b"));
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), Ab::indexOf("ab"));
+
+    using Ba = StringIndexMap<b_{}, a_{}>;
+    constexpr size_t baTotal = Ba::total;
+    EXPECT_EQ(size_t(2), baTotal);
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), Ba::indexOf(""));
+    EXPECT_EQ(size_t(0), Ba::indexOf("b"));
+    EXPECT_EQ(size_t(1), Ba::indexOf("a"));
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), Ba::indexOf("ba"));
+
+    using Abc = StringIndexMap<a_{}, b_{}, c_{}>;
+    constexpr size_t abcTotal = Abc::total;
+    EXPECT_EQ(size_t(3), abcTotal);
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), Abc::indexOf(""));
+    EXPECT_EQ(size_t(0), Abc::indexOf("a"));
+    EXPECT_EQ(size_t(1), Abc::indexOf("b"));
+    EXPECT_EQ(size_t(2), Abc::indexOf("c"));
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), Abc::indexOf("ab"));
+
+    using Bac = StringIndexMap<b_{}, a_{}, c_{}>;
+    constexpr size_t bacTotal = Bac::total;
+    EXPECT_EQ(size_t(3), bacTotal);
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), Bac::indexOf(""));
+    EXPECT_EQ(size_t(0), Bac::indexOf("b"));
+    EXPECT_EQ(size_t(1), Bac::indexOf("a"));
+    EXPECT_EQ(size_t(2), Bac::indexOf("c"));
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), Bac::indexOf("B"));
+    
+    using Aaa_ = StringIndexMap<A_{}, a_{}, a_underscore{}>;
+    constexpr size_t Aaa_Total = Aaa_::total;
+    EXPECT_EQ(size_t(3), Aaa_Total);
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), Aaa_::indexOf(""));
+    EXPECT_EQ(size_t(0), Aaa_::indexOf("A"));
+    EXPECT_EQ(size_t(1), Aaa_::indexOf("a"));
+    EXPECT_EQ(size_t(2), Aaa_::indexOf("a_"));
+    EXPECT_EQ(std::numeric_limits<size_t>::max(), Aaa_::indexOf("A_"));
+
+    using FourArg = StringIndexMap<a_{}, b_{}, c_{}, d_{}>;
+    EXPECT_EQ(size_t(4), FourArg::total);
+    EXPECT_EQ(size_t(0), FourArg::indexOf("a"));
+    EXPECT_EQ(size_t(1), FourArg::indexOf("b"));
+    EXPECT_EQ(size_t(2), FourArg::indexOf("c"));
+    EXPECT_EQ(size_t(3), FourArg::indexOf("d"));
+
+    using SlightlyComplex = StringIndexMap<Some_{}, slightly_{}, moreComplex_{}, stringy_thingies_{}, dot{}>;
+    EXPECT_EQ(size_t(5), SlightlyComplex::total);
+    EXPECT_EQ(size_t(0), SlightlyComplex::indexOf("Some"));
+    EXPECT_EQ(size_t(1), SlightlyComplex::indexOf("slightly"));
+    EXPECT_EQ(size_t(2), SlightlyComplex::indexOf("moreComplex"));
+    EXPECT_EQ(size_t(3), SlightlyComplex::indexOf("stringy_thingies"));
+    EXPECT_EQ(size_t(4), SlightlyComplex::indexOf("."));
+
+    using SixArg = StringIndexMap<f_{}, e_{}, d_{}, c_{}, b_{}, a_{}>;
+    EXPECT_EQ(size_t(6), SixArg::total);
+    EXPECT_EQ(size_t(0), SixArg::indexOf("f"));
+    EXPECT_EQ(size_t(1), SixArg::indexOf("e"));
+    EXPECT_EQ(size_t(2), SixArg::indexOf("d"));
+    EXPECT_EQ(size_t(3), SixArg::indexOf("c"));
+    EXPECT_EQ(size_t(4), SixArg::indexOf("b"));
+    EXPECT_EQ(size_t(5), SixArg::indexOf("a"));
+
+    using ManyArgs = StringIndexMap<
+        a_{},b_{},c_{},d_{},e_{},f_{},g_{},h_{},i_{},j_{},k_{},l_{},m_{},n_{},o_{},p_{},q_{},r_{},s_{},t_{},u_{},v_{},w_{},x_{},y_{},z_{},
+        a0{},a1{},a2{},a3{},a4{},a5{},a6{},a7{},a8{},a9{},b0{},b1{},b2{},b3{},b4{},b5{},b6{},b7{},b8{},b9{},c0{},c1{},c2{},c3{},c4{},c5{},c6{},c7{},c8{},c9{},
+        d0{},d1{},d2{},d3{},d4{},d5{},d6{},d7{},d8{},d9{},e0{},e1{},e2{},e3{},e4{},e5{},e6{},e7{},e8{},e9{},f0{},f1{},f2{},f3{},f4{},f5{},f6{},f7{},f8{},f9{},
+        g0{},g1{},g2{},g3{},g4{},g5{},g6{},g7{},g8{},g9{},h0{},h1{},h2{},h3{},h4{},h5{},h6{},h7{},h8{},h9{},i0{},i1{},i2{},i3{},i4{},i5{},i6{},i7{},i8{},i9{},
+        StringIndexMappingTestData::j0{},StringIndexMappingTestData::j1{},j2{},j3{},j4{},j5{},j6{},j7{},last{}>;
     EXPECT_EQ(size_t(125), ManyArgs::total);
     
     constexpr std::string_view manyStrings[] {
@@ -2288,6 +2547,7 @@ TEST(RareTsTest, StringIndexMapping)
         EXPECT_EQ(i, ManyArgs::indexOf(manyStrings[i]));
     }
 }
+#endif
 
 TEST(RareTsTest, TypeMask)
 {

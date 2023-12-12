@@ -27,6 +27,9 @@ inline namespace member_reflect_outside_of_class { void memberReflectOutsideOfCl
 inline namespace unowned_private_reflect { void unownedPrivateReflect(); }
 inline namespace unowned_private_noted { void unownedPrivateReflectNoted(); }
 
+// Aggregate examples
+inline namespace auto_reflect_aggregate { void autoReflectAggregate(); }
+
 // Note examples
 inline namespace note_class_members { void noteClassMembers(); }
 inline namespace note_class { void noteClass(); }

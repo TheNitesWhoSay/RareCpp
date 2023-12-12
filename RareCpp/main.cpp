@@ -40,6 +40,9 @@ void openMenu()
             .item("Reflect private members outside of class", &unownedPrivateReflect)
             .item("Reflect noted private members outside of class", &unownedPrivateReflectNoted)
         ).item(
+            Menu{"Aggregate Examples", "Select an example: "}
+            .item("Auto-reflect aggregates", &autoReflectAggregate)
+        ).item(
             Menu{"Note Examples", "Select an example: "}
             .item("Member annotations", &noteClassMembers)
             .item("Class-level annotations", &noteClass)

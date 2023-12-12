@@ -23,7 +23,7 @@ struct TupObj
     std::stack<int> stack;
     static int staticPrimitive;
     int & primitiveReference;
-    static int & staticPrimitiveReference;
+    static constexpr int & staticPrimitiveReference = staticPrimitive;
     int memberMethod() { return 1; }
     static int staticMethod() { return 2; }
 
@@ -31,7 +31,6 @@ struct TupObj
 };
 
 int TupObj::staticPrimitive = 0;
-int & TupObj::staticPrimitiveReference = TupObj::staticPrimitive;
 
 TEST(TuplesTest, MemberTypeTuple)
 {

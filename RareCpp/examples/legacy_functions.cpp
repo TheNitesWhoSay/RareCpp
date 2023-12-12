@@ -83,7 +83,7 @@ struct bar
     int a;
     static int b;
     int & c;
-    static int & d;
+    static constexpr int & d = b;
     int e() { return 1337; }
     static int f() { return 13; }
 
