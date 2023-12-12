@@ -24,6 +24,10 @@ inline namespace auto_reflect_aggregate
 
     void autoReflectAggregate()
     {
+#ifdef RARE_NO_CPP_20
+        std::cout << "C++20 and up required to reflect aggregates" << std::endl;
+#else
         std::cout << Json::pretty(MyObj{}) << std::endl;
+#endif
     }
 }

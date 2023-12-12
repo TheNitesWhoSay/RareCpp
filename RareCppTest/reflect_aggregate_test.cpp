@@ -1,5 +1,6 @@
 #include <rarecpp/reflect.h>
 #include <gtest/gtest.h>
+#ifndef RARE_NO_CPP_20
 
 namespace ReflectAggregateTest {
 
@@ -755,3 +756,4 @@ TEST(AggregateTest, ReflectLimit)
 }
 
 }
+#endif
