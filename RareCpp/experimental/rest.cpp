@@ -64,18 +64,18 @@ namespace Rest
         static constexpr size_t MemberIndex = Member::index;
         static constexpr size_t OverloadIndex = overloadIndex;
 
-        static constexpr Http::Method Method = [](){
+        static constexpr Http::Method Method() {
             if constexpr ( Member::template hasNote<Http::Method>() )
                 return Member::template getNote<Http::Method>();
             else
                 return Http::Method::GET;
-        }();
-        static constexpr std::string_view Uri = [](){
+        }
+        static constexpr std::string_view Uri() {
             if constexpr ( Member::template hasNote<Rest::Uri>() )
                 return Member::template getNote<Rest::Uri>().value;
             else
                 return Member::name;
-        }();
+        }
     };
 
     template <
@@ -92,22 +92,22 @@ namespace Rest
         static constexpr auto overload = typename Member::Overloads::template Overload<overloadIndex>{};
         using Overload = RareTs::remove_cvref_t<decltype(overload)>;
 
-        static constexpr Http::Method Method = [](){
+        static constexpr auto Method() {
             if constexpr ( Overload::template hasNote<Http::Method>() )
                 return overload.template getNote<Http::Method>();
             else if constexpr ( Member::template hasNote<Http::Method> )
                 return Member::template getNote<Http::Method>();
             else
                 return Http::Method::GET;
-        }();
-        static constexpr std::string_view Uri = [](){
+        }
+        static constexpr auto Uri() {
             if constexpr ( Overload::template hasNote<Rest::Uri>() )
                 return overload.template getNote<Rest::Uri>().value;
             else if constexpr ( Member::template hasNote<Rest::Uri>() )
                 return Member::template getNote<Rest::Uri>().value;
             else
                 return Member::name;
-        }();
+        }
     };
     
     template <typename Member, typename = RareTs::enable_if_member_t<Member>>
@@ -163,7 +163,7 @@ namespace Rest
             RareTs::forIndexes<TotalEndpoints>([](auto I) {
                 using Endpoint = std::tuple_element_t<decltype(I)::value, ControllerEndpoints>;
                 std::cout << "  " << RareTs::toStr<Endpoint>() << std::endl;
-                std::cout << "    " << Endpoint::Method << " " << Endpoint::Uri << std::endl;
+                std::cout << "    " << Endpoint::Method() << " " << Endpoint::Uri() << std::endl;
             });
         }
 
@@ -173,9 +173,6 @@ namespace Rest
         Engine(RestControllers ... restControllers) : restControllers(std::forward_as_tuple(restControllers...))
         {
             RareTs::forIndexes<TotalControllers>([&](auto I) {
-
-                constexpr auto i = decltype(I)::value;
-
                 using RestControllerT = std::tuple_element_t<decltype(I)::value, std::tuple<RestControllers...>>;
 
                 std::string controllerUri;
@@ -188,6 +185,7 @@ namespace Rest
                     using Member = std::remove_reference_t<decltype(member)>;
                     if constexpr ( Member::isFunction )
                     {
+                        constexpr auto i = std::remove_reference_t<decltype(I)>::value;
                         Http::Method httpMethod = Http::Method::GET;
                         if constexpr ( Member::template hasNote<Http::Method>() )
                             httpMethod = Member::template getNote<Http::Method>();
@@ -209,6 +207,7 @@ namespace Rest
                     {
                         size_t overloadIndex = 0;
                         Member::Overloads::forEach([&](auto overload) {
+                        constexpr auto i = std::remove_reference_t<decltype(I)>::value;
                             using Ovl = decltype(overload);
                             
                             Http::Method httpMethod = Http::Method::GET;

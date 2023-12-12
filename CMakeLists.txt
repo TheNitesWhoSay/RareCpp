@@ -10,7 +10,7 @@ endif()
 project(${This} C CXX)
 
 set(CMAKE_C_STANDARD 99)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 include_directories(PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

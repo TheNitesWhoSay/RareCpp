@@ -51,7 +51,7 @@ public:
     int first;
     int & firstReference;
     static int second;
-    static int & secondReference;
+    static constexpr int & secondReference = second;
     int* ptr;
     Composed composed;
     NOTE(boolean, Json::Ignore)

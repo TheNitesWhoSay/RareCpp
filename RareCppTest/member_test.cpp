@@ -52,11 +52,10 @@ TEST(ReflectionMemberTest, MemberTemplated)
 struct ReferencesTestStruct
 {
     int & testVal;
-    static int & testStaticVal;
+    static constexpr int & testStaticVal = TestStruct::testStaticVal;
 
     REFLECT(ReferencesTestStruct, testVal, testStaticVal)
 };
-int & ReferencesTestStruct::testStaticVal = TestStruct::testStaticVal;
 
 TEST(ReflectionMemberTest, ReferencesMemberTemplated)
 {
@@ -91,12 +90,10 @@ TEST(ReflectionMemberTest, ReferencesMemberTemplated)
     isEqual = std::is_same_v<StaticIntMember::pointer_type, std::nullptr_t>;
     EXPECT_TRUE(isEqual);
 
-    // Clang and GCC allow constexpr pointers to static references while MSVC does not
-#if _MSC_VER && !__clang__ && !__GNUC__
-    EXPECT_TRUE(staticMember.pointer == nullptr);
-#else
-    EXPECT_EQ(staticMember.pointer, &ReferencesTestStruct::testStaticVal);
-#endif
+    // Clang and GCC allow constexpr pointers to static references while MSVC has version-dependent behavior
+    #if !defined(_MSC_VER) || defined(__clang__)
+        EXPECT_EQ(staticMember.pointer, &ReferencesTestStruct::testStaticVal);
+    #endif
     EXPECT_EQ(size_t(1), StaticIntMember::index);
     EXPECT_TRUE(StaticIntMember::isStatic);
     EXPECT_FALSE(StaticIntMember::hasOffset);
