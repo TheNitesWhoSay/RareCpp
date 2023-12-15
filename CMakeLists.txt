@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15.0)
+cmake_minimum_required(VERSION 3.21.0)
 
 set(This Root)
 
@@ -13,7 +13,18 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-include_directories(PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+if ( PROJECT_IS_TOP_LEVEL )
+  set(RARECPP_BUILD_EXAMPLES TRUE)
+  set(RARECPP_BUILD_TESTS TRUE)
+else()
+  add_library(${PROJECT_NAME} INTERFACE)
+  target_include_directories(${PROJECT_NAME} INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+endif()
+
+if ( RARECPP_BUILD_EXAMPLES OR RARECPP_BUILD_TESTS )
+  include_directories(PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+endif()
+
 
 if ( "${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU" )
   add_compile_options(
@@ -35,9 +46,14 @@ endif ( MSVC )
 
 enable_testing()
 
-add_subdirectory(RareCpp)
-add_subdirectory(GoogleTestLib/googletest)
-add_subdirectory(RareCppTest)
+if ( RARECPP_BUILD_EXAMPLES )
+  add_subdirectory(RareCpp)
+endif()
+
+if ( RARECPP_BUILD_TESTS )
+  add_subdirectory(GoogleTestLib/googletest)
+  add_subdirectory(RareCppTest)
+endif()
 
 # Default Commands:
 # mkdir build
