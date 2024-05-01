@@ -839,7 +839,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
 
                 template <typename T> requires std::is_aggregate_v<T>
                 struct member_counter
-                { // Credit for algorithm: https://github.com/Tsche/repr/blob/master/include/librepr/reflection/detail/arity.h (MIT License)
+                { // Credit for algorithm: https://github.com/Tsche/repr/commit/cae517080afb1f40553bfe3e1173d9e181f6681d (MIT License)
                     template <typename ... Ts>
                     static consteval auto len(auto ... args) {
                         static_assert(sizeof...(Ts) + sizeof...(args) <= 128, "For auto-reflected types change large C-arrays to std::array");
@@ -1512,7 +1512,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
                         c2,c3,c4,c5,c6,c7,c8,c9,d0,d1,d2,d3,d4,d5,d6,d7,d8,d9,e0,e1,e2,e3,e4,e5,e6,e7,e8,e9,f0,f1,f2,f3,f4,f5,f6,f7,f8,f9,g0,g1,g2,g3,g4,g5,
                         g6,g7,g8,g9,h0,h1,h2,h3,h4,h5,h6,h7,h8,h9,i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4);
                 } else {
-                    static_assert(count<126, "Aggregates with more than 121 members cannot be auto-reflected");
+                    static_assert(count<122, "Aggregates with more than 121 members cannot be auto-reflected");
                 }
             }
 
