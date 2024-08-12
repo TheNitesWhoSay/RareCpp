@@ -3316,6 +3316,10 @@ namespace Json
             template <typename Annotations, typename T>
             inline void object(std::istream & is, Context & context, char & c, T & t);
 
+            #ifdef _MSC_VER
+            #pragma warning(push)
+            #pragma warning(disable: 4702) // Unreachable code false positive
+            #endif
             template <typename Annotations, bool InArray, typename Member, typename T, typename Object, bool AllowCustomization = true, bool ExpectQuotes = true>
             inline void value(std::istream & is, Context & context, char & c, Object & object, T & value)
             {
@@ -3429,6 +3433,9 @@ namespace Json
                 else
                     is >> value;
             }
+            #ifdef _MSC_VER
+            #pragma warning(pop)
+            #endif
 
             template <typename Annotations, typename Member, size_t TupleIndex, typename Object, typename T1, typename T2, typename ...Ts>
             constexpr void tuple(std::istream & is, Context & context, char & c, Object & object, std::tuple<T1, T2, Ts...> & value)

@@ -19,11 +19,13 @@
         #define RARE_NO_CPP_20
     #endif
     #define MSVC_UNUSED_FALSE_POSITIVE _Pragma("warning(suppress: 4100)")
+    #define MSVC_COMMA_FALSE_POSITIVE _Pragma("warning(suppress: 6319)")
 #else
     #if __cplusplus < 202002L
         #define RARE_NO_CPP_20
     #endif
     #define MSVC_UNUSED_FALSE_POSITIVE 
+    #define MSVC_COMMA_FALSE_POSITIVE 
 #endif
 
 #ifdef RARE_NO_CPP_20
@@ -437,6 +439,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
 
         template <typename F, size_t ... Is>
         constexpr void forIndex(size_t i, std::index_sequence<Is...>, F f) {
+            MSVC_COMMA_FALSE_POSITIVE
             (void)((i == Is && (f(std::integral_constant<size_t, Is>{}), true)) || ...);
         }
 
