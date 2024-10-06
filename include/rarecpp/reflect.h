@@ -1775,7 +1775,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             }
             template <size_t I, typename T> static constexpr auto & memberValue(T && t) {
                 using U = class_t<RareTs::remove_cvref_t<T>>;
-                return U::template F_<I>::template i(static_cast<forward_proxy_t<typename U::B_, T>>(t));
+                return U::template F_<I>::i(static_cast<forward_proxy_t<typename U::B_, T>>(t));
             }
 
             template <typename T, size_t ... Is> using member_types = std::tuple<typename class_t<T>::template F_<Is>::type...>;
@@ -2253,7 +2253,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
                             constexpr size_t index = RareTs::index_of_v<MemberOf, T>;
                             if constexpr ( index < std::tuple_size_v<RareTs::remove_cvref_t<T>> )
                             {
-                                return ArgumentBuilder<Arguments>::template invokeInstance(std::get<index>(std::forward<T>(t)),
+                                return ArgumentBuilder<Arguments>::invokeInstance(std::get<index>(std::forward<T>(t)),
                                     pointer, std::forward<ArgBuilder>(argBuilder));
                             }
                             else
