@@ -2099,4 +2099,42 @@ TEST_HEADER(JsonInput, InProxyReflected)
     EXPECT_EQ(5, object.a);
 }
 
+struct CharacterLikeTypes
+{
+    char a = '\0';
+    signed char b = '\0';
+    unsigned char c = '\0';
+    std::int8_t d = 0;
+    std::uint8_t e = 0;
+
+    REFLECT(CharacterLikeTypes, a, b, c, d, e)
+};
+
+TEST_HEADER(JsonInput, InCharacterLikeTypes)
+{
+    std::stringstream smallInput("{\"a\":1,\"b\":2,\"c\":3,\"d\":4,\"e\":5}");
+    CharacterLikeTypes small {};
+    smallInput >> Json::in(small);
+    EXPECT_EQ(1, small.a);
+    EXPECT_EQ(2, small.b);
+    EXPECT_EQ(3, small.c);
+    EXPECT_EQ(4, small.d);
+    EXPECT_EQ(5, small.e);
+
+    std::stringstream largeInput("{\"a\":100,\"b\":101,\"c\":102,\"d\":103,\"e\":104}");
+    CharacterLikeTypes large {};
+    largeInput >> Json::in(large);
+    EXPECT_EQ(100, large.a);
+    EXPECT_EQ(101, large.b);
+    EXPECT_EQ(102, large.c);
+    EXPECT_EQ(103, large.d);
+    EXPECT_EQ(104, large.e);
+    
+    std::stringstream negativeInput("{\"b\":-101,\"d\":-102}");
+    CharacterLikeTypes negative {};
+    negativeInput >> Json::in(negative);
+    EXPECT_EQ(-101, negative.b);
+    EXPECT_EQ(-102, negative.d);
+}
+
 #endif
