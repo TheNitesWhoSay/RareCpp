@@ -3107,6 +3107,14 @@ namespace Json
                 if constexpr ( !std::is_const_v<EnumType> )
                     value = (RareTs::remove_pointer_t<Value>)temp;
             }
+
+            template <typename Value>
+            constexpr void charInt(std::istream & is, Value & value)
+            {
+                int temp {};
+                is >> temp;
+                value = Value(temp);
+            }
             
             inline std::string fieldName(std::istream & is, char & c)
             {
@@ -3428,6 +3436,8 @@ namespace Json
                     Read::enumInt<T>(is, value);
                 else if constexpr ( std::is_same_v<bool, std::remove_const_t<T>> )
                     Read::boolean<InArray>(is, c, value);
+                else if constexpr ( RareTs::is_char_v<RareTs::remove_cvref_t<T>> )
+                    Read::charInt<T>(is, value);
                 else if constexpr ( std::is_const_v<T> )
                     Consume::value<InArray>(is, c);
                 else
