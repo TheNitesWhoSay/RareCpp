@@ -254,6 +254,12 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
         template <typename TypeIfVoid> struct replace_void<void, TypeIfVoid> { using type = TypeIfVoid; };
         template <typename T, typename TypeIfVoid> using replace_void_t = typename replace_void<T, TypeIfVoid>::type;
 
+        template <typename T> struct is_char : std::false_type {};
+        template <> struct is_char<char> : std::true_type {};
+        template <> struct is_char<signed char> : std::true_type {};
+        template <> struct is_char<unsigned char> : std::true_type {};
+        template <typename T> inline constexpr bool is_char_v = is_char<T>::value;
+
         template <typename T> struct promote_char { using type = T; };
         template <typename T> struct promote_char<const T> { using type = std::add_const_t<typename promote_char<T>::type>; };
         template <> struct promote_char<char> { using type = int; };
