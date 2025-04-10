@@ -20,5 +20,8 @@
     <ClInclude Include="..\include\rarecpp\string_buffer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\rarecpp\editor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
