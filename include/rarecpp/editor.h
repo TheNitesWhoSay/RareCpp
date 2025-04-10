@@ -3051,7 +3051,7 @@ namespace RareEdit
                             if constexpr ( hasElementRemovedOp<PathTaggedIndexes<path_pack, Indexes<decltype(indexes)>>, std::size_t> )
                             {
                                 for ( std::ptrdiff_t i=size; i>size-count; --i )
-                                    notifyElementRemoved(user, PathTaggedIndexes<path_pack, Indexes<decltype(indexes)>>{indexes}, i);
+                                    notifyElementRemoved(user, PathTaggedIndexes<path_pack, Indexes<decltype(indexes)>>{indexes}, static_cast<std::size_t>(i));
                             }
                         }
                     }
@@ -4855,8 +4855,8 @@ namespace RareEdit
     class Edit : private EditRoot<T, User, Edit<T, User>>, public edit_members<EditRoot<T, User, Edit<T, User>>, typename decltype(defaultIndexType<T>())::type, T>
     {
         Edit(T & t, User & user) :
-            edit_members<EditRoot<T, User, Edit<T, User>>, typename decltype(defaultIndexType<T>())::type, T>{(EditRoot<T, User, Edit<T, User>>&)*this, std::tuple{}},
-            EditRoot<T, User, Edit<T, User>>(*this, t, user) {}
+            EditRoot<T, User, Edit<T, User>>(*this, t, user),
+            edit_members<EditRoot<T, User, Edit<T, User>>, typename decltype(defaultIndexType<T>())::type, T>{(EditRoot<T, User, Edit<T, User>>&)*this, std::tuple{}} {}
 
         friend class Tracked<T, User>;
         friend struct EditRoot<T, User, Edit<T, User>>;
