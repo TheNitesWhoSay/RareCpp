@@ -8,6 +8,7 @@ set(Headers
 )
 set(Sources
   builder_test.cpp
+  edit_test.cpp
   extended_type_support_test.cpp
   member_test.cpp
   generic_macro_test.cpp
