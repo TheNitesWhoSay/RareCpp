@@ -249,6 +249,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
         
         template <typename T> struct type_id { using type = T; };
         template <typename T> struct type_tag {};
+        template <typename ... Ts> struct type_tags {};
 
         template <typename T, typename TypeIfVoid> struct replace_void { using type = T; };
         template <typename TypeIfVoid> struct replace_void<void, TypeIfVoid> { using type = TypeIfVoid; };
@@ -361,6 +362,8 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
                 std::declval<L>() = static_cast<std::remove_reference_t<L>>(std::declval<const R &>()));
             template <typename T> using BeginOp = decltype(std::declval<T>().begin());
             template <typename T> using EndOp = decltype(std::declval<T>().end());
+            template <typename T> using PopBackOp = decltype(std::declval<T>().pop_back());
+            template <typename T> using EraseOp = decltype(std::declval<T>().pop_back(std::declval<T>().begin()));
             template <typename T, typename E> using PushBackOp = decltype(std::declval<T>().push_back(std::declval<E>()));
             template <typename T, typename E> using PushOp = decltype(std::declval<T>().push(std::declval<E>()));
             template <typename T, typename E> using InsertOp = decltype(std::declval<T>().insert(std::declval<E>()));
@@ -381,6 +384,12 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
         
         template <typename T> struct has_begin_end { static constexpr bool value = op_exists_v<detail::BeginOp, T> && op_exists_v<detail::EndOp, T>; };
         template <typename T> inline constexpr bool has_begin_end_v = has_begin_end<T>::value;
+        
+        template <typename T> struct has_pop_back { static constexpr bool value = op_exists_v<detail::PopBackOp, T>; };
+        template <typename T> inline constexpr bool has_pop_back_v = has_pop_back<T>::value;
+        
+        template <typename T> struct has_erase { static constexpr bool value = op_exists_v<detail::EraseOp, T>; };
+        template <typename T> inline constexpr bool has_erase_v = has_erase<T>::value;
         
         template <typename T, typename E> struct has_push_back { static constexpr bool value = op_exists_v<detail::PushBackOp, T, E>; };
         template <typename T, typename E> inline constexpr bool has_push_back_v = has_push_back<T, E>::value;
@@ -457,6 +466,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
 
         template <typename F, size_t ...Is>
         constexpr void forIndexes(std::index_sequence<Is...>, F f) {
+            MSVC_COMMA_FALSE_POSITIVE
             (void)((f(std::integral_constant<size_t, Is>{}), true) && ...);
         }
 

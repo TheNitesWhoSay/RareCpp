@@ -4,6 +4,7 @@
 // Experimental
 namespace experimental {
     void rest();
+    void dataHistory();
 }
 
 // No-op
@@ -15,6 +16,7 @@ void openMenu()
         .item(
             Menu("Experimental", "Select an experiment: ")
             .item("Rest experiment", &experimental::rest)
+            .item("Data history experiment", &experimental::dataHistory)
         ).item(
             Menu("Legacy examples", "Select an example: ")
             .item("Basic reflection", &basicReflectionExamples)

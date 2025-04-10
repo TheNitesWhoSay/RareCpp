@@ -265,5 +265,8 @@
     <ClCompile Include="examples\auto_reflect_aggregate.cpp">
       <Filter>Source Files\examples\reflect_aggregate</Filter>
     </ClCompile>
+    <ClCompile Include="experimental\tracking.cpp">
+      <Filter>Source Files\experimental</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
