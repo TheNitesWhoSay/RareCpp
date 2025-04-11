@@ -1161,7 +1161,7 @@ namespace RareEdit
         template <class PathElement, class ... Pathway>
         auto & getSelectionsData(auto & selections)
         {
-            if constexpr ( is_path_member_v<PathElement> )
+            if constexpr ( is_path_member_v<PathElement> && !std::is_null_pointer_v<std::remove_cvref_t<decltype(selections)>> )
             {
                 if constexpr ( sizeof...(Pathway) == 0 )
                     return selections.template fromMember<PathElement::index>();
@@ -2614,8 +2614,11 @@ namespace RareEdit
             {
                 auto stringSize = (index_type_t<default_index_type, Member> &)events[offset];
                 offset += sizeof(stringSize);
-                value = std::string{(const char*)&events[offset], stringSize};
-                offset += stringSize;
+                if ( stringSize > 0 )
+                {
+                    value = std::string{(const char*)&events[offset], stringSize};
+                    offset += stringSize;
+                }
             }
             else if constexpr ( RareTs::is_static_array_v<Value> )
             {
