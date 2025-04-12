@@ -1054,9 +1054,7 @@ namespace RareEdit
         if constexpr ( !is_selection_leaf_member_v<member> )
         {
             return RareTs::template Members<member_type>::template pack<is_selection_member>([&](auto ... member) {
-                return [&]<std::size_t ... Is>(std::index_sequence<Is...>){
-                    return object_selection<DefaultIndexType, member_type, Is...>{};
-                }(std::index_sequence<decltype(member)::index...>{});
+                return object_selection<DefaultIndexType, member_type, decltype(member)::index...>{};
             });
         }
         else if constexpr ( RareTs::is_static_array_v<member_type> || RareTs::is_specialization_v<member_type, std::vector> )
