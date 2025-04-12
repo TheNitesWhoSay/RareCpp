@@ -601,7 +601,7 @@ namespace RareEdit
     };
 
     template <class DefaultIndexType, class Member>
-    using index_type_t = typename decltype(RareEdit::template index_typer<DefaultIndexType, Member>())::type;
+    using index_type_t = typename decltype(RareEdit::index_typer<DefaultIndexType, Member>())::type;
 
     template <class Edit, class default_index_type, class RootData, class T, class IndexTypeTuple, class Pathway, template <class...> class SubElement>
     class Editable
@@ -631,14 +631,14 @@ namespace RareEdit
             }
         }
 
-        using Member = typename RareTs::remove_cvref_t<decltype([]<std::size_t ... Is>(std::index_sequence<Is...>) {
-            return getMemberImpl<RootData, void, std::tuple_element_t<Is, Pathway>...>();
-        }(std::make_index_sequence<std::tuple_size_v<Pathway>>()))>::type;
-
         class RandomAccess : public Indexes<IndexTypeTuple>
         {
 
-            using index_type = index_type_t<default_index_type, Member>;
+            template <std::size_t ... Is>
+            static constexpr auto MemberType(std::index_sequence<Is...>)
+                -> typename std::remove_cvref_t<decltype(getMemberImpl<RootData, void, std::tuple_element_t<Is, Pathway>...>())>::type;
+
+            using index_type = index_type_t<default_index_type, decltype(MemberType(std::make_index_sequence<std::tuple_size_v<Pathway>>()))>;
 
             template <std::size_t... Is, size_t... Js>
             static constexpr auto selectionOpType(std::index_sequence<Is...>, std::index_sequence<Js...>) -> SubElement<Edit, default_index_type, RootData, T,
@@ -2767,7 +2767,7 @@ namespace RareEdit
                             readValue<element_type, Member>(offset); // assigned value (unused)
                             auto size = static_cast<std::size_t>(readIndex<index_type>(offset)); // prev size
 
-                            std::remove_cvref_t<decltype(ref)> prevContainer;
+                            std::remove_cvref_t<decltype(ref)> prevContainer {};
                             prevContainer.reserve(size);
                             for ( std::size_t i=0; i<size; ++i )
                                 prevContainer.push_back(readValue<element_type, Member>(offset));
@@ -2786,7 +2786,7 @@ namespace RareEdit
                             readIndex<index_type>(offset); // new size (unused)
                             auto size = static_cast<std::size_t>(readIndex<index_type>(offset)); // old size
 
-                            std::remove_cvref_t<decltype(ref)> prevContainer;
+                            std::remove_cvref_t<decltype(ref)> prevContainer {};
                             prevContainer.reserve(size);
                             for ( std::size_t i=0; i<size; ++i )
                                 prevContainer.push_back(readValue<element_type, Member>(offset));
