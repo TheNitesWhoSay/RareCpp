@@ -530,7 +530,7 @@ namespace RareEdit
     template <> struct is_selection_set<std::tuple<>> { static constexpr bool value = false; };
     template <class T> inline constexpr bool is_selection_set_v = is_selection_set<T>::value; 
 
-    template <class Edit, class default_index_type, class T, class IndexTypeTuple, class Pathway>
+    template <class Edit, class default_index_type, class RootData, class T, class IndexTypeTuple, class Pathway>
     class EditPrimitive : public Indexes<IndexTypeTuple>
     {
         Edit & root;
@@ -547,30 +547,30 @@ namespace RareEdit
         }
     };
 
-    template <class Edit, class default_index_type, class T, class IndexTypeTuple, class Pathway, std::size_t I, std::size_t ... Is>
+    template <class Edit, class default_index_type, class RootData, class T, class IndexTypeTuple, class Pathway, std::size_t I, std::size_t ... Is>
     static constexpr auto editMember(std::index_sequence<Is...>);
 
-    template <class Edit, class default_index_type, class T, class IndexTypeTuple, class Pathway> struct edit_member
+    template <class Edit, class default_index_type, class RootData, class T, class IndexTypeTuple, class Pathway> struct edit_member
     {
-        template <std::size_t I> using type = typename decltype(editMember<Edit, default_index_type, T, IndexTypeTuple, Pathway, I>(std::make_index_sequence<std::tuple_size_v<Pathway>>()))::type;
+        template <std::size_t I> using type = typename decltype(editMember<Edit, default_index_type, RootData, T, IndexTypeTuple, Pathway, I>(std::make_index_sequence<std::tuple_size_v<Pathway>>()))::type;
     };
 
-    template <class Edit, class default_index_type, class T, class IndexTypeTuple, class Pathway, std::size_t ... Is>
-    struct EditMembers : Indexes<IndexTypeTuple>, RareTs::Class::adapt_member<edit_member<Edit, default_index_type, T, IndexTypeTuple, Pathway>::template type, T, Is>...
+    template <class Edit, class default_index_type, class RootData, class T, class IndexTypeTuple, class Pathway, std::size_t ... Is>
+    struct EditMembers : Indexes<IndexTypeTuple>, RareTs::Class::adapt_member<edit_member<Edit, default_index_type, RootData, T, IndexTypeTuple, Pathway>::template type, T, Is>...
     {
         EditMembers(Edit & root, IndexTypeTuple indexes) :
             Indexes<IndexTypeTuple> {indexes},
-            RareTs::Class::template adapt_member<edit_member<Edit, default_index_type, T, IndexTypeTuple, Pathway>::template type, T, Is> {{ root, indexes }}...,
+            RareTs::Class::template adapt_member<edit_member<Edit, default_index_type, RootData, T, IndexTypeTuple, Pathway>::template type, T, Is> {{ root, indexes }}...,
             root(root) {}
     private:
         Edit & root;
     };
 
-    template <class Edit, class default_index_type, class T, class IndexTypeTuple, class Pathway, std::size_t... Is>
-    EditMembers<Edit, default_index_type, T, IndexTypeTuple, Pathway, Is...> editMembers(std::index_sequence<Is...>);
+    template <class Edit, class default_index_type, class RootData, class T, class IndexTypeTuple, class Pathway, std::size_t... Is>
+    EditMembers<Edit, default_index_type, RootData, T, IndexTypeTuple, Pathway, Is...> editMembers(std::index_sequence<Is...>);
 
-    template <class Edit, class default_index_type, class T, class IndexTypeTuple = std::tuple<>, class Pathway = std::tuple<>>
-    using edit_members = decltype(editMembers<Edit, default_index_type, T, IndexTypeTuple, Pathway>(std::make_index_sequence<RareTs::Members<T>::total>()));
+    template <class Edit, class default_index_type, class RootData, class T, class IndexTypeTuple = std::tuple<>, class Pathway = std::tuple<>>
+    using edit_members = decltype(editMembers<Edit, default_index_type, RootData, T, IndexTypeTuple, Pathway>(std::make_index_sequence<RareTs::Members<T>::total>()));
 
     template <class DefaultIndexType, class Member>
     inline constexpr auto index_typer()
@@ -601,24 +601,52 @@ namespace RareEdit
     };
 
     template <class DefaultIndexType, class Member>
-    using index_type_t = typename decltype(RareEdit::template index_typer<DefaultIndexType, Member>())::type;
+    using index_type_t = typename decltype(RareEdit::index_typer<DefaultIndexType, Member>())::type;
 
-    template <class Edit, class default_index_type, class T, class IndexTypeTuple, class Pathway, template <class...> class SubElement>
+    template <class Edit, class default_index_type, class RootData, class T, class IndexTypeTuple, class Pathway, template <class...> class SubElement>
     class Editable
     {
+        template <class U, class LastMember, class PathElement, class ... PathElements>
+        static constexpr auto getMemberImpl()
+        {
+            if constexpr ( is_path_selections_v<PathElement> )
+            {
+                if constexpr ( sizeof...(PathElements) == 0 )
+                    return std::type_identity<LastMember> {};
+                else
+                    return getMemberImpl<std::remove_cvref_t<decltype(std::declval<U>()[0])>, LastMember, PathElements...>();
+            }
+            else if constexpr ( is_path_member_v<PathElement> )
+            {
+                if constexpr ( sizeof...(PathElements) == 0 )
+                    return std::type_identity<RareTs::Member<U, PathElement::index>> {};
+                else
+                    return getMemberImpl<typename RareTs::Member<U, PathElement::index>::type, RareTs::Member<U, PathElement::index>, PathElements...>();
+            }
+            else if constexpr ( is_path_index_v<PathElement> )
+            {
+                static_assert(sizeof...(PathElements) > 0, "The pathway passed to get member cannot end with an index!");
+                if constexpr ( sizeof...(PathElements) > 0 )
+                    return getMemberImpl<std::remove_cvref_t<decltype(std::declval<U>()[0])>, LastMember, PathElements...>();
+            }
+        }
+
         class RandomAccess : public Indexes<IndexTypeTuple>
         {
-            using Member = typename Edit::template Member<Pathway>;
 
-            using index_type = index_type_t<default_index_type, Member>;
+            template <std::size_t ... Is>
+            static constexpr auto MemberType(std::index_sequence<Is...>)
+                -> typename std::remove_cvref_t<decltype(getMemberImpl<RootData, void, std::tuple_element_t<Is, Pathway>...>())>::type;
+
+            using index_type = index_type_t<default_index_type, decltype(MemberType(std::make_index_sequence<std::tuple_size_v<Pathway>>()))>;
 
             template <std::size_t... Is, size_t... Js>
-            static constexpr auto selectionOpType(std::index_sequence<Is...>, std::index_sequence<Js...>) -> SubElement<Edit, default_index_type, T,
+            static constexpr auto selectionOpType(std::index_sequence<Is...>, std::index_sequence<Js...>) -> SubElement<Edit, default_index_type, RootData, T,
                 std::tuple<std::tuple_element_t<Is, IndexTypeTuple>...>,
                 std::tuple<std::tuple_element_t<Js, Pathway>..., PathSelections>>;
         
             template <std::size_t... Is, size_t... Js>
-            static constexpr auto arrayOpType(std::index_sequence<Is...>, std::index_sequence<Js...>) -> SubElement<Edit, default_index_type, T,
+            static constexpr auto arrayOpType(std::index_sequence<Is...>, std::index_sequence<Js...>) -> SubElement<Edit, default_index_type, RootData, T,
                 std::tuple<std::tuple_element_t<Is, IndexTypeTuple>..., index_type>,
                 std::tuple<std::tuple_element_t<Js, Pathway>..., PathIndex<sizeof...(Is)>>>;
 
@@ -952,39 +980,39 @@ namespace RareEdit
         };
     };
 
-    template <class Edit, class default_index_type, class T, class IndexTypeTuple, class Pathway>
+    template <class Edit, class default_index_type, class RootData, class T, class IndexTypeTuple, class Pathway>
     static constexpr auto editVector()
     {
         using element_type = RareTs::element_type_t<T>;
         if constexpr ( RareTs::is_reflected_v<element_type> )
-            return std::type_identity<typename Editable<Edit, default_index_type, element_type, IndexTypeTuple, Pathway, edit_members>::Vector>{};
+            return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, IndexTypeTuple, Pathway, edit_members>::Vector>{};
         else
-            return std::type_identity<typename Editable<Edit, default_index_type, element_type, IndexTypeTuple, Pathway, EditPrimitive>::Vector>{};
+            return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, IndexTypeTuple, Pathway, EditPrimitive>::Vector>{};
     }
 
-    template <class Edit, class default_index_type, class T, class IndexTypeTuple, class Pathway>
+    template <class Edit, class default_index_type, class RootData, class T, class IndexTypeTuple, class Pathway>
     static constexpr auto editArray()
     {
         using element_type = RareTs::element_type_t<T>;
         if constexpr ( RareTs::is_reflected_v<element_type> )
-            return std::type_identity<typename Editable<Edit, default_index_type, element_type, IndexTypeTuple, Pathway, edit_members>::Array>{};
+            return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, IndexTypeTuple, Pathway, edit_members>::Array>{};
         else
-            return std::type_identity<typename Editable<Edit, default_index_type, element_type, IndexTypeTuple, Pathway, EditPrimitive>::Array>{};
+            return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, IndexTypeTuple, Pathway, EditPrimitive>::Array>{};
     }
 
-    template <class Edit, class default_index_type, class T, class IndexTypeTuple, class Pathway, std::size_t I, std::size_t ... Is>
+    template <class Edit, class default_index_type, class RootData, class T, class IndexTypeTuple, class Pathway, std::size_t I, std::size_t ... Is>
     static constexpr auto editMember(std::index_sequence<Is...>)
     {
         using Path = std::tuple<std::tuple_element_t<Is, Pathway>..., PathMember<I>>;
         using member_type = typename RareTs::Member<T, I>::type;
         if constexpr ( RareTs::is_static_array_v<member_type> )
-            return decltype(editArray<Edit, default_index_type, member_type, IndexTypeTuple, Path>()){};
+            return decltype(editArray<Edit, default_index_type, RootData, member_type, IndexTypeTuple, Path>()){};
         else if constexpr ( RareTs::is_specialization_v<member_type, std::vector> ) // Vector
-            return decltype(editVector<Edit, default_index_type, member_type, IndexTypeTuple, Path>()){};
+            return decltype(editVector<Edit, default_index_type, RootData, member_type, IndexTypeTuple, Path>()){};
         else if constexpr ( RareTs::is_reflected_v<member_type> ) // Reflected object
-            return std::type_identity<edit_members<Edit, default_index_type, member_type, IndexTypeTuple, Path>>{};
+            return std::type_identity<edit_members<Edit, default_index_type, RootData, member_type, IndexTypeTuple, Path>>{};
         else // Primitive
-            return std::type_identity<EditPrimitive<Edit, default_index_type, member_type, IndexTypeTuple, Path>>{};
+            return std::type_identity<EditPrimitive<Edit, default_index_type, RootData, member_type, IndexTypeTuple, Path>>{};
     }
 
     template <typename T> struct is_selection_leaf_member {
@@ -1026,9 +1054,7 @@ namespace RareEdit
         if constexpr ( !is_selection_leaf_member_v<member> )
         {
             return RareTs::template Members<member_type>::template pack<is_selection_member>([&](auto ... member) {
-                return [&]<std::size_t ... Is>(std::index_sequence<Is...>){
-                    return object_selection<DefaultIndexType, member_type, Is...>{};
-                }(std::index_sequence<decltype(member)::index...>{});
+                return object_selection<DefaultIndexType, member_type, decltype(member)::index...>{};
             });
         }
         else if constexpr ( RareTs::is_static_array_v<member_type> || RareTs::is_specialization_v<member_type, std::vector> )
@@ -1133,7 +1159,7 @@ namespace RareEdit
         template <class PathElement, class ... Pathway>
         auto & getSelectionsData(auto & selections)
         {
-            if constexpr ( is_path_member_v<PathElement> )
+            if constexpr ( is_path_member_v<PathElement> && !std::is_null_pointer_v<std::remove_cvref_t<decltype(selections)>> )
             {
                 if constexpr ( sizeof...(Pathway) == 0 )
                     return selections.template fromMember<PathElement::index>();
@@ -1164,36 +1190,6 @@ namespace RareEdit
         constexpr bool hasSelections() {
             return !std::is_null_pointer_v<std::remove_cvref_t<decltype(getSelections<Pathway>())>>;
         }
-
-        template <class U, class LastMember, class PathElement, class ... Pathway>
-        static constexpr auto getMemberImpl()
-        {
-            if constexpr ( is_path_selections_v<PathElement> )
-            {
-                if constexpr ( sizeof...(Pathway) == 0 )
-                    return LastMember {};
-                else
-                    return getMemberImpl<std::remove_cvref_t<decltype(std::declval<U>()[0])>, LastMember, Pathway...>();
-            }
-            else if constexpr ( is_path_member_v<PathElement> )
-            {
-                if constexpr ( sizeof...(Pathway) == 0 )
-                    return RareTs::Member<U, PathElement::index> {};
-                else
-                    return getMemberImpl<typename RareTs::Member<U, PathElement::index>::type, RareTs::Member<U, PathElement::index>, Pathway...>();
-            }
-            else if constexpr ( is_path_index_v<PathElement> )
-            {
-                static_assert(sizeof...(Pathway) > 0, "The pathway passed to get member cannot end with an index!");
-                if constexpr ( sizeof...(Pathway) > 0 )
-                    return getMemberImpl<std::remove_cvref_t<decltype(std::declval<U>()[0])>, LastMember, Pathway...>();
-            }
-        }
-
-        template <class Pathway>
-        using Member = RareTs::remove_cvref_t<decltype([]<std::size_t ... Is>(std::index_sequence<Is...>) {
-            return getMemberImpl<type, void, std::tuple_element_t<Is, Pathway>...>();
-        }(std::make_index_sequence<std::tuple_size_v<Pathway>>()))>;
 
         template <class IndexTypeTuple, class U, class PathElement, class ... Pathway>
         auto & getMemberReferenceImpl(U & t, IndexTypeTuple & indexes)
@@ -2616,8 +2612,11 @@ namespace RareEdit
             {
                 auto stringSize = (index_type_t<default_index_type, Member> &)events[offset];
                 offset += sizeof(stringSize);
-                value = std::string{(const char*)&events[offset], stringSize};
-                offset += stringSize;
+                if ( stringSize > 0 )
+                {
+                    value = std::string{(const char*)&events[offset], stringSize};
+                    offset += stringSize;
+                }
             }
             else if constexpr ( RareTs::is_static_array_v<Value> )
             {
@@ -2768,7 +2767,7 @@ namespace RareEdit
                             readValue<element_type, Member>(offset); // assigned value (unused)
                             auto size = static_cast<std::size_t>(readIndex<index_type>(offset)); // prev size
 
-                            std::remove_cvref_t<decltype(ref)> prevContainer;
+                            std::remove_cvref_t<decltype(ref)> prevContainer {};
                             prevContainer.reserve(size);
                             for ( std::size_t i=0; i<size; ++i )
                                 prevContainer.push_back(readValue<element_type, Member>(offset));
@@ -2787,7 +2786,7 @@ namespace RareEdit
                             readIndex<index_type>(offset); // new size (unused)
                             auto size = static_cast<std::size_t>(readIndex<index_type>(offset)); // old size
 
-                            std::remove_cvref_t<decltype(ref)> prevContainer;
+                            std::remove_cvref_t<decltype(ref)> prevContainer {};
                             prevContainer.reserve(size);
                             for ( std::size_t i=0; i<size; ++i )
                                 prevContainer.push_back(readValue<element_type, Member>(offset));
@@ -4852,11 +4851,11 @@ namespace RareEdit
     template <class Data, class User> class Tracked;
 
     template <class T, class User>
-    class Edit : private EditRoot<T, User, Edit<T, User>>, public edit_members<EditRoot<T, User, Edit<T, User>>, typename decltype(defaultIndexType<T>())::type, T>
+    class Edit : private EditRoot<T, User, Edit<T, User>>, public edit_members<EditRoot<T, User, Edit<T, User>>, typename decltype(defaultIndexType<T>())::type, T, T>
     {
         Edit(T & t, User & user) :
             EditRoot<T, User, Edit<T, User>>(*this, t, user),
-            edit_members<EditRoot<T, User, Edit<T, User>>, typename decltype(defaultIndexType<T>())::type, T>{(EditRoot<T, User, Edit<T, User>>&)*this, std::tuple{}} {}
+            edit_members<EditRoot<T, User, Edit<T, User>>, typename decltype(defaultIndexType<T>())::type, T, T>{(EditRoot<T, User, Edit<T, User>>&)*this, std::tuple{}} {}
 
         friend class Tracked<T, User>;
         friend struct EditRoot<T, User, Edit<T, User>>;
