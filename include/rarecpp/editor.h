@@ -2,7 +2,6 @@
 #define EDITOR_H
 #include <algorithm>
 #include <bitset>
-#include <concepts>
 #include <cstddef>
 #include <cstdint>
 #include <numeric>
@@ -20,9 +19,6 @@
 namespace RareEdit
 {
     template <typename SizeType> struct IndexSize { using type = SizeType; };
-
-    template <typename T>
-    concept has_default_index_type = requires { typename T::default_index_type; };
 
     template <typename T>
     constexpr auto defaultIndexType()
@@ -895,11 +891,7 @@ namespace RareEdit
             RandomAccess(Edit & root, IndexTypeTuple && indexes) : Indexes<IndexTypeTuple> {std::move(indexes)}, root(root) {}
 
             auto operator[](std::size_t i) {
-                #ifdef __INTELLISENSE__ // While gcc, clang and MSVC compilers accept using index_type, intellisense does not and complains IndexTypeTuple is incomplete
-                return array_op_type(root, std::tuple_cat((std::add_lvalue_reference_t<IndexTypeTuple>)(*this), std::tuple(i)));
-                #else
                 return array_op_type(root, std::tuple_cat((std::add_lvalue_reference_t<IndexTypeTuple>)(*this), std::tuple{static_cast<index_type>(i)}));
-                #endif
             }
         };
 
@@ -4848,7 +4840,9 @@ namespace RareEdit
         }
     };
 
-    template <class Data, class User> class Tracked;
+    template <class Data, class User>
+    requires RareTs::is_in_class_reflected_v<Data> && std::is_object_v<User>
+    class Tracked;
 
     template <class T, class User>
     class Edit : private EditRoot<T, User, Edit<T, User>>, public edit_members<EditRoot<T, User, Edit<T, User>>, typename decltype(defaultIndexType<T>())::type, T, T>
@@ -4866,13 +4860,14 @@ namespace RareEdit
     };
 
     template <class Data, class User>
+    requires RareTs::is_in_class_reflected_v<Data> && std::is_object_v<User>
     class Tracked : Data
     {
         static constexpr std::uint64_t flagElidedRedos    = 0x8000000000000000ull;
         static constexpr std::uint64_t maskElidedRedoSize = 0x7FFFFFFFFFFFFFFFull; // The total size of this elided redo branch, including sub-branches
-        
+
         using edit_type = Edit<Data, User>;
-        Edit<Data, User> editable;
+        edit_type editable;
 
         std::vector<std::uint64_t> actionFirstEvent; // Index of the first data-change event for the given action
         int actionReferenceCount = 0; // Referencing counting for the current action, new actions can only be created when the old action is closed
@@ -4928,7 +4923,7 @@ namespace RareEdit
         #define PATH(...) MakePath<decltype(__VA_ARGS__)>
 
     public:
-        const Edit<Data, User> & view;
+        const edit_type & view;
         Tracked(User* user) : editable(*this, *user), view(editable) {}
         Tracked(User & user) : editable(*this, user), view(editable) {}
 
@@ -5649,7 +5644,7 @@ namespace RareEdit
                     std::cout << std::nouppercase << std::dec;
 
                     std::cout << " // edit";
-                    printEvent<typename Edit<Data, User>::type>(eventOffset);
+                    printEvent<typename edit_type::type>(eventOffset);
                     std::cout << '\n';
                 }
                 std::cout << '\n';
