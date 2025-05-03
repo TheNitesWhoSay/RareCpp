@@ -3844,8 +3844,6 @@ namespace RareEdit
                             ref.insert(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removalIndex)), removedValue);
                             if constexpr ( hasElementMovedOp<Route> )
                             {
-                                //for ( std::size_t i=static_cast<std::size_t>(removalIndex); i<std::size(ref); ++i )
-                                //    notifyElementMoved(user, Route{indexes}, i, i+1);
                                 for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(std::size(ref))-1; i>static_cast<std::ptrdiff_t>(removalIndex); --i )
                                     notifyElementMoved(user, Route{indexes}, i-1, i);
                             }
@@ -3913,7 +3911,7 @@ namespace RareEdit
                             if constexpr ( hasElementAddedOp<Route> )
                             {
                                 for ( std::ptrdiff_t i=std::size(removalIndexes)-1; i>=0; --i )
-                                    notifyElementAdded(user, Route{indexes}, i);
+                                    notifyElementAdded(user, Route{indexes}, removalIndexes[i]);
                             }
 
                             if constexpr ( hasSelections )
@@ -3925,14 +3923,14 @@ namespace RareEdit
                                 std::size_t prevSelIndexCount = static_cast<std::size_t>(readIndex<index_type>(offset));
                                 auto prevSelIndexes = readIndexes<index_type>(offset, prevSelIndexCount);
 
-                                std::size_t unremovedSelCount = 0;
+                                std::size_t unremovedI = std::size(prevSelIndexes)-1;
                                 for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(removalCount)-1; i>=0; --i )
                                 {
                                     if ( removalIndexSelected[static_cast<std::size_t>(i)] )
                                     {
                                         auto insertedValue = removalIndexes[static_cast<std::size_t>(i)];
-                                        sel.insert(std::next(sel.begin(), static_cast<std::ptrdiff_t>(prevSelIndexes[unremovedSelCount])), insertedValue);
-                                        ++unremovedSelCount;
+                                        sel.insert(std::next(sel.begin(), static_cast<std::ptrdiff_t>(prevSelIndexes[unremovedI])), insertedValue);
+                                        --unremovedI;
                                     }
                                 }
                                 
@@ -3955,12 +3953,8 @@ namespace RareEdit
                                 removedValues.push_back(readValue<element_type, Member>(offset));
 
                             for ( std::ptrdiff_t i=removalCount-1; i>=0; --i ) // insert values which were removed from the lowest indexes first
-                            {
                                 ref.insert(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removalIndexes[static_cast<std::size_t>(i)])), removedValues[static_cast<std::size_t>(i)]);
-                                
-                                if constexpr ( hasElementAddedOp<Route> )
-                                    notifyElementAdded(user, Route{indexes}, static_cast<std::size_t>(removalIndexes[static_cast<std::size_t>(i)]));
-                            }
+
                             if constexpr ( hasElementMovedOp<Route> )
                             {
                                 std::ptrdiff_t collectionIndex = std::size(ref)-1;
@@ -3973,6 +3967,12 @@ namespace RareEdit
                                     for ( collectionIndex = static_cast<std::ptrdiff_t>(removalIndexes[i-1])-1; collectionIndex > static_cast<std::ptrdiff_t>(removalIndexes[i]); --collectionIndex )
                                         notifyElementMoved(user, Route{indexes}, collectionIndex-moveDistance, collectionIndex);
                                 }
+                            }
+                            
+                            if constexpr ( hasElementAddedOp<Route> )
+                            {
+                                for ( std::ptrdiff_t i=removalCount-1; i>=0; --i ) // insert values which were removed from the lowest indexes first
+                                    notifyElementAdded(user, Route{indexes}, static_cast<std::size_t>(removalIndexes[static_cast<std::size_t>(i)]));
                             }
 
                             readSelections(events, offset, getSelections<path_pack>());
@@ -4006,7 +4006,7 @@ namespace RareEdit
 
                             if constexpr ( hasElementMovedOp<Route> )
                             {
-                                for ( std::ptrdiff_t i=count; i>=0; --i )
+                                for ( std::ptrdiff_t i=count-1; i>=0; --i )
                                 {
                                     if ( i != static_cast<std::ptrdiff_t>(sourceIndexes[i]) )
                                         notifyElementMoved(user, Route{indexes}, static_cast<std::size_t>(i), static_cast<std::size_t>(sourceIndexes[i]));
@@ -4041,7 +4041,7 @@ namespace RareEdit
 
                             if constexpr ( hasElementMovedOp<Route> )
                             {
-                                for ( std::ptrdiff_t i=count; i>=0; --i )
+                                for ( std::ptrdiff_t i=count-1; i>=0; --i )
                                 {
                                     if ( i != static_cast<std::ptrdiff_t>(sourceIndexes[i]) )
                                         notifyElementMoved(user, Route{indexes}, static_cast<std::size_t>(i), static_cast<std::size_t>(sourceIndexes[i]));
