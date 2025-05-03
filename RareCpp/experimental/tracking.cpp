@@ -68,12 +68,12 @@ struct TracedObj : Tracked<MyObj, TracedObj>
 
 void TracedObj::valueChanged(actor_xc_path path, int oldXc, int newXc)
 {
-    std::cout << "Notify: actor[" << std::get<0>(path.indexes) << "].xc changed from " << oldXc << " to " << newXc << "\n";
+    std::cout << "Notify: actor[" << path.index<0>() << "].xc changed from " << oldXc << " to " << newXc << "\n";
 }
 
 void TracedObj::valueChanged(actor_yc_path path, int oldYc, int newYc)
 {
-    std::cout << "Notify: actor[" << std::get<0>(path.indexes) << "].yc changed from " << oldYc << " to " << newYc << "\n";
+    std::cout << "Notify: actor[" << path.index<0>() << "].yc changed from " << oldYc << " to " << newYc << "\n";
 }
 
 void TracedObj::elementAdded(actor_path, std::size_t index)
