@@ -1987,9 +1987,8 @@ namespace RareEdit
                 ref.insert(std::next(ref.begin(), static_cast<std::ptrdiff_t>(insertionIndex)), std::forward<Value>(value));
                 if constexpr ( hasElementMovedOp<Route> )
                 {
-                    std::size_t size = std::size(ref);
-                    for ( std::size_t i=static_cast<std::size_t>(insertionIndex); i<size; ++i )
-                        notifyElementMoved(user, Route{indexes}, i, i+1);
+                    for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(std::size(ref))-1; i>static_cast<std::ptrdiff_t>(insertionIndex); --i )
+                        notifyElementMoved(user, Route{indexes}, i-1, i);
                 }
                 if constexpr ( hasElementAddedOp<Route> )
                     notifyElementAdded(user, Route{indexes}, static_cast<std::size_t>(insertionIndex));
@@ -2026,7 +2025,7 @@ namespace RareEdit
                 {
                     std::size_t countInserted = std::size(values);
                     std::size_t prevSize = std::size(ref) - countInserted;
-                    for ( std::size_t i=static_cast<std::size_t>(insertionIndex); i<prevSize; ++i )
+                    for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(prevSize)-1; i>=static_cast<std::ptrdiff_t>(insertionIndex); --i )
                         notifyElementMoved(user, Route{indexes}, i, i+countInserted);
                 }
                 if constexpr ( hasElementAddedOp<Route> )
@@ -2063,15 +2062,10 @@ namespace RareEdit
                 using index_type = index_type_t<default_index_type, Member>;
                 serializeIndex<Member>(removalIndex);
                 serializeValue<Member>(ref[static_cast<std::size_t>(removalIndex)]);
-
+                
+                ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removalIndex)));
                 if constexpr ( hasElementRemovedOp<Route> )
-                {
-                    auto value = ref[static_cast<std::size_t>(removalIndex)];
-                    ref.erase(std::next(ref.begin(), static_cast<std::size_t>(removalIndex)));
                     notifyElementRemoved(user, Route{indexes}, static_cast<std::size_t>(removalIndex));
-                }
-                else
-                    ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removalIndex)));
 
                 if constexpr ( hasElementMovedOp<Route> )
                 {
@@ -2096,9 +2090,9 @@ namespace RareEdit
                     index_type foundAt = static_cast<index_type>(std::distance(sel.begin(), found));
                     serializeIndex<Member>(foundAt);
                     sel.erase(found);
-                    if constexpr ( hasSelectionsChangedOp<Route> )
-                        notifySelectionsChanged(user, Route{indexes});
                 }
+                if constexpr ( hasSelectionsChangedOp<Route> )
+                    notifySelectionsChanged(user, Route{indexes});
             });
         }
 
@@ -2138,7 +2132,7 @@ namespace RareEdit
                         {
                             for ( std::size_t j=removalIndexes[i]; j<removalIndexes[i-1]-1; ++j )
                             {
-                                notifyMove(ref[collectionIndex], collectionIndex+moveDistance, collectionIndex);
+                                notifyElementMoved(user, Route{indexes}, collectionIndex+moveDistance, collectionIndex);
                                 ++collectionIndex;
                             }
                             ++moveDistance;
@@ -3767,7 +3761,7 @@ namespace RareEdit
                             ref.erase(std::next(ref.begin(), size-count), ref.end());
                             if constexpr ( hasElementRemovedOp<Route> )
                             {
-                                for ( std::ptrdiff_t i=size; i>size-count; --i )
+                                for ( std::ptrdiff_t i=size-1; i>=size-count; --i )
                                     notifyElementRemoved(user, Route{indexes}, static_cast<std::size_t>(i));
                             }
                         }
@@ -3816,15 +3810,15 @@ namespace RareEdit
                                 for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(insertionIndex)+static_cast<std::ptrdiff_t>(insertionCount)-1;
                                     i >= static_cast<std::ptrdiff_t>(insertionIndex); --i )
                                 {
-                                    notifyElementRemoved(user, Route{indexes}, static_cast<std::size_t>(insertionIndex));
+                                    notifyElementRemoved(user, Route{indexes}, static_cast<std::size_t>(i));
                                 }
                             }
                             if constexpr ( hasElementMovedOp<Route> )
                             {
                                 for ( std::size_t i=static_cast<std::size_t>(insertionIndex);
-                                    i<static_cast<std::size_t>(insertionIndex)+static_cast<std::size_t>(insertionCount); ++i )
+                                    i+1<static_cast<std::size_t>(insertionIndex)+static_cast<std::size_t>(insertionCount); ++i )
                                 {
-                                    notifyElementMoved(user, Route{indexes}, i+1, i);
+                                    notifyElementMoved(user, Route{indexes}, i+static_cast<std::size_t>(insertionCount), i);
                                 }
                             }
                             if constexpr ( hasSelections )
@@ -3848,13 +3842,15 @@ namespace RareEdit
                             auto removalIndex = readIndex<index_type>(offset);
                             auto removedValue = readValue<element_type, Member>(offset);
                             ref.insert(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removalIndex)), removedValue);
-                            if constexpr ( hasElementAddedOp<Route> )
-                                notifyElementAdded(user, Route{indexes}, removalIndex);
                             if constexpr ( hasElementMovedOp<Route> )
                             {
-                                for ( std::size_t i=static_cast<std::size_t>(removalIndex); i<std::size(ref); ++i )
-                                    notifyElementMoved(user, Route{indexes}, i, i+1);
+                                //for ( std::size_t i=static_cast<std::size_t>(removalIndex); i<std::size(ref); ++i )
+                                //    notifyElementMoved(user, Route{indexes}, i, i+1);
+                                for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(std::size(ref))-1; i>static_cast<std::ptrdiff_t>(removalIndex); --i )
+                                    notifyElementMoved(user, Route{indexes}, i-1, i);
                             }
+                            if constexpr ( hasElementAddedOp<Route> )
+                                notifyElementAdded(user, Route{indexes}, removalIndex);
 
                             if ( u8bool::read(events, offset) )
                             {
@@ -3868,10 +3864,10 @@ namespace RareEdit
                                         if ( i > removalIndex )
                                             ++i;
                                     }
-                                    if constexpr ( hasSelectionsChangedOp<Route> )
-                                        notifySelectionsChanged(user, Route{indexes});
                                 }
                             }
+                            if constexpr ( hasSelectionsChangedOp<Route> )
+                                notifySelectionsChanged(user, Route{indexes});
                         }
                     }
                     break;
@@ -5368,9 +5364,8 @@ namespace RareEdit
 
                             if constexpr ( hasElementMovedOp<Route> )
                             {
-                                std::size_t size = std::size(ref);
-                                for ( std::size_t i=static_cast<std::size_t>(insertionIndex); i<size; ++i )
-                                    notifyElementMoved(user, Route{indexes}, i, i+1);
+                                for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(std::size(ref))-1; i>static_cast<std::ptrdiff_t>(insertionIndex); --i )
+                                    notifyElementMoved(user, Route{indexes}, i-1, i);
                             }
                             if constexpr ( hasElementAddedOp<Route> )
                                 notifyElementAdded(user, Route{indexes}, static_cast<std::size_t>(insertionIndex));
@@ -5406,7 +5401,7 @@ namespace RareEdit
                             if constexpr ( hasElementMovedOp<Route> )
                             {
                                 std::size_t prevSize = std::size(ref) - insertionCount;
-                                for ( std::size_t i=static_cast<std::size_t>(insertionIndex); i<prevSize; ++i )
+                                for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(prevSize)-1; i>=static_cast<std::ptrdiff_t>(insertionIndex); --i )
                                     notifyElementMoved(user, Route{indexes}, i, i+insertionCount);
                             }
                             if constexpr ( hasElementAddedOp<Route> )
@@ -5457,11 +5452,10 @@ namespace RareEdit
                                         --(*it);
                                 }
                                 if ( found != sel.end() )
-                                {
                                     sel.erase(found);
-                                    if constexpr ( hasSelectionsChangedOp<Route> )
-                                        notifySelectionsChanged(user, Route{indexes});
-                                }
+
+                                if constexpr ( hasSelectionsChangedOp<Route> )
+                                    notifySelectionsChanged(user, Route{indexes});
                             }
                         }
                     }

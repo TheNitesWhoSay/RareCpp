@@ -634,6 +634,160 @@ TEST(OpNtfy, SetL)
     EXPECT_EQ(doExpected, obj.changes);
 }
 
+TEST(OpNtfy, Append)
+{
+    Obj obj {};
+    obj()->vec = std::vector{2, 3};
+
+    std::vector<Change> doExpected {
+        { .type = ChangeType::ElementAdded, .fieldIndex = vecFieldIndex, .index = 2 },
+    };
+    std::vector<Change> undoExpected {
+        { .type = ChangeType::ElementRemoved, .fieldIndex = vecFieldIndex, .index = 2 }
+    };
+
+    obj.changes.clear();
+    obj()->vec.append(4);
+    EXPECT_EQ(doExpected, obj.changes);
+
+    obj.changes.clear();
+    obj.undoAction();
+    EXPECT_EQ(undoExpected, obj.changes);
+
+    obj.changes.clear();
+    obj.redoAction();
+    EXPECT_EQ(doExpected, obj.changes);
+}
+
+TEST(OpNtfy, AppendN)
+{
+    Obj obj {};
+    obj()->vec = std::vector{2, 3};
+
+    std::vector<Change> doExpected {
+        { .type = ChangeType::ElementAdded, .fieldIndex = vecFieldIndex, .index = 2 },
+        { .type = ChangeType::ElementAdded, .fieldIndex = vecFieldIndex, .index = 3 },
+        { .type = ChangeType::ElementAdded, .fieldIndex = vecFieldIndex, .index = 4 }
+    };
+    std::vector<Change> undoExpected {
+        { .type = ChangeType::ElementRemoved, .fieldIndex = vecFieldIndex, .index = 4 },
+        { .type = ChangeType::ElementRemoved, .fieldIndex = vecFieldIndex, .index = 3 },
+        { .type = ChangeType::ElementRemoved, .fieldIndex = vecFieldIndex, .index = 2 }
+    };
+
+    obj.changes.clear();
+    obj()->vec.append(std::vector{4, 5, 6});
+    EXPECT_EQ(doExpected, obj.changes);
+
+    obj.changes.clear();
+    obj.undoAction();
+    EXPECT_EQ(undoExpected, obj.changes);
+
+    obj.changes.clear();
+    obj.redoAction();
+    EXPECT_EQ(doExpected, obj.changes);
+}
+
+TEST(OpNtfy, Insert)
+{
+    Obj obj {};
+    obj()->vec = std::vector{2, 3, 4};
+    obj()->vec.select(1);
+
+    std::vector<Change> doExpected {
+        { .type = ChangeType::ElementMoved, .fieldIndex = vecFieldIndex, .oldIndex = 2, .index = 3},
+        { .type = ChangeType::ElementMoved, .fieldIndex = vecFieldIndex, .oldIndex = 1, .index = 2},
+        { .type = ChangeType::ElementAdded, .fieldIndex = vecFieldIndex, .index = 1 },
+        { .type = ChangeType::SelectionsChanged, .fieldIndex = vecFieldIndex }
+    };
+    std::vector<Change> undoExpected {
+        { .type = ChangeType::ElementRemoved, .fieldIndex = vecFieldIndex, .index = 1 },
+        { .type = ChangeType::ElementMoved, .fieldIndex = vecFieldIndex, .oldIndex = 2, .index = 1},
+        { .type = ChangeType::ElementMoved, .fieldIndex = vecFieldIndex, .oldIndex = 3, .index = 2},
+        { .type = ChangeType::SelectionsChanged, .fieldIndex = vecFieldIndex }
+    };
+
+    obj.changes.clear();
+    obj()->vec.insert(1, 5);
+    EXPECT_EQ(doExpected, obj.changes);
+
+    obj.changes.clear();
+    obj.undoAction();
+    EXPECT_EQ(undoExpected, obj.changes);
+
+    obj.changes.clear();
+    obj.redoAction();
+    EXPECT_EQ(doExpected, obj.changes);
+}
+
+TEST(OpNtfy, InsertN)
+{
+    Obj obj {};
+    obj()->vec = std::vector{2, 3, 4};
+    obj()->vec.select(1);
+
+    std::vector<Change> doExpected {
+        { .type = ChangeType::ElementMoved, .fieldIndex = vecFieldIndex, .oldIndex = 2, .index = 5},
+        { .type = ChangeType::ElementMoved, .fieldIndex = vecFieldIndex, .oldIndex = 1, .index = 4},
+        { .type = ChangeType::ElementAdded, .fieldIndex = vecFieldIndex, .index = 1 },
+        { .type = ChangeType::ElementAdded, .fieldIndex = vecFieldIndex, .index = 2 },
+        { .type = ChangeType::ElementAdded, .fieldIndex = vecFieldIndex, .index = 3 },
+        { .type = ChangeType::SelectionsChanged, .fieldIndex = vecFieldIndex }
+    };
+    std::vector<Change> undoExpected {
+        { .type = ChangeType::ElementRemoved, .fieldIndex = vecFieldIndex, .index = 3 },
+        { .type = ChangeType::ElementRemoved, .fieldIndex = vecFieldIndex, .index = 2 },
+        { .type = ChangeType::ElementRemoved, .fieldIndex = vecFieldIndex, .index = 1 },
+        { .type = ChangeType::ElementMoved, .fieldIndex = vecFieldIndex, .oldIndex = 4, .index = 1},
+        { .type = ChangeType::ElementMoved, .fieldIndex = vecFieldIndex, .oldIndex = 5, .index = 2},
+        { .type = ChangeType::SelectionsChanged, .fieldIndex = vecFieldIndex }
+    };
+
+    obj.changes.clear();
+    obj()->vec.insert(1, std::vector{5, 6, 7});
+    EXPECT_EQ(doExpected, obj.changes);
+
+    obj.changes.clear();
+    obj.undoAction();
+    EXPECT_EQ(undoExpected, obj.changes);
+
+    obj.changes.clear();
+    obj.redoAction();
+    EXPECT_EQ(doExpected, obj.changes);
+}
+
+TEST(OpNtfy, Remove)
+{
+    Obj obj {};
+    obj()->vec = std::vector{2, 3, 4, 5};
+    obj()->vec.select(2);
+
+    std::vector<Change> doExpected {
+        { .type = ChangeType::ElementRemoved, .fieldIndex = vecFieldIndex, .index = 1 },
+        { .type = ChangeType::ElementMoved, .fieldIndex = vecFieldIndex, .oldIndex = 2, .index = 1},
+        { .type = ChangeType::ElementMoved, .fieldIndex = vecFieldIndex, .oldIndex = 3, .index = 2},
+        { .type = ChangeType::SelectionsChanged, .fieldIndex = vecFieldIndex }
+    };
+    std::vector<Change> undoExpected {
+        { .type = ChangeType::ElementMoved, .fieldIndex = vecFieldIndex, .oldIndex = 2, .index = 3},
+        { .type = ChangeType::ElementMoved, .fieldIndex = vecFieldIndex, .oldIndex = 1, .index = 2},
+        { .type = ChangeType::ElementAdded, .fieldIndex = vecFieldIndex, .index = 1 },
+        { .type = ChangeType::SelectionsChanged, .fieldIndex = vecFieldIndex }
+    };
+
+    obj.changes.clear();
+    obj()->vec.remove(1);
+    EXPECT_EQ(doExpected, obj.changes);
+
+    obj.changes.clear();
+    obj.undoAction();
+    EXPECT_EQ(undoExpected, obj.changes);
+
+    obj.changes.clear();
+    obj.redoAction();
+    EXPECT_EQ(doExpected, obj.changes);
+}
+
 TEST(OpNtfy, OpNameHere)
 {
 
