@@ -1533,14 +1533,15 @@ namespace EditorCumulative
     TEST(OpUndoRedo, Assign)
     {
         TrackDoOp obj {};
-        EXPECT_EQ(0, obj->ints.size());
+        obj()->ints = std::vector<int>{3, 4, 5};
+        EXPECT_EQ(3, obj->ints.size());
         obj()->ints.assign(5, 3);
         EXPECT_EQ(5, obj->ints.size());
         for ( auto i : obj->ints )
             EXPECT_EQ(3, i);
 
         obj.undoAction();
-        EXPECT_EQ(0, obj->ints.size());
+        EXPECT_EQ(3, obj->ints.size());
         obj.redoAction();
         EXPECT_EQ(5, obj->ints.size());
         for ( auto i : obj->ints )
