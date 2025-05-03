@@ -80,7 +80,7 @@ struct Obj : Tracked<NtfyData, Obj>
 
     void pushChange(auto && change) {
         changes.push_back(std::move(change));
-        std::cout << changes.back() << '\n';
+        //std::cout << changes.back() << '\n';
     }
 
     void valueChanged(primitive_path, int oldValue, int value)
