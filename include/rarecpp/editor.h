@@ -2368,13 +2368,13 @@ namespace RareEdit
 
                 if constexpr ( hasElementMovedOp<Route> )
                 {
-                    std::size_t nextAvailable = 0;
+                    nextAvailable = 0;
                     std::size_t blockSize = 1;
                     for ( std::size_t i=0; i<std::size(movedIndexes); ++i )
                     {
                         if ( movedIndexes[i] > nextAvailable && static_cast<std::size_t>(movedIndexes[i]) < std::size(ref) )
                         {
-                            if ( movedIndexes[i]+1 == movedIndexes[i+1] )
+                            if ( i+1 < std::size(movedIndexes) && movedIndexes[i]+1 == movedIndexes[i+1] )
                                 ++blockSize;
                             else
                             {
@@ -2420,13 +2420,13 @@ namespace RareEdit
 
                 if constexpr ( hasElementMovedOp<Route> )
                 {
-                    std::size_t nextAvailable = 0;
+                    nextAvailable = 0;
                     std::size_t blockSize = 1;
                     for ( std::size_t i=0; i<std::size(movedIndexes); ++i )
                     {
                         if ( movedIndexes[i] > nextAvailable && static_cast<std::size_t>(movedIndexes[i]) < std::size(ref) )
                         {
-                            if ( movedIndexes[i]+1 == movedIndexes[i+1] )
+                            if ( i+1 < std::size(movedIndexes) && movedIndexes[i]+1 == movedIndexes[i+1] )
                                 ++blockSize;
                             else
                             {
@@ -2463,7 +2463,7 @@ namespace RareEdit
                     {
                         notifyElementMoved(user, Route{indexes}, movedIndex, 0);
                         for ( std::size_t i=0; i<static_cast<std::size_t>(movedIndex); ++i )
-                            notifyElementMoved(user, Route{indexes}, movedIndex, movedIndex+1);
+                            notifyElementMoved(user, Route{indexes}, i, i+1);
                     }
                     if constexpr ( hasSelections<Pathway>() && hasSelectionsChangedOp<Route> )
                         notifySelectionsChanged(user, Route{indexes});
@@ -2624,7 +2624,7 @@ namespace RareEdit
 
                     if constexpr ( hasElementMovedOp<Route> )
                     {
-                        std::size_t limit = size;
+                        limit = size;
                         std::size_t count = std::size(movedIndexes);
                         std::size_t blockSize = 1;
                         for ( std::size_t i=0; i<count; ++i )
@@ -2675,8 +2675,6 @@ namespace RareEdit
                         {
                             std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex)+1]);
                             mirrorSwapToSelection(getSelections<Pathway>(), movedIndex, movedIndex+1);
-                            if constexpr ( hasElementMovedOp<Route> )
-                                notifyElementMoved(user, Route{indexes}, movedIndex, movedIndex+1);
                         }
                         else if ( limit > 0 )
                             --limit;
@@ -4109,7 +4107,7 @@ namespace RareEdit
                                     if ( movedIndexes[i] > nextAvailable && static_cast<std::size_t>(movedIndexes[i]) < std::size(ref) )
                                     {
                                         notifyElementMoved(user, Route{indexes}, movedIndexes[i]-1, movedIndexes[i]);
-                                        if ( movedIndexes[i]+1 == movedIndexes[i+1] )
+                                        if ( i+1 < std::size(movedIndexes) && movedIndexes[i]+1 == movedIndexes[i+1] )
                                             ++blockSize;
                                         else
                                         {
@@ -4165,7 +4163,7 @@ namespace RareEdit
                                     if ( movedIndexes[i] > nextAvailable && static_cast<std::size_t>(movedIndexes[i]) < std::size(ref) )
                                     {
                                         notifyElementMoved(user, Route{indexes}, movedIndexes[i]-1, movedIndexes[i]);
-                                        if ( movedIndexes[i]+1 == movedIndexes[i+1] )
+                                        if ( i+1 < std::size(movedIndexes) && movedIndexes[i]+1 == movedIndexes[i+1] )
                                             ++blockSize;
                                         else
                                         {
@@ -4195,8 +4193,8 @@ namespace RareEdit
                                 if constexpr ( hasElementMovedOp<Route> )
                                 {
                                     notifyElementMoved(user, Route{indexes}, 0, movedIndex);
-                                    for ( std::size_t i=0; i<static_cast<std::size_t>(movedIndex)+1; ++i )
-                                        notifyElementMoved(user, Route{indexes}, movedIndex, movedIndex-1);
+                                    for ( std::size_t i=0; i<static_cast<std::size_t>(movedIndex); ++i )
+                                        notifyElementMoved(user, Route{indexes}, i+1, i);
                                 }
                                 if constexpr ( hasSelections && hasSelectionsChangedOp<Route> )
                                     notifySelectionsChanged(user, Route{indexes});
@@ -4262,7 +4260,7 @@ namespace RareEdit
                                 for ( i=0; i<size; ++i )
                                 {
                                     if ( i != trackedIndexes[i] )
-                                        notifyElementMoved(user, Route{indexes}, trackedIndexes[i], i);
+                                        notifyElementMoved(user, Route{indexes}, i, trackedIndexes[i]);
                                 }
                             }
                             if constexpr ( hasSelectionsChangedOp<Route> )
@@ -4310,7 +4308,7 @@ namespace RareEdit
                                 for ( std::size_t i=0; i<size; ++i )
                                 {
                                     if ( i != trackedIndexes[i] )
-                                        notifyElementMoved(user, Route{indexes}, trackedIndexes[i], i);
+                                        notifyElementMoved(user, Route{indexes}, i, trackedIndexes[i]);
                                 }
                             }
                             if constexpr ( hasSelectionsChangedOp<Route> )
@@ -4419,11 +4417,7 @@ namespace RareEdit
                             {
                                 auto i = static_cast<std::size_t>(*it);
                                 if ( static_cast<std::size_t>(i)+1 < maximumIndexMoved )
-                                {
                                     std::swap(ref[static_cast<std::size_t>(i)], ref[static_cast<std::size_t>(i)+1]);
-                                    if constexpr ( hasElementMovedOp<Route> )
-                                        notifyElementMoved(user, Route{indexes}, i+1, i);
-                                }
                             }
                             std::swap(sel, prevSel);
 
@@ -4469,7 +4463,7 @@ namespace RareEdit
                                 {
                                     notifyElementMoved(user, Route{indexes}, std::size(ref)-1, movedIndex);
                                     for ( std::size_t i=movedIndex; i<std::size(ref)-1; ++i )
-                                        notifyElementMoved(user, Route{indexes}, movedIndex, movedIndex+1);
+                                        notifyElementMoved(user, Route{indexes}, i, i+1);
                                 }
                                 if constexpr ( hasSelections && hasSelectionsChangedOp<Route> )
                                     notifySelectionsChanged(user, Route{indexes});
@@ -5671,7 +5665,7 @@ namespace RareEdit
                                 {
                                     if ( movedIndexes[i] > nextAvailable && static_cast<std::size_t>(movedIndexes[i]) < std::size(ref) )
                                     {
-                                        if ( movedIndexes[i]+1 == movedIndexes[i+1] )
+                                        if ( i+1 < std::size(movedIndexes) && movedIndexes[i]+1 == movedIndexes[i+1] )
                                             ++blockSize;
                                         else
                                         {
@@ -5719,7 +5713,7 @@ namespace RareEdit
                                 {
                                     if ( movedIndexes[i] > nextAvailable && static_cast<std::size_t>(movedIndexes[i]) < std::size(ref) )
                                     {
-                                        if ( movedIndexes[i]+1 == movedIndexes[i+1] )
+                                        if ( i+1 < std::size(movedIndexes) && movedIndexes[i]+1 == movedIndexes[i+1] )
                                             ++blockSize;
                                         else
                                         {
@@ -5751,7 +5745,7 @@ namespace RareEdit
                                 {
                                     notifyElementMoved(user, Route{indexes}, movedIndex, 0);
                                     for ( std::size_t i=0; i<static_cast<std::size_t>(movedIndex); ++i )
-                                        notifyElementMoved(user, Route{indexes}, movedIndex, movedIndex+1);
+                                        notifyElementMoved(user, Route{indexes}, i, i+1);
                                 }
                                 if constexpr ( hasSelections && hasSelectionsChangedOp<Route> )
                                     notifySelectionsChanged(user, Route{indexes});
@@ -5940,9 +5934,6 @@ namespace RareEdit
                                         std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex)+1]);
                                         mirrorSwapToSelection(sel, movedIndex, movedIndex+1);
                                         limit = movedIndex+1;
-                                        
-                                        if constexpr ( hasElementMovedOp<Route> )
-                                            notifyElementMoved(user, Route{indexes}, movedIndex, movedIndex+1);
                                     }
                                     else if ( limit > 0 )
                                         --limit;
