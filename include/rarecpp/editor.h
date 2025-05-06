@@ -201,7 +201,7 @@ namespace RareEdit
     template <typename T>
     bool readSelections(const std::vector<std::uint8_t> & data, std::size_t & offset, T & t)
     {
-        if constexpr ( !std::is_null_pointer_v<std::remove_cvref_t<T>> )
+        if constexpr ( requires{readSelectionVector(data, offset, t);} )
             return readSelectionVector(data, offset, t);
         else
             return false;
@@ -241,14 +241,17 @@ namespace RareEdit
         uint6_t() = default;
         template <typename T> constexpr uint6_t(T && t) : value(static_cast<std::uint8_t>(t)) {}
         
-        constexpr operator std::ptrdiff_t() const { return static_cast<std::ptrdiff_t>(value); };
-        constexpr operator std::size_t() const { return static_cast<std::size_t>(value); };
-        constexpr operator std::uint8_t() const { return static_cast<std::uint8_t>(value); };
-        template <typename T> constexpr auto operator==(T other) { return value == static_cast<std::uint8_t>(other); }
-        template <typename T> constexpr auto operator<=>(T other) { return value <=> static_cast<std::uint8_t>(other); }
+        constexpr operator std::ptrdiff_t() const { return static_cast<std::ptrdiff_t>(value); }
+        constexpr operator std::size_t() const { return static_cast<std::size_t>(value); }
+        constexpr operator std::uint8_t() const { return static_cast<std::uint8_t>(value); }
+        constexpr auto operator==(std::size_t other) { return static_cast<std::size_t>(value) == other; }
+        constexpr auto operator<=>(const uint6_t & other) const { return value <=> other.value; }
+        template <typename T> constexpr auto operator<=>(const T & other) const requires(!std::is_same_v<uint6_t, T>) { return static_cast<T>(value) <=> other; }
         constexpr auto operator &() { return &value; }
         constexpr auto & operator++() { ++value; return *this; }
-
+        constexpr auto & operator--() { --value; return *this; }
+        constexpr auto & operator+=(std::uint8_t val) { value += val; return *this; }
+        constexpr auto & operator-=(std::uint8_t val) { value -= val; return *this; }
     };
     static_assert(sizeof(uint6_t) == sizeof(uint8_t), "Unexpected uint6_t size");
 
@@ -313,9 +316,9 @@ namespace RareEdit
     }
 
     template <typename I = std::size_t, typename T>
-    void undoSort(T & items, std::span<I> & sourceIndexes)
+    void undoSort(T & items, const std::span<I> & sourceIndexes)
     {
-        std::size_t total = items.size();
+        std::size_t total = std::size(items);
         if ( total > 0 )
         {
             if ( total != sourceIndexes.size() )
@@ -332,9 +335,9 @@ namespace RareEdit
     }
 
     template <typename I = std::size_t, typename T>
-    void redoSort(T & items, std::span<I> & sourceIndexes)
+    void redoSort(T & items, const std::span<I> & sourceIndexes)
     {
-        std::size_t total = items.size();
+        std::size_t total = std::size(items);
         if ( total > 0 )
         {
             if ( total != sourceIndexes.size() )
@@ -3204,7 +3207,14 @@ namespace RareEdit
         template <class Value, class Member>
         void readValue(std::size_t & offset, auto & value) const
         {
-            if constexpr ( RareTs::is_reflected_v<Value> )
+            if constexpr ( RareTs::is_static_array_v<Value> )
+            {
+                constexpr std::size_t size = RareTs::static_array_size_v<Value>;
+                offset += sizeof(size);
+                for ( std::size_t i=0; i<size; ++i )
+                    readValue<std::remove_cvref_t<decltype(std::declval<Value>()[0])>, Member>(offset, value[i]);
+            }
+            else if constexpr ( RareTs::is_reflected_v<Value> )
             {
                 RareTs::Members<Value>::forEach([&](auto member) {
                     readValue<std::remove_cvref_t<typename decltype(member)::type>, decltype(member)>(offset, member.value(value));
@@ -3220,14 +3230,7 @@ namespace RareEdit
                     offset += stringSize;
                 }
             }
-            else if constexpr ( RareTs::is_static_array_v<Value> )
-            {
-                constexpr std::size_t size = RareTs::static_array_size_v<Value>;
-                offset += sizeof(size);
-                for ( std::size_t i=0; i<size; ++i )
-                    readValue<std::remove_cvref_t<decltype(std::declval<Value>()[0])>, Member>(offset, value[i]);
-            }
-            else if constexpr ( RareTs::is_iterable_v<Value> )
+            else if constexpr ( RareTs::is_iterable_v<Value> && requires{value.resize(std::size_t{0});} )
             {
                 using index_type = index_type_t<default_index_type, Member>;
                 auto size = static_cast<std::size_t>((index_type &)events[offset]);
@@ -3244,7 +3247,7 @@ namespace RareEdit
         }
 
         template <class Value, class Member>
-        auto readValue(std::size_t & offset) const
+        auto readValue(std::size_t & offset) const requires(!std::is_array_v<RareTs::element_type_t<Value>>)
         {
             if constexpr ( std::is_array_v<Value> ) // Avoid trying to return array[] types, make a vector
             {
@@ -3261,7 +3264,7 @@ namespace RareEdit
         }
 
         template <class Value, class Member>
-        auto peekValue(std::size_t offset) const // readValue but doesn't change offset
+        auto peekValue(std::size_t offset) const requires(!std::is_array_v<RareTs::element_type_t<Value>>) // readValue but doesn't change offset
         {
             if constexpr ( std::is_array_v<Value> ) // Avoid trying to return array[] types, make a vector
             {
@@ -6621,7 +6624,7 @@ namespace RareEdit
                     std::cout << " ";
                 }
             }
-            else if constexpr ( RareTs::is_iterable_v<Value> )
+            else if constexpr ( RareTs::is_iterable_v<Value> && requires{std::declval<Value>()[0];} )
             {
                 auto size = (index_type &)editable.events[offset];
                 offset += sizeof(size);
@@ -7241,7 +7244,7 @@ namespace RareEdit
                     std::cout << std::nouppercase << std::dec;
 
                     std::cout << " // edit";
-                    printEvent<typename edit_type::type>(eventOffset);
+                    printEvent<Data>(eventOffset);
                     std::cout << '\n';
                 }
                 std::cout << '\n';
