@@ -1022,13 +1022,13 @@ namespace RareEdit
         using path = std::tuple<std::tuple_element_t<Is, Pathway>..., PathMember<I>>;
         using member_type = typename RareTs::Member<T, I>::type;
         if constexpr ( RareTs::is_static_array_v<member_type> )
-            return decltype(editArray<Edit, default_index_type, RootData, member_type, Keys, Path>()){};
+            return decltype(editArray<Edit, default_index_type, RootData, member_type, Keys, path>()){};
         else if constexpr ( RareTs::is_specialization_v<member_type, std::vector> ) // Vector
-            return decltype(editVector<Edit, default_index_type, RootData, member_type, Keys, Path>()){};
+            return decltype(editVector<Edit, default_index_type, RootData, member_type, Keys, path>()){};
         else if constexpr ( RareTs::is_macro_reflected_v<member_type> ) // Reflected object
-            return std::type_identity<edit_members<Edit, default_index_type, RootData, member_type, Keys, Path>>{};
+            return std::type_identity<edit_members<Edit, default_index_type, RootData, member_type, Keys, path>>{};
         else // Primitive
-            return std::type_identity<EditPrimitive<Edit, default_index_type, RootData, member_type, Keys, Path>>{};
+            return std::type_identity<EditPrimitive<Edit, default_index_type, RootData, member_type, Keys, path>>{};
     }
 
     template <typename T> struct is_selection_leaf_member {
