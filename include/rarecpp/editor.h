@@ -1472,106 +1472,6 @@ namespace RareEdit
             }(std::make_index_sequence<std::tuple_size_v<Pathway>>());
         }
 
-        template <class U = T, bool AfterSel = false, class Member = void, class F = void, class IndexTypeTuple = std::tuple<>, class ... Pathway>
-        void processEventRef(U & t, std::size_t & offset, F processEventOp, IndexTypeTuple indexes = std::tuple{})
-        {
-            using index_type = index_type_t<default_index_type, Member>;
-            std::uint8_t value = events[offset];
-            ++offset;
-
-            switch ( PathOp(value & std::uint8_t(PathOp::HighBits)) )
-            {
-                case PathOp::SelBranch:
-                    if constexpr ( hasSelections<std::tuple<Pathway...>>() && requires{t[0];} )
-                    {
-                        //std::cout << "[{sel}]";
-                        std::size_t selBranchStartOffset = offset;
-                        auto & selData = getSelections<std::tuple<Pathway...>>();
-                        for ( auto & sel : selData )
-                        {
-                            processEventRef<std::remove_cvref_t<decltype(t[0])>, true, Member, F, decltype(std::tuple_cat(indexes, std::tuple{sel})),
-                                Pathway..., PathIndex<0>>( // sel is prepended since sels are always before first PathIndex
-                                t[static_cast<std::size_t>(sel)], offset, processEventOp, std::tuple_cat(std::tuple<index_type>{sel}, indexes));
-                            offset = selBranchStartOffset;
-                        }
-                    }
-                    break;
-                case PathOp::LeafSelBranch:
-                    if constexpr ( hasSelections<std::tuple<Pathway...>>() && requires{t[0];} )
-                    {
-                        //std::cout << "[{sel}]";
-                        using element_type = std::remove_cvref_t<RareTs::element_type_t<std::remove_cvref_t<U>>>;
-                        
-                        std::size_t selBranchStartOffset = offset;
-                        auto & selData = getSelections<std::tuple<Pathway...>>();
-                        for ( auto & sel : selData )
-                        {
-                            processEventOp(t[static_cast<std::size_t>(sel)], std::tuple_cat(std::tuple<index_type>{sel}, indexes),
-                                type_tags<element_type, Member, Pathway..., PathIndex<0>>{}); // sel is prepended since sels are always before first PathIndex
-                            offset = selBranchStartOffset;
-                        }
-                    }
-                    break;
-                case PathOp::Branch:
-                {
-                    //std::cout << "(PathOp::Branch|" << (value & std::uint8_t(PathOp::LowBits)) << ")";
-                    if constexpr ( RareTs::is_reflected_v<U> ) // Branch to field
-                    {
-                        RareTs::Members<U>::at(std::size_t(value & std::uint8_t(PathOp::LowBits)), t, [&](auto member, auto & ref) {
-                            //std::cout << "." << member.name;
-                            processEventRef<std::remove_cvref_t<typename decltype(member)::type>, AfterSel,
-                                decltype(member), F, IndexTypeTuple, Pathway..., PathMember<decltype(member)::index>>(ref, offset, processEventOp, indexes);
-                        });
-                    }
-                    else if constexpr ( RareTs::is_static_array_v<U> || RareTs::is_specialization_v<U, std::vector> ) // Branch to index
-                    {
-                        index_type index {};
-                        if constexpr ( std::is_same_v<index_type, uint6_t> )
-                            index = static_cast<uint6_t>(value & std::uint8_t(PathOp::LowBits));
-                        else
-                            index = readIndex<index_type>(offset);
-
-                        //std::cout << '[' << std::size_t{index} << ']';
-                        processEventRef<std::remove_cvref_t<decltype(std::declval<U>()[0])>, AfterSel, Member, F,
-                            decltype(std::tuple_cat(indexes, std::tuple{index})), Pathway..., PathIndex<std::tuple_size_v<IndexTypeTuple>>>(
-                                t[static_cast<std::size_t>(index)], offset, processEventOp, std::tuple_cat(indexes, std::tuple{index}));
-                    }
-                }
-                break;
-                case PathOp::LeafBranch:
-                {
-                    if constexpr ( RareTs::is_reflected_v<U> ) // Op on field
-                    {
-                        RareTs::Members<U>::at(std::size_t(value & std::uint8_t(PathOp::LowBits)), t, [&](auto member, auto & ref) {
-                            //std::cout << "." << member.name;
-                            //value = events[offset]; // op
-                            //++offset;
-                            processEventOp(ref, indexes, type_tags<std::remove_cvref_t<typename decltype(member)::type>,
-                                RareTs::remove_cvref_t<decltype(member)>, Pathway..., PathMember<decltype(member)::index>>{});
-                        });
-                    }
-                    else if constexpr ( RareTs::is_static_array_v<U> || RareTs::is_specialization_v<U, std::vector>  ) // Op on index
-                    {
-                        index_type index {};
-                        if constexpr ( std::is_same_v<index_type, uint6_t> )
-                            index = uint6_t(value & std::uint8_t(PathOp::LowBits));
-                        else
-                            index = readIndex<index_type>(offset);
-
-                        //std::cout << "[" << std::size_t{index} << "]";
-                        //value = events[offset]; // op
-                        //++offset;
-                        processEventOp(t[static_cast<std::size_t>(index)], std::tuple_cat(indexes, std::tuple{index}),
-                            type_tags<std::remove_cvref_t<RareTs::element_type_t<std::remove_cvref_t<U>>>,
-                            Member, Pathway..., PathIndex<std::tuple_size_v<IndexTypeTuple>>>{});
-                    }
-                }
-                break;
-                default:
-                    throw std::runtime_error("how u here?");
-            }
-        }
-
         template <class Pathway, class IndexTypeTuple>
         void reset(IndexTypeTuple & indexes)
         {
@@ -3308,18 +3208,9 @@ namespace RareEdit
             return indexes;
         }
 
-        void undoEvent(std::size_t eventIndex)
+        template <class value_type, class Member, class ... pathway>
+        void processUndoEvent(std::uint8_t op, std::size_t & offset, std::optional<std::size_t> & secondaryOffset, auto & ref, auto indexes)
         {
-            if ( eventIndex >= eventOffsets.size() )
-                return;
-            
-            std::optional<std::size_t> secondaryOffset {}; // For selection ops with multiple callbacks/bifurcated offsets
-            std::size_t offset = eventOffsets[eventIndex];
-            std::uint8_t op = events[offset];
-            ++offset;
-            
-            processEventRef<T>(t, offset, [&]<class value_type, class Member, class ... pathway>(auto & ref, auto indexes, type_tags<value_type, Member, pathway...>) {
-
                 using index_type = index_type_t<default_index_type, Member>;
                 using path_pack = std::tuple<pathway...>;
                 using sel_type = std::remove_cvref_t<decltype(getSelections<path_pack>())>;
@@ -4881,21 +4772,11 @@ namespace RareEdit
                     }
                     break;
                 }
-            });
         }
 
-        void redoEvent(std::size_t eventIndex)
+        template <class value_type, class Member, class ... pathway>
+        void processRedoEvent(std::uint8_t op, std::size_t & offset, std::optional<std::size_t> & secondaryOffset, auto & ref, auto indexes)
         {
-            if ( eventIndex >= eventOffsets.size() )
-                return;
-            
-            std::optional<std::size_t> secondaryOffset {}; // For selection ops with multiple callbacks/bifurcated offsets
-            std::size_t offset = eventOffsets[eventIndex];
-            std::uint8_t op = events[offset];
-            ++offset;
-            
-            processEventRef<T>(t, offset, [&]<class value_type, class Member, class ... pathway>(auto & ref, auto indexes, type_tags<value_type, Member, pathway...>) {
-
                 using index_type = index_type_t<default_index_type, Member>;
                 using path_pack = std::tuple<pathway...>;
                 using sel_type = std::remove_cvref_t<decltype(getSelections<path_pack>())>;
@@ -6425,7 +6306,143 @@ namespace RareEdit
                     }
                     break;
                 }
-            });
+        }
+
+        template <class U = T, bool Undo, bool AfterSel = false, class Member = void, class IndexTypeTuple = std::tuple<>, class ... Pathway>
+        void processEventRef(U & t, std::size_t & offset, std::optional<std::size_t> & secondaryOffset, std::uint8_t op, IndexTypeTuple indexes = std::tuple{})
+        {
+            using index_type = index_type_t<default_index_type, Member>;
+            std::uint8_t value = events[offset];
+            ++offset;
+
+            switch ( PathOp(value & std::uint8_t(PathOp::HighBits)) )
+            {
+                case PathOp::SelBranch:
+                    if constexpr ( hasSelections<std::tuple<Pathway...>>() && requires{t[0];} )
+                    {
+                        //std::cout << "[{sel}]";
+                        std::size_t selBranchStartOffset = offset;
+                        auto & selData = getSelections<std::tuple<Pathway...>>();
+                        for ( auto & sel : selData )
+                        {
+                            // TODO: Lookahead
+                            processEventRef<std::remove_cvref_t<decltype(t[0])>, Undo, true, Member, decltype(std::tuple_cat(indexes, std::tuple{sel})),
+                                Pathway..., PathIndex<0>>( // sel is prepended since sels are always before first PathIndex
+                                t[static_cast<std::size_t>(sel)], offset, secondaryOffset, op, std::tuple_cat(std::tuple<index_type>{sel}, indexes));
+
+                            offset = selBranchStartOffset;
+                        }
+                    }
+                    break;
+                case PathOp::LeafSelBranch:
+                    if constexpr ( hasSelections<std::tuple<Pathway...>>() && requires{t[0];} )
+                    {
+                        //std::cout << "[{sel}]";
+                        using element_type = std::remove_cvref_t<RareTs::element_type_t<std::remove_cvref_t<U>>>;
+                        
+                        std::size_t selBranchStartOffset = offset;
+                        auto & selData = getSelections<std::tuple<Pathway...>>();
+                        for ( auto & sel : selData )
+                        {
+                            if constexpr ( Undo )
+                                processUndoEvent<element_type, Member, Pathway..., PathIndex<0>>(op, offset, secondaryOffset, t[static_cast<std::size_t>(sel)], std::tuple_cat(std::tuple<index_type>{sel}, indexes));
+                            else
+                                processRedoEvent<element_type, Member, Pathway..., PathIndex<0>>(op, offset, secondaryOffset, t[static_cast<std::size_t>(sel)], std::tuple_cat(std::tuple<index_type>{sel}, indexes));
+
+                            offset = selBranchStartOffset;
+                        }
+                    }
+                    break;
+                case PathOp::Branch:
+                {
+                    //std::cout << "(PathOp::Branch|" << (value & std::uint8_t(PathOp::LowBits)) << ")";
+                    if constexpr ( RareTs::is_static_array_v<U> || RareTs::is_specialization_v<U, std::vector> ) // Branch to index
+                    {
+                        index_type index {};
+                        if constexpr ( std::is_same_v<index_type, uint6_t> )
+                            index = static_cast<uint6_t>(value & std::uint8_t(PathOp::LowBits));
+                        else
+                            index = readIndex<index_type>(offset);
+
+                        //std::cout << '[' << std::size_t{index} << ']';
+                        // TODO: Lookahead
+                        using U2 = std::remove_cvref_t<decltype(std::declval<U>()[0])>;
+                        processEventRef<U2, Undo, AfterSel, Member,
+                            decltype(std::tuple_cat(indexes, std::tuple{index})), Pathway..., PathIndex<std::tuple_size_v<IndexTypeTuple>>>(
+                                t[static_cast<std::size_t>(index)], offset, secondaryOffset, op, std::tuple_cat(indexes, std::tuple{index}));
+                    }
+                    else if constexpr ( RareTs::is_in_class_reflected_v<U> ) // Branch to field
+                    {
+                        RareTs::Members<U>::at(std::size_t(value & std::uint8_t(PathOp::LowBits)), t, [&](auto member, auto & ref) {
+                            //std::cout << "." << member.name;
+                            // TODO: Lookahead
+                            processEventRef<std::remove_cvref_t<typename decltype(member)::type>, Undo, AfterSel,
+                                decltype(member), IndexTypeTuple, Pathway..., PathMember<decltype(member)::index>>(ref, offset, secondaryOffset, op, indexes);
+                        });
+                    }
+                }
+                break;
+                case PathOp::LeafBranch:
+                {
+                    if constexpr ( RareTs::is_static_array_v<U> || RareTs::is_specialization_v<U, std::vector>  ) // Op on index
+                    {
+                        index_type index {};
+                        if constexpr ( std::is_same_v<index_type, uint6_t> )
+                            index = uint6_t(value & std::uint8_t(PathOp::LowBits));
+                        else
+                            index = readIndex<index_type>(offset);
+
+                        //std::cout << "[" << std::size_t{index} << "]";
+                        //value = events[offset]; // op
+                        //++offset;
+                        if constexpr ( Undo )
+                            processUndoEvent<std::remove_cvref_t<RareTs::element_type_t<std::remove_cvref_t<U>>>, Member, Pathway..., PathIndex<std::tuple_size_v<IndexTypeTuple>>>(op, offset, secondaryOffset, t[static_cast<std::size_t>(index)], std::tuple_cat(indexes, std::tuple{index}));
+                        else
+                            processRedoEvent<std::remove_cvref_t<RareTs::element_type_t<std::remove_cvref_t<U>>>, Member, Pathway..., PathIndex<std::tuple_size_v<IndexTypeTuple>>>(op, offset, secondaryOffset, t[static_cast<std::size_t>(index)], std::tuple_cat(indexes, std::tuple{index}));
+                    }
+                    else if constexpr ( RareTs::is_in_class_reflected_v<U> ) // Op on field
+                    {
+                        RareTs::Members<U>::at(std::size_t(value & std::uint8_t(PathOp::LowBits)), t, [&](auto member, auto & ref) {
+                            //std::cout << "." << member.name;
+                            //value = events[offset]; // op
+                            //++offset;
+                            if constexpr ( Undo )
+                                processUndoEvent<std::remove_cvref_t<typename decltype(member)::type>, decltype(member), Pathway..., PathMember<decltype(member)::index>>(op, offset, secondaryOffset, ref, indexes);
+                            else
+                                processRedoEvent<std::remove_cvref_t<typename decltype(member)::type>, decltype(member), Pathway..., PathMember<decltype(member)::index>>(op, offset, secondaryOffset, ref, indexes);
+                        });
+                    }
+                }
+                break;
+                default:
+                    throw std::runtime_error("Invalid PathOp detected");
+            }
+        }
+
+        void undoEvent(std::size_t eventIndex)
+        {
+            if ( eventIndex >= eventOffsets.size() )
+                return;
+            
+            std::optional<std::size_t> secondaryOffset {}; // For selection ops with multiple callbacks/bifurcated offsets
+            std::size_t offset = eventOffsets[eventIndex];
+            std::uint8_t op = events[offset];
+            ++offset;
+            
+            processEventRef<T, true>(t, offset, secondaryOffset, op);
+        }
+
+        void redoEvent(std::size_t eventIndex)
+        {
+            if ( eventIndex >= eventOffsets.size() )
+                return;
+            
+            std::optional<std::size_t> secondaryOffset {}; // For selection ops with multiple callbacks/bifurcated offsets
+            std::size_t offset = eventOffsets[eventIndex];
+            std::uint8_t op = events[offset];
+            ++offset;
+            
+            processEventRef<T, false>(t, offset, secondaryOffset, op);
         }
     };
 
@@ -6643,14 +6660,9 @@ namespace RareEdit
             }
         }
 
-        template <class U, class Member = void>
-        void printEvent(std::size_t & offset, std::uint8_t op) const
+        template <class type, class member_type>
+        void printEventOp(std::size_t & offset, Op op) const
         {
-            using base_index_type = index_type_t<typename edit_type::default_index_type, Member>;
-            std::uint8_t value = editable.events[offset];
-            ++offset;
-            
-            auto printOp = [&]<class type, class member_type>(type_tags<type, member_type>){
                 using index_type = index_type_t<typename edit_type::default_index_type, member_type>;
                 switch ( Op(op) )
                 {
@@ -7129,7 +7141,15 @@ namespace RareEdit
                     }
                     break;
                 }
-            };
+        }
+
+        template <class U, class Member = void>
+        void printEvent(std::size_t & offset, std::uint8_t op) const
+        {
+            using base_index_type = index_type_t<typename edit_type::default_index_type, Member>;
+            std::uint8_t value = editable.events[offset];
+            ++offset;
+            
             switch ( PathOp(value & std::uint8_t(PathOp::HighBits)) )
             {
                 case PathOp::SelBranch:
@@ -7139,7 +7159,7 @@ namespace RareEdit
                         using element_type = RareTs::element_type_t<std::remove_cvref_t<U>>;
                         constexpr bool isLeaf = !RareTs::is_reflected_v<element_type> && std::is_void_v<RareTs::element_type_t<element_type>>;
                         if constexpr ( isLeaf )
-                            printOp(type_tags<element_type, Member>{});
+                            printEventOp<element_type, Member>(offset, Op(value));
                         else
                             printEvent<std::remove_cvref_t<decltype(std::declval<U>()[0])>, Member>(offset, op);
                     }
@@ -7149,7 +7169,7 @@ namespace RareEdit
                     {
                         std::cout << "[{sel}]";
                         using element_type = RareTs::element_type_t<std::remove_cvref_t<U>>;
-                        printOp(type_tags<element_type, Member>{});
+                        printEventOp<element_type, Member>(offset, Op(value));
                     }
                     break;
                 case PathOp::Branch:
@@ -7180,7 +7200,7 @@ namespace RareEdit
                     {
                         RareTs::Members<U>::at(std::size_t(value & std::uint8_t(PathOp::LowBits)), [&](auto member) {
                             std::cout << "." << member.name;
-                            printOp(type_tags<std::remove_cvref_t<typename decltype(member)::type>, RareTs::remove_cvref_t<decltype(member)>>{});
+                            printEventOp<typename decltype(member)::type, decltype(member)>(offset, Op(value));
                         });
                     }
                     else if constexpr ( RareTs::is_static_array_v<U> ) // Op on index
@@ -7192,7 +7212,7 @@ namespace RareEdit
                             index = editable.template readIndex<base_index_type>(offset);
 
                         std::cout << "[" << static_cast<std::size_t>(index) << "]";
-                        printOp(type_tags<RareTs::element_type_t<std::remove_cvref_t<U>>, Member>{});
+                        printEventOp<RareTs::element_type_t<std::remove_cvref_t<U>>, Member>(offset, Op(value));
                     }
                 }
                 break;
