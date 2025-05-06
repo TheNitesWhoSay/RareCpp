@@ -17,6 +17,7 @@
 #include <limits>
 #include <map>
 #include <memory>
+#include <optional>
 #include <ostream>
 #include <sstream>
 #include <string>
@@ -1668,9 +1669,9 @@ namespace Json
                     D d = RareMapper::map<D>(value);
                     Put::value<Annotations, MockMember<D>, statics, PrettyPrint, IndentLevel, Indent, Object, IsFirst>(os, context, obj, d);
                 }
-                else if constexpr ( RareTs::is_pointable_v<T> )
+                else if constexpr ( RareTs::is_specialization_v<T, std::optional> || RareTs::is_pointable_v<T> )
                 {
-                    if ( value == nullptr )
+                    if ( !value )
                         os << "null";
                     else
                     {
