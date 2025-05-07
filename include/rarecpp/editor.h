@@ -7237,9 +7237,9 @@ namespace RareEdit
                         using element_type = RareTs::element_type_t<std::remove_cvref_t<U>>;
                         constexpr bool isLeaf = !RareTs::is_reflected_v<element_type> && std::is_void_v<RareTs::element_type_t<element_type>>;
                         if constexpr ( isLeaf )
-                            printEventOp<element_type, Member>(offset, Op(value));
+                            printEventOp<element_type, Member>(offset, Op(op));
                         else
-                            printEvent<std::remove_cvref_t<decltype(std::declval<U>()[0])>, Member>(offset, op, std::make_index_sequence<reflectedMemberCount<U>()>());
+                            printEvent<std::remove_cvref_t<decltype(std::declval<U>()[0])>, Member>(offset, op, std::make_index_sequence<reflectedMemberCount<std::remove_cvref_t<decltype(std::declval<U>()[0])>>()>());
                     }
                     break;
                 case PathOp::LeafSelBranch:
@@ -7247,7 +7247,7 @@ namespace RareEdit
                     {
                         std::cout << "[{sel}]";
                         using element_type = RareTs::element_type_t<std::remove_cvref_t<U>>;
-                        printEventOp<element_type, Member>(offset, Op(value));
+                        printEventOp<element_type, Member>(offset, Op(op));
                     }
                     break;
                 case PathOp::Branch:
@@ -7261,7 +7261,7 @@ namespace RareEdit
                             index = editable.template readIndex<base_index_type>(offset);
 
                         std::cout << '[' << static_cast<std::size_t>(index) << ']';
-                        printEvent<std::remove_cvref_t<decltype(std::declval<U>()[0])>, Member>(offset, op, std::make_index_sequence<reflectedMemberCount<U>()>());
+                        printEvent<std::remove_cvref_t<decltype(std::declval<U>()[0])>, Member>(offset, op, std::make_index_sequence<reflectedMemberCount<std::remove_cvref_t<decltype(std::declval<U>()[0])>>()>());
                     }
                     else if constexpr ( RareTs::is_macro_reflected_v<U> ) // Branch to field
                     {
@@ -7282,7 +7282,7 @@ namespace RareEdit
                 break;
                 case PathOp::LeafBranch:
                 {
-                    if constexpr ( RareTs::is_static_array_v<U> ) // Op on index
+                    if constexpr ( RareTs::is_static_array_v<U> || RareTs::is_specialization_v<U, std::vector> ) // Op on index
                     {
                         base_index_type index {};
                         if constexpr ( std::is_same_v<uint6_t, base_index_type> )
@@ -7291,7 +7291,7 @@ namespace RareEdit
                             index = editable.template readIndex<base_index_type>(offset);
 
                         std::cout << "[" << static_cast<std::size_t>(index) << "]";
-                        printEventOp<RareTs::element_type_t<std::remove_cvref_t<U>>, Member>(offset, Op(value));
+                        printEventOp<RareTs::element_type_t<std::remove_cvref_t<U>>, Member>(offset, Op(op));
                     }
                     else if constexpr ( RareTs::is_reflected_v<U> ) // Op on field
                     {
@@ -7299,7 +7299,7 @@ namespace RareEdit
                         (void)(
                             (Is == memberIndex ? (
                                 std::cout << "." << RareTs::Member<U, Is>::name,
-                                printEventOp<typename RareTs::Member<U, Is>::type, RareTs::Member<U, Is>>(offset, Op(value)),
+                                printEventOp<typename RareTs::Member<U, Is>::type, RareTs::Member<U, Is>>(offset, Op(op)),
                                 true) : true) && ...
                         );
                         /*RareTs::Members<U>::at(memberIndex, [&](auto member) {
