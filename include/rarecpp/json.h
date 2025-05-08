@@ -58,6 +58,12 @@ namespace Json
         struct StringifyType {};
         inline constexpr StringifyType Stringify{};
 
+        template <typename T>
+        struct Replace {
+            std::string_view value;
+            T replacement;
+        };
+
         // Member or Super annotation telling JSON to use a different name for the field
         struct Name
         {
@@ -1982,6 +1988,58 @@ namespace Json
         {
             return Output::ReflectedObject<OpNotes, statics, true, IndentLevel, Indent, T>(t, context);
         }
+
+        template <Statics statics = Statics::Excluded, typename Annotations = RareTs::NoNote,
+            size_t IndentLevel = 0, const char* Indent = twoSpaces, typename T = uint_least8_t>
+        inline void write(const T & t, std::string & output, std::shared_ptr<Context> context = nullptr)
+        {
+            #ifdef USE_BUFFERED_STREAMS
+            StringBuffer ss;
+            #else
+            std::stringstream ss;
+            #endif
+            Output::ReflectedObject<Annotations, statics, false, IndentLevel, Indent, T>(t, context).put(ss);
+            output = ss.str();
+        }
+
+        template <Statics statics = Statics::Excluded, typename Annotations = RareTs::NoNote,
+            size_t IndentLevel = 0, const char* Indent = twoSpaces, typename T = uint_least8_t>
+        inline std::string write(const T & t, std::shared_ptr<Context> context = nullptr)
+        {
+            #ifdef USE_BUFFERED_STREAMS
+            StringBuffer ss;
+            #else
+            std::stringstream ss;
+            #endif
+            Output::ReflectedObject<Annotations, statics, false, IndentLevel, Indent, T>(t, context).put(ss);
+            return ss.str();
+        }
+
+        template <Statics statics = Statics::Excluded, typename Annotations = RareTs::NoNote,
+            size_t IndentLevel = 0, const char* Indent = twoSpaces, typename T = uint_least8_t>
+        inline void writePretty(const T & t, std::string & output, std::shared_ptr<Context> context = nullptr)
+        {
+            #ifdef USE_BUFFERED_STREAMS
+            StringBuffer ss;
+            #else
+            std::stringstream ss;
+            #endif
+            Output::ReflectedObject<Annotations, statics, true, IndentLevel, Indent, T>(t, context).put(ss);
+            output = ss.str();
+        }
+
+        template <Statics statics = Statics::Excluded, typename Annotations = RareTs::NoNote,
+            size_t IndentLevel = 0, const char* Indent = twoSpaces, typename T = uint_least8_t>
+        inline std::string writePretty(const T & t, std::shared_ptr<Context> context = nullptr)
+        {
+            #ifdef USE_BUFFERED_STREAMS
+            StringBuffer ss;
+            #else
+            std::stringstream ss;
+            #endif
+            Output::ReflectedObject<Annotations, statics, true, IndentLevel, Indent, T>(t, context).put(ss);
+            return ss.str();
+        }
     }
     
     inline namespace Input
@@ -2067,6 +2125,7 @@ namespace Json
             {
             public:
                 StreamReadFail() : Exception("Attempt to read from stream failed (std::ios::fail() == true)") {}
+                StreamReadFail(const std::string & expected) : Exception(std::string("Expected " + expected + " but stream read failed (std::ios::fail() == true)").c_str()) {}
             };
 
             class StreamUngetFail : public Exception
@@ -2230,7 +2289,7 @@ namespace Json
                     if ( is.eof() )
                         throw UnexpectedInputEnd(expectedDescription);
                     else
-                        throw StreamReadFail();
+                        throw StreamReadFail(expectedDescription);
                 }
                 c = (char)character;
             }
@@ -2256,7 +2315,7 @@ namespace Json
                 if ( is.eof() )
                     throw UnexpectedInputEnd(expectedDescription);
                 else
-                    throw StreamReadFail();
+                    throw StreamReadFail(expectedDescription);
             }
             
             template <bool usePrimary>
@@ -2278,7 +2337,7 @@ namespace Json
                     if ( is.eof() )
                         throw UnexpectedInputEnd(expectedDescription);
                     else
-                        throw StreamReadFail();
+                        throw StreamReadFail(expectedDescription);
                 }
                 else if ( c == trueChar )
                     return true;
@@ -2311,7 +2370,7 @@ namespace Json
                     if ( is.eof() )
                         throw UnexpectedInputEnd(expectedDescription);
                     else
-                        throw StreamReadFail();
+                        throw StreamReadFail(expectedDescription);
                 }
                 else if ( c != expectation )
                     throw Exception((std::string("Expected: ") + expectedDescription).c_str());
@@ -2330,7 +2389,7 @@ namespace Json
                     if ( is.eof() )
                         throw UnexpectedInputEnd(expectedDescription);
                     else
-                        throw StreamReadFail();
+                        throw StreamReadFail(expectedDescription);
                 }
             }
 
@@ -2371,7 +2430,7 @@ namespace Json
                     if ( is.eof() )
                         throw UnexpectedInputEnd(expectedDescription);
                     else
-                        throw StreamReadFail();
+                        throw StreamReadFail(expectedDescription);
                 }
                 else if constexpr ( usePrimary )
                 {
@@ -3351,6 +3410,20 @@ namespace Json
                     Read::value<Annotations, InArray, MockMember<D>>(is, context, c, object, d);
                     RareMapper::map(value, d);
                 }
+                else if constexpr ( AllowCustomization && Member::template hasNote<Json::Replace<T>>() )
+                {
+                    constexpr auto & replace = Member::template getNote<Json::Replace<T>>();
+                    std::stringstream ss {};
+                    Json::Consume::value<InArray>(is, c, ss);
+                    std::string preserved = ss.str();
+                    if ( replace.value == std::string_view(preserved) )
+                        value = replace.replacement;
+                    else
+                    {
+                        std::stringstream subIs(preserved);
+                        Read::value<Annotations, InArray, Member, T, Object, false>(subIs, context, c, object, value);
+                    }
+                }
                 else if constexpr ( RareTs::is_pointable_v<T> )
                 {
                     using Dereferenced = RareTs::remove_pointer_t<T>;
@@ -3441,7 +3514,11 @@ namespace Json
                 else if constexpr ( std::is_const_v<T> )
                     Consume::value<InArray>(is, c);
                 else
+                {
                     is >> value;
+                    if ( !is )
+                        throw StreamReadFail(std::string(RareTs::toStr<T>()).c_str());
+                }
             }
             #ifdef _MSC_VER
             #pragma warning(pop)
@@ -3694,6 +3771,24 @@ namespace Json
         {
             return Input::ReflectedObject<Annotations, T>(t, context);
         }
+
+        template <typename Annotations = RareTs::NoNote, typename T = void>
+        inline void read(const std::string & input, T & t, std::shared_ptr<Context> context = nullptr)
+        {
+            std::stringstream ss {input};
+            Input::ReflectedObject<Annotations, T>(t, context).get(ss);
+        }
+
+        template <typename T = void, typename Annotations = RareTs::NoNote>
+        inline T read(const std::string & input, std::shared_ptr<Context> context = nullptr)
+        {
+            std::stringstream ss {input};
+            T t {};
+            Input::ReflectedObject<Annotations, T>(t, context).get(ss);
+            return t;
+        }
+
+
     }
 
     inline Json::OutStreamType & operator<<(Json::OutStreamType & os, const Json::Generic::Value & value)

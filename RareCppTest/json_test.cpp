@@ -3371,6 +3371,64 @@ TEST_HEADER(JsonOutputTest, JsonPretty)
     EXPECT_STREQ(objStreamCompare.str().c_str(), finalObjStream.str().c_str());
 }
 
+TEST_HEADER(JsonOutputTest, JsonWriteRef)
+{
+    NestedObj nestedObj = { false, { 1, 2, 3 } };
+    AnObjectTest anObject = { 4, "aString", nestedObj };
+
+    std::string output {};
+    Json::write(anObject, output);
+    EXPECT_STREQ("{\"integer\":4,\"str\":\"aString\",\"nestedObj\":{\"bool\":false,\"ray\":[1,2,3]}}", output.c_str());
+}
+
+TEST_HEADER(JsonOutputTest, JsonWriteReturn)
+{
+    NestedObj nestedObj = { false, { 1, 2, 3 } };
+    AnObjectTest anObject = { 4, "aString", nestedObj };
+
+    std::string output = Json::write(anObject);
+    EXPECT_STREQ("{\"integer\":4,\"str\":\"aString\",\"nestedObj\":{\"bool\":false,\"ray\":[1,2,3]}}", output.c_str());
+}
+
+TEST_HEADER(JsonOutputTest, JsonWritePrettyRef)
+{
+    NestedObj nestedObj = { false, { 1, 2, 3 } };
+    AnObjectTest anObject = { 4, "aString", nestedObj };
+    TestStreamType objStreamCompare;
+    objStreamCompare
+        << "{" << osEndl
+        << "  \"integer\": 4," << osEndl
+        << "  \"str\": \"aString\"," << osEndl
+        << "  \"nestedObj\": {" << osEndl
+        << "    \"bool\": false," << osEndl
+        << "    \"ray\": [ 1, 2, 3 ]" << osEndl
+        << "  }" << osEndl
+        << "}";
+
+    std::string output {};
+    Json::writePretty(anObject, output);
+    EXPECT_STREQ(objStreamCompare.str().c_str(), output.c_str());
+}
+
+TEST_HEADER(JsonOutputTest, JsonWritePrettyReturn)
+{
+    NestedObj nestedObj = { false, { 1, 2, 3 } };
+    AnObjectTest anObject = { 4, "aString", nestedObj };
+    TestStreamType objStreamCompare;
+    objStreamCompare
+        << "{" << osEndl
+        << "  \"integer\": 4," << osEndl
+        << "  \"str\": \"aString\"," << osEndl
+        << "  \"nestedObj\": {" << osEndl
+        << "    \"bool\": false," << osEndl
+        << "    \"ray\": [ 1, 2, 3 ]" << osEndl
+        << "  }" << osEndl
+        << "}";
+
+    std::string output = Json::writePretty(anObject);
+    EXPECT_STREQ(objStreamCompare.str().c_str(), output.c_str());
+}
+
 TEST_HEADER(JsonOutputTest, Performance_1000_StringStream)
 {
 #ifdef RUN_PERFORMANCE_TESTS
