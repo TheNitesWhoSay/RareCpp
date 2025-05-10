@@ -13,6 +13,7 @@
 #include <vector>
 #include "reflect.h"
 
+#include <iosfwd>
 #include <iostream> // TODO: Temporary includes
 #include <iomanip>
 #include "json.h"
@@ -260,6 +261,8 @@ namespace RareEdit
         constexpr auto & operator--() { --value; return *this; }
         constexpr auto & operator+=(std::uint8_t val) { value += val; return *this; }
         constexpr auto & operator-=(std::uint8_t val) { value -= val; return *this; }
+
+        inline friend auto & operator<<(std::ostream & os, const uint6_t & num) { os << int(num.value); return os; }
     };
     static_assert(sizeof(uint6_t) == sizeof(uint8_t), "Unexpected uint6_t size");
 
@@ -445,12 +448,12 @@ namespace RareEdit
 
     enum class PathOp : std::uint8_t {
         
-        /* The meaning of the lower 6-bits depends on the selection bit (second highest bit)...
-             Branch: identifies a field or array index (for array sizes <= 64) which you'll be branching from
-                     if array/container requires an index larger than 6 bits, then the next sizeof(containerIndex) bytes are the container index
-             SelBranch: lower 6-bits unused, SelBranch indicates the operation applies over the selection for this container (may branch further down from here)
-             LeafBranch: same as Branch except this also indicates it's the last branch in the sequence
-             LeafSelBranch: same as SelBranch except this also indicates it's the last branch in the sequence */
+        // The meaning of the lower 6-bits depends on the selection bit (second highest bit)...
+        //   Branch: identifies a field or array index (for array sizes <= 64) which you'll be branching from
+        //           if array/container requires an index larger than 6 bits, then the next sizeof(containerIndex) bytes are the container index
+        //   SelBranch: lower 6-bits unused, SelBranch indicates the operation applies over the selection for this container (may branch further down from here)
+        //   LeafBranch: same as Branch except this also indicates it's the last branch in the sequence
+        //   LeafSelBranch: same as SelBranch except this also indicates it's the last branch in the sequence
         HighBits      = 0b11000000,
         LowBits       = 0b00111111,
 
@@ -3117,13 +3120,19 @@ namespace RareEdit
         }
 
         template <class Value, class Member>
-        auto readValue(std::size_t & offset) const requires(!std::is_array_v<RareTs::element_type_t<Value>>)
+        auto readValue(std::size_t & offset) const
         {
             if constexpr ( std::is_array_v<Value> ) // Avoid trying to return array[] types, make a vector
             {
-                std::vector<RareTs::element_type_t<Value>> value { std::size_t{RareTs::static_array_size_v<Value>} };
-                readValue<decltype(value), Member>(offset, value);
-                return value;
+                using element_type = RareTs::element_type_t<Value>;
+                if constexpr ( std::is_array_v<Value> )
+                    return std::vector<int>{}; // TODO: multi-dimensional array handling
+                else
+                {
+                    std::vector<element_type> value { std::size_t{RareTs::static_array_size_v<Value>} };
+                    readValue<decltype(value), Member>(offset, value);
+                    return value;
+                }
             }
             else
             {
@@ -3134,13 +3143,19 @@ namespace RareEdit
         }
 
         template <class Value, class Member>
-        auto peekValue(std::size_t offset) const requires(!std::is_array_v<RareTs::element_type_t<Value>>) // readValue but doesn't change offset
+        auto peekValue(std::size_t offset) const // readValue but doesn't change offset
         {
             if constexpr ( std::is_array_v<Value> ) // Avoid trying to return array[] types, make a vector
             {
-                std::vector<RareTs::element_type_t<Value>> value { std::size_t{RareTs::static_array_size_v<Value>} };
-                readValue<decltype(value), Member>(offset, value);
-                return value;
+                using element_type = RareTs::element_type_t<Value>;
+                if constexpr ( std::is_array_v<element_type> )
+                    return std::vector<int>{}; // TODO: multi-dimensional array handling
+                else
+                {
+                    std::vector<RareTs::element_type_t<Value>> value { std::size_t{RareTs::static_array_size_v<Value>} };
+                    readValue<decltype(value), Member>(offset, value);
+                    return value;
+                }
             }
             else
             {
@@ -5056,43 +5071,40 @@ namespace RareEdit
                 break;
                 case Op::Set:
                 {
-                    if constexpr ( requires{readValue<value_type, Member>(offset);} )
+                    auto newValue = readValue<value_type, Member>(offset);
+                    readValue<value_type, Member>(offset); // prevValue (unused)
+                    if constexpr ( RareTs::is_assignable_v<decltype(ref), decltype(newValue)> )
                     {
-                        auto newValue = readValue<value_type, Member>(offset);
-                        readValue<value_type, Member>(offset); // prevValue (unused)
-                        if constexpr ( RareTs::is_assignable_v<decltype(ref), decltype(newValue)> )
+                        if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> )
                         {
-                            if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> )
+                            auto temp = ref;
+                            ref = newValue;
+                            notifyValueChanged(user, Route{keys}, temp, ref);
+                        }
+                        else
+                        {
+                            if constexpr ( isIterable && hasElementRemovedOp<Route> )
                             {
-                                auto temp = ref;
+                                std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1;
                                 ref = newValue;
-                                notifyValueChanged(user, Route{keys}, temp, ref);
+                                for ( ; i>=0; --i )
+                                    notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
                             }
                             else
-                            {
-                                if constexpr ( isIterable && hasElementRemovedOp<Route> )
-                                {
-                                    std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1;
-                                    ref = newValue;
-                                    for ( ; i>=0; --i )
-                                        notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
-                                }
-                                else
-                                    ref = newValue;
+                                ref = newValue;
 
-                                if constexpr ( isIterable && hasElementAddedOp<Route> )
-                                {
-                                    for ( std::size_t i=0; i<std::size(ref); ++i )
-                                        notifyElementAdded(user, Route{keys}, i);
-                                }
-                            }
-
-                            if constexpr ( hasSelections )
+                            if constexpr ( isIterable && hasElementAddedOp<Route> )
                             {
-                                clearSel(getSelections<Pathway...>());
-                                if constexpr ( hasSelChangeOp )
-                                    notifySelectionsChanged(user, Route{keys});
+                                for ( std::size_t i=0; i<std::size(ref); ++i )
+                                    notifyElementAdded(user, Route{keys}, i);
                             }
+                        }
+
+                        if constexpr ( hasSelections )
+                        {
+                            clearSel(getSelections<Pathway...>());
+                            if constexpr ( hasSelChangeOp )
+                                notifySelectionsChanged(user, Route{keys});
                         }
                     }
                 }
@@ -6360,12 +6372,12 @@ namespace RareEdit
                                 std::make_index_sequence<reflectedMemberCount<std::remove_cvref_t<typename RareTs::Member<U, MemberIndexes>::type>>()>(),
                                 keys, type_tags<Pathway..., PathMember<MemberIndexes>>{}), true) : false) || ...);
 
-                        /*RareTs::Members<U>::at(std::size_t(value & std::uint8_t(PathOp::LowBits)), t, [&](auto member, auto & ref) {
-                            using U2 = std::remove_cvref_t<typename decltype(member)::type>;
-                            processEventRef<U2, Undo, AfterSel, decltype(member)>(
-                                ref, offset, secondaryOffset, op, std::make_index_sequence<reflectedMemberCount<U2>()>(),
-                                keys, type_tags<Pathway..., PathMember<decltype(member)::index>>{});
-                        });*/
+                        //RareTs::Members<U>::at(std::size_t(value & std::uint8_t(PathOp::LowBits)), t, [&](auto member, auto & ref) {
+                        //    using U2 = std::remove_cvref_t<typename decltype(member)::type>;
+                        //    processEventRef<U2, Undo, AfterSel, decltype(member)>(
+                        //        ref, offset, secondaryOffset, op, std::make_index_sequence<reflectedMemberCount<U2>()>(),
+                        //        keys, type_tags<Pathway..., PathMember<decltype(member)::index>>{});
+                        //});
                     }
                 }
                 break;
@@ -6409,17 +6421,17 @@ namespace RareEdit
                                     op, offset, secondaryOffset, RareTs::Member<U, MemberIndexes>::value(t), keys), true) : false) || ...);
                         }
 
-                        /*if constexpr ( Undo ) {
-                            RareTs::Members<U>::at(std::size_t(value & std::uint8_t(PathOp::LowBits)), t, [&](auto member, auto & ref) {
-                                processUndoEvent<std::remove_cvref_t<typename decltype(member)::type>, decltype(member), Pathway..., PathMember<decltype(member)::index>>(
-                                    op, offset, secondaryOffset, ref, keys);
-                            });
-                        } else {
-                            RareTs::Members<U>::at(std::size_t(value & std::uint8_t(PathOp::LowBits)), t, [&](auto member, auto & ref) {
-                                processRedoEvent<std::remove_cvref_t<typename decltype(member)::type>, decltype(member), Pathway..., PathMember<decltype(member)::index>>(
-                                    op, offset, secondaryOffset, ref, keys);
-                            });
-                        }*/
+                        //if constexpr ( Undo ) {
+                        //    RareTs::Members<U>::at(std::size_t(value & std::uint8_t(PathOp::LowBits)), t, [&](auto member, auto & ref) {
+                        //        processUndoEvent<std::remove_cvref_t<typename decltype(member)::type>, decltype(member), Pathway..., PathMember<decltype(member)::index>>(
+                        //            op, offset, secondaryOffset, ref, keys);
+                        //    });
+                        //} else {
+                        //    RareTs::Members<U>::at(std::size_t(value & std::uint8_t(PathOp::LowBits)), t, [&](auto member, auto & ref) {
+                        //        processRedoEvent<std::remove_cvref_t<typename decltype(member)::type>, decltype(member), Pathway..., PathMember<decltype(member)::index>>(
+                        //            op, offset, secondaryOffset, ref, keys);
+                        //    });
+                        //}
                     }
                 }
                 break;
@@ -6620,565 +6632,251 @@ namespace RareEdit
             }
         }
 
-        template <class Value, class Member, std::size_t ... Is>
-        void printValue(std::size_t & offset, std::index_sequence<Is...>) const
+        auto & put(std::ostream & os, auto && value) const
         {
-            using index_type = index_type_t<typename edit_type::default_index_type, Member>;
-            if constexpr ( std::is_same_v<Value, std::string> )
-            {
-                auto stringSize = (index_type &)editable.events[offset];
-                offset += sizeof(stringSize);
-                std::string string((const char*)&editable.events[offset], stringSize);
-                offset += stringSize;
-                std::cout << "\"" << string << "\"";
-            }
-            else if constexpr ( RareTs::is_static_array_v<Value> )
-            {
-                constexpr auto size = static_cast<index_type>(RareTs::static_array_size_v<Value>);
-                offset += sizeof(size);
-                std::cout << "[" << static_cast<std::size_t>(size) << "]";
-                for ( std::remove_cvref_t<decltype(size)> i=0; i<size; ++i )
-                {
-                    using Elem = std::remove_cvref_t<decltype(std::declval<Value>()[0])>;
-                    printValue<Elem, Member>(offset, std::make_index_sequence<reflectedMemberCount<Elem>()>());
-                    std::cout << " ";
-                }
-            }
-            else if constexpr ( RareTs::is_iterable_v<Value> && requires{std::declval<Value>()[0];} )
-            {
-                auto size = (index_type &)editable.events[offset];
-                offset += sizeof(size);
-                std::cout << "[" << static_cast<std::size_t>(size) << "]";
-                for ( decltype(size) i=0; i<size; ++i )
-                {
-                    using Elem = std::remove_cvref_t<decltype(std::declval<Value>()[0])>;
-                    printValue<Elem, Member>(offset, std::make_index_sequence<reflectedMemberCount<Elem>()>());
-                    std::cout << " ";
-                }
-            }
-            else if constexpr ( RareTs::is_reflected_v<Value> )
-            {
-                (void)(
-                    (
-                        printValue<std::remove_cvref_t<typename RareTs::Member<Value, Is>::type>, RareTs::Member<Value, Is>>(
-                            offset, std::make_index_sequence<reflectedMemberCount<RareTs::Member<Value, Is>>()>()),
-                        std::cout << ' ',
-                        true
-                    ) && ...
-                );
-
-                /*RareTs::Members<Value>::forEach([&](auto member) {
-                    using MemType = std::remove_cvref_t<typename decltype(member)::type>;
-                    printValue<MemType, decltype(member)>(offset, std::make_index_sequence<reflectedMemberCount<MemType>()>());
-                    std::cout << " ";
-                });*/
-            }
-            else
-            {
-                Value value = (Value &)editable.events[offset];
-                std::cout << Json::out(value);
-                offset += sizeof(Value);
-            }
+            os << (RareTs::promote_char_t<decltype(value)>)value;
+            return *this;
         }
 
-        template <class Value, class Member>
-        void printValue(std::size_t & offset) const
+        template <class type, class member_type>
+        auto & putValue(std::ostream & os, std::size_t & offset) const
         {
-            printValue<Value, Member>(offset, std::make_index_sequence<reflectedMemberCount<Value>()>());
+            os << Json::out(editable.template readValue<type, member_type>(offset));
+            return *this;
+        }
+
+        template <class type, class member_type>
+        auto & putValues(std::ostream & os, std::size_t & offset, std::size_t size) const
+        {
+            os << "{";
+            for ( std::size_t i=0; i<size; ++i )
+                os << (i>0 ? ", " : "") << Json::out(editable.template readValue<type, member_type>(offset));
+
+            os << "}";
+            return *this;
+        }
+
+        template <class index_type>
+        auto & putIndex(std::ostream & os, std::size_t & offset) const
+        {
+            os << (RareTs::promote_char_t<index_type>)editable.template readIndex<index_type>(offset);
+            return *this;
+        }
+
+        template <class index_type>
+        auto & putIndexes(std::ostream & os, std::size_t & offset, std::size_t size) const
+        {
+            auto indexes = editable.template readIndexes<index_type>(offset, size);
+            os << "{";
+            for ( std::size_t i=0; i<size; ++i )
+                os << (i>0 ? ", " : "") << (RareTs::promote_char_t<index_type>)indexes[i];
+
+            os << "}";
+            return *this;
         }
 
         template <class type, class member_type>
         void printEventOp(std::size_t & offset, Op op) const
         {
+            auto & os = std::cout; // TODO: Lift
+            using element = RareTs::element_type_t<std::remove_cvref_t<type>>;
             using index_type = index_type_t<typename edit_type::default_index_type, member_type>;
             switch ( op )
             {
-                case Op::Reset:
+                case Op::Reset: // .reset() // prevValue
+                    put(os, ".reset() // ").putValue<type, member_type>(os, offset);
+                    break;
+                case Op::Reserve: // .reserve(size)
+                    put(os, ".reserve(").putIndex<index_type>(os, offset).put(os, ")");
+                    break;
+                case Op::Trim: // .trim()
+                    put(os, ".trim()");
+                    break;
+                case Op::Assign: // .assign(size, value) // prevValue
+                    if constexpr ( !std::is_void_v<element> )
+                        put(os, ".assign(").putIndex<index_type>(os, offset).putValue<type, member_type>(os, offset).put(os, ") // ").putValue<type, member_type>(os, offset);
+                    break;
+                case Op::AssignDefault: // .assign(size, {}) // prevValue
+                    put(os, ".assign(").putIndex<index_type>(os, offset).putValue<type, member_type>(os, offset).put(os, ", {}) // ").putValue<type, member_type>(os, offset);
+                    break;
+                case Op::ClearSelections: // .clearSelections() // size, selIndexes
                 {
-                    if constexpr ( requires{editable.template readValue<type, member_type>(offset);} )
-                    {
-                        auto prevValue = editable.template readValue<type, member_type>(offset);
-                        std::cout << ".reset() // " << Json::out(prevValue);
-                    }
-                }
-                break;
-                case Op::Reserve:
-                {
-                    auto size = editable.template readIndex<index_type>(offset);
-                    std::cout << ".reserve(" << static_cast<std::size_t>(size) << ")";
-                }
-                break;
-                case Op::Trim:
-                {
-                    std::cout << ".trim()";
-                }
-                break;
-                case Op::Assign:
-                {
-                    using element = RareTs::element_type_t<std::remove_cvref_t<type>>;
-                    if constexpr ( !std::is_void_v<element> && requires{editable.template readValue<type, member_type>(offset);} )
-                    {
-                        auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                        auto value = editable.template readValue<element, member_type>(offset);
-                        auto prevValue = editable.template readValue<type, member_type>(offset);
-                        std::cout << ".assign(" << size << ", " << Json::out(value) << ") // " << Json::out(prevValue);
-                    }
-                }
-                break;
-                case Op::AssignDefault:
-                {
-                    if constexpr ( requires{editable.template readValue<type, member_type>(offset);} )
-                    {
-                        auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                        auto prevValue = editable.template readValue<type, member_type>(offset);
-                        std::cout << ".assign(" << size << ", {}) // " << Json::out(prevValue);
-                    }
-                }
-                break;
-                case Op::ClearSelections:
-                {
-                    std::cout << ".clearSelections(";
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    std::cout << size << ", {";
-                    auto selIndexes = editable.template readIndexes<index_type>(offset, size);
-                    for ( std::size_t i=0; i<size; ++i )
-                    {
-                        if ( i > 0 )
-                            std::cout << ", ";
-
-                        std::cout << static_cast<std::size_t>(selIndexes[i]);
-                    }
-                    std::cout << "})";
+                    put(os, "clearSelections() // ").put(os, size).put(os, ", ").putIndexes<index_type>(os, offset, size);
                 }
                 break;
-                case Op::SelectAll:
+                case Op::SelectAll: // .selectAll() // size, selIndexes
                 {
-                    std::cout << ".selectAll(";
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    auto selIndexes = editable.template readIndexes<index_type>(offset, size);
-                    std::cout << size << ", {";
-                    for ( std::size_t i=0; i<size; ++i )
-                    {
-                        if ( i > 0 )
-                            std::cout << ", ";
-
-                        std::cout << static_cast<std::size_t>(selIndexes[i]);
-                    }
-                    std::cout << "})";
+                    put(os, ".selectAll() // ").put(os, size).put(os, ", ").putIndexes<index_type>(os, offset, size);
                 }
                 break;
-                case Op::Select:
+                case Op::Select: // .select(index)
+                    put(os, ".select(").putIndex<index_type>(os, offset).put(os, ")");
+                    break;
+                case Op::SelectN: // .selectN(size, selIndexes)
                 {
-                    std::cout << ".select(";
-                    auto index = editable.template readIndex<index_type>(offset);
-                    std::cout << static_cast<std::size_t>(index);
-                    std::cout << ")";
-                }
-                break;
-                case Op::SelectN:
-                {
-                    std::cout << ".selectN(";
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    auto selIndexes = editable.template readIndexes<index_type>(offset, size);
-                    std::cout << size << ", {";
-                    for ( std::size_t i=0; i<size; ++i )
-                    {
-                        if ( i > 0 )
-                            std::cout << ", ";
-
-                        std::cout << static_cast<std::size_t>(selIndexes[i]);
-                    }
-                    std::cout << "})";
+                    put(os, ".selectN(").put(os, size).put(os, ", ").putIndexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
-                case Op::Deselect:
-                {
-                    std::cout << ".deselect(";
-                    printValue<std::size_t, member_type>(offset);
-                    std::cout << ")";
-                }
-                break;
+                case Op::Deselect: // .deselect(index)
+                    put(os, "deselect(").putIndex<index_type>(os, offset);
+                    break;
                 case Op::DeselectN:
                 {
-                    std::cout << ".deselectN(";
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    auto selIndexes = editable.template readIndexes<index_type>(offset, size);
-                    std::cout << static_cast<std::size_t>(size) << ", {";
-                    for ( std::size_t i=0; i<size; ++i )
-                    {
-                        if ( i > 0 )
-                            std::cout << ", ";
-
-                        std::cout << static_cast<std::size_t>(selIndexes[i]);
-                    }
-                    std::cout << "})";
+                    put(os, "deselectN(").putIndex<index_type>(os, offset).put(os, ", ").putIndexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::ToggleSelection:
-                {
-                    std::cout << ".toggleSel(";
-                    printValue<std::size_t, member_type>(offset);
-                    std::cout << ")";
-                }
-                break;
+                    put(os, "toggelSel(").putIndex<index_type>(os, offset).put(os, ")");
+                    break;
                 case Op::ToggleSelectionN:
                 {
-                    std::cout << ".toggleSelN(";
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    auto selIndexes = editable.template readIndexes<index_type>(offset, size);
-                    std::cout << size << ", {";
-                    for ( std::size_t i=0; i<size; ++i )
-                    {
-                        if ( i > 0 )
-                            std::cout << ", ";
-
-                        std::cout << static_cast<std::size_t>(selIndexes[i]);
-                    }
-                    std::cout << "})";
+                    put(os, "toggleSelN(").put(os, size).put(os, ", ").putIndexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::SortSelections:
                 {
-                    std::cout << ".sortSel(";
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    auto selIndexes = editable.template readIndexes<index_type>(offset, size);
-                    std::cout << size << ", {";
-                    for ( std::size_t i=0; i<size; ++i )
-                    {
-                        if ( i > 0 )
-                            std::cout << ", ";
-
-                        std::cout << static_cast<std::size_t>(selIndexes[i]);
-                    }
-                    std::cout << "})";
+                    put(os, "sortSel(").put(os, size).put(os, ", ").putIndexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::SortSelectionsDesc:
                 {
-                    std::cout << ".sortSelDesc(";
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    auto selIndexes = editable.template readIndexes<index_type>(offset, size);
-                    std::cout << size << ", {";
-                    for ( std::size_t i=0; i<size; ++i )
-                    {
-                        if ( i > 0 )
-                            std::cout << ", ";
-
-                        std::cout << static_cast<std::size_t>(selIndexes[i]);
-                    }
-                    std::cout << "})";
+                    put(os, "sortSelDesc(").put(os, size).put(os, ", ").putIndexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::Set:
-                {
-                    if constexpr ( requires{editable.template readValue<type, member_type>(offset);} )
-                    {
-                        auto newValue = editable.template readValue<type, member_type>(offset);
-                        auto prevValue = editable.template readValue<type, member_type>(offset);
-                        std::cout << "{" << Json::out(prevValue) << "} = " << Json::out(newValue);
-                    }
-                }
-                break;
+                    put(os, " = ").putValue<type, member_type>(os, offset).put(os, " // ").putValue<type, member_type>(os, offset);
+                    break;
                 case Op::SetN:
+                if constexpr ( !std::is_void_v<element> )
                 {
-                    std::cout << ".setN(";
-                    using element = RareTs::element_type_t<std::remove_cvref_t<type>>;
-                    if constexpr ( !std::is_void_v<element> && requires{editable.template readValue<type, member_type>(offset);} )
-                    {
-                        std::size_t size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                        auto setIndexes = editable.template readIndexes<index_type>(offset, size);
-                        std::cout << "{" << size << ", [";
-                        for ( std::size_t i=0; i<size; ++i )
-                        {
-                            if ( i > 0 )
-                                std::cout << ", " << static_cast<std::size_t>(setIndexes[i]);
-                            else
-                                std::cout << static_cast<std::size_t>(setIndexes[i]);
-                        }
-                        auto value = editable.template readValue<element, member_type>(offset);
-                        std::cout << "], " << Json::out(value) << "}, {";
-                        for ( std::size_t i=0; i<size; ++i )
-                        {
-                            if ( i > 0 )
-                                std::cout << ", " << Json::out(editable.template readValue<element, member_type>(offset));
-                            else
-                                std::cout << Json::out(editable.template readValue<element, member_type>(offset));
-                        }
-                    }
-                    std::cout << ")";
+                    std::size_t size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
+                    put(os, "setN(").putIndex<index_type>(os, offset).put(os, ", ").putIndexes<index_type>(os, offset, size).put(os, " = ").putValue<type, member_type>(os, offset)
+                        .put(os, ") // ").putValues<type, member_type>(os, offset, size);
                 }
                 break;
                 case Op::SetL:
-                {
-                    if constexpr ( requires{editable.template readValue<type, member_type>(offset);} )
-                    {
-                        auto newValue = editable.template readValue<type, member_type>(offset);
-                        std::cout << " = " << Json::out(newValue);
-                    }
-                }
-                break;
+                    put(os, " = ").putValue<type, member_type>(os, offset);
+                    break;
                 case Op::Append:
-                {
-                    std::cout << ".append(";
-                    if constexpr ( RareTs::is_specialization_v<type, std::vector> )
-                        printValue<std::remove_cvref_t<decltype(std::declval<type>()[0])>, member_type>(offset);
-                    std::cout << ")";
-                }
+                if constexpr ( RareTs::is_specialization_v<type, std::vector> )
+                    put(os, ".append(").putValue<std::remove_cvref_t<decltype(std::declval<type>()[0])>, member_type>(os, offset).put(os, ")");
                 break;
                 case Op::AppendN:
+                if constexpr ( RareTs::is_specialization_v<type, std::vector> )
                 {
-                    std::cout << ".appendN(";
-                    if constexpr ( RareTs::is_specialization_v<type, std::vector> )
-                    {
-                        using element = RareTs::element_type_t<std::remove_cvref_t<type>>;
-                        std::size_t size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                        std::cout << size << ", [";
-                        for ( std::size_t i=0; i<size; ++i )
-                        {
-                            if ( i > 0 )
-                                std::cout << ", " << Json::out(editable.template readValue<element, member_type>(offset));
-                            else
-                                std::cout << Json::out(editable.template readValue<element, member_type>(offset));
-                        }
-                    }
-                    std::cout << ")";
+                    std::size_t size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
+                    put(os, ".appendN(").put(os, size).put(os, ", ").putValues<element, member_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::Insert:
-                {
-                    std::cout << ".insert(" << static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    if constexpr ( RareTs::is_specialization_v<type, std::vector> )
-                    {
-                        std::cout << ", {";
-                        printValue<std::remove_cvref_t<decltype(std::declval<type>()[0])>, member_type>(offset);
-                        std::cout << "}";
-                    }
-                    std::cout << ")";
-                }
+                if constexpr ( RareTs::is_specialization_v<type, std::vector> )
+                    put(os, ".insert(").putIndex<index_type>(os, offset).put(os, ", ").putValue<std::remove_cvref_t<decltype(std::declval<type>()[0])>, member_type>(os, offset).put(os, ")");
                 break;
                 case Op::InsertN:
+                if constexpr ( RareTs::is_specialization_v<type, std::vector> )
                 {
-                    std::cout << ".insertN(";
-                    if constexpr ( RareTs::is_specialization_v<type, std::vector> )
-                    {
-                        using element = RareTs::element_type_t<std::remove_cvref_t<type>>;
-                        std::size_t size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                        std::size_t index = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                        std::cout << index << ", " << size << ", [";
-                        for ( std::size_t i=0; i<size; ++i )
-                        {
-                            if ( i > 0 )
-                                std::cout << ", " << Json::out(editable.template readValue<element, member_type>(offset));
-                            else
-                                std::cout << Json::out(editable.template readValue<element, member_type>(offset));
-                        }
-                        std::cout << "]";
-                    }
-                    std::cout << ")";
+                    std::size_t size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
+                    put(os, ".insertN(").putIndex<index_type>(os, offset).put(os, ", ").put(os, size).put(os, ", ").putValues<element, member_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::Remove:
-                {
-                    if constexpr ( RareTs::is_specialization_v<type, std::vector> )
-                    {
-                        std::cout << ".remove(" << static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                        std::cout << ") // {";
-                        printValue<std::remove_cvref_t<decltype(std::declval<type>()[0])>, member_type>(offset);
-                        std::cout << "}";
-                    }
-                }
+                if constexpr ( RareTs::is_specialization_v<type, std::vector> )
+                    put(os, ".remove(").putIndex<index_type>(os, offset).put(os, ") // {").putValue<std::remove_cvref_t<decltype(std::declval<type>()[0])>, member_type>(os, offset).put(os, ")");
                 break;
                 case Op::RemoveN:
+                if constexpr ( RareTs::is_specialization_v<type, std::vector> )
                 {
-                    if constexpr ( RareTs::is_specialization_v<type, std::vector> )
-                    {
-                        std::size_t count = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                        auto removedIndexes = editable.template readIndexes<index_type>(offset, count);
-                        std::cout << ".removeN(" << count << ", [";
-                        using element = RareTs::element_type_t<std::remove_cvref_t<type>>;
-                        for ( std::size_t i=0; i<count; ++i )
-                        {
-                            if ( i > 0 )
-                                std::cout << ", " << static_cast<std::size_t>(removedIndexes[i]);
-                            else
-                                std::cout << static_cast<std::size_t>(removedIndexes[i]);
-                        }
-                        std::cout << "] // [";
-                        for ( std::size_t i=0; i<count; ++i )
-                        {
-                            if ( i > 0 )
-                                std::cout << ", " << Json::out(editable.template readValue<element, member_type>(offset));
-                            else
-                                std::cout << Json::out(editable.template readValue<element, member_type>(offset));
-                        }
-                        std::cout << "]";
-                    }
+                    std::size_t count = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
+                    put(os, ".removeN(").putIndexes<index_type>(os, offset, count).put(os, ") // ").putIndexes<index_type>(os, offset, count);
                 }
                 break;
                 case Op::RemoveL:
+                if constexpr ( RareTs::is_specialization_v<type, std::vector> )
                 {
-                    if constexpr ( RareTs::is_specialization_v<type, std::vector> )
-                    {
-                        std::size_t count = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                        auto removedIndexes = editable.template readIndexes<index_type>(offset, count);
-                        std::cout << ".removeL() //" << count << ", [";
-                        using element = RareTs::element_type_t<std::remove_cvref_t<type>>;
-                        for ( std::size_t i=0; i<count; ++i )
-                        {
-                            if ( i > 0 )
-                                std::cout << ", " << static_cast<std::size_t>(removedIndexes[i]);
-                            else
-                                std::cout << static_cast<std::size_t>(removedIndexes[i]);
-                        }
-                        std::cout << "], [";
-                        for ( std::size_t i=0; i<count; ++i )
-                        {
-                            if ( i > 0 )
-                                std::cout << ", " << Json::out(editable.template readValue<element, member_type>(offset));
-                            else
-                                std::cout << Json::out(editable.template readValue<element, member_type>(offset));
-                        }
-                        std::cout << "]";
-                    }
+                    std::size_t count = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
+                    put(os, ".removeL() // ").put(os, count).put(os, ", ").putIndexes<index_type>(os, offset, count).put(os, ") // ").putValues<element, member_type>(os, offset, count);
                 }
                 break;
                 case Op::Sort:
                 {
                     std::size_t count = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    auto sourceIndexes = editable.template readIndexes<index_type>(offset, count);
-                    std::cout << ".sort() // " << count << ", [";
-                    for ( std::size_t i=0; i<count; ++i )
-                    {
-                        if ( i > 0 )
-                            std::cout << ", " << static_cast<std::size_t>(sourceIndexes[i]);
-                        else
-                            std::cout << static_cast<std::size_t>(sourceIndexes[i]);
-                    }
-                    std::cout << "]";
+                    put(os, ".sort() // ").put(os, count).putIndexes<index_type>(os, offset, count);
                 }
                 break;
                 case Op::SortDesc:
                 {
                     std::size_t count = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    auto sourceIndexes = editable.template readIndexes<index_type>(offset, count);
-                    std::cout << ".sortDesc() // " << count << ", [";
-                    for ( std::size_t i=0; i<count; ++i )
-                    {
-                        if ( i > 0 )
-                            std::cout << ", " << static_cast<std::size_t>(sourceIndexes[i]);
-                        else
-                            std::cout << static_cast<std::size_t>(sourceIndexes[i]);
-                    }
-                    std::cout << "]";
+                    put(os, ".sortDesc() // ").put(os, count).putIndexes<index_type>(os, offset, count);
                 }
                 break;
                 case Op::MoveUp:
-                {
-                    std::cout << ".moveUp(" << static_cast<std::size_t>(editable.template readIndex<index_type>(offset)) << ")";
-                }
-                break;
+                    put(os, ".moveUp(").putIndex<index_type>(os, offset).put(os, ")");
+                    break;
                 case Op::MoveUpN:
                 {
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    auto movedIndexes = editable.template readIndexes<index_type>(offset, size);
-                    std::cout << ".moveUpN(" << size << ", {";
-                    for ( std::size_t i=0; i<size; ++i )
-                        std::cout << (i==0 ? "" : ", ") << static_cast<std::size_t>(movedIndexes[i]);
-
-                    std::cout << "})";
+                    put(os, ".moveUpN(").put(os, size).put(os, ", ").putIndexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::MoveUpL:
-                {
-                    std::cout << ".moveUpSelections()";
-                }
-                break;
+                    put(os, ".moveSelectionsUp()");
+                    break;
                 case Op::MoveTop:
-                {
-                    std::cout << ".moveTop(" << static_cast<std::size_t>(editable.template readIndex<index_type>(offset)) << ")";
-                }
-                break;
+                    put(os, ".moveTop(").putIndex<index_type>(os, offset).put(os, ")");
+                    break;
                 case Op::MoveTopN:
                 {
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    auto movedIndexes = editable.template readIndexes<index_type>(offset, size);
-                    std::cout << ".moveTopN(" << size << ", {";
-                    for ( std::size_t i=0; i<size; ++i )
-                        std::cout << (i==0 ? "" : ", ") << static_cast<std::size_t>(movedIndexes[i]);
-
-                    std::cout << "})";
+                    put(os, ".moveTopN(").put(os, size).put(os, ", ").putIndexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::MoveTopL:
-                {
-                    std::cout << ".moveSelectionsTop()";
-                }
-                break;
+                    put(os, ".moveSelectionsTop()");
+                    break;
                 case Op::MoveDown:
-                {
-                    std::cout << ".moveDown(" << static_cast<std::size_t>(editable.template readIndex<index_type>(offset)) << ")";
-                }
-                break;
+                    put(os, ".moveDown(").putIndex<index_type>(os, offset).put(os, ")");
+                    break;
                 case Op::MoveDownN:
                 {
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    auto movedIndexes = editable.template readIndexes<index_type>(offset, size);
-                    std::cout << ".moveDownN(" << size << ", {";
-                    for ( std::size_t i=0; i<size; ++i )
-                        std::cout << (i==0 ? "" : ", ") << static_cast<std::size_t>(movedIndexes[i]);
-
-                    std::cout << "})";
+                    put(os, ".moveDownN(").put(os, size).put(os, ", ").putIndexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::MoveDownL:
-                {
-                    std::cout << ".moveSelectionsDown()";
-                }
-                break;
+                    put(os, ".moveSelectionsDown()");
+                    break;
                 case Op::MoveBottom:
-                {
-                    std::cout << ".moveBottom(" << static_cast<std::size_t>(editable.template readIndex<index_type>(offset)) << ")";
-                }
-                break;
+                    put(os, ".moveBottom(").putIndex<index_type>(os, offset).put(os, ")");
+                    break;
                 case Op::MoveBottomN:
                 {
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    auto movedIndexes = editable.template readIndexes<index_type>(offset, size);
-                    std::cout << ".moveBottomN(" << size << ", {";
-                    for ( std::size_t i=0; i<size; ++i )
-                        std::cout << (i==0 ? "" : ", ") << static_cast<std::size_t>(movedIndexes[i]);
-
-                    std::cout << "})";
+                    put(os, ".moveBottomN(").put(os, size).put(os, ", ").putIndexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::MoveBottomL:
-                {
-                    std::cout << ".moveSelectionsBottom()";
-                }
-                break;
+                    put(os, ".moveSelectionsBottom()");
+                    break;
                 case Op::MoveTo:
-                {
-                    std::cout << ".moveTo(" << static_cast<std::size_t>(editable.template readIndex<index_type>(offset)) << ", "
-                        << static_cast<std::size_t>(editable.template readIndex<index_type>(offset)) << ")";
-                }
-                break;
+                    put(os, ".moveTo(").putIndex<index_type>(os, offset).put(os, ", ").putIndex<index_type>(os, offset).put(os, ")");
+                    break;
                 case Op::MoveToN:
                 {
                     auto target = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    auto movedIndexes = editable.template readIndexes<index_type>(offset, size);
-                    std::cout << ".moveToN(" << target << ", " << size << ", {";
-                    for ( std::size_t i=0; i<size; ++i )
-                        std::cout << (i==0 ? "" : ", ") << static_cast<std::size_t>(movedIndexes[i]);
-
-                    std::cout << "})";
+                    put(os, ".moveToN(").put(os, target).put(os, ", ").put(os, size).put(os, ", ").putIndexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::MoveToL:
-                {
-                    std::cout << ".moveSelectionsTo(" << static_cast<std::size_t>(editable.template readIndex<index_type>(offset)) << ")";
-                }
-                break;
+                    put(os, ".moveSelectionsTo(").putIndex<index_type>(os, offset);
+                    break;
             }
         }
 
@@ -7234,10 +6932,10 @@ namespace RareEdit
                                 true) : true) && ...
                         );
 
-                        /*RareTs::Members<U>::at(std::size_t(value & std::uint8_t(PathOp::LowBits)), [&](auto member) {
-                            std::cout << "." << member.name;
-                            printEvent<std::remove_cvref_t<typename decltype(member)::type>, decltype(member)>(offset, op, std::make_index_sequence<reflectedMemberCount<U>()>());
-                        });*/
+                        //RareTs::Members<U>::at(std::size_t(value & std::uint8_t(PathOp::LowBits)), [&](auto member) {
+                        //    std::cout << "." << member.name;
+                        //    printEvent<std::remove_cvref_t<typename decltype(member)::type>, decltype(member)>(offset, op, std::make_index_sequence<reflectedMemberCount<U>()>());
+                        //});
                     }
                 }
                 break;
@@ -7263,10 +6961,10 @@ namespace RareEdit
                                 printEventOp<typename RareTs::Member<U, Is>::type, RareTs::Member<U, Is>>(offset, Op(op)),
                                 true) : true) && ...
                         );
-                        /*RareTs::Members<U>::at(memberIndex, [&](auto member) {
-                            std::cout << "." << member.name;
-                            printEventOp<typename decltype(member)::type, decltype(member)>(offset, Op(value));
-                        });*/
+                        //RareTs::Members<U>::at(memberIndex, [&](auto member) {
+                        //    std::cout << "." << member.name;
+                        //    printEventOp<typename decltype(member)::type, decltype(member)>(offset, Op(value));
+                        //});
                     }
                 }
                 break;
