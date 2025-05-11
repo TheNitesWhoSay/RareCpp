@@ -340,6 +340,10 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
         template <typename T> struct is_adaptor<first_of_t<T, typename T::container_type>> : std::true_type {};
         template <typename T> inline constexpr bool is_adaptor_v = is_adaptor<T>::value;
 
+        template <typename ... Ts> struct is_optional { static constexpr bool value = false; };
+        template <typename T> struct is_optional<first_of_t<T, typename T::value_type, decltype(*T{}), decltype(T{}.has_value())>> : std::true_type {};
+        template <typename T> inline constexpr bool is_optional_v = is_optional<T>::value;
+
         template <typename T> struct is_pair { static constexpr bool value = false; };
         template <typename L, typename R> struct is_pair<std::pair<L, R>> { static constexpr bool value = true; };
         template <typename L, typename R> struct is_pair<const std::pair<L, R>> { static constexpr bool value = true; };
@@ -1604,7 +1608,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
 
         #ifndef RARE_NO_CPP_20
         template <typename T, typename = void> struct is_aggregate_reflected : std::bool_constant<
-            std::is_aggregate_v<T> && !std::is_array_v<T> && !is_in_class_reflected_v<T> && !is_proxied_v<T> && !is_private_reflected_v<T>> {};
+            std::is_aggregate_v<T> && !RareTs::is_static_array_v<T> && !is_in_class_reflected_v<T> && !is_proxied_v<T> && !is_private_reflected_v<T>> {};
         template <typename T> inline constexpr bool is_aggregate_reflected_v = is_aggregate_reflected<T>::value;
         #else
         template <typename T, typename = void> struct is_aggregate_reflected : std::false_type {};
@@ -1729,7 +1733,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             template <class T, class=void> struct clazz {
                 template <class U, class=void> struct last { using type = void; };
                 #ifndef RARE_NO_CPP_20
-                template <class U> struct last<U, std::enable_if_t<std::is_aggregate_v<U> && !std::is_array_v<U>>> { using type = typename RareTs::AggregateClass<U>; };
+                template <class U> struct last<U, std::enable_if_t<std::is_aggregate_v<U> && !RareTs::is_static_array_v<U>>> { using type = typename RareTs::AggregateClass<U>; };
                 #endif
                 using type = typename last<T>::type;
             };

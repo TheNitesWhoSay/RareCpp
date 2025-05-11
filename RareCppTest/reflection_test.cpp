@@ -1,5 +1,6 @@
 #include <rarecpp/reflect.h>
 #include <gtest/gtest.h>
+#include <array>
 #include <cstddef>
 #include <map>
 #include <stack>
@@ -304,6 +305,8 @@ TEST(ReflectionTest, IsAggregateReflected)
     EXPECT_FALSE(is_aggregate_reflected<UnownedObj1>::value);
     EXPECT_FALSE(is_aggregate_reflected<UnownedObj2>::value);
     EXPECT_FALSE(is_aggregate_reflected<OwnedObj>::value);
+    bool isStdArrayAggregate = is_aggregate_reflected<std::array<int, 2>>::value;
+    EXPECT_FALSE(isStdArrayAggregate);
 
     EXPECT_FALSE(is_aggregate_reflected_v<does_not_have_reflected_class>);
     EXPECT_FALSE(is_aggregate_reflected_v<does_have_reflected_class>);
@@ -321,6 +324,8 @@ TEST(ReflectionTest, IsAggregateReflected)
     EXPECT_FALSE(is_aggregate_reflected_v<UnownedObj1>);
     EXPECT_FALSE(is_aggregate_reflected_v<UnownedObj2>);
     EXPECT_FALSE(is_aggregate_reflected_v<OwnedObj>);
+    isStdArrayAggregate = is_aggregate_reflected_v<std::array<int, 2>>;
+    EXPECT_FALSE(isStdArrayAggregate);
 }
 #endif
 
