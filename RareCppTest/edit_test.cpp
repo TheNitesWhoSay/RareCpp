@@ -501,10 +501,10 @@ namespace EditorCumulative
         Bar bar;
         std::vector<Bar> barVec {}; NOTE(barVec, IndexSize<std::uint16_t>{})
         int intRay[5] {};
+        int mdIntRay[2][3] {};
         std::vector<Trig> trigs {}; NOTE(trigs, IndexSize<std::uint16_t>{})
-        
-        
-        REFLECT_NOTED(CumulativeTest, a, b, c, bar, barVec, intRay, trigs)
+
+        REFLECT_NOTED(CumulativeTest, a, b, c, bar, barVec, intRay, mdIntRay, trigs)
     };
 
     struct TracedCumulativeTest : Tracked<CumulativeTest, TracedCumulativeTest>
@@ -532,6 +532,7 @@ namespace EditorCumulative
             edit->intRay[2] = 5;
             edit->intRay.select({1, 2, 4});
             edit->intRay.selection() = 6;
+            edit->mdIntRay[1][2] = 23;
             edit->trigs.append(EditorCumulative::CumulativeTest::Trig{});
             edit->trigs.append(EditorCumulative::CumulativeTest::Trig{});
             edit->trigs[0].conditions[3].type = uint8_t(12);
@@ -562,7 +563,7 @@ namespace EditorCumulative
         endState << Json::out(*myObj);
         EXPECT_STREQ(endState.str().c_str(), "{\"a\":12,\"b\":\"qwerty\",\"c\":[5,6,7],\"bar\":{\"integer\":1,\"decimal\":2.2,\"ints\":[]},"
             "\"barVec\":[{\"integer\":1,\"decimal\":2.2,\"ints\":[3,4,8,9,10]},{\"integer\":3,\"decimal\":4.4,\"ints\":[3,4,5,8,9,10]},"
-            "{\"integer\":0,\"decimal\":0,\"ints\":[]}],\"intRay\":[0,6,6,0,6],\"trigs\":["
+            "{\"integer\":0,\"decimal\":0,\"ints\":[]}],\"intRay\":[0,6,6,0,6],\"mdIntRay\":[[0,0,0],[0,0,23]],\"trigs\":["
             "{\"conditions\":[{\"type\":11},{\"type\":0},{\"type\":0},{\"type\":12}]},"
             "{\"conditions\":[{\"type\":11},{\"type\":0},{\"type\":0},{\"type\":0}]}]}");
     }

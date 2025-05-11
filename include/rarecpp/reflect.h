@@ -1,4 +1,4 @@
-// MIT License, Copyright (c) 2019-2023 Justin F https://github.com/TheNitesWhoSay/RareCpp/blob/master/LICENSE
+// MIT License, Copyright (c) 2019-2025 Justin F https://github.com/TheNitesWhoSay/RareCpp/blob/master/LICENSE
 #ifndef REFLECT_H
 #define REFLECT_H
 #include <array>
@@ -1605,6 +1605,9 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
         template <typename T, typename = void> struct is_private_reflected : std::false_type {};
         template <typename T> struct is_private_reflected<T, std::void_t<decltype(GlobalClass<T>::I_::N_)>> : std::true_type {};
         template <typename T> inline constexpr bool is_private_reflected_v = is_private_reflected<T>::value;
+
+        template <typename T> struct is_macro_reflected : std::bool_constant<is_in_class_reflected_v<T> || is_proxied_v<T> || is_private_reflected_v<T>> {};
+        template <typename T> inline constexpr bool is_macro_reflected_v = is_macro_reflected<T>::value;
 
         #ifndef RARE_NO_CPP_20
         template <typename T, typename = void> struct is_aggregate_reflected : std::bool_constant<
