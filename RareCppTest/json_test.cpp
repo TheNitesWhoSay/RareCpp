@@ -6,6 +6,7 @@
 #include <iostream>
 #include <list>
 #include <memory>
+#include <optional>
 #include <queue>
 #include <regex>
 #include <stack>
@@ -1385,6 +1386,7 @@ TEST_HEADER(JsonIdentifiersTest, IsNonPrimitive)
     EXPECT_FALSE(Json::is_non_primitive_v<char**>);
     EXPECT_FALSE(Json::is_non_primitive_v<char&>);
     EXPECT_FALSE(Json::is_non_primitive_v<char&&>);
+    EXPECT_FALSE(Json::is_non_primitive_v<std::optional<char>>);
     EXPECT_FALSE(Json::is_non_primitive_v<std::unique_ptr<char>>);
     EXPECT_FALSE(Json::is_non_primitive_v<std::shared_ptr<char>>);
     EXPECT_FALSE(Json::is_non_primitive_v<int>);
@@ -1392,6 +1394,7 @@ TEST_HEADER(JsonIdentifiersTest, IsNonPrimitive)
     EXPECT_FALSE(Json::is_non_primitive_v<int**>);
     EXPECT_FALSE(Json::is_non_primitive_v<int&>);
     EXPECT_FALSE(Json::is_non_primitive_v<int&&>);
+    EXPECT_FALSE(Json::is_non_primitive_v<std::optional<int>>);
     EXPECT_FALSE(Json::is_non_primitive_v<std::unique_ptr<int>>);
     EXPECT_FALSE(Json::is_non_primitive_v<std::shared_ptr<int>>);
     EXPECT_FALSE(Json::is_non_primitive_v<std::string>);
@@ -1441,6 +1444,7 @@ TEST_HEADER(JsonIdentifiersTest, IsNonPrimitive)
     EXPECT_FALSE(Json::is_non_primitive_v<const char**>);
     EXPECT_FALSE(Json::is_non_primitive_v<const char&>);
     EXPECT_FALSE(Json::is_non_primitive_v<const char&&>);
+    EXPECT_FALSE(Json::is_non_primitive_v<const std::optional<char>>);
     EXPECT_FALSE(Json::is_non_primitive_v<const std::unique_ptr<char>>);
     EXPECT_FALSE(Json::is_non_primitive_v<const std::shared_ptr<char>>);
     EXPECT_FALSE(Json::is_non_primitive_v<const int>);
@@ -1448,6 +1452,7 @@ TEST_HEADER(JsonIdentifiersTest, IsNonPrimitive)
     EXPECT_FALSE(Json::is_non_primitive_v<const int**>);
     EXPECT_FALSE(Json::is_non_primitive_v<const int&>);
     EXPECT_FALSE(Json::is_non_primitive_v<const int&&>);
+    EXPECT_FALSE(Json::is_non_primitive_v<const std::optional<int>>);
     EXPECT_FALSE(Json::is_non_primitive_v<const std::unique_ptr<int>>);
     EXPECT_FALSE(Json::is_non_primitive_v<const std::shared_ptr<int>>);
     EXPECT_FALSE(Json::is_non_primitive_v<const std::string>);
@@ -3051,37 +3056,44 @@ struct ContainsIterables
 {
     std::vector<int> intVector;
     int intArray[3];
+    std::array<int, 2> stlArray;
     std::queue<int> intQueue;
 
-    REFLECT(ContainsIterables, intVector, intQueue, intArray)
+    REFLECT(ContainsIterables, intVector, intArray, stlArray, intQueue)
 };
 
 TEST_HEADER(JsonOutputPut, Iterable)
 {
     TestStreamType intVectorStream,
         intQueueStream,
-        intArrayStream;
+        intArrayStream,
+        stlIntArrayStream;
 
     ContainsIterables containsIterables = {
         { 1, 2, 3 },
         { 3, 4, 5 },
+        { 4, 5 },
         {}
     };
     containsIterables.intQueue.push(2);
     containsIterables.intQueue.push(3);
     containsIterables.intQueue.push(4);
 
-    Json::Put::iterable<NoNote, Reflect<ContainsIterables>::MemberType::intVector, Json::Statics::Excluded, false, 0, Json::twoSpaces, ContainsIterables>(
+    Json::Put::iterable<NoNote, Reflect<ContainsIterables>::MemberType::intVector, Json::Statics::Excluded, false, 0, Json::twoSpaces>(
         intVectorStream, Json::defaultContext, containsIterables, containsIterables.intVector);
     EXPECT_STREQ("[1,2,3]", intVectorStream.str().c_str());
 
-    Json::Put::iterable<NoNote, Reflect<ContainsIterables>::MemberType::intQueue, Json::Statics::Excluded, false, 0, Json::twoSpaces, ContainsIterables>(
+    Json::Put::iterable<NoNote, Reflect<ContainsIterables>::MemberType::intQueue, Json::Statics::Excluded, false, 0, Json::twoSpaces>(
         intQueueStream, Json::defaultContext, containsIterables, containsIterables.intQueue);
     EXPECT_STREQ("[2,3,4]", intQueueStream.str().c_str());
 
-    Json::Put::iterable<NoNote, Reflect<ContainsIterables>::MemberType::intArray, Json::Statics::Excluded, false, 0, Json::twoSpaces, ContainsIterables>(
+    Json::Put::iterable<NoNote, Reflect<ContainsIterables>::MemberType::intArray, Json::Statics::Excluded, false, 0, Json::twoSpaces>(
         intArrayStream, Json::defaultContext, containsIterables, containsIterables.intArray);
     EXPECT_STREQ("[3,4,5]", intArrayStream.str().c_str());
+
+    Json::Put::iterable<NoNote, Reflect<ContainsIterables>::MemberType::stlArray, Json::Statics::Excluded, false, 0, Json::twoSpaces>(
+        stlIntArrayStream, Json::defaultContext, containsIterables, containsIterables.stlArray);
+    EXPECT_STREQ("[4,5]", stlIntArrayStream.str().c_str());
 }
 
 struct RegularFields
@@ -3301,6 +3313,44 @@ TEST_HEADER(JsonOutputTest, JsonOutputReflectedObject)
     EXPECT_STREQ("{\"integer\":4,\"str\":\"aString\",\"nestedObj\":{\"bool\":false,\"ray\":[1,2,3]}}", objStream.str().c_str());
 }
 
+struct OptObj
+{
+    int a;
+
+    REFLECT(OptObj, a)
+};
+
+struct Optional
+{
+    std::optional<int> a = std::nullopt;
+    std::optional<OptObj> b = std::nullopt;
+
+    REFLECT(Optional, a, b)
+};
+
+TEST_HEADER(JsonOutputTest, JsonOutOpt)
+{
+    Optional nullOpt {};
+    TestStreamType nullOptStream {};
+    nullOptStream << Json::out(nullOpt);
+    EXPECT_STREQ("{\"a\":null,\"b\":null}", nullOptStream.str().c_str());
+
+    Optional valueOpt { 1, OptObj{2} };
+    TestStreamType valueOptStream {};
+    valueOptStream << Json::out(valueOpt);
+    EXPECT_STREQ("{\"a\":1,\"b\":{\"a\":2}}", valueOptStream.str().c_str());
+}
+
+struct SomeArrays
+{
+    int a[3] {1, 2, 3};
+    int b[2][3] {{4, 5, 6}, {7, 8, 9}};
+    int c[2][3][1] {{{4}, {5}, {6}}, {{7}, {8}, {9}}};
+    std::array<int, 2> d {4, 5};
+
+    REFLECT(SomeArrays, a, b, c, d)
+};
+
 TEST_HEADER(JsonOutputTest, JsonOut)
 {
     NestedObj nestedObj = { false, { 1, 2, 3 } };
@@ -3313,6 +3363,10 @@ TEST_HEADER(JsonOutputTest, JsonOut)
     TestStreamType finalObjStream;
     finalObjStream << Json::out(anObject);
     EXPECT_STREQ("{\"integer\":4,\"str\":\"aString\",\"nestedObj\":{\"bool\":false,\"ray\":[1,2,3]}}", finalObjStream.str().c_str());
+
+    TestStreamType arrayStream;
+    arrayStream << Json::out(SomeArrays{});
+    EXPECT_STREQ("{\"a\":[1,2,3],\"b\":[[4,5,6],[7,8,9]],\"c\":[[[4],[5],[6]],[[7],[8],[9]]],\"d\":[4,5]}", arrayStream.str().c_str());
 }
 
 TEST_HEADER(JsonOutputTest, OutProxyReflected)
@@ -3369,6 +3423,64 @@ TEST_HEADER(JsonOutputTest, JsonPretty)
     TestStreamType finalObjStream;
     finalObjStream << Json::pretty(anObject);
     EXPECT_STREQ(objStreamCompare.str().c_str(), finalObjStream.str().c_str());
+}
+
+TEST_HEADER(JsonOutputTest, JsonWriteRef)
+{
+    NestedObj nestedObj = { false, { 1, 2, 3 } };
+    AnObjectTest anObject = { 4, "aString", nestedObj };
+
+    std::string output {};
+    Json::write(anObject, output);
+    EXPECT_STREQ("{\"integer\":4,\"str\":\"aString\",\"nestedObj\":{\"bool\":false,\"ray\":[1,2,3]}}", output.c_str());
+}
+
+TEST_HEADER(JsonOutputTest, JsonWriteReturn)
+{
+    NestedObj nestedObj = { false, { 1, 2, 3 } };
+    AnObjectTest anObject = { 4, "aString", nestedObj };
+
+    std::string output = Json::write(anObject);
+    EXPECT_STREQ("{\"integer\":4,\"str\":\"aString\",\"nestedObj\":{\"bool\":false,\"ray\":[1,2,3]}}", output.c_str());
+}
+
+TEST_HEADER(JsonOutputTest, JsonWritePrettyRef)
+{
+    NestedObj nestedObj = { false, { 1, 2, 3 } };
+    AnObjectTest anObject = { 4, "aString", nestedObj };
+    TestStreamType objStreamCompare;
+    objStreamCompare
+        << "{" << osEndl
+        << "  \"integer\": 4," << osEndl
+        << "  \"str\": \"aString\"," << osEndl
+        << "  \"nestedObj\": {" << osEndl
+        << "    \"bool\": false," << osEndl
+        << "    \"ray\": [ 1, 2, 3 ]" << osEndl
+        << "  }" << osEndl
+        << "}";
+
+    std::string output {};
+    Json::writePretty(anObject, output);
+    EXPECT_STREQ(objStreamCompare.str().c_str(), output.c_str());
+}
+
+TEST_HEADER(JsonOutputTest, JsonWritePrettyReturn)
+{
+    NestedObj nestedObj = { false, { 1, 2, 3 } };
+    AnObjectTest anObject = { 4, "aString", nestedObj };
+    TestStreamType objStreamCompare;
+    objStreamCompare
+        << "{" << osEndl
+        << "  \"integer\": 4," << osEndl
+        << "  \"str\": \"aString\"," << osEndl
+        << "  \"nestedObj\": {" << osEndl
+        << "    \"bool\": false," << osEndl
+        << "    \"ray\": [ 1, 2, 3 ]" << osEndl
+        << "  }" << osEndl
+        << "}";
+
+    std::string output = Json::writePretty(anObject);
+    EXPECT_STREQ(objStreamCompare.str().c_str(), output.c_str());
 }
 
 TEST_HEADER(JsonOutputTest, Performance_1000_StringStream)

@@ -59,6 +59,12 @@ namespace Json
         struct StringifyType {};
         inline constexpr StringifyType Stringify{};
 
+        template <typename T>
+        struct Replace {
+            std::string_view value;
+            T replacement;
+        };
+
         // Member or Super annotation telling JSON to use a different name for the field
         struct Name
         {
@@ -936,6 +942,7 @@ namespace Json
         template <typename T> struct is_non_primitive<T*> { static constexpr bool value = is_non_primitive<T>::value; };
         template <typename T> struct is_non_primitive<T &> { static constexpr bool value = is_non_primitive<T>::value; };
         template <typename T> struct is_non_primitive<T &&> { static constexpr bool value = is_non_primitive<T>::value; };
+        template <typename T> struct is_non_primitive<std::optional<T>> { static constexpr bool value = is_non_primitive<T>::value; };
         template <typename T> struct is_non_primitive<std::unique_ptr<T>> { static constexpr bool value = is_non_primitive<T>::value; };
         template <typename T> struct is_non_primitive<std::shared_ptr<T>> { static constexpr bool value = is_non_primitive<T>::value; };
         template <> struct is_non_primitive<std::string> { static constexpr bool value = false; };
@@ -1479,7 +1486,7 @@ namespace Json
             constexpr void pair(OutStreamType & os, Context & context, const Object & obj, const std::pair<Key, T> & value);
 
             template <typename Annotations, typename Member, Statics statics,
-                bool PrettyPrint, size_t IndentLevel, const char* Indent, typename Object, typename IterableValue = uint_least8_t>
+                bool PrettyPrint, size_t IndentLevel, const char* Indent, size_t dimension = 0, typename Object = void, typename IterableValue = uint_least8_t>
             constexpr void iterable(OutStreamType & os, Context & context, const Object & obj, const IterableValue & iterable);
             
             template <typename Annotations, Statics statics, bool PrettyPrint, size_t IndentLevel, const char* Indent, typename T>
@@ -1669,7 +1676,7 @@ namespace Json
                     D d = RareMapper::map<D>(value);
                     Put::value<Annotations, MockMember<D>, statics, PrettyPrint, IndentLevel, Indent, Object, IsFirst>(os, context, obj, d);
                 }
-                else if constexpr ( RareTs::is_specialization_v<T, std::optional> || RareTs::is_pointable_v<T> )
+                else if constexpr ( RareTs::is_pointable_v<T> || RareTs::is_optional_v<T> )
                 {
                     if ( !value )
                         os << "null";
@@ -1703,7 +1710,7 @@ namespace Json
                 else if constexpr ( std::is_same_v<std::string, std::remove_const_t<T>> && !Member::template hasNote<Json::UnstringType>() )
                     Put::string(os, value);
                 else if constexpr ( RareTs::is_iterable_v<T> )
-                    Put::iterable<Annotations, Member, statics, PrettyPrint, IndentLevel, Indent, Object>(os, context, obj, value);
+                    Put::iterable<Annotations, Member, statics, PrettyPrint, IndentLevel, Indent>(os, context, obj, value);
                 else if constexpr ( RareTs::is_reflected_v<T> )
                     Put::object<Annotations, statics, PrettyPrint, IndentLevel, Indent, T>(os, context, value);
                 else if constexpr ( Member::template hasNote<Json::StringifyType>() )
@@ -1782,7 +1789,7 @@ namespace Json
             }
 
             template <typename Annotations, typename Member, Statics statics,
-                bool PrettyPrint, size_t IndentLevel, const char* Indent, typename Object, typename IterableValue>
+                bool PrettyPrint, size_t IndentLevel, const char* Indent, size_t dimension, typename Object, typename IterableValue>
             constexpr void iterable(OutStreamType & os, Context & context, const Object & obj, const IterableValue & iterable)
             {
                 using Element = RareTs::element_type_t<std::remove_cv_t<IterableValue>>;
@@ -1827,11 +1834,19 @@ namespace Json
                 }
                 else if constexpr ( std::is_array_v<IterableValue> && std::extent<typename Member::type>::value > 0 )
                 {
-                    for ( ; i<std::extent_v<typename Member::type>; i++ )
+                    for ( ; i<std::extent_v<typename Member::type, dimension>; i++ )
                     {
                         Put::separator<PrettyPrint, !IsArray, !ContainsPrimitives, IndentLevel + 1, Indent>(os, 0 == i);
-                        Put::value<Annotations, Member, statics, PrettyPrint, IndentLevel+1, Indent, Object, false>(
-                            os, context, obj, iterable[i]);
+                        if constexpr ( dimension+1 < std::rank_v<typename Member::type> )
+                        {
+                            Put::iterable<Annotations, Member, statics, PrettyPrint, IndentLevel+1, Indent, dimension+1>(
+                                os, context, obj, iterable[i]);
+                        }
+                        else
+                        {
+                            Put::value<Annotations, Member, statics, PrettyPrint, IndentLevel+1, Indent, Object, false>(
+                                os, context, obj, iterable[i]);
+                        }
                     }
                 }
                 Put::nestedSuffix<PrettyPrint, IsArray, ContainsPrimitives, IndentLevel, Indent>(os, RareTs::isEmpty(iterable));
@@ -1983,6 +1998,58 @@ namespace Json
         {
             return Output::ReflectedObject<OpNotes, statics, true, IndentLevel, Indent, T>(t, context);
         }
+
+        template <Statics statics = Statics::Excluded, typename Annotations = RareTs::NoNote,
+            size_t IndentLevel = 0, const char* Indent = twoSpaces, typename T = uint_least8_t>
+        inline void write(const T & t, std::string & output, std::shared_ptr<Context> context = nullptr)
+        {
+            #ifdef USE_BUFFERED_STREAMS
+            StringBuffer ss;
+            #else
+            std::stringstream ss;
+            #endif
+            Output::ReflectedObject<Annotations, statics, false, IndentLevel, Indent, T>(t, context).put(ss);
+            output = ss.str();
+        }
+
+        template <Statics statics = Statics::Excluded, typename Annotations = RareTs::NoNote,
+            size_t IndentLevel = 0, const char* Indent = twoSpaces, typename T = uint_least8_t>
+        inline std::string write(const T & t, std::shared_ptr<Context> context = nullptr)
+        {
+            #ifdef USE_BUFFERED_STREAMS
+            StringBuffer ss;
+            #else
+            std::stringstream ss;
+            #endif
+            Output::ReflectedObject<Annotations, statics, false, IndentLevel, Indent, T>(t, context).put(ss);
+            return ss.str();
+        }
+
+        template <Statics statics = Statics::Excluded, typename Annotations = RareTs::NoNote,
+            size_t IndentLevel = 0, const char* Indent = twoSpaces, typename T = uint_least8_t>
+        inline void writePretty(const T & t, std::string & output, std::shared_ptr<Context> context = nullptr)
+        {
+            #ifdef USE_BUFFERED_STREAMS
+            StringBuffer ss;
+            #else
+            std::stringstream ss;
+            #endif
+            Output::ReflectedObject<Annotations, statics, true, IndentLevel, Indent, T>(t, context).put(ss);
+            output = ss.str();
+        }
+
+        template <Statics statics = Statics::Excluded, typename Annotations = RareTs::NoNote,
+            size_t IndentLevel = 0, const char* Indent = twoSpaces, typename T = uint_least8_t>
+        inline std::string writePretty(const T & t, std::shared_ptr<Context> context = nullptr)
+        {
+            #ifdef USE_BUFFERED_STREAMS
+            StringBuffer ss;
+            #else
+            std::stringstream ss;
+            #endif
+            Output::ReflectedObject<Annotations, statics, true, IndentLevel, Indent, T>(t, context).put(ss);
+            return ss.str();
+        }
     }
     
     inline namespace Input
@@ -2068,6 +2135,7 @@ namespace Json
             {
             public:
                 StreamReadFail() : Exception("Attempt to read from stream failed (std::ios::fail() == true)") {}
+                StreamReadFail(const std::string & expected) : Exception(std::string("Expected " + expected + " but stream read failed (std::ios::fail() == true)").c_str()) {}
             };
 
             class StreamUngetFail : public Exception
@@ -2231,7 +2299,7 @@ namespace Json
                     if ( is.eof() )
                         throw UnexpectedInputEnd(expectedDescription);
                     else
-                        throw StreamReadFail();
+                        throw StreamReadFail(expectedDescription);
                 }
                 c = (char)character;
             }
@@ -2257,7 +2325,7 @@ namespace Json
                 if ( is.eof() )
                     throw UnexpectedInputEnd(expectedDescription);
                 else
-                    throw StreamReadFail();
+                    throw StreamReadFail(expectedDescription);
             }
             
             template <bool usePrimary>
@@ -2279,7 +2347,7 @@ namespace Json
                     if ( is.eof() )
                         throw UnexpectedInputEnd(expectedDescription);
                     else
-                        throw StreamReadFail();
+                        throw StreamReadFail(expectedDescription);
                 }
                 else if ( c == trueChar )
                     return true;
@@ -2312,7 +2380,7 @@ namespace Json
                     if ( is.eof() )
                         throw UnexpectedInputEnd(expectedDescription);
                     else
-                        throw StreamReadFail();
+                        throw StreamReadFail(expectedDescription);
                 }
                 else if ( c != expectation )
                     throw Exception((std::string("Expected: ") + expectedDescription).c_str());
@@ -2331,7 +2399,7 @@ namespace Json
                     if ( is.eof() )
                         throw UnexpectedInputEnd(expectedDescription);
                     else
-                        throw StreamReadFail();
+                        throw StreamReadFail(expectedDescription);
                 }
             }
 
@@ -2372,7 +2440,7 @@ namespace Json
                     if ( is.eof() )
                         throw UnexpectedInputEnd(expectedDescription);
                     else
-                        throw StreamReadFail();
+                        throw StreamReadFail(expectedDescription);
                 }
                 else if constexpr ( usePrimary )
                 {
@@ -3352,7 +3420,21 @@ namespace Json
                     Read::value<Annotations, InArray, MockMember<D>>(is, context, c, object, d);
                     RareMapper::map(value, d);
                 }
-                else if constexpr ( RareTs::is_pointable_v<T> )
+                else if constexpr ( AllowCustomization && Member::template hasNote<Json::Replace<T>>() )
+                {
+                    constexpr auto & replace = Member::template getNote<Json::Replace<T>>();
+                    std::stringstream ss {};
+                    Json::Consume::value<InArray>(is, c, ss);
+                    std::string preserved = ss.str();
+                    if ( replace.value == std::string_view(preserved) )
+                        value = replace.replacement;
+                    else
+                    {
+                        std::stringstream subIs(preserved);
+                        Read::value<Annotations, InArray, Member, T, Object, false>(subIs, context, c, object, value);
+                    }
+                }
+                else if constexpr ( RareTs::is_pointable_v<T> || RareTs::is_optional_v<T>  )
                 {
                     using Dereferenced = RareTs::remove_pointer_t<T>;
                     if constexpr ( std::is_base_of_v<Generic::Value, Dereferenced> )
@@ -3367,9 +3449,21 @@ namespace Json
                         else
                             Read::genericValue<InArray>(is, context, c)->into(value);
                     }
-                    else if ( value == nullptr ) // Value is a nullptr and not a Json::Generic
+                    else if ( !value ) // Value is a nullptr and not a Json::Generic
                     {
-                        if constexpr ( std::is_same_v<std::shared_ptr<Dereferenced>, T> )
+                        if constexpr ( RareTs::is_optional_v<Dereferenced> )
+                        {
+                            if ( Consume::tryNull<InArray>(is, c) )
+                                value = std::nullopt;
+                            else if constexpr ( std::is_const_v<T> )
+                                Consume::value<InArray>(is, c);
+                            else
+                            {
+                                value.emplace();
+                                Read::value<Annotations, InArray, Member>(is, context, c, object, *value);
+                            }
+                        }
+                        else if constexpr ( std::is_same_v<std::shared_ptr<Dereferenced>, T> )
                         {
                             value = std::make_shared<Dereferenced>();
                             Read::value<Annotations, InArray, Member>(is, context, c, object, *value);
@@ -3382,7 +3476,7 @@ namespace Json
                         else // Value pointed to is a nullptr and value is not a smart pointer or generic, only valid value is null
                             Consume::null<InArray>(is, c);
                     }
-                    else if constexpr ( RareTs::is_pointable_v<Dereferenced> && !std::is_const_v<Dereferenced> )
+                    else if constexpr ( (RareTs::is_pointable_v<Dereferenced> || RareTs::is_optional_v<Dereferenced>) && !std::is_const_v<Dereferenced> )
                         Read::value<Annotations, InArray, Member>(is, context, c, object, *value);  // Only chance assigning nullptr to the more deeply nested pointer
                     else if ( Consume::tryNull<InArray>(is, c) ) // If value pointer is not nullptr, "null" is a possible value
                     {
@@ -3442,7 +3536,11 @@ namespace Json
                 else if constexpr ( std::is_const_v<T> )
                     Consume::value<InArray>(is, c);
                 else
+                {
                     is >> value;
+                    if ( !is )
+                        throw StreamReadFail(std::string(RareTs::toStr<T>()).c_str());
+                }
             }
             #ifdef _MSC_VER
             #pragma warning(pop)
@@ -3695,6 +3793,24 @@ namespace Json
         {
             return Input::ReflectedObject<Annotations, T>(t, context);
         }
+
+        template <typename Annotations = RareTs::NoNote, typename T = void>
+        inline void read(const std::string & input, T & t, std::shared_ptr<Context> context = nullptr)
+        {
+            std::stringstream ss {input};
+            Input::ReflectedObject<Annotations, T>(t, context).get(ss);
+        }
+
+        template <typename T = void, typename Annotations = RareTs::NoNote>
+        inline T read(const std::string & input, std::shared_ptr<Context> context = nullptr)
+        {
+            std::stringstream ss {input};
+            T t {};
+            Input::ReflectedObject<Annotations, T>(t, context).get(ss);
+            return t;
+        }
+
+
     }
 
     inline Json::OutStreamType & operator<<(Json::OutStreamType & os, const Json::Generic::Value & value)

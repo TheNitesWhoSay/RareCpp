@@ -2,6 +2,7 @@
 #include "json_input_test.h"
 #include <gtest/gtest.h>
 #include <iostream>
+#include <optional>
 #include <regex>
 #endif
 #ifdef GET_RUNJSONINPUTTESTSRC_CPP
@@ -1334,7 +1335,7 @@ struct VariousValues
         constIntPointerNull(nullptr), constIntPointerToBecomeNull(&integer), constIntPointerValue(&integer),
         intConstPointerNull(nullptr), intConstPointerToBecomeNull(&integer), intConstPointerValue(&integer),
         constIntConstPointerNull(nullptr), constIntConstPointerToBecomeNull(&integer), constIntConstPointerValue(&integer),
-        genericValue(), intVector(), composedObj({}), integerString(0), enumInt(EnumIntEnum::none), boolean(false),
+        genericValue(), intVector(), composedObj({}), integerString(0), enumInt(EnumIntEnum::none), replaceableInt(0), boolean(false),
         str(), mappedTo({}), emptyTuple({}), singleTuple({}), doubleTuple({}), tripleTuple({}), pair({}),
         primitiveKey(), complexKey(), intIntArrayTuple({}), intIntKeyableTuple({}), intIntTupleTuple({}) {}
         
@@ -1370,6 +1371,8 @@ struct VariousValues
     int integerString;
     NOTE(enumInt, Json::EnumInt)
     EnumIntEnum enumInt;
+    NOTE(replaceableInt, Json::Replace{"\"\"", -222})
+    int replaceableInt;
     bool boolean;
     static constexpr const int constant = 0;
     std::string str;
@@ -1391,7 +1394,7 @@ struct VariousValues
         constIntPointerNull, constIntPointerToBecomeNull, constIntPointerValue,
         intConstPointerNull, intConstPointerToBecomeNull, intConstPointerValue,
         constIntConstPointerNull, constIntConstPointerToBecomeNull, constIntConstPointerValue,
-        genericValue, intVector, composedObj, integerString, enumInt, boolean, constant, str, mappedTo,
+        genericValue, intVector, composedObj, integerString, enumInt, replaceableInt, boolean, constant, str, mappedTo,
         emptyTuple, singleTuple, doubleTuple, tripleTuple, pair, primitiveKey, complexKey, intIntArrayTuple,
         intIntKeyableTuple, intIntTupleTuple)
 };
@@ -1417,6 +1420,7 @@ TEST_HEADER(JsonInputRead, Value)
     v.composedObj.a = 0;
     v.integerString = 0;
     v.enumInt = EnumIntEnum::none;
+    v.replaceableInt = 0;
     v.boolean = false;
     v.str = "";
     v.mappedTo = { 0 };
@@ -1543,6 +1547,16 @@ TEST_HEADER(JsonInputRead, Value)
     Json::Read::value<NoNote, true, Reflect<VariousValues>::MemberType::enumInt, EnumIntEnum, VariousValues>(
         enumIntStream, Json::defaultContext, c, v, v.enumInt);
     EXPECT_EQ(EnumIntEnum::leet, v.enumInt);
+
+    std::stringstream unreplacedReplaceableIntStream("1337,");
+    Json::Read::value<NoNote, true, Reflect<VariousValues>::MemberType::replaceableInt, int, VariousValues>(
+        unreplacedReplaceableIntStream, Json::defaultContext, c, v, v.replaceableInt);
+    EXPECT_EQ(1337, v.replaceableInt);
+
+    std::stringstream replacedReplaceableIntStream("\"\",");
+    Json::Read::value<NoNote, true, Reflect<VariousValues>::MemberType::replaceableInt, int, VariousValues>(
+        replacedReplaceableIntStream, Json::defaultContext, c, v, v.replaceableInt);
+    EXPECT_EQ(-222, v.replaceableInt);
 
     std::stringstream booleanStream("true,");
     Json::Read::value<NoNote, true, Reflect<VariousValues>::MemberType::boolean, bool, VariousValues>(
@@ -2088,6 +2102,104 @@ TEST_HEADER(JsonInput, In)
     EXPECT_STREQ("6", complexStruct.fieldCluster.object().find("someOtherUnknown")->second->numberArray()[2].c_str());
 }
 
+TEST_HEADER(JsonInput, ReadRef)
+{
+    EmptyIn emptyIn = {};
+    std::stringstream emptyObjStream("{}");
+    EXPECT_NO_THROW(emptyObjStream >> Json::in(emptyIn));
+
+    SingleFieldIn singleFieldIn = { 0 };
+    std::stringstream singleFieldEmptyObjStream("{}");
+    EXPECT_NO_THROW(singleFieldEmptyObjStream >> Json::in(singleFieldIn));
+    std::stringstream singleFieldObjStream("{\"a\":1234}");
+    singleFieldObjStream >> Json::in(singleFieldIn);
+    EXPECT_EQ(1234, singleFieldIn.a);
+
+    ComplexStruct complexStruct = {};
+    std::stringstream complexStructStream;
+    complexStructStream
+        << "{" << std::endl
+        << "  \"a\" : 1 , " << std::endl
+        << "  \"b\" : \"asdf\" , " << std::endl
+        << "  \"dynamicString\" : \"qwerty\" , " << std::endl
+        << "  \"singleFieldIn\" : {" << std::endl
+        << "    \"a\" : 3 " << std::endl
+        << "  } , " << std::endl
+        << "  \"intStringMap\" : {" << std::endl
+        << "    \"2\": \"ab\" , " << std::endl
+        << "    \"3\": \"c\"   " << std::endl
+        << "  } , " << std::endl
+        << "  \"intVector\" : [ 1 , 2, 3]," << std::endl
+        << "  \"someUnknown\": null," << std::endl
+        << "  \"someOtherUnknown\": [4, 5, 6]" << std::endl
+        << "}";
+
+    Json::read(complexStructStream.str(), complexStruct);
+    EXPECT_EQ(1, complexStruct.a);
+    EXPECT_STREQ("asdf", complexStruct.b.c_str());
+    EXPECT_STREQ("qwerty", complexStruct.dynamicString->c_str());
+    EXPECT_EQ(3, complexStruct.singleFieldIn.a);
+    EXPECT_STREQ("ab", complexStruct.intStringMap.find(2)->second.c_str());
+    EXPECT_STREQ("c", complexStruct.intStringMap.find(3)->second.c_str());
+    EXPECT_EQ(1, complexStruct.intVector[0]);
+    EXPECT_EQ(2, complexStruct.intVector[1]);
+    EXPECT_EQ(3, complexStruct.intVector[2]);
+    EXPECT_TRUE(complexStruct.fieldCluster.object().find("someUnknown")->second == nullptr);
+    EXPECT_EQ(size_t(3), complexStruct.fieldCluster.object().find("someOtherUnknown")->second->arraySize());
+    EXPECT_STREQ("4", complexStruct.fieldCluster.object().find("someOtherUnknown")->second->numberArray()[0].c_str());
+    EXPECT_STREQ("5", complexStruct.fieldCluster.object().find("someOtherUnknown")->second->numberArray()[1].c_str());
+    EXPECT_STREQ("6", complexStruct.fieldCluster.object().find("someOtherUnknown")->second->numberArray()[2].c_str());
+}
+
+TEST_HEADER(JsonInput, ReadType)
+{
+    EmptyIn emptyIn = {};
+    std::stringstream emptyObjStream("{}");
+    EXPECT_NO_THROW(emptyObjStream >> Json::in(emptyIn));
+
+    SingleFieldIn singleFieldIn = { 0 };
+    std::stringstream singleFieldEmptyObjStream("{}");
+    EXPECT_NO_THROW(singleFieldEmptyObjStream >> Json::in(singleFieldIn));
+    std::stringstream singleFieldObjStream("{\"a\":1234}");
+    singleFieldObjStream >> Json::in(singleFieldIn);
+    EXPECT_EQ(1234, singleFieldIn.a);
+
+    ComplexStruct complexStruct = {};
+    std::stringstream complexStructStream;
+    complexStructStream
+        << "{" << std::endl
+        << "  \"a\" : 1 , " << std::endl
+        << "  \"b\" : \"asdf\" , " << std::endl
+        << "  \"dynamicString\" : \"qwerty\" , " << std::endl
+        << "  \"singleFieldIn\" : {" << std::endl
+        << "    \"a\" : 3 " << std::endl
+        << "  } , " << std::endl
+        << "  \"intStringMap\" : {" << std::endl
+        << "    \"2\": \"ab\" , " << std::endl
+        << "    \"3\": \"c\"   " << std::endl
+        << "  } , " << std::endl
+        << "  \"intVector\" : [ 1 , 2, 3]," << std::endl
+        << "  \"someUnknown\": null," << std::endl
+        << "  \"someOtherUnknown\": [4, 5, 6]" << std::endl
+        << "}";
+
+    complexStruct = Json::read<ComplexStruct>(complexStructStream.str());
+    EXPECT_EQ(1, complexStruct.a);
+    EXPECT_STREQ("asdf", complexStruct.b.c_str());
+    EXPECT_STREQ("qwerty", complexStruct.dynamicString->c_str());
+    EXPECT_EQ(3, complexStruct.singleFieldIn.a);
+    EXPECT_STREQ("ab", complexStruct.intStringMap.find(2)->second.c_str());
+    EXPECT_STREQ("c", complexStruct.intStringMap.find(3)->second.c_str());
+    EXPECT_EQ(1, complexStruct.intVector[0]);
+    EXPECT_EQ(2, complexStruct.intVector[1]);
+    EXPECT_EQ(3, complexStruct.intVector[2]);
+    EXPECT_TRUE(complexStruct.fieldCluster.object().find("someUnknown")->second == nullptr);
+    EXPECT_EQ(size_t(3), complexStruct.fieldCluster.object().find("someOtherUnknown")->second->arraySize());
+    EXPECT_STREQ("4", complexStruct.fieldCluster.object().find("someOtherUnknown")->second->numberArray()[0].c_str());
+    EXPECT_STREQ("5", complexStruct.fieldCluster.object().find("someOtherUnknown")->second->numberArray()[1].c_str());
+    EXPECT_STREQ("6", complexStruct.fieldCluster.object().find("someOtherUnknown")->second->numberArray()[2].c_str());
+}
+
 TEST_HEADER(JsonInput, InProxyReflected)
 {
     std::stringstream objectStream("{\"a\":5}");
@@ -2135,6 +2247,74 @@ TEST_HEADER(JsonInput, InCharacterLikeTypes)
     negativeInput >> Json::in(negative);
     EXPECT_EQ(-101, negative.b);
     EXPECT_EQ(-102, negative.d);
+}
+
+struct VariousArrays
+{
+    int a[3] {};
+    int b[2][3] {};
+    int c[2][3][1] {};
+    std::array<int, 2> d {};
+
+    REFLECT(VariousArrays, a, b, c, d)
+};
+
+TEST_HEADER(JsonInput, InVariousArrays)
+{
+    std::stringstream input("{\"a\":[1,2,3],\"b\":[[4,5,6],[7,8,9]],\"c\":[[[4],[5],[6]],[[7],[8],[9]]],\"d\":[4,5]}");
+    VariousArrays read {};
+    input >> Json::in(read);
+    
+    EXPECT_EQ(1, read.a[0]);
+    EXPECT_EQ(2, read.a[1]);
+    EXPECT_EQ(3, read.a[2]);
+    
+    EXPECT_EQ(4, read.b[0][0]);
+    EXPECT_EQ(5, read.b[0][1]);
+    EXPECT_EQ(6, read.b[0][2]);
+    EXPECT_EQ(7, read.b[1][0]);
+    EXPECT_EQ(8, read.b[1][1]);
+    EXPECT_EQ(9, read.b[1][2]);
+    
+    EXPECT_EQ(4, read.c[0][0][0]);
+    EXPECT_EQ(5, read.c[0][1][0]);
+    EXPECT_EQ(6, read.c[0][2][0]);
+    EXPECT_EQ(7, read.c[1][0][0]);
+    EXPECT_EQ(8, read.c[1][1][0]);
+    EXPECT_EQ(9, read.c[1][2][0]);
+    
+    EXPECT_EQ(4, read.d[0]);
+    EXPECT_EQ(5, read.d[1]);
+}
+
+struct InOptObj
+{
+    int a;
+
+    REFLECT(InOptObj, a)
+};
+
+struct InOptional
+{
+    std::optional<int> a = std::nullopt;
+    std::optional<InOptObj> b = std::nullopt;
+
+    REFLECT(InOptional, a, b)
+};
+
+TEST_HEADER(JsonInput, InOptionals)
+{
+    std::stringstream nullOptInput("{\"a\":null,\"b\":null}");
+    InOptional inNullOpt {};
+    nullOptInput >> Json::in(inNullOpt);
+    EXPECT_FALSE(inNullOpt.a);
+    EXPECT_FALSE(inNullOpt.b);
+
+    std::stringstream valueOptInput("{\"a\":1,\"b\":{\"a\":2}}");
+    InOptional inValueOpt {};
+    valueOptInput >> Json::in(inValueOpt);
+    EXPECT_EQ(1, *(inValueOpt.a));
+    EXPECT_EQ(2, inValueOpt.b->a);
 }
 
 #endif
