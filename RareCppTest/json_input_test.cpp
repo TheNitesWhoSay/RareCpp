@@ -2,6 +2,7 @@
 #include "json_input_test.h"
 #include <gtest/gtest.h>
 #include <iostream>
+#include <optional>
 #include <regex>
 #endif
 #ifdef GET_RUNJSONINPUTTESTSRC_CPP
@@ -2284,6 +2285,36 @@ TEST_HEADER(JsonInput, InVariousArrays)
     
     EXPECT_EQ(4, read.d[0]);
     EXPECT_EQ(5, read.d[1]);
+}
+
+struct InOptObj
+{
+    int a;
+
+    REFLECT(InOptObj, a)
+};
+
+struct InOptional
+{
+    std::optional<int> a = std::nullopt;
+    std::optional<InOptObj> b = std::nullopt;
+
+    REFLECT(InOptional, a, b)
+};
+
+TEST_HEADER(JsonInput, InOptionals)
+{
+    std::stringstream nullOptInput("{\"a\":null,\"b\":null}");
+    InOptional inNullOpt {};
+    nullOptInput >> Json::in(inNullOpt);
+    EXPECT_FALSE(inNullOpt.a);
+    EXPECT_FALSE(inNullOpt.b);
+
+    std::stringstream valueOptInput("{\"a\":1,\"b\":{\"a\":2}}");
+    InOptional inValueOpt {};
+    valueOptInput >> Json::in(inValueOpt);
+    EXPECT_EQ(1, *(inValueOpt.a));
+    EXPECT_EQ(2, inValueOpt.b->a);
 }
 
 #endif

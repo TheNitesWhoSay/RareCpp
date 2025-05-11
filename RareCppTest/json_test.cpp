@@ -6,6 +6,7 @@
 #include <iostream>
 #include <list>
 #include <memory>
+#include <optional>
 #include <queue>
 #include <regex>
 #include <stack>
@@ -1385,6 +1386,7 @@ TEST_HEADER(JsonIdentifiersTest, IsNonPrimitive)
     EXPECT_FALSE(Json::is_non_primitive_v<char**>);
     EXPECT_FALSE(Json::is_non_primitive_v<char&>);
     EXPECT_FALSE(Json::is_non_primitive_v<char&&>);
+    EXPECT_FALSE(Json::is_non_primitive_v<std::optional<char>>);
     EXPECT_FALSE(Json::is_non_primitive_v<std::unique_ptr<char>>);
     EXPECT_FALSE(Json::is_non_primitive_v<std::shared_ptr<char>>);
     EXPECT_FALSE(Json::is_non_primitive_v<int>);
@@ -1392,6 +1394,7 @@ TEST_HEADER(JsonIdentifiersTest, IsNonPrimitive)
     EXPECT_FALSE(Json::is_non_primitive_v<int**>);
     EXPECT_FALSE(Json::is_non_primitive_v<int&>);
     EXPECT_FALSE(Json::is_non_primitive_v<int&&>);
+    EXPECT_FALSE(Json::is_non_primitive_v<std::optional<int>>);
     EXPECT_FALSE(Json::is_non_primitive_v<std::unique_ptr<int>>);
     EXPECT_FALSE(Json::is_non_primitive_v<std::shared_ptr<int>>);
     EXPECT_FALSE(Json::is_non_primitive_v<std::string>);
@@ -1441,6 +1444,7 @@ TEST_HEADER(JsonIdentifiersTest, IsNonPrimitive)
     EXPECT_FALSE(Json::is_non_primitive_v<const char**>);
     EXPECT_FALSE(Json::is_non_primitive_v<const char&>);
     EXPECT_FALSE(Json::is_non_primitive_v<const char&&>);
+    EXPECT_FALSE(Json::is_non_primitive_v<const std::optional<char>>);
     EXPECT_FALSE(Json::is_non_primitive_v<const std::unique_ptr<char>>);
     EXPECT_FALSE(Json::is_non_primitive_v<const std::shared_ptr<char>>);
     EXPECT_FALSE(Json::is_non_primitive_v<const int>);
@@ -1448,6 +1452,7 @@ TEST_HEADER(JsonIdentifiersTest, IsNonPrimitive)
     EXPECT_FALSE(Json::is_non_primitive_v<const int**>);
     EXPECT_FALSE(Json::is_non_primitive_v<const int&>);
     EXPECT_FALSE(Json::is_non_primitive_v<const int&&>);
+    EXPECT_FALSE(Json::is_non_primitive_v<const std::optional<int>>);
     EXPECT_FALSE(Json::is_non_primitive_v<const std::unique_ptr<int>>);
     EXPECT_FALSE(Json::is_non_primitive_v<const std::shared_ptr<int>>);
     EXPECT_FALSE(Json::is_non_primitive_v<const std::string>);
@@ -3306,6 +3311,34 @@ TEST_HEADER(JsonOutputTest, JsonOutputReflectedObject)
     reflectedObj.put(objStream);
 
     EXPECT_STREQ("{\"integer\":4,\"str\":\"aString\",\"nestedObj\":{\"bool\":false,\"ray\":[1,2,3]}}", objStream.str().c_str());
+}
+
+struct OptObj
+{
+    int a;
+
+    REFLECT(OptObj, a)
+};
+
+struct Optional
+{
+    std::optional<int> a = std::nullopt;
+    std::optional<OptObj> b = std::nullopt;
+
+    REFLECT(Optional, a, b)
+};
+
+TEST_HEADER(JsonOutputTest, JsonOutOpt)
+{
+    Optional nullOpt {};
+    TestStreamType nullOptStream {};
+    nullOptStream << Json::out(nullOpt);
+    EXPECT_STREQ("{\"a\":null,\"b\":null}", nullOptStream.str().c_str());
+
+    Optional valueOpt { 1, OptObj{2} };
+    TestStreamType valueOptStream {};
+    valueOptStream << Json::out(valueOpt);
+    EXPECT_STREQ("{\"a\":1,\"b\":{\"a\":2}}", valueOptStream.str().c_str());
 }
 
 struct SomeArrays

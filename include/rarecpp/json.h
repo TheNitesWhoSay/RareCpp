@@ -17,6 +17,7 @@
 #include <limits>
 #include <map>
 #include <memory>
+#include <optional>
 #include <ostream>
 #include <sstream>
 #include <string>
@@ -941,6 +942,7 @@ namespace Json
         template <typename T> struct is_non_primitive<T*> { static constexpr bool value = is_non_primitive<T>::value; };
         template <typename T> struct is_non_primitive<T &> { static constexpr bool value = is_non_primitive<T>::value; };
         template <typename T> struct is_non_primitive<T &&> { static constexpr bool value = is_non_primitive<T>::value; };
+        template <typename T> struct is_non_primitive<std::optional<T>> { static constexpr bool value = is_non_primitive<T>::value; };
         template <typename T> struct is_non_primitive<std::unique_ptr<T>> { static constexpr bool value = is_non_primitive<T>::value; };
         template <typename T> struct is_non_primitive<std::shared_ptr<T>> { static constexpr bool value = is_non_primitive<T>::value; };
         template <> struct is_non_primitive<std::string> { static constexpr bool value = false; };
@@ -1674,9 +1676,9 @@ namespace Json
                     D d = RareMapper::map<D>(value);
                     Put::value<Annotations, MockMember<D>, statics, PrettyPrint, IndentLevel, Indent, Object, IsFirst>(os, context, obj, d);
                 }
-                else if constexpr ( RareTs::is_pointable_v<T> )
+                else if constexpr ( RareTs::is_pointable_v<T> || RareTs::is_optional_v<T> )
                 {
-                    if ( value == nullptr )
+                    if ( !value )
                         os << "null";
                     else
                     {
@@ -3432,7 +3434,7 @@ namespace Json
                         Read::value<Annotations, InArray, Member, T, Object, false>(subIs, context, c, object, value);
                     }
                 }
-                else if constexpr ( RareTs::is_pointable_v<T> )
+                else if constexpr ( RareTs::is_pointable_v<T> || RareTs::is_optional_v<T>  )
                 {
                     using Dereferenced = RareTs::remove_pointer_t<T>;
                     if constexpr ( std::is_base_of_v<Generic::Value, Dereferenced> )
@@ -3447,9 +3449,21 @@ namespace Json
                         else
                             Read::genericValue<InArray>(is, context, c)->into(value);
                     }
-                    else if ( value == nullptr ) // Value is a nullptr and not a Json::Generic
+                    else if ( !value ) // Value is a nullptr and not a Json::Generic
                     {
-                        if constexpr ( std::is_same_v<std::shared_ptr<Dereferenced>, T> )
+                        if constexpr ( RareTs::is_optional_v<Dereferenced> )
+                        {
+                            if ( Consume::tryNull<InArray>(is, c) )
+                                value = std::nullopt;
+                            else if constexpr ( std::is_const_v<T> )
+                                Consume::value<InArray>(is, c);
+                            else
+                            {
+                                value.emplace();
+                                Read::value<Annotations, InArray, Member>(is, context, c, object, *value);
+                            }
+                        }
+                        else if constexpr ( std::is_same_v<std::shared_ptr<Dereferenced>, T> )
                         {
                             value = std::make_shared<Dereferenced>();
                             Read::value<Annotations, InArray, Member>(is, context, c, object, *value);
@@ -3462,7 +3476,7 @@ namespace Json
                         else // Value pointed to is a nullptr and value is not a smart pointer or generic, only valid value is null
                             Consume::null<InArray>(is, c);
                     }
-                    else if constexpr ( RareTs::is_pointable_v<Dereferenced> && !std::is_const_v<Dereferenced> )
+                    else if constexpr ( (RareTs::is_pointable_v<Dereferenced> || RareTs::is_optional_v<Dereferenced>) && !std::is_const_v<Dereferenced> )
                         Read::value<Annotations, InArray, Member>(is, context, c, object, *value);  // Only chance assigning nullptr to the more deeply nested pointer
                     else if ( Consume::tryNull<InArray>(is, c) ) // If value pointer is not nullptr, "null" is a possible value
                     {
