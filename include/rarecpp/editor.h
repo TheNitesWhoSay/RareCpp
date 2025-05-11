@@ -637,8 +637,9 @@ namespace RareEdit
             }
             else if constexpr ( is_path_index_v<PathElement> )
             {
-                static_assert(sizeof...(PathElements) > 0, "The pathway passed to get member cannot end with an index!");
-                if constexpr ( sizeof...(PathElements) > 0 )
+                if constexpr ( sizeof...(PathElements) == 0 )
+                    return std::type_identity<LastMember> {};
+                else
                     return getMemberImpl<std::remove_cvref_t<decltype(std::declval<U>()[0])>, LastMember, PathElements...>();
             }
         }
@@ -647,9 +648,10 @@ namespace RareEdit
         {
             using index_type = index_type_t<default_index_type, typename std::remove_cvref_t<decltype(getMemberImpl<RootData, void, Pathway...>())>::type>;
 
-            template <std::size_t... Is>
-            static constexpr auto arrayOpType(std::index_sequence<Is...>) -> SubElement<
+            template <std::size_t... Is> static constexpr auto arrayOpType(std::index_sequence<Is...>) -> SubElement<
                 Edit, default_index_type, RootData, T, std::tuple<std::tuple_element_t<Is, Keys>..., index_type>, Pathway..., PathIndex<sizeof...(Is)>>;
+            template <std::size_t... Is> static constexpr auto subArrayOpType(std::index_sequence<Is...>) -> Editable<
+                Edit, default_index_type, RootData, RareTs::element_type_t<T>, std::tuple<std::tuple_element_t<Is, Keys>..., index_type>, SubElement, Pathway..., PathIndex<sizeof...(Is)>>::Array;
 
         protected:
             Edit & root;
@@ -663,6 +665,7 @@ namespace RareEdit
 
             using selection_op_type = SubElement<Edit, default_index_type, RootData, T, Keys, Pathway..., PathSelections>;
             using array_op_type = decltype(arrayOpType(std::make_index_sequence<std::tuple_size_v<Keys>>()));
+            using sub_array_op_type = decltype(subArrayOpType(std::make_index_sequence<std::tuple_size_v<Keys>>()));
 
             constexpr const auto & sel() const { return root.template getSelections<Pathway...>(); }
 
@@ -897,7 +900,10 @@ namespace RareEdit
             RandomAccess(Edit & root, Keys && keys) : Keys {std::move(keys)}, root(root) {}
 
             auto operator[](std::size_t i) {
-                return array_op_type(root, std::tuple_cat((std::add_lvalue_reference_t<Keys>)(*this), std::tuple{static_cast<index_type>(i)}));
+                if constexpr ( RareTs::is_static_array_v<T> ) // Multi-dimensional array
+                    return sub_array_op_type(root, std::tuple_cat((std::add_lvalue_reference_t<Keys>)(*this), std::tuple{static_cast<index_type>(i)}));
+                else
+                    return array_op_type(root, std::tuple_cat((std::add_lvalue_reference_t<Keys>)(*this), std::tuple{static_cast<index_type>(i)}));
             }
         };
 
@@ -997,7 +1003,15 @@ namespace RareEdit
     static constexpr auto editArray()
     {
         using element_type = RareTs::element_type_t<T>;
-        if constexpr ( RareTs::is_reflected_v<element_type> )
+        if constexpr ( RareTs::is_static_array_v<element_type> )
+        {
+            using sub_element_type = RareTs::element_type_t<element_type>;
+            if constexpr ( RareTs::is_reflected_v<sub_element_type> )
+                return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, Keys, edit_members, Pathway...>::Array>{};
+            else
+                return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, Keys, EditPrimitive, Pathway...>::Array>{};
+        }
+        else if constexpr ( RareTs::is_reflected_v<element_type> )
             return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, Keys, edit_members, Pathway...>::Array>{};
         else
             return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, Keys, EditPrimitive, Pathway...>::Array>{};
