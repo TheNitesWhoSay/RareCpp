@@ -340,6 +340,10 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
         template <typename T> struct is_adaptor<first_of_t<T, typename T::container_type>> : std::true_type {};
         template <typename T> inline constexpr bool is_adaptor_v = is_adaptor<T>::value;
 
+        template <typename ... Ts> struct is_optional { static constexpr bool value = false; };
+        template <typename T> struct is_optional<first_of_t<T, typename T::value_type, decltype(*T{}), decltype(T{}.has_value())>> : std::true_type {};
+        template <typename T> inline constexpr bool is_optional_v = is_optional<T>::value;
+
         template <typename T> struct is_pair { static constexpr bool value = false; };
         template <typename L, typename R> struct is_pair<std::pair<L, R>> { static constexpr bool value = true; };
         template <typename L, typename R> struct is_pair<const std::pair<L, R>> { static constexpr bool value = true; };

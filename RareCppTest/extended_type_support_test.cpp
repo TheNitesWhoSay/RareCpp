@@ -4,10 +4,12 @@
 #include <cstddef>
 #include <deque>
 #include <forward_list>
+#include <functional>
 #include <limits>
 #include <list>
 #include <map>
 #include <memory>
+#include <optional>
 #include <queue>
 #include <set>
 #include <stack>
@@ -436,6 +438,27 @@ TEST(RareTsTest, IsAdaptor)
     EXPECT_TRUE(is_adaptor_v<const std::stack<int>>);
     EXPECT_TRUE(is_adaptor_v<const std::queue<int>>);
     EXPECT_TRUE(is_adaptor_v<const std::priority_queue<int>>);
+}
+
+TEST(RareTsTest, IsOptional)
+{
+    EXPECT_FALSE(is_optional_v<int>);
+    EXPECT_FALSE(is_optional_v<int*>);
+    EXPECT_FALSE(is_optional_v<std::reference_wrapper<int>>);
+    EXPECT_FALSE(is_optional_v<std::vector<int>>);
+    EXPECT_FALSE(is_optional_v<std::unique_ptr<int>>);
+    EXPECT_TRUE(is_optional_v<std::optional<int>>);
+    EXPECT_TRUE(is_optional_v<std::optional<int*>>);
+    EXPECT_TRUE(is_optional_v<std::optional<std::vector<int>>>);
+
+    EXPECT_FALSE(is_optional_v<const int>);
+    EXPECT_FALSE(is_optional_v<const int*>);
+    EXPECT_FALSE(is_optional_v<const std::reference_wrapper<int>>);
+    EXPECT_FALSE(is_optional_v<const std::vector<int>>);
+    EXPECT_FALSE(is_optional_v<const std::unique_ptr<int>>);
+    EXPECT_TRUE(is_optional_v<const std::optional<int>>);
+    EXPECT_TRUE(is_optional_v<const std::optional<int*>>);
+    EXPECT_TRUE(is_optional_v<const std::optional<std::vector<int>>>);
 }
 
 TEST(RareTsTest, IsPair)
