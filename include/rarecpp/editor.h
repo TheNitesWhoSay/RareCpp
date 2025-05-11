@@ -1,3 +1,4 @@
+// MIT License, Copyright (c) 2025 Justin F https://github.com/TheNitesWhoSay/RareCpp/blob/master/LICENSE
 #ifndef EDITOR_H
 #define EDITOR_H
 #include <algorithm>

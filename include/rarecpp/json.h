@@ -1,4 +1,4 @@
-// MIT License, Copyright (c) 2019-2023 Justin F https://github.com/TheNitesWhoSay/RareCpp/blob/master/LICENSE
+// MIT License, Copyright (c) 2019-2025 Justin F https://github.com/TheNitesWhoSay/RareCpp/blob/master/LICENSE
 #ifndef JSON_H
 #define JSON_H
 #ifndef REFLECT_H // This check, while normally redundant to have here, helps the file work on godbolt
