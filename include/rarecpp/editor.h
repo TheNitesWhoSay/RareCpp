@@ -3124,9 +3124,17 @@ namespace RareEdit
         {
             if constexpr ( std::is_array_v<Value> ) // Avoid trying to return array[] types, make a vector
             {
-                using element_type = RareTs::element_type_t<Value>;
-                if constexpr ( std::is_array_v<Value> )
-                    return std::vector<int>{}; // TODO: multi-dimensional array handling
+                using element_type = std::remove_cvref_t<RareTs::element_type_t<Value>>;
+                if constexpr ( std::is_array_v<element_type> )
+                {
+                    using sub_elem_type = std::remove_cvref_t<RareTs::element_type_t<element_type>>;
+                    std::vector<std::vector<sub_elem_type>> value(RareTs::static_array_size_v<Value>);
+                    for ( auto & vec : value )
+                        vec.assign(RareTs::static_array_size_v<element_type>, {});
+
+                    readValue<decltype(value), Member>(offset, value);
+                    return value;
+                }
                 else
                 {
                     std::vector<element_type> value { std::size_t{RareTs::static_array_size_v<Value>} };
@@ -3147,9 +3155,17 @@ namespace RareEdit
         {
             if constexpr ( std::is_array_v<Value> ) // Avoid trying to return array[] types, make a vector
             {
-                using element_type = RareTs::element_type_t<Value>;
+                using element_type = std::remove_cvref_t<RareTs::element_type_t<Value>>;
                 if constexpr ( std::is_array_v<element_type> )
-                    return std::vector<int>{}; // TODO: multi-dimensional array handling
+                {
+                    using sub_elem_type = std::remove_cvref_t<RareTs::element_type_t<element_type>>;
+                    std::vector<std::vector<sub_elem_type>> value(RareTs::static_array_size_v<Value>);
+                    for ( auto & vec : value )
+                        vec.assign(RareTs::static_array_size_v<element_type>, {});
+
+                    readValue<decltype(value), Member>(offset, value);
+                    return value;
+                }
                 else
                 {
                     std::vector<RareTs::element_type_t<Value>> value { std::size_t{RareTs::static_array_size_v<Value>} };
@@ -3213,7 +3229,7 @@ namespace RareEdit
             {
                 case Op::Reset:
                 {
-                    if constexpr ( !RareTs::is_static_array_v<value_type> && requires { ref = readValue<value_type, Member>(offset); } )
+                    if constexpr ( !RareTs::is_static_array_v<value_type> && RareTs::is_assignable_v<decltype(ref), value_type> )
                     {
                         if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> )
                         {
@@ -3491,43 +3507,40 @@ namespace RareEdit
                 break;
                 case Op::Set:
                 {
-                    if constexpr ( requires{readValue<value_type, Member>(offset);} )
+                    if constexpr ( RareTs::is_assignable_v<decltype(ref), value_type> )
                     {
                         readValue<value_type, Member>(offset); // newValue (unused)
                         auto prevValue = readValue<value_type, Member>(offset);
-                        if constexpr ( RareTs::is_assignable_v<decltype(ref), decltype(prevValue)> )
+                        if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> )
                         {
-                            if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> )
+                            auto temp = ref;
+                            ref = prevValue;
+                            notifyValueChanged(user, Route{keys}, temp, ref);
+                        }
+                        else
+                        {
+                            if constexpr ( isIterable && hasElementRemovedOp<Route> )
                             {
-                                auto temp = ref;
+                                std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1;
                                 ref = prevValue;
-                                notifyValueChanged(user, Route{keys}, temp, ref);
+                                for ( ; i>=0; --i )
+                                    notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
                             }
                             else
-                            {
-                                if constexpr ( isIterable && hasElementRemovedOp<Route> )
-                                {
-                                    std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1;
-                                    ref = prevValue;
-                                    for ( ; i>=0; --i )
-                                        notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
-                                }
-                                else
-                                    ref = prevValue;
+                                ref = prevValue;
 
-                                if constexpr ( isIterable && hasElementAddedOp<Route> )
-                                {
-                                    for ( std::size_t i=0; i<std::size(ref); ++i )
-                                        notifyElementAdded(user, Route{keys}, i);
-                                }
-                            }
-
-                            if constexpr ( hasSelections )
+                            if constexpr ( isIterable && hasElementAddedOp<Route> )
                             {
-                                readSelections(events, offset, getSelections<Pathway...>());
-                                if constexpr ( hasSelChangeOp )
-                                    notifySelectionsChanged(user, Route{keys});
+                                for ( std::size_t i=0; i<std::size(ref); ++i )
+                                    notifyElementAdded(user, Route{keys}, i);
                             }
+                        }
+
+                        if constexpr ( hasSelections )
+                        {
+                            readSelections(events, offset, getSelections<Pathway...>());
+                            if constexpr ( hasSelChangeOp )
+                                notifySelectionsChanged(user, Route{keys});
                         }
                     }
                 }
@@ -3584,7 +3597,7 @@ namespace RareEdit
                 break;
                 case Op::SetL:
                 {
-                    if constexpr ( requires{readValue<value_type, Member>(*secondaryOffset);} )
+                    if constexpr ( RareTs::is_assignable_v<decltype(ref), value_type> )
                     {
                         if ( !secondaryOffset )
                         {
@@ -3592,31 +3605,28 @@ namespace RareEdit
                             readValue<value_type, Member>(*secondaryOffset); // Advanced past valueSetTo (unused for undos, used for redos)
                         }
                         auto prevValue = readValue<value_type, Member>(*secondaryOffset);
-                        if constexpr ( RareTs::is_assignable_v<decltype(ref), decltype(prevValue)> )
+                        if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> )
                         {
-                            if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> )
+                            auto temp = ref;
+                            ref = prevValue;
+                            notifyValueChanged(user, Route{keys}, temp, ref);
+                        }
+                        else
+                        {
+                            if constexpr ( isIterable && hasElementRemovedOp<Route> )
                             {
-                                auto temp = ref;
+                                std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1;
                                 ref = prevValue;
-                                notifyValueChanged(user, Route{keys}, temp, ref);
+                                for ( ; i>=0; --i )
+                                    notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
                             }
                             else
-                            {
-                                if constexpr ( isIterable && hasElementRemovedOp<Route> )
-                                {
-                                    std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1;
-                                    ref = prevValue;
-                                    for ( ; i>=0; --i )
-                                        notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
-                                }
-                                else
-                                    ref = prevValue;
+                                ref = prevValue;
 
-                                if constexpr ( isIterable && hasElementAddedOp<Route> )
-                                {
-                                    for ( std::size_t i=0; i<std::size(ref); ++i )
-                                        notifyElementAdded(user, Route{keys}, i);
-                                }
+                            if constexpr ( isIterable && hasElementAddedOp<Route> )
+                            {
+                                for ( std::size_t i=0; i<std::size(ref); ++i )
+                                    notifyElementAdded(user, Route{keys}, i);
                             }
                         }
                     }
@@ -5071,10 +5081,10 @@ namespace RareEdit
                 break;
                 case Op::Set:
                 {
-                    auto newValue = readValue<value_type, Member>(offset);
-                    readValue<value_type, Member>(offset); // prevValue (unused)
-                    if constexpr ( RareTs::is_assignable_v<decltype(ref), decltype(newValue)> )
+                    if constexpr ( RareTs::is_assignable_v<decltype(ref), value_type> )
                     {
+                        auto newValue = readValue<value_type, Member>(offset);
+                        readValue<value_type, Member>(offset); // prevValue (unused)
                         if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> )
                         {
                             auto temp = ref;
@@ -5160,7 +5170,7 @@ namespace RareEdit
                 break;
                 case Op::SetL:
                 {
-                    if constexpr ( requires{ref = peekValue<value_type, Member>(*secondaryOffset);} )
+                    if constexpr ( RareTs::is_assignable_v<decltype(ref), value_type> )
                     {
                         if ( !secondaryOffset )
                             secondaryOffset = offset; // Is set exclusively for the first visit of the selection
@@ -6684,198 +6694,198 @@ namespace RareEdit
             switch ( op )
             {
                 case Op::Reset: // .reset() // prevValue
-                    put(os, ".reset() // ").putValue<type, member_type>(os, offset);
+                    put(os, ".reset() // ").template putValue<type, member_type>(os, offset);
                     break;
                 case Op::Reserve: // .reserve(size)
-                    put(os, ".reserve(").putIndex<index_type>(os, offset).put(os, ")");
+                    put(os, ".reserve(").template putIndex<index_type>(os, offset).put(os, ")");
                     break;
                 case Op::Trim: // .trim()
                     put(os, ".trim()");
                     break;
                 case Op::Assign: // .assign(size, value) // prevValue
                     if constexpr ( !std::is_void_v<element> )
-                        put(os, ".assign(").putIndex<index_type>(os, offset).putValue<type, member_type>(os, offset).put(os, ") // ").putValue<type, member_type>(os, offset);
+                        put(os, ".assign(").template putIndex<index_type>(os, offset).template putValue<type, member_type>(os, offset).put(os, ") // ").template putValue<type, member_type>(os, offset);
                     break;
                 case Op::AssignDefault: // .assign(size, {}) // prevValue
-                    put(os, ".assign(").putIndex<index_type>(os, offset).putValue<type, member_type>(os, offset).put(os, ", {}) // ").putValue<type, member_type>(os, offset);
+                    put(os, ".assign(").template putIndex<index_type>(os, offset).template putValue<type, member_type>(os, offset).put(os, ", {}) // ").template putValue<type, member_type>(os, offset);
                     break;
                 case Op::ClearSelections: // .clearSelections() // size, selIndexes
                 {
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, "clearSelections() // ").put(os, size).put(os, ", ").putIndexes<index_type>(os, offset, size);
+                    put(os, "clearSelections() // ").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size);
                 }
                 break;
                 case Op::SelectAll: // .selectAll() // size, selIndexes
                 {
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".selectAll() // ").put(os, size).put(os, ", ").putIndexes<index_type>(os, offset, size);
+                    put(os, ".selectAll() // ").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size);
                 }
                 break;
                 case Op::Select: // .select(index)
-                    put(os, ".select(").putIndex<index_type>(os, offset).put(os, ")");
+                    put(os, ".select(").template putIndex<index_type>(os, offset).put(os, ")");
                     break;
                 case Op::SelectN: // .selectN(size, selIndexes)
                 {
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".selectN(").put(os, size).put(os, ", ").putIndexes<index_type>(os, offset, size).put(os, ")");
+                    put(os, ".selectN(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::Deselect: // .deselect(index)
-                    put(os, "deselect(").putIndex<index_type>(os, offset);
+                    put(os, "deselect(").template putIndex<index_type>(os, offset);
                     break;
                 case Op::DeselectN:
                 {
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, "deselectN(").putIndex<index_type>(os, offset).put(os, ", ").putIndexes<index_type>(os, offset, size).put(os, ")");
+                    put(os, "deselectN(").template putIndex<index_type>(os, offset).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::ToggleSelection:
-                    put(os, "toggelSel(").putIndex<index_type>(os, offset).put(os, ")");
+                    put(os, "toggelSel(").template putIndex<index_type>(os, offset).put(os, ")");
                     break;
                 case Op::ToggleSelectionN:
                 {
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, "toggleSelN(").put(os, size).put(os, ", ").putIndexes<index_type>(os, offset, size).put(os, ")");
+                    put(os, "toggleSelN(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::SortSelections:
                 {
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, "sortSel(").put(os, size).put(os, ", ").putIndexes<index_type>(os, offset, size).put(os, ")");
+                    put(os, "sortSel(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::SortSelectionsDesc:
                 {
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, "sortSelDesc(").put(os, size).put(os, ", ").putIndexes<index_type>(os, offset, size).put(os, ")");
+                    put(os, "sortSelDesc(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::Set:
-                    put(os, " = ").putValue<type, member_type>(os, offset).put(os, " // ").putValue<type, member_type>(os, offset);
+                    put(os, " = ").template putValue<type, member_type>(os, offset).put(os, " // ").template putValue<type, member_type>(os, offset);
                     break;
                 case Op::SetN:
                 if constexpr ( !std::is_void_v<element> )
                 {
                     std::size_t size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, "setN(").putIndex<index_type>(os, offset).put(os, ", ").putIndexes<index_type>(os, offset, size).put(os, " = ").putValue<type, member_type>(os, offset)
-                        .put(os, ") // ").putValues<type, member_type>(os, offset, size);
+                    put(os, "setN(").template putIndex<index_type>(os, offset).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, " = ").template putValue<type, member_type>(os, offset)
+                        .put(os, ") // ").template putValues<type, member_type>(os, offset, size);
                 }
                 break;
                 case Op::SetL:
-                    put(os, " = ").putValue<type, member_type>(os, offset);
+                    put(os, " = ").template putValue<type, member_type>(os, offset);
                     break;
                 case Op::Append:
                 if constexpr ( RareTs::is_specialization_v<type, std::vector> )
-                    put(os, ".append(").putValue<std::remove_cvref_t<decltype(std::declval<type>()[0])>, member_type>(os, offset).put(os, ")");
+                    put(os, ".append(").template putValue<std::remove_cvref_t<decltype(std::declval<type>()[0])>, member_type>(os, offset).put(os, ")");
                 break;
                 case Op::AppendN:
                 if constexpr ( RareTs::is_specialization_v<type, std::vector> )
                 {
                     std::size_t size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".appendN(").put(os, size).put(os, ", ").putValues<element, member_type>(os, offset, size).put(os, ")");
+                    put(os, ".appendN(").put(os, size).put(os, ", ").template putValues<element, member_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::Insert:
                 if constexpr ( RareTs::is_specialization_v<type, std::vector> )
-                    put(os, ".insert(").putIndex<index_type>(os, offset).put(os, ", ").putValue<std::remove_cvref_t<decltype(std::declval<type>()[0])>, member_type>(os, offset).put(os, ")");
+                    put(os, ".insert(").template putIndex<index_type>(os, offset).put(os, ", ").template putValue<std::remove_cvref_t<decltype(std::declval<type>()[0])>, member_type>(os, offset).put(os, ")");
                 break;
                 case Op::InsertN:
                 if constexpr ( RareTs::is_specialization_v<type, std::vector> )
                 {
                     std::size_t size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".insertN(").putIndex<index_type>(os, offset).put(os, ", ").put(os, size).put(os, ", ").putValues<element, member_type>(os, offset, size).put(os, ")");
+                    put(os, ".insertN(").template putIndex<index_type>(os, offset).put(os, ", ").put(os, size).put(os, ", ").template putValues<element, member_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::Remove:
                 if constexpr ( RareTs::is_specialization_v<type, std::vector> )
-                    put(os, ".remove(").putIndex<index_type>(os, offset).put(os, ") // {").putValue<std::remove_cvref_t<decltype(std::declval<type>()[0])>, member_type>(os, offset).put(os, ")");
+                    put(os, ".remove(").template putIndex<index_type>(os, offset).put(os, ") // {").template putValue<std::remove_cvref_t<decltype(std::declval<type>()[0])>, member_type>(os, offset).put(os, ")");
                 break;
                 case Op::RemoveN:
                 if constexpr ( RareTs::is_specialization_v<type, std::vector> )
                 {
                     std::size_t count = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".removeN(").putIndexes<index_type>(os, offset, count).put(os, ") // ").putIndexes<index_type>(os, offset, count);
+                    put(os, ".removeN(").template putIndexes<index_type>(os, offset, count).put(os, ") // ").template putIndexes<index_type>(os, offset, count);
                 }
                 break;
                 case Op::RemoveL:
                 if constexpr ( RareTs::is_specialization_v<type, std::vector> )
                 {
                     std::size_t count = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".removeL() // ").put(os, count).put(os, ", ").putIndexes<index_type>(os, offset, count).put(os, ") // ").putValues<element, member_type>(os, offset, count);
+                    put(os, ".removeL() // ").put(os, count).put(os, ", ").template putIndexes<index_type>(os, offset, count).put(os, ") // ").template putValues<element, member_type>(os, offset, count);
                 }
                 break;
                 case Op::Sort:
                 {
                     std::size_t count = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".sort() // ").put(os, count).putIndexes<index_type>(os, offset, count);
+                    put(os, ".sort() // ").put(os, count).template putIndexes<index_type>(os, offset, count);
                 }
                 break;
                 case Op::SortDesc:
                 {
                     std::size_t count = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".sortDesc() // ").put(os, count).putIndexes<index_type>(os, offset, count);
+                    put(os, ".sortDesc() // ").put(os, count).template putIndexes<index_type>(os, offset, count);
                 }
                 break;
                 case Op::MoveUp:
-                    put(os, ".moveUp(").putIndex<index_type>(os, offset).put(os, ")");
+                    put(os, ".moveUp(").template putIndex<index_type>(os, offset).put(os, ")");
                     break;
                 case Op::MoveUpN:
                 {
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".moveUpN(").put(os, size).put(os, ", ").putIndexes<index_type>(os, offset, size).put(os, ")");
+                    put(os, ".moveUpN(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::MoveUpL:
                     put(os, ".moveSelectionsUp()");
                     break;
                 case Op::MoveTop:
-                    put(os, ".moveTop(").putIndex<index_type>(os, offset).put(os, ")");
+                    put(os, ".moveTop(").template putIndex<index_type>(os, offset).put(os, ")");
                     break;
                 case Op::MoveTopN:
                 {
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".moveTopN(").put(os, size).put(os, ", ").putIndexes<index_type>(os, offset, size).put(os, ")");
+                    put(os, ".moveTopN(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::MoveTopL:
                     put(os, ".moveSelectionsTop()");
                     break;
                 case Op::MoveDown:
-                    put(os, ".moveDown(").putIndex<index_type>(os, offset).put(os, ")");
+                    put(os, ".moveDown(").template putIndex<index_type>(os, offset).put(os, ")");
                     break;
                 case Op::MoveDownN:
                 {
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".moveDownN(").put(os, size).put(os, ", ").putIndexes<index_type>(os, offset, size).put(os, ")");
+                    put(os, ".moveDownN(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::MoveDownL:
                     put(os, ".moveSelectionsDown()");
                     break;
                 case Op::MoveBottom:
-                    put(os, ".moveBottom(").putIndex<index_type>(os, offset).put(os, ")");
+                    put(os, ".moveBottom(").template putIndex<index_type>(os, offset).put(os, ")");
                     break;
                 case Op::MoveBottomN:
                 {
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".moveBottomN(").put(os, size).put(os, ", ").putIndexes<index_type>(os, offset, size).put(os, ")");
+                    put(os, ".moveBottomN(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::MoveBottomL:
                     put(os, ".moveSelectionsBottom()");
                     break;
                 case Op::MoveTo:
-                    put(os, ".moveTo(").putIndex<index_type>(os, offset).put(os, ", ").putIndex<index_type>(os, offset).put(os, ")");
+                    put(os, ".moveTo(").template putIndex<index_type>(os, offset).put(os, ", ").template putIndex<index_type>(os, offset).put(os, ")");
                     break;
                 case Op::MoveToN:
                 {
                     auto target = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".moveToN(").put(os, target).put(os, ", ").put(os, size).put(os, ", ").putIndexes<index_type>(os, offset, size).put(os, ")");
+                    put(os, ".moveToN(").put(os, target).put(os, ", ").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::MoveToL:
-                    put(os, ".moveSelectionsTo(").putIndex<index_type>(os, offset);
+                    put(os, ".moveSelectionsTo(").template putIndex<index_type>(os, offset);
                     break;
             }
         }
