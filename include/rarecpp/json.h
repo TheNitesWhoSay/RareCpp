@@ -1484,7 +1484,7 @@ namespace Json
             constexpr void pair(OutStreamType & os, Context & context, const Object & obj, const std::pair<Key, T> & value);
 
             template <typename Annotations, typename Member, Statics statics,
-                bool PrettyPrint, size_t IndentLevel, const char* Indent, typename Object, typename IterableValue = uint_least8_t>
+                bool PrettyPrint, size_t IndentLevel, const char* Indent, size_t dimension = 0, typename Object = void, typename IterableValue = uint_least8_t>
             constexpr void iterable(OutStreamType & os, Context & context, const Object & obj, const IterableValue & iterable);
             
             template <typename Annotations, Statics statics, bool PrettyPrint, size_t IndentLevel, const char* Indent, typename T>
@@ -1708,7 +1708,7 @@ namespace Json
                 else if constexpr ( std::is_same_v<std::string, std::remove_const_t<T>> && !Member::template hasNote<Json::UnstringType>() )
                     Put::string(os, value);
                 else if constexpr ( RareTs::is_iterable_v<T> )
-                    Put::iterable<Annotations, Member, statics, PrettyPrint, IndentLevel, Indent, Object>(os, context, obj, value);
+                    Put::iterable<Annotations, Member, statics, PrettyPrint, IndentLevel, Indent>(os, context, obj, value);
                 else if constexpr ( RareTs::is_reflected_v<T> )
                     Put::object<Annotations, statics, PrettyPrint, IndentLevel, Indent, T>(os, context, value);
                 else if constexpr ( Member::template hasNote<Json::StringifyType>() )
@@ -1787,7 +1787,7 @@ namespace Json
             }
 
             template <typename Annotations, typename Member, Statics statics,
-                bool PrettyPrint, size_t IndentLevel, const char* Indent, typename Object, typename IterableValue>
+                bool PrettyPrint, size_t IndentLevel, const char* Indent, size_t dimension, typename Object, typename IterableValue>
             constexpr void iterable(OutStreamType & os, Context & context, const Object & obj, const IterableValue & iterable)
             {
                 using Element = RareTs::element_type_t<std::remove_cv_t<IterableValue>>;
@@ -1832,11 +1832,19 @@ namespace Json
                 }
                 else if constexpr ( std::is_array_v<IterableValue> && std::extent<typename Member::type>::value > 0 )
                 {
-                    for ( ; i<std::extent_v<typename Member::type>; i++ )
+                    for ( ; i<std::extent_v<typename Member::type, dimension>; i++ )
                     {
                         Put::separator<PrettyPrint, !IsArray, !ContainsPrimitives, IndentLevel + 1, Indent>(os, 0 == i);
-                        Put::value<Annotations, Member, statics, PrettyPrint, IndentLevel+1, Indent, Object, false>(
-                            os, context, obj, iterable[i]);
+                        if constexpr ( dimension+1 < std::rank_v<typename Member::type> )
+                        {
+                            Put::iterable<Annotations, Member, statics, PrettyPrint, IndentLevel+1, Indent, dimension+1>(
+                                os, context, obj, iterable[i]);
+                        }
+                        else
+                        {
+                            Put::value<Annotations, Member, statics, PrettyPrint, IndentLevel+1, Indent, Object, false>(
+                                os, context, obj, iterable[i]);
+                        }
                     }
                 }
                 Put::nestedSuffix<PrettyPrint, IsArray, ContainsPrimitives, IndentLevel, Indent>(os, RareTs::isEmpty(iterable));

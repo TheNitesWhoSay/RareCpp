@@ -3051,37 +3051,44 @@ struct ContainsIterables
 {
     std::vector<int> intVector;
     int intArray[3];
+    std::array<int, 2> stlArray;
     std::queue<int> intQueue;
 
-    REFLECT(ContainsIterables, intVector, intQueue, intArray)
+    REFLECT(ContainsIterables, intVector, intArray, stlArray, intQueue)
 };
 
 TEST_HEADER(JsonOutputPut, Iterable)
 {
     TestStreamType intVectorStream,
         intQueueStream,
-        intArrayStream;
+        intArrayStream,
+        stlIntArrayStream;
 
     ContainsIterables containsIterables = {
         { 1, 2, 3 },
         { 3, 4, 5 },
+        { 4, 5 },
         {}
     };
     containsIterables.intQueue.push(2);
     containsIterables.intQueue.push(3);
     containsIterables.intQueue.push(4);
 
-    Json::Put::iterable<NoNote, Reflect<ContainsIterables>::MemberType::intVector, Json::Statics::Excluded, false, 0, Json::twoSpaces, ContainsIterables>(
+    Json::Put::iterable<NoNote, Reflect<ContainsIterables>::MemberType::intVector, Json::Statics::Excluded, false, 0, Json::twoSpaces>(
         intVectorStream, Json::defaultContext, containsIterables, containsIterables.intVector);
     EXPECT_STREQ("[1,2,3]", intVectorStream.str().c_str());
 
-    Json::Put::iterable<NoNote, Reflect<ContainsIterables>::MemberType::intQueue, Json::Statics::Excluded, false, 0, Json::twoSpaces, ContainsIterables>(
+    Json::Put::iterable<NoNote, Reflect<ContainsIterables>::MemberType::intQueue, Json::Statics::Excluded, false, 0, Json::twoSpaces>(
         intQueueStream, Json::defaultContext, containsIterables, containsIterables.intQueue);
     EXPECT_STREQ("[2,3,4]", intQueueStream.str().c_str());
 
-    Json::Put::iterable<NoNote, Reflect<ContainsIterables>::MemberType::intArray, Json::Statics::Excluded, false, 0, Json::twoSpaces, ContainsIterables>(
+    Json::Put::iterable<NoNote, Reflect<ContainsIterables>::MemberType::intArray, Json::Statics::Excluded, false, 0, Json::twoSpaces>(
         intArrayStream, Json::defaultContext, containsIterables, containsIterables.intArray);
     EXPECT_STREQ("[3,4,5]", intArrayStream.str().c_str());
+
+    Json::Put::iterable<NoNote, Reflect<ContainsIterables>::MemberType::stlArray, Json::Statics::Excluded, false, 0, Json::twoSpaces>(
+        stlIntArrayStream, Json::defaultContext, containsIterables, containsIterables.stlArray);
+    EXPECT_STREQ("[4,5]", stlIntArrayStream.str().c_str());
 }
 
 struct RegularFields
@@ -3301,6 +3308,16 @@ TEST_HEADER(JsonOutputTest, JsonOutputReflectedObject)
     EXPECT_STREQ("{\"integer\":4,\"str\":\"aString\",\"nestedObj\":{\"bool\":false,\"ray\":[1,2,3]}}", objStream.str().c_str());
 }
 
+struct SomeArrays
+{
+    int a[3] {1, 2, 3};
+    int b[2][3] {{4, 5, 6}, {7, 8, 9}};
+    int c[2][3][1] {{{4}, {5}, {6}}, {{7}, {8}, {9}}};
+    std::array<int, 2> d {4, 5};
+
+    REFLECT(SomeArrays, a, b, c, d)
+};
+
 TEST_HEADER(JsonOutputTest, JsonOut)
 {
     NestedObj nestedObj = { false, { 1, 2, 3 } };
@@ -3313,6 +3330,10 @@ TEST_HEADER(JsonOutputTest, JsonOut)
     TestStreamType finalObjStream;
     finalObjStream << Json::out(anObject);
     EXPECT_STREQ("{\"integer\":4,\"str\":\"aString\",\"nestedObj\":{\"bool\":false,\"ray\":[1,2,3]}}", finalObjStream.str().c_str());
+
+    TestStreamType arrayStream;
+    arrayStream << Json::out(SomeArrays{});
+    EXPECT_STREQ("{\"a\":[1,2,3],\"b\":[[4,5,6],[7,8,9]],\"c\":[[[4],[5],[6]],[[7],[8],[9]]],\"d\":[4,5]}", arrayStream.str().c_str());
 }
 
 TEST_HEADER(JsonOutputTest, OutProxyReflected)

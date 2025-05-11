@@ -2248,4 +2248,42 @@ TEST_HEADER(JsonInput, InCharacterLikeTypes)
     EXPECT_EQ(-102, negative.d);
 }
 
+struct VariousArrays
+{
+    int a[3] {};
+    int b[2][3] {};
+    int c[2][3][1] {};
+    std::array<int, 2> d {};
+
+    REFLECT(VariousArrays, a, b, c, d)
+};
+
+TEST_HEADER(JsonInput, InVariousArrays)
+{
+    std::stringstream input("{\"a\":[1,2,3],\"b\":[[4,5,6],[7,8,9]],\"c\":[[[4],[5],[6]],[[7],[8],[9]]],\"d\":[4,5]}");
+    VariousArrays read {};
+    input >> Json::in(read);
+    
+    EXPECT_EQ(1, read.a[0]);
+    EXPECT_EQ(2, read.a[1]);
+    EXPECT_EQ(3, read.a[2]);
+    
+    EXPECT_EQ(4, read.b[0][0]);
+    EXPECT_EQ(5, read.b[0][1]);
+    EXPECT_EQ(6, read.b[0][2]);
+    EXPECT_EQ(7, read.b[1][0]);
+    EXPECT_EQ(8, read.b[1][1]);
+    EXPECT_EQ(9, read.b[1][2]);
+    
+    EXPECT_EQ(4, read.c[0][0][0]);
+    EXPECT_EQ(5, read.c[0][1][0]);
+    EXPECT_EQ(6, read.c[0][2][0]);
+    EXPECT_EQ(7, read.c[1][0][0]);
+    EXPECT_EQ(8, read.c[1][1][0]);
+    EXPECT_EQ(9, read.c[1][2][0]);
+    
+    EXPECT_EQ(4, read.d[0]);
+    EXPECT_EQ(5, read.d[1]);
+}
+
 #endif
