@@ -22,13 +22,15 @@
 namespace RareEdit
 {
     using RareTs::type_tags;
-    template <typename SizeType> struct IndexSize { using type = SizeType; };
+    template <typename SizeType> struct IndexSizeType { using type = SizeType; };
+
+    template <typename SizeType> inline constexpr IndexSizeType<SizeType> IndexSize;
 
     template <typename T>
     constexpr auto defaultIndexType()
     {
-        if constexpr ( RareTs::Notes<T>::template hasNote<RareEdit::IndexSize>() )
-            return RareTs::Notes<T>::template getNote<RareEdit::IndexSize>();
+        if constexpr ( RareTs::Notes<T>::template hasNote<RareEdit::IndexSizeType>() )
+            return RareTs::Notes<T>::template getNote<RareEdit::IndexSizeType>();
         else
             return std::type_identity<std::size_t>{};
     }
@@ -574,6 +576,14 @@ namespace RareEdit
                 Keys {keys},
                 RareTs::Class::template adapt_member<edit_member<Edit, default_index_type, RootData, T, Keys, Pathway...>::template type, T, Is> {{ root, keys }}...,
                 root(root) {}
+
+            template <class U> constexpr void operator=(U && value) {
+                if constexpr ( has_path_selections<Pathway...> )
+                    root.template setL<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+                else
+                    root.template set<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+            }
+
         private:
             Edit & root;
         };
@@ -604,8 +614,8 @@ namespace RareEdit
                 else
                     return std::type_identity<std::size_t>{};
             }
-            else if constexpr ( Member::template hasNote<RareEdit::IndexSize>() )
-                return Member::template getNote<RareEdit::IndexSize>();
+            else if constexpr ( Member::template hasNote<RareEdit::IndexSizeType>() )
+                return Member::template getNote<RareEdit::IndexSizeType>();
             else
                 return std::type_identity<DefaultIndexType>{};
         }

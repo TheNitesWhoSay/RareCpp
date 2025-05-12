@@ -20,14 +20,15 @@ struct Actor
     REFLECT(Actor, xc, yc, name)
 };
 
-NOTE(MyObj, IndexSize<std::uint32_t>{})
+NOTE(MyObj, IndexSize<std::uint32_t>)
 struct MyObj
 {
     int intRay[5] {};
     std::vector<int> ints {};
+    Actor actor {};
     std::vector<Actor> actors {};
 
-    REFLECT_NOTED(MyObj, ints, intRay, actors)
+    REFLECT_NOTED(MyObj, ints, intRay, actor, actors)
 };
 
 struct TracedObj : Tracked<MyObj, TracedObj>
@@ -45,6 +46,7 @@ struct TracedObj : Tracked<MyObj, TracedObj>
         auto edit = createAction();
         edit->intRay[2] = 5;
         edit->ints = std::vector{2, 3, 4};
+        edit->actor = Actor{.xc = 77, .yc = 88, .name = "jj"};
         edit->actors.append(Actor{});
         edit->actors.append(Actor{});
         edit->actors[1].xc = 12;

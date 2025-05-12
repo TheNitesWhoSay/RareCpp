@@ -469,7 +469,7 @@ namespace EditorCumulative
         EXPECT_EQ(check.actionFirstEvent[8], 0);
     }
 
-    NOTE(CumulativeTest, IndexSize<std::uint32_t>{})
+    NOTE(CumulativeTest, IndexSize<std::uint32_t>)
     struct CumulativeTest
     {
         struct Bar
@@ -499,10 +499,10 @@ namespace EditorCumulative
         std::string b = "asdf";
         std::vector<int> c {};
         Bar bar;
-        std::vector<Bar> barVec {}; NOTE(barVec, IndexSize<std::uint16_t>{})
+        std::vector<Bar> barVec {}; NOTE(barVec, IndexSize<std::uint16_t>)
         int intRay[5] {};
         int mdIntRay[2][3] {};
-        std::vector<Trig> trigs {}; NOTE(trigs, IndexSize<std::uint16_t>{})
+        std::vector<Trig> trigs {}; NOTE(trigs, IndexSize<std::uint16_t>)
 
         REFLECT_NOTED(CumulativeTest, a, b, c, bar, barVec, intRay, mdIntRay, trigs)
     };
