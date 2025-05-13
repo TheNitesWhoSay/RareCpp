@@ -35,6 +35,11 @@ namespace RareEdit
             return std::type_identity<std::size_t>{};
     }
 
+    template <typename T> struct is_array_member : std::false_type {};
+    template <typename T, std::size_t I> struct is_array_member<RareTs::Member<T, I>> :
+        std::bool_constant<std::is_array_v<typename RareTs::Member<T, I>::type>> {};
+    template <typename T> inline constexpr bool is_array_member_v = is_array_member<T>::value;
+
     template <typename T>
     inline constexpr std::size_t reflectedMemberCount() {
         if constexpr ( RareTs::is_macro_reflected_v<T> )
@@ -533,6 +538,7 @@ namespace RareEdit
         //   SelBranch: lower 6-bits unused, SelBranch indicates the operation applies over the selection for this container (may branch further down from here)
         //   LeafBranch: same as Branch except this also indicates it's the last branch in the sequence
         //   LeafSelBranch: same as SelBranch except this also indicates it's the last branch in the sequence
+        //                  special case: if this is the first element, it means use the root element
         HighBits      = 0b11000000,
         LowBits       = 0b00111111,
 
@@ -542,7 +548,8 @@ namespace RareEdit
         Branch        = 0b00000000,
         SelBranch     = 0b01000000,
         LeafBranch    = 0b10000000,
-        LeafSelBranch = 0b11000000
+        LeafSelBranch = 0b11000000,
+        RootPath      = LeafSelBranch
     };
 
     enum class Op : std::uint8_t {
@@ -1186,6 +1193,19 @@ namespace RareEdit
                 return noSelection;
             }
         }
+
+        template <std::size_t I>
+        void clear()
+        {
+            using U = RareTs::Class::adapt_member<member_selection<DefaultIndexType, T>::template type, T, I>;
+            if constexpr ( requires { static_cast<U &>(*this).clear(); } )
+                static_cast<U &>(*this).clear();
+        }
+
+        void clear()
+        {
+            (clear<Is>(), ...);
+        }
     };
 
     template <class DefaultIndexType, class T, std::size_t ... Is>
@@ -1210,6 +1230,13 @@ namespace RareEdit
         Editor & editor;
         T & t;
         User & user;
+
+        void clear()
+        {
+            selections.clear();
+            eventOffsets.clear();
+            events.clear();
+        }
 
         template <class Usr, class Route, class Value>
         using ValueChangedOp = decltype(std::declval<Usr>().valueChanged(std::declval<Route>(), std::declval<Value>(), std::declval<Value>()));
@@ -1558,7 +1585,10 @@ namespace RareEdit
         template <class ... Pathway, class Keys, class U, class F>
         void operateOn(U & t, Keys & keys, F f)
         {
-            operateOnImpl<Keys, U, F, void, Pathway...>(t, keys, f, {});
+            if constexpr ( sizeof...(Pathway) == 0 )
+                f(t, type_tags<void, PathTaggedKeys<Keys, type_tags<>>>{});
+            else
+                operateOnImpl<Keys, U, F, void, Pathway...>(t, keys, f, {});
         }
 
         template <class ... Pathway, class Keys>
@@ -1745,7 +1775,10 @@ namespace RareEdit
         {
             eventOffsets.push_back(events.size());
             events.push_back(uint8_t(Op::Set));
-            serializePathway<Pathway...>(keys);
+            if constexpr ( sizeof...(Pathway) > 0 )
+                serializePathway<Pathway...>(keys);
+            else
+                events.push_back(uint8_t(PathOp::RootPath));
 
             operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
                 using value_type = std::remove_cvref_t<decltype(ref)>;
@@ -3376,7 +3409,7 @@ namespace RareEdit
                         for ( std::size_t i=0; i<std::size(ref); ++i )
                             notifyElementAdded(user, Route{keys}, i);
                     }
-                    else if constexpr ( std::is_array_v<typename Member::type> && requires { ref[0]; } )
+                    else if constexpr ( is_array_member_v<Member> && requires { ref[0]; } )
                         readValue<value_type, Member>(offset, ref);
                     else
                         ref = readValue<value_type, Member>(offset);
@@ -6483,7 +6516,11 @@ namespace RareEdit
                     }
                     break;
                 case PathOp::LeafSelBranch:
-                    if constexpr ( hasSel && requires{t[0];} )
+                    if constexpr ( sizeof...(Pathway) == 0 && Undo )
+                        processUndoEvent<std::remove_cvref_t<U>, void>(op, offset, secondaryOffset, t, keys);
+                    else if constexpr ( sizeof...(Pathway) == 0 && !Undo )
+                        processRedoEvent<std::remove_cvref_t<U>, void>(op, offset, secondaryOffset, t, keys);
+                    else if constexpr ( hasSel && requires{t[0];} )
                     {
                         using element_type = std::remove_cvref_t<RareTs::element_type_t<std::remove_cvref_t<U>>>;
                         
@@ -6641,6 +6678,11 @@ namespace RareEdit
 
     public:
         using default_index_type = typename EditRoot<T, User, Edit<T, User>>::default_index_type;
+
+        void assign(const T & value) {
+            std::tuple keys {}; // No keys/array indexes as this is the root
+            EditRoot<T, User, Edit<T, User>>::template set<>(value, keys);
+        }
     };
 
     template <class Data, class User>
@@ -6653,7 +6695,7 @@ namespace RareEdit
         using edit_type = Edit<Data, User>;
         edit_type editable;
 
-        std::vector<std::uint64_t> actionFirstEvent; // Index of the first data-change event for the given action
+        std::vector<std::uint64_t> actionFirstEvent; // Index of the first data-change event for action[i] (presently the only persistent data for actions)
         int actionReferenceCount = 0; // Referencing counting for the current action, new actions can only be created when the old action is closed
         std::uint64_t redoCount = 0; // How many undos have occured since the last user-action/how many redos are available
         std::uint64_t redoSize = 0; // The size of the range including the redoable actions (includes elided redos)
@@ -6699,7 +6741,7 @@ namespace RareEdit
             return Editor{this};
         };
 
-        static inline Editor root {nullptr};
+        static inline Editor root {nullptr}; // Represents the root of the data structure, used by client code to create paths
 
         template <class Input>
         using MakePath = PathTaggedKeys<typename Input::keys, typename Input::path>;
@@ -6707,11 +6749,11 @@ namespace RareEdit
         #define PATH(...) MakePath<decltype(__VA_ARGS__)>
 
     public:
-        const edit_type & view;
+        const edit_type & view; // Used to view selections data (and potentially other info associated with particular data paths)
         Tracked(User* user) : editable(*this, *user), view(editable) {}
         Tracked(User & user) : editable(*this, user), view(editable) {}
 
-        const Data & read = (const Data &)*this;
+        const Data & read = (const Data &)*this; // A read only version of the user data
         EditRoot<Data, User, edit_type> & history = static_cast<EditRoot<Data, User, edit_type> &>(editable);
         constexpr const Data & operator*() const noexcept { return read; }
         constexpr const Data* operator->() const noexcept { return this; }
@@ -6725,6 +6767,33 @@ namespace RareEdit
             }
             return Editor{this};
         };
+
+        void clearHistory()
+        {
+            if ( actionReferenceCount != 0 )
+                throw std::logic_error("Cannot clear history while an action is active");
+
+            history.clear();
+            redoCount = 0;
+            redoSize = 0;
+            actionFirstEvent.clear();
+        }
+
+        // Initializes the stored data with the given input, this initialization is tracked of initTracked is true
+        // If there's an active action or any stored actions a logic_error will be thrown
+        template <bool initTracked = false>
+        void initData(auto && data)
+        {
+            if ( !actionFirstEvent.empty() )
+                throw std::logic_error("Cannot init an object that already has history!");
+            else if ( actionReferenceCount > 0 )
+                throw std::logic_error("Cannot init an object that already has an active action!");
+
+            if constexpr ( initTracked )
+                createAction()->assign(data);
+            else
+                std::swap((Data&)*this, data);
+        }
 
         void undoAction()
         {
@@ -7078,7 +7147,9 @@ namespace RareEdit
                     }
                     break;
                 case PathOp::LeafSelBranch:
-                    if constexpr ( RareTs::is_static_array_v<U> || RareTs::is_specialization_v<U, std::vector> )
+                    if constexpr ( std::is_same_v<std::remove_cvref_t<Data>, std::remove_cvref_t<U>> ) // Root
+                        printEventOp<U, Member>(offset, Op(op));
+                    else if constexpr ( RareTs::is_static_array_v<U> || RareTs::is_specialization_v<U, std::vector> )
                     {
                         std::cout << "[{sel}]";
                         using element_type = RareTs::element_type_t<std::remove_cvref_t<U>>;
