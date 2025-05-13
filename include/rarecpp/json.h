@@ -1956,7 +1956,7 @@ namespace Json
                 if ( context == nullptr )
                     context = std::make_shared<Context>();
 
-                Put::value<Annotations, MockMember<>, statics, PrettyPrint, IndentLevel, Indent, Object, true, Object>(os, *context, obj, obj);
+                Put::value<Annotations, MockMember<Object>, statics, PrettyPrint, IndentLevel, Indent, Object, true, Object>(os, *context, obj, obj);
 
                 return os;
             }

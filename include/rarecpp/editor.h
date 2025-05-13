@@ -43,6 +43,82 @@ namespace RareEdit
             return 0;
     }
 
+    template <class T, std::size_t Extent, std::size_t ... Extents>
+    class flat_mdspan
+    {
+        T* data;
+
+    public:
+        using element_type = T;
+        using extents = std::index_sequence<Extent, Extents...>;
+        static constexpr std::size_t rank = 1+sizeof...(Extents);
+        static constexpr std::size_t size = Extent*(Extents * ... * 1); // Sum of all extents
+        constexpr flat_mdspan(T* data) : data(data) {}
+    
+        constexpr decltype(auto) operator[](std::size_t i) {
+            if constexpr ( sizeof...(Extents) == 0 )
+                return data[i];
+            else
+                return flat_mdspan<T, Extents...>(&data[size/Extent*i]);
+        }
+        constexpr decltype(auto) operator[](std::size_t i) const {
+            if constexpr ( sizeof...(Extents) == 0 )
+                return data[i];
+            else
+                return flat_mdspan<T, Extents...>(&data[size/Extent*i]);
+        }
+        struct It {
+            flat_mdspan* obj;
+            std::size_t i;
+            constexpr void operator++() { ++i; }
+            constexpr decltype(auto) operator*() const { return (*obj)[i]; }
+            constexpr bool operator!=(It other) { return i != other.i; }
+        };
+        constexpr auto begin() { return It{this, 0}; }
+        constexpr auto end() { return It{this, Extent}; }
+        constexpr auto begin() const { return It{this, 0}; }
+        constexpr auto end() const { return It{this, Extent}; }
+
+        constexpr T* flatBegin() { return data; }
+        constexpr T* flatEnd() { return data+size; }
+        constexpr const T* flatBegin() const { return data; }
+        constexpr const T* flatEnd() const { return data+size; }
+
+        constexpr void operator=(const flat_mdspan & other) {
+            std::copy(other.flatBegin(), other.flatEnd(), flatBegin());
+        }
+        constexpr void clear() { std::fill(flatBegin(), flatEnd(), T{}); }
+        constexpr void fill(const T & value) { std::fill(flatBegin(), flatEnd(), value); }
+        constexpr void swap(flat_mdspan & other) {
+            for ( std::size_t i=0; i<size; ++i )
+                std::swap(data[i], other.data[i]);
+        }
+    };
+
+    template <class ...> struct is_flat_mdspan : std::false_type {};
+    template <class T> struct is_flat_mdspan<const T> : is_flat_mdspan<T> {};
+    template <class T, std::size_t ... Is> struct is_flat_mdspan<flat_mdspan<T, Is...>> : std::true_type {};
+    template <class T> inline constexpr bool is_flat_mdspan_v = is_flat_mdspan<T>::value;
+
+    template <typename T> constexpr auto array_header(T && array) {
+        if constexpr ( std::rank_v<std::remove_reference_t<T>> == 0 ) return &array;
+        else if constexpr ( std::rank_v<std::remove_reference_t<T>> == 1 ) return &array[0];
+        else if constexpr ( std::rank_v<std::remove_reference_t<T>> == 2 ) return &array[0][0];
+        else return array_header(array[0]);
+    }
+
+    template <typename T>
+    constexpr auto as_1d(T & array) requires (std::is_array_v<std::remove_reference_t<T>>)
+    {
+        using U = std::remove_reference_t<T>;
+        using Element = std::remove_all_extents_t<U>;
+        constexpr auto rank = std::rank_v<U>;
+        return [&]<std::size_t ... Is>(std::index_sequence<Is...>) {
+            static_assert(sizeof(U) == sizeof(Element)*(std::extent_v<U, Is> * ... * 1), "array passed to as_1d was not contiguous!");
+            return flat_mdspan<Element, std::extent_v<U, Is>...>(array_header(array));
+        }(std::make_index_sequence<rank>());
+    }
+
     inline void writeVecBoolData(std::vector<std::uint8_t> & data, const std::vector<bool> & vecBool) // Does not include the size
     {
         constexpr std::uint8_t zero = 0;
@@ -922,6 +998,7 @@ namespace RareEdit
         struct Array : RandomAccess
         {
             Array(Edit & root, Keys keys) : RandomAccess { root, std::move(keys) } {}
+            void reset() { RandomAccess::root.template reset<Pathway...>((Keys &)(*this)); }
         };
 
         struct Vector : RandomAccess
@@ -1335,12 +1412,27 @@ namespace RareEdit
                 events.insert(events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
                 events.insert(events.end(), reinterpret_cast<const std::uint8_t*>(value.c_str()), reinterpret_cast<const std::uint8_t*>(value.c_str()+size));
             }
+            else if constexpr ( is_flat_mdspan_v<value_type> )
+            {
+                constexpr auto size = static_cast<index_type>(value_type::size);
+                events.insert(events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
+                for ( auto it = value.flatBegin(); it != value.flatEnd(); ++it )
+                    serializeValue<Member>(*it);
+            }
+            else if constexpr ( std::is_array_v<value_type> )
+            {
+                auto span = as_1d<value_type>(value);
+                constexpr auto size = static_cast<index_type>(decltype(span)::size);
+                events.insert(events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
+                for ( auto it = span.flatBegin(); it != span.flatEnd(); ++it )
+                    serializeValue<Member>(*it);
+            }
             else if constexpr ( RareTs::is_static_array_v<value_type> )
             {
                 constexpr auto size = static_cast<index_type>(RareTs::static_array_size_v<value_type>);
                 events.insert(events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
                 for ( auto & val : value )
-                    serializeValue<Member>(val);
+                    serializeValue<Member>(value);
             }
             else if constexpr ( RareTs::is_iterable_v<value_type> )
             {
@@ -1489,15 +1581,30 @@ namespace RareEdit
                 }
                 else if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> ) // Non-iterables
                 {
-                    auto prevValue = ref;
-                    serializeValue<Member>(ref);
-                    ref = {};
-                    notifyValueChanged(user, Route{keys}, prevValue, ref); // Issue change notification
+                    if constexpr ( std::is_array_v<typename Member::type> )
+                    {
+                        serializeValue<Member>(ref);
+                        typename Member::type prevValue {};
+                        auto refArray = as_1d<typename Member::type>(ref);
+                        as_1d(prevValue) = refArray;
+                        refArray.clear();
+                        notifyValueChanged(user, Route{keys}, prevValue, ref); // Issue change notification
+                    }
+                    else
+                    {
+                        auto prevValue = ref;
+                        serializeValue<Member>(ref);
+                        ref = {};
+                        notifyValueChanged(user, Route{keys}, prevValue, ref); // Issue change notification
+                    }
                 }
                 else
                 {
                     serializeValue<Member>(ref);
-                    ref = {};
+                    if constexpr ( std::is_array_v<typename Member::type> )
+                        as_1d<typename Member::type>(ref).clear();
+                    else
+                        ref = {};
                 }
 
                 if constexpr ( hasSelections<Pathway...>() )
@@ -3103,11 +3210,13 @@ namespace RareEdit
         }
 
         template <class Value, class Member>
-        void readValue(std::size_t & offset, auto & value) const
+        void readValue(std::size_t & offset, auto && value) const
         {
-            if constexpr ( std::is_same_v<Value, std::string> )
+            using U = std::remove_cvref_t<Value>;
+            using index_type = index_type_t<default_index_type, Member>;
+            if constexpr ( std::is_same_v<U, std::string> )
             {
-                auto stringSize = (index_type_t<default_index_type, Member> &)events[offset];
+                auto stringSize = (index_type &)events[offset];
                 offset += sizeof(stringSize);
                 if ( stringSize > 0 )
                 {
@@ -3115,64 +3224,54 @@ namespace RareEdit
                     offset += stringSize;
                 }
             }
-            else if constexpr ( RareTs::is_static_array_v<Value> )
+            else if constexpr ( is_flat_mdspan_v<U> )
             {
-                constexpr std::size_t size = RareTs::static_array_size_v<Value>;
-                offset += sizeof(size);
-                for ( std::size_t i=0; i<size; ++i )
-                    readValue<std::remove_cvref_t<decltype(std::declval<Value>()[0])>, Member>(offset, value[i]);
+                offset += sizeof(index_type); // Skip over array size
+                for ( auto it = value.flatBegin(); it != value.flatEnd(); ++it )
+                    readValue<typename U::element_type, Member>(offset, *it);
             }
-            else if constexpr ( RareTs::is_iterable_v<Value> && requires{value.resize(std::size_t{0});} )
+            else if constexpr ( std::is_array_v<U> )
             {
-                using index_type = index_type_t<default_index_type, Member>;
+                auto span = as_1d<Value>(value);
+                offset += sizeof(index_type); // Skip over array size
+                for ( auto it = span.flatBegin(); it != span.flatEnd(); ++it )
+                    readValue<typename decltype(span)::element_type, Member>(offset, *it);
+            }
+            else if constexpr ( RareTs::is_static_array_v<U> )
+            {
+                constexpr std::size_t size = RareTs::static_array_size_v<U>;
+                offset += sizeof(size); // Skip over array size
+                for ( std::size_t i=0; i<size; ++i )
+                    readValue<std::remove_cvref_t<decltype(std::declval<U>()[0])>, Member>(offset, value[i]);
+            }
+            else if constexpr ( RareTs::is_iterable_v<U> && requires{value.resize(std::size_t{0});} )
+            {
                 auto size = static_cast<std::size_t>((index_type &)events[offset]);
                 value.resize(std::size_t{size});
                 offset += sizeof(index_type);
                 for ( decltype(size) i=0; i<size; ++i )
-                    readValue<std::remove_cvref_t<decltype(std::declval<Value>()[0])>, Member>(offset, value[i]);
+                    readValue<std::remove_cvref_t<decltype(std::declval<U>()[0])>, Member>(offset, value[i]);
             }
-            else if constexpr ( RareTs::is_reflected_v<Value> )
+            else if constexpr ( RareTs::is_reflected_v<U> )
             {
-                RareTs::Members<Value>::forEach([&](auto member) {
+                RareTs::Members<U>::forEach([&](auto member) {
                     readValue<std::remove_cvref_t<typename decltype(member)::type>, decltype(member)>(offset, member.value(value));
                 });
             }
             else
             {
-                value = (Value &)events[offset];
-                offset += sizeof(Value);
+                value = (U &)events[offset];
+                offset += sizeof(U);
             }
         }
 
         template <class Value, class Member>
         auto readValue(std::size_t & offset) const
         {
-            if constexpr ( std::is_array_v<Value> ) // Avoid trying to return array[] types, make a vector
-            {
-                using element_type = std::remove_cvref_t<RareTs::element_type_t<Value>>;
-                if constexpr ( std::is_array_v<element_type> )
-                {
-                    using sub_elem_type = std::remove_cvref_t<RareTs::element_type_t<element_type>>;
-                    std::vector<std::vector<sub_elem_type>> value(RareTs::static_array_size_v<Value>);
-                    for ( auto & vec : value )
-                        vec.assign(RareTs::static_array_size_v<element_type>, {});
-
-                    readValue<decltype(value), Member>(offset, value);
-                    return value;
-                }
-                else
-                {
-                    std::vector<element_type> value { std::size_t{RareTs::static_array_size_v<Value>} };
-                    readValue<decltype(value), Member>(offset, value);
-                    return value;
-                }
-            }
-            else
-            {
-                std::remove_cvref_t<Value> value {};
-                readValue<Value, Member>(offset, value);
-                return value;
-            }
+            static_assert(!std::is_array_v<Value>, "Cannot return array[] types, use the readValue reference overload");
+            std::remove_cvref_t<Value> value {};
+            readValue<Value, Member>(offset, value);
+            return value;
         }
 
         template <class Value, class Member>
@@ -3254,29 +3353,39 @@ namespace RareEdit
             {
                 case Op::Reset:
                 {
-                    if constexpr ( !RareTs::is_static_array_v<value_type> && RareTs::is_assignable_v<decltype(ref), value_type> )
+                    if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> )
                     {
-                        if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> )
+                        if constexpr ( std::is_array_v<typename Member::type> )
+                        {
+                            typename Member::type prevValue {};
+                            auto refArray = as_1d<typename Member::type>(ref);
+                            as_1d(prevValue) = refArray;
+                            readValue<value_type, Member>(offset, refArray);
+                            notifyValueChanged(user, Route{keys}, prevValue, ref); // Issue change notification
+                        }
+                        else
                         {
                             auto prevValue = ref;
                             ref = readValue<value_type, Member>(offset);
                             notifyValueChanged(user, Route{keys}, prevValue, ref);
                         }
-                        else if constexpr ( isIterable && hasElementAddedOp<Route> )
-                        {
-                            ref = readValue<value_type, Member>(offset);
-                            for ( std::size_t i=0; i<std::size(ref); ++i )
-                                notifyElementAdded(user, Route{keys}, i);
-                        }
-                        else
-                            ref = readValue<value_type, Member>(offset);
+                    }
+                    else if constexpr ( isIterable && hasElementAddedOp<Route> )
+                    {
+                        ref = readValue<value_type, Member>(offset);
+                        for ( std::size_t i=0; i<std::size(ref); ++i )
+                            notifyElementAdded(user, Route{keys}, i);
+                    }
+                    else if constexpr ( std::is_array_v<typename Member::type> && requires { ref[0]; } )
+                        readValue<value_type, Member>(offset, ref);
+                    else
+                        ref = readValue<value_type, Member>(offset);
 
-                        if constexpr ( hasSelections )
-                        {
-                            readSelections(events, offset, getSelections<Pathway...>());
-                            if constexpr ( hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
-                        }
+                    if constexpr ( hasSelections )
+                    {
+                        readSelections(events, offset, getSelections<Pathway...>());
+                        if constexpr ( hasSelChangeOp )
+                            notifySelectionsChanged(user, Route{keys});
                     }
                 }
                 break;
@@ -4821,38 +4930,51 @@ namespace RareEdit
             {
                 case Op::Reset:
                 {
-                    if constexpr ( !RareTs::is_static_array_v<value_type> && requires { ref = {}; } )
+                    if constexpr ( isIterable && hasElementRemovedOp<Route> ) // Iterable
                     {
-                        if constexpr ( isIterable && hasElementRemovedOp<Route> ) // Iterable
+                        std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1;
+                        ref = {};
+                        for ( ; i>=0; --i )
+                            notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i)); // Issue remove changes
+                    }
+                    else if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> ) // Non-iterables
+                    {
+                        if constexpr ( std::is_array_v<typename Member::type> )
                         {
-                            std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1;
-                            ref = {};
-                            for ( ; i>=0; --i )
-                                notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i)); // Issue remove changes
+                            typename Member::type prevValue {};
+                            auto refArray = as_1d<typename Member::type>(ref);
+                            as_1d(prevValue) = refArray;
+                            refArray.clear();
+                            notifyValueChanged(user, Route{keys}, prevValue, ref); // Issue change notification
                         }
-                        else if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> ) // Non-iterables
+                        else
                         {
                             auto prevValue = ref;
                             ref = {};
                             notifyValueChanged(user, Route{keys}, prevValue, ref); // Issue change notification
                         }
+                    }
+                    else
+                    {
+                        if constexpr ( std::is_array_v<value_type> && requires { ref[0]; } )
+                            as_1d<value_type>(ref).clear();
                         else
                             ref = {};
+                    }
                             
-                        if constexpr ( hasSelections )
+                    if constexpr ( hasSelections )
+                    {
+                        auto & sel = getSelections<Pathway...>();
+                        if constexpr ( hasSelChangeOp )
                         {
-                            auto & sel = getSelections<Pathway...>();
-                            if constexpr ( hasSelChangeOp )
+                            if ( !std::empty(sel) )
                             {
-                                if ( !std::empty(sel) )
-                                {
-                                    clearSel(sel);
-                                    notifySelectionsChanged(user, Route{keys});
-                                }
-                            }
-                            else
                                 clearSel(sel);
+                                notifySelectionsChanged(user, Route{keys});
+                            }
                         }
+                        else
+                            clearSel(sel);
                     }
                 }
                 break;
@@ -6676,7 +6798,15 @@ namespace RareEdit
         template <class type, class member_type>
         auto & putValue(std::ostream & os, std::size_t & offset) const
         {
-            os << Json::out(editable.template readValue<type, member_type>(offset));
+            if constexpr ( std::is_array_v<type> )
+            {
+                type t {};
+                editable.template readValue<type, member_type>(offset, t);
+                os << Json::out<Json::Statics::Excluded, RareTs::NoNote, 0, Json::Output::twoSpaces, type>(t);
+            }
+            else
+                os << Json::out(editable.template readValue<type, member_type>(offset));
+
             return *this;
         }
 
@@ -6684,9 +6814,20 @@ namespace RareEdit
         auto & putValues(std::ostream & os, std::size_t & offset, std::size_t size) const
         {
             os << "{";
-            for ( std::size_t i=0; i<size; ++i )
-                os << (i>0 ? ", " : "") << Json::out(editable.template readValue<type, member_type>(offset));
-
+            if constexpr ( std::is_array_v<type> )
+            {
+                for ( std::size_t i=0; i<size; ++i )
+                {
+                    type t {};
+                    editable.template readValue<type, member_type>(offset, t);
+                    os << (i>0 ? ", " : "") << Json::out(t);
+                }
+            }
+            else
+            {
+                for ( std::size_t i=0; i<size; ++i )
+                    os << (i>0 ? ", " : "") << Json::out(editable.template readValue<type, member_type>(offset));
+            }
             os << "}";
             return *this;
         }
