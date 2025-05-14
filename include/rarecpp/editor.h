@@ -1024,13 +1024,13 @@ namespace RareEdit
             }
             template <class SetIndexes, class Value> void set(SetIndexes && indexes, Value && value) { RandomAccess::root.template setN<Pathway...>(indexes, std::forward<Value>(value), (Keys &)(*this)); }
             template <class U> void append(U && value) {
-                if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> )
+                if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> && !RareTs::is_optional_v<std::remove_cvref_t<U>> )
                     RandomAccess::root.template appendN<Pathway...>(std::forward<U>(value), (Keys &)(*this));
                 else
                     RandomAccess::root.template append<Pathway...>(std::forward<U>(value), (Keys &)(*this));
             }
             template <class InsertionIndex, class Value> void insert(InsertionIndex insertionIndex, Value && value) {
-                if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<Value>> )
+                if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<Value>> && !RareTs::is_optional_v<std::remove_cvref_t<Value>> )
                     RandomAccess::root.template insertN<Pathway...>(insertionIndex, std::forward<Value>(value), (Keys &)(*this));
                 else
                     RandomAccess::root.template insert<Pathway...>(insertionIndex, std::forward<Value>(value), (Keys &)(*this));
@@ -1083,6 +1083,46 @@ namespace RareEdit
             template <class I> void moveSelectionsTo(I indexMovedTo) { RandomAccess::root.template moveToL<Pathway...>(indexMovedTo, (Keys &)(*this)); }
         };
     };
+    
+    template <class Edit, class default_index_type, class RootData, class T, class Keys, class ... Pathway>
+    struct EditOptional : Keys
+    {
+        using keys = Keys;
+        using path = RareTs::type_tags<Pathway...>;
+        using type = T;
+        using optional_value_type = typename std::remove_cvref_t<type>::value_type;
+
+    private:
+        static constexpr auto derefType()
+        {
+            if constexpr ( RareTs::is_static_array_v<optional_value_type> )
+                return decltype(editArray<Edit, default_index_type, RootData, optional_value_type, Keys, Pathway..., PathMember<0>>()){};
+            else if constexpr ( RareTs::is_specialization_v<optional_value_type, std::vector> ) // Vector
+                return decltype(editVector<Edit, default_index_type, RootData, optional_value_type, Keys, Pathway..., PathMember<0>>()){};
+            else if constexpr ( RareTs::is_macro_reflected_v<optional_value_type> ) // Reflected object
+                return std::type_identity<edit_members<Edit, default_index_type, RootData, optional_value_type, Keys, Pathway..., PathMember<0>>>{};
+            else if constexpr ( RareTs::is_optional_v<optional_value_type> )
+                return std::type_identity<EditOptional<Edit, default_index_type, RootData, optional_value_type, Keys, Pathway..., PathMember<0>>>{};
+            else // Primitive
+                return std::type_identity<EditPrimitive<Edit, default_index_type, RootData, optional_value_type, Keys, Pathway..., PathMember<0>>>{};
+        }
+
+        Edit & root;
+        typename decltype(derefType())::type deref;
+
+    public:
+
+        EditOptional(Edit & root, Keys keys) :
+            Keys {std::move(keys)}, root(root), deref{root, (Keys &)(*this)} {}
+
+        template <class U> void operator=(U && value) {
+            if constexpr ( has_path_selections<Pathway...> )
+                root.template setL<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+            else
+                root.template set<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+        }
+        constexpr auto operator->() { return &deref; }
+    };
 
     template <class Edit, class default_index_type, class RootData, class T, class Keys, class ... Pathway>
     static constexpr auto editVector()
@@ -1090,6 +1130,8 @@ namespace RareEdit
         using element_type = RareTs::element_type_t<T>;
         if constexpr ( RareTs::is_reflected_v<element_type> )
             return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, Keys, edit_members, Pathway...>::Vector>{};
+        else if constexpr ( RareTs::is_optional_v<element_type> )
+            return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, Keys, EditOptional, Pathway...>::Vector>{};
         else
             return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, Keys, EditPrimitive, Pathway...>::Vector>{};
     }
@@ -1103,11 +1145,15 @@ namespace RareEdit
             using sub_element_type = RareTs::element_type_t<element_type>;
             if constexpr ( RareTs::is_reflected_v<sub_element_type> )
                 return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, Keys, edit_members, Pathway...>::Array>{};
+            else if constexpr ( RareTs::is_optional_v<sub_element_type> )
+                return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, Keys, EditOptional, Pathway...>::Array>{};
             else
                 return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, Keys, EditPrimitive, Pathway...>::Array>{};
         }
         else if constexpr ( RareTs::is_reflected_v<element_type> )
             return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, Keys, edit_members, Pathway...>::Array>{};
+        else if constexpr ( RareTs::is_optional_v<element_type> )
+            return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, Keys, EditOptional, Pathway...>::Array>{};
         else
             return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, Keys, EditPrimitive, Pathway...>::Array>{};
     }
@@ -1122,6 +1168,8 @@ namespace RareEdit
             return decltype(editVector<Edit, default_index_type, RootData, member_type, Keys, Pathway..., PathMember<I>>()){};
         else if constexpr ( RareTs::is_macro_reflected_v<member_type> ) // Reflected object
             return std::type_identity<edit_members<Edit, default_index_type, RootData, member_type, Keys, Pathway..., PathMember<I>>>{};
+        else if constexpr ( RareTs::is_optional_v<member_type> )
+            return std::type_identity<EditOptional<Edit, default_index_type, RootData, member_type, Keys, Pathway..., PathMember<I>>>{};
         else // Primitive
             return std::type_identity<EditPrimitive<Edit, default_index_type, RootData, member_type, Keys, Pathway..., PathMember<I>>>{};
     }
@@ -1439,6 +1487,12 @@ namespace RareEdit
                 events.insert(events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
                 events.insert(events.end(), reinterpret_cast<const std::uint8_t*>(value.c_str()), reinterpret_cast<const std::uint8_t*>(value.c_str()+size));
             }
+            else if constexpr ( RareTs::is_optional_v<value_type> )
+            {
+                bool hasValue = value.has_value();
+                u8bool::write(events, hasValue);
+                serializeValue<Member>(*value);
+            }
             else if constexpr ( is_flat_mdspan_v<value_type> )
             {
                 constexpr auto size = static_cast<index_type>(value_type::size);
@@ -1562,11 +1616,21 @@ namespace RareEdit
             }
             else if constexpr ( is_path_member_v<PathElement> )
             {
-                using Member = RareTs::Member<U, PathElement::index>;
-                if constexpr ( sizeof...(Pathway) == 0 )
-                    f(Member::value(t), type_tags<Member, PathTaggedKeys<Keys, type_tags<PathTraversed..., PathElement>>>{});
+                if constexpr ( RareTs::is_optional_v<std::remove_cvref_t<U>> )
+                {
+                    if constexpr ( sizeof...(Pathway) == 0 )
+                        f(t, type_tags<LastMember, PathTaggedKeys<Keys, type_tags<PathTraversed..., PathElement>>>{});
+                    else if ( t.has_value() )
+                        operateOnImpl<Keys, typename std::remove_cvref_t<U>::value_type, F, LastMember, Pathway...>(*t, keys, f, type_tags<PathTraversed..., PathElement>{});
+                }
                 else
-                    operateOnImpl<Keys, typename Member::type, F, Member, Pathway...>(Member::value(t), keys, f, type_tags<PathTraversed..., PathElement>{});
+                {
+                    using Member = RareTs::Member<U, PathElement::index>;
+                    if constexpr ( sizeof...(Pathway) == 0 )
+                        f(Member::value(t), type_tags<Member, PathTaggedKeys<Keys, type_tags<PathTraversed..., PathElement>>>{});
+                    else
+                        operateOnImpl<Keys, typename Member::type, F, Member, Pathway...>(Member::value(t), keys, f, type_tags<PathTraversed..., PathElement>{});
+                }
             }
             else if constexpr ( is_path_index_v<PathElement> )
             {
@@ -1782,7 +1846,7 @@ namespace RareEdit
 
             operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
                 using value_type = std::remove_cvref_t<decltype(ref)>;
-                constexpr bool isIterable = RareTs::is_iterable_v<value_type>;
+                constexpr bool isIterable = !RareTs::is_optional_v<value_type> && RareTs::is_iterable_v<value_type>;
                 if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> )
                 {
                     auto prevValue = ref;
@@ -3256,6 +3320,16 @@ namespace RareEdit
                     value = std::string{(const char*)&events[offset], stringSize};
                     offset += stringSize;
                 }
+            }
+            else if constexpr ( RareTs::is_optional_v<U> )
+            {
+                if ( u8bool::read(events, offset) ) // optional.has_value()
+                {
+                    value = typename U::value_type{};
+                    readValue<typename U::value_type, Member>(offset, *value);
+                }
+                else
+                    value = std::nullopt;
             }
             else if constexpr ( is_flat_mdspan_v<U> )
             {
@@ -7169,6 +7243,10 @@ namespace RareEdit
                         std::cout << '[' << static_cast<std::size_t>(index) << ']';
                         printEvent<std::remove_cvref_t<decltype(std::declval<U>()[0])>, Member>(offset, op, std::make_index_sequence<reflectedMemberCount<std::remove_cvref_t<decltype(std::declval<U>()[0])>>()>());
                     }
+                    else if constexpr ( RareTs::is_optional_v<U> ) // Deref into optional
+                    {
+                        printEvent<typename U::value_type, Member>(offset, op, std::make_index_sequence<reflectedMemberCount<std::remove_cvref_t<typename U::value_type>>()>());
+                    }
                     else if constexpr ( RareTs::is_macro_reflected_v<U> ) // Branch to field
                     {
                         std::size_t memberIndex = std::size_t(value & std::uint8_t(PathOp::LowBits));
@@ -7198,6 +7276,10 @@ namespace RareEdit
 
                         std::cout << "[" << static_cast<std::size_t>(index) << "]";
                         printEventOp<RareTs::element_type_t<std::remove_cvref_t<U>>, Member>(offset, Op(op));
+                    }
+                    else if constexpr ( RareTs::is_optional_v<U> ) // Operate on optional
+                    {
+                        printEventOp<typename U::value_type, Member>(offset, Op(op));
                     }
                     else if constexpr ( RareTs::is_reflected_v<U> ) // Op on field
                     {
