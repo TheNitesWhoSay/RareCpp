@@ -49,7 +49,7 @@ inline namespace adaptive_implement_builder
     
         template <typename T> constexpr auto builder() {
             // Create a builder using member indexes, you could apply a member filter here (e.g. use non-static data members only)
-            return RareTs::template Members<T>::template pack([&](auto & ... member) {
+            return RareTs::template Members<T>::pack([&](auto & ... member) {
                 return builder<T>(std::index_sequence<RareTs::remove_cvref_t<decltype(member)>::index...>{});
             });
         }
