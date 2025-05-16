@@ -1632,8 +1632,8 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
                 template <template<class...> class Op, class... Args>
                 struct op_exists<std::void_t<Op<Args...>>, Op, Args...> { static constexpr bool value = true; };
 
-                template <typename U = typename decltype(classType(RareTs::type_tag<RareTs::Proxy<RareTs::remove_cvref_t<T>>>{}))::template A_<MemberIndex, T>>
-                static constexpr bool value = !op_exists<void, U::template t, T>::value && !op_exists<void, U::template p, T>::value;
+                template <typename U = typename decltype(classType(RareTs::type_tag<RareTs::Proxy<RareTs::remove_cvref_t<T>>>{}))::template A_<MemberIndex, T, T>>
+                static constexpr bool value = !op_exists<void, U::template t, U>::value && !op_exists<void, U::template p, U>::value;
             };
         }
         #endif
@@ -1917,7 +1917,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
 
             #ifdef __clang__
             // Overloads (and references on MSVC < 1932 / Visual Studios <= 2019) are unsupported/always private
-            template <typename T, size_t MemberIndex, typename U = typename Class::class_t<T>::template A_<MemberIndex>>
+            template <typename T, size_t MemberIndex, typename U = typename Class::class_t<T>::template A_<MemberIndex, T>>
             struct access_modifier
             {
                 static constexpr AccessMod value = [](){
@@ -1925,7 +1925,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
                         return Class::MemberAnnotationsType<T, MemberIndex>::template getNote<AccessMod>();
                     else if constexpr ( RareTs::op_exists<void, U::template t, T>::value || RareTs::op_exists<void, U::template p, T>::value )
                         return AccessMod::Public;
-                    else if constexpr ( detail::is_private_member<T, MemberIndex>::template value<> ) // this actually detects not protected/defaults to true
+                    else if constexpr ( detail::is_private_member<std::remove_cvref_t<T>, MemberIndex>::template value<> ) // this actually detects not protected/defaults to true
                         return AccessMod::Private;
                     else
                         return AccessMod::Protected;
@@ -2619,8 +2619,8 @@ namespace RareTs { constexpr inline RareTs::GlobalClass<x> classType(RareTs::typ
 #endif
 
 #ifdef __clang__
-#define RARE_ACCESS_HEADER template <size_t, class=void> struct A_;
-#define RARE_ACCESS_MEMBER(x) template <class U_> struct A_<I_::x, U_> { \
+#define RARE_ACCESS_HEADER template <size_t, class=void, class...> struct A_;
+#define RARE_ACCESS_MEMBER(x) template <class U_, class ... Us_> struct A_<I_::x, U_, Us_...> : Us_... { \
     template <class T_> using t = decltype(T_::x); \
     template <class T_> using p = decltype(&T_::x); };
 #else
