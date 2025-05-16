@@ -722,18 +722,22 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
         };
 
         template <template <typename...> class P, typename ... Ts> class type_mask { // Values for which P<Ts> is false are removed
+            static constexpr std::size_t total = sizeof...(Ts)-((P<Ts>::value ? 0 : 1) + ...);
             struct calc {
-                size_t total = 0;
                 size_t typeIndex[sizeof...(Ts)]{};
                 constexpr calc() noexcept {
-                    size_t skipped = 0; // typeIndex[total] set to total+skipped and total incremented if predicate passes, skipped incremented otherwise
-                    (((P<Ts>::value && ((typeIndex[total] = total+skipped) < 0 || ++total)) || ++skipped) && ...);
+                    size_t i = 0;
+                    size_t skipped = 0; // typeIndex[i] set to i+skipped and i incremented if predicate passes, skipped incremented otherwise
+                    (((P<Ts>::value && ((typeIndex[i] = i+skipped) < 0 || ++i)) || ++skipped) && ...);
                 }
             };
-            static constexpr calc c{}; // Contains "total" types that matched the predicate and index of matching types in the type list
-            template <size_t ... Is> static constexpr std::index_sequence<(c.typeIndex[Is])...> filterSeq(std::index_sequence<Is...>);
+            template <size_t ... Is> static constexpr auto filterSeq(std::index_sequence<Is...>)
+            {
+                constexpr calc c{}; // Contains "total" types that matched the predicate and index of matching types in the type list
+                return std::index_sequence<(c.typeIndex[Is])...> {};
+            }
         public:
-            using indexes = decltype(filterSeq(std::make_index_sequence<c.total>())); // index_sequence of indexes in Ts that match the predicate
+            using indexes = decltype(filterSeq(std::make_index_sequence<total>())); // index_sequence of indexes in Ts that match the predicate
         };
         template <template <typename> class P> struct type_mask<P> { using indexes = std::index_sequence<>; };
 
@@ -748,16 +752,16 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
             return referenceTuple(t, typename tuple_type_mask<P, T>::indexes{});
         }
 
-        template <size_t Remove, size_t ... Is> class remove_index { // Removes "Remove" from "Is", only valid if count with value "Remove" in Is == 1
+        template <std::size_t Remove, std::size_t ... Is> class remove_index { // Removes "Remove" from "Is", only valid if count with value "Remove" in Is == 1
             struct calc {
-                size_t total = 0;
-                size_t index[sizeof...(Is)]{};
-                constexpr calc() noexcept {
-                    (((Remove != Is && ((index[total] = Is) < 0 || ++total)) || true) && ...);
-                }
+                std::size_t total = 0;
+                std::size_t index[sizeof...(Is)] {};
+                constexpr calc() noexcept { (((Remove != Is && ((index[total] = Is) < 0 || ++total)) || true) && ...); }
             };
-            static constexpr calc c{};
-            template <size_t ... Js> static constexpr std::index_sequence<c.index[Js]...> filterSeq(std::index_sequence<Js...>);
+            template <std::size_t ... Js> static constexpr auto filterSeq(std::index_sequence<Js...>) {
+                constexpr calc c{}; // Contains "total" types that matched the predicate and index of matching types in the type list
+                return std::index_sequence<c.index[Js]...>{};
+            }
         public:
             using type = decltype(filterSeq(std::make_index_sequence<sizeof...(Is)-1>()));
         };
