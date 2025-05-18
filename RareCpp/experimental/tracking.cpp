@@ -23,35 +23,37 @@ struct Actor
 NOTE(MyObj, IndexSize<std::uint32_t>)
 struct MyObj
 {
-    int intRay[5] {};
-    int int2Ray[2][3] {};
-    int int3Ray[2][3][4] {};
     std::vector<int> ints {};
     Actor actor {};
     std::vector<Actor> actors {};
 
-    REFLECT_NOTED(MyObj, ints, intRay, int2Ray, int3Ray, actor, actors)
+    REFLECT_NOTED(MyObj, ints, actor, actors)
 };
 
 struct TracedObj : Tracked<MyObj, TracedObj>
 {
+    struct ActorElem : TrackedElement<Actor, PATH(root->actors[0])>
+    {
+        using TrackedElement::TrackedElement;
+
+        void act()
+        {
+            if ( read.xc < 100 )
+               edit.xc = 999;
+        }
+    };
+
     TracedObj() : Tracked(this) {}
 
     void setup()
     {
         auto edit = createAction();
-        edit->intRay[2] = 5;
-        edit->int2Ray[1][1] = 6;
-        edit->int3Ray[1][1][2] = 7;
         edit->ints.append(std::vector{0, 1, 2, 3, 4, 5, 6, 7, 8});
     }
 
     void doSomething()
     {
         auto edit = createAction();
-        edit->intRay.reset();
-        edit->int2Ray.reset();
-        edit->int3Ray.reset();
         edit->ints = std::vector{2, 3, 4};
         edit->actor = Actor{.xc = 77, .yc = 88, .name = "jj"};
         edit->actors.append(Actor{});
@@ -60,7 +62,11 @@ struct TracedObj : Tracked<MyObj, TracedObj>
         edit->actors[1].yc = 13;
         edit->actors.select(0);
         edit->actors.moveSelectionsDown();
-        edit->actors.removeSelection();
+        //edit->actors.removeSelection();
+    }
+
+    ActorElem getActorElem(std::size_t i) {
+        return ActorElem(this, view.actors[i]);
     }
     
     using actor_path = PATH(root->actors);
@@ -115,6 +121,11 @@ void dataHistory()
 
     std::cout << "\n\ntestDo:\n";
     myObj.doSomething();
+    std::cout << Json::out(*myObj);
+    
+    std::cout << "\n\ntestElemOp:\n";
+    auto actor = myObj.getActorElem(1);
+    actor.act();
     std::cout << Json::out(*myObj);
     
     std::cout << "\n\ntestUndo:\n";

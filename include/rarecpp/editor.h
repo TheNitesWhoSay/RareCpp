@@ -450,11 +450,12 @@ namespace RareEdit
         }
     }
 
-    template <class Keys, class Pathway>
+    template <class Keys, class Pathway, class EditorType>
     struct PathTaggedKeys : Keys // (aka: route) this combines the path to a particular (sub/)member and any map keys/array indexes
     {
         using pathway = Pathway;
         using keys = Keys;
+        using editor_type = EditorType;
 
         template <std::size_t I> constexpr const auto & index() { return std::get<I>((Keys &)(*this));}
     };
@@ -621,62 +622,73 @@ namespace RareEdit
 
     template <class ... Ts> concept has_path_selections = (std::same_as<PathSelections, Ts> || ...);
 
-    template <class Edit, class default_index_type, class RootData, class T, class Keys, class ... Pathway>
+    template <class Agent, class default_index_type, class RootData, class T, class Keys, class ... Pathway>
     class EditPrimitive : public Keys
     {
-        Edit & root;
+        Agent & agent;
 
     public:
         using keys = Keys;
-        using path = RareTs::type_tags<Pathway...>;
+        using path = type_tags<Pathway...>;
+        using editor_type = typename Agent::editor_type;
         using type = T;
 
-        EditPrimitive(Edit & root, Keys keys) :
-            Keys {std::move(keys)}, root(root) {}
+        EditPrimitive(Agent & agent, Keys keys) :
+            Keys {std::move(keys)}, agent(agent) {}
         template <class U> void operator=(U && value) {
             if constexpr ( has_path_selections<Pathway...> )
-                root.template setL<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+                agent.template setL<Pathway...>(std::forward<U>(value), (Keys &)(*this));
             else
-                root.template set<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+                agent.template set<Pathway...>(std::forward<U>(value), (Keys &)(*this));
         }
     };
 
-    template <class Edit, class default_index_type, class RootData, class T, class Keys, std::size_t I, class ... Pathway>
+    template <class Agent, class default_index_type, class RootData, class T, class Keys, std::size_t I, class ... Pathway>
     static constexpr auto editMember();
 
-    template <class Edit, class default_index_type, class RootData, class T, class Keys, class ... Pathway> struct edit_member
+    template <class Agent, class default_index_type, class RootData, class T, class Keys, class ... Pathway> struct edit_member
     {
-        template <std::size_t I> using type = typename decltype(editMember<Edit, default_index_type, RootData, T, Keys, I, Pathway...>())::type;
+        template <std::size_t I> using type = typename decltype(editMember<Agent, default_index_type, RootData, T, Keys, I, Pathway...>())::type;
     };
 
     template <class ... Pathway>
     struct EditMembers
     {
-        template <class Edit, class default_index_type, class RootData, class T, class Keys, std::size_t ... Is>
-        struct Membs : Keys, RareTs::Class::adapt_member<edit_member<Edit, default_index_type, RootData, T, Keys, Pathway...>::template type, T, Is>...
+        template <class Agent, class default_index_type, class RootData, class T, class Keys, std::size_t ... Is>
+        struct Membs : Keys, RareTs::Class::adapt_member<edit_member<Agent, default_index_type, RootData, T, Keys, Pathway...>::template type, T, Is>...
         {
-            Membs(Edit & root, Keys keys) :
+            using keys = Keys;
+            using path = type_tags<Pathway...>;
+            using editor_type = typename Agent::editor_type;
+
+            Membs(Agent & agent, Keys keys) :
                 Keys {keys},
-                RareTs::Class::template adapt_member<edit_member<Edit, default_index_type, RootData, T, Keys, Pathway...>::template type, T, Is> {{ root, keys }}...,
-                root(root) {}
+                RareTs::Class::template adapt_member<edit_member<Agent, default_index_type, RootData, T, Keys, Pathway...>::template type, T, Is> {{ agent, keys }}...,
+                agent(agent) {}
+
+            template <std::size_t I> constexpr auto & fromMember()
+            {
+                auto & [editMember] = static_cast<RareTs::Class::adapt_member<edit_member<Agent, default_index_type, RootData, T, Keys, Pathway...>::template type, T, I> &>(*this);
+                return editMember;
+            }
 
             template <class U> constexpr void operator=(U && value) {
                 if constexpr ( has_path_selections<Pathway...> )
-                    root.template setL<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+                    agent.template setL<Pathway...>(std::forward<U>(value), (Keys &)(*this));
                 else
-                    root.template set<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+                    agent.template set<Pathway...>(std::forward<U>(value), (Keys &)(*this));
             }
 
         private:
-            Edit & root;
+            Agent & agent;
         };
     };
 
-    template <class Edit, class default_index_type, class RootData, class T, class Keys, class ... Pathway, std::size_t... Is>
-    EditMembers<Pathway...>::template Membs<Edit, default_index_type, RootData, T, Keys, Is...> editMembers(std::index_sequence<Is...>);
+    template <class Agent, class default_index_type, class RootData, class T, class Keys, class ... Pathway, std::size_t... Is>
+    EditMembers<Pathway...>::template Membs<Agent, default_index_type, RootData, T, Keys, Is...> editMembers(std::index_sequence<Is...>);
 
-    template <class Edit, class default_index_type, class RootData, class T, class Keys = std::tuple<>, class ... Pathway>
-    using edit_members = decltype(editMembers<Edit, default_index_type, RootData, T, Keys, Pathway...>(std::make_index_sequence<RareTs::Members<T>::total>()));
+    template <class Agent, class default_index_type, class RootData, class T, class Keys = std::tuple<>, class ... Pathway>
+    using edit_members = decltype(editMembers<Agent, default_index_type, RootData, T, Keys, Pathway...>(std::make_index_sequence<RareTs::Members<T>::total>()));
 
     template <class DefaultIndexType, class Member>
     inline constexpr auto index_typer()
@@ -709,7 +721,7 @@ namespace RareEdit
     template <class DefaultIndexType, class Member>
     using index_type_t = typename decltype(RareEdit::index_typer<DefaultIndexType, Member>())::type;
 
-    template <class Edit, class default_index_type, class RootData, class T, class Keys, template <class...> class SubElement, class ... Pathway>
+    template <class Agent, class default_index_type, class RootData, class T, class Keys, template <class...> class SubElement, class ... Pathway>
     class Editable
     {
         template <class U, class LastMember, class PathElement, class ... PathElements>
@@ -743,83 +755,84 @@ namespace RareEdit
             using index_type = index_type_t<default_index_type, typename std::remove_cvref_t<decltype(getMemberImpl<RootData, void, Pathway...>())>::type>;
 
             template <std::size_t... Is> static constexpr auto arrayOpType(std::index_sequence<Is...>) -> SubElement<
-                Edit, default_index_type, RootData, T, std::tuple<std::tuple_element_t<Is, Keys>..., index_type>, Pathway..., PathIndex<sizeof...(Is)>>;
+                Agent, default_index_type, RootData, T, std::tuple<std::tuple_element_t<Is, Keys>..., index_type>, Pathway..., PathIndex<sizeof...(Is)>>;
             template <std::size_t... Is> static constexpr auto subArrayOpType(std::index_sequence<Is...>) -> Editable<
-                Edit, default_index_type, RootData, RareTs::element_type_t<T>, std::tuple<std::tuple_element_t<Is, Keys>..., index_type>, SubElement, Pathway..., PathIndex<sizeof...(Is)>>::Array;
+                Agent, default_index_type, RootData, RareTs::element_type_t<T>, std::tuple<std::tuple_element_t<Is, Keys>..., index_type>, SubElement, Pathway..., PathIndex<sizeof...(Is)>>::Array;
 
         protected:
-            Edit & root;
+            Agent & agent;
 
-            constexpr auto & memberRef() { return root.template getMemberReference<Pathway...>(root.t, (Keys &)(*this)); }
+            constexpr auto & memberRef() { return agent.template getMemberReference<Pathway...>(agent.t, (Keys &)(*this)); }
 
         public:
             using keys = Keys;
-            using path = RareTs::type_tags<Pathway...>;
-            using Route = PathTaggedKeys<Keys, path>;
+            using path = type_tags<Pathway...>;
+            using editor_type = typename Agent::editor_type;
+            using Route = PathTaggedKeys<Keys, path, typename Agent::editor_type>;
 
-            using selection_op_type = SubElement<Edit, default_index_type, RootData, T, Keys, Pathway..., PathSelections>;
+            using selection_op_type = SubElement<Agent, default_index_type, RootData, T, Keys, Pathway..., PathSelections>;
             using array_op_type = decltype(arrayOpType(std::make_index_sequence<std::tuple_size_v<Keys>>()));
             using sub_array_op_type = decltype(subArrayOpType(std::make_index_sequence<std::tuple_size_v<Keys>>()));
 
-            constexpr const auto & sel() const { return root.template getSelections<Pathway...>(); }
+            constexpr const auto & sel() const { return agent.template getSelections<Pathway...>(); }
 
             inline void clearSelections()
             {
-                auto & sel = root.template getSelections<Pathway...>();
-                root.eventOffsets.push_back(root.events.size());
-                root.events.push_back(uint8_t(Op::ClearSelections));
-                root.template serializePathway<Pathway...>((Keys &)(*this));
+                auto & sel = agent.template getSelections<Pathway...>();
+                agent.eventOffsets.push_back(agent.events.size());
+                agent.events.push_back(uint8_t(Op::ClearSelections));
+                agent.template serializePathway<Pathway...>((Keys &)(*this));
 
-                writeSelectionVector(root.events, sel);
+                writeSelectionVector(agent.events, sel);
                 RareTs::clear(sel);
 
-                if constexpr ( Edit::template hasSelectionsChangedOp<Route> )
-                    root.user.selectionsChanged(Route{(Keys &)(*this)});
+                if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
+                    agent.user.selectionsChanged(Route{(Keys &)(*this)});
             }
 
             inline void selectAll()
             {
-                auto & sel = root.template getSelections<Pathway...>();
-                root.eventOffsets.push_back(root.events.size());
-                root.events.push_back(uint8_t(Op::SelectAll));
-                root.template serializePathway<Pathway...>((Keys &)(*this));
+                auto & sel = agent.template getSelections<Pathway...>();
+                agent.eventOffsets.push_back(agent.events.size());
+                agent.events.push_back(uint8_t(Op::SelectAll));
+                agent.template serializePathway<Pathway...>((Keys &)(*this));
 
-                writeSelectionVector(root.events, sel);
+                writeSelectionVector(agent.events, sel);
                 RareTs::clear(sel);
                 sel.assign(memberRef().size(), 0);
                 std::iota(sel.begin(), sel.end(), (RareTs::element_type_t<RareTs::remove_cvref_t<decltype(sel)>>)0);
 
-                if constexpr ( Edit::template hasSelectionsChangedOp<Route> )
-                    root.user.selectionsChanged(Route{(Keys &)(*this)});
+                if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
+                    agent.user.selectionsChanged(Route{(Keys &)(*this)});
             }
 
             inline void select(index_type i) // i must not be selected
             {
-                auto & sel = root.template getSelections<Pathway...>();
-                root.eventOffsets.push_back(root.events.size());
-                root.events.push_back(uint8_t(Op::Select));
-                root.template serializePathway<Pathway...>((Keys &)(*this));
+                auto & sel = agent.template getSelections<Pathway...>();
+                agent.eventOffsets.push_back(agent.events.size());
+                agent.events.push_back(uint8_t(Op::Select));
+                agent.template serializePathway<Pathway...>((Keys &)(*this));
 
-                root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&i), reinterpret_cast<const std::uint8_t*>(&i)+sizeof(i));
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&i), reinterpret_cast<const std::uint8_t*>(&i)+sizeof(i));
                 if ( std::find(sel.begin(), sel.end(), i) == sel.end() )
                     RareTs::append(sel, i);
                 else
                     throw std::invalid_argument("Cannot select an index that is already selected");
 
-                if constexpr ( Edit::template hasSelectionsChangedOp<Route> )
-                    root.user.selectionsChanged(Route{(Keys &)(*this)});
+                if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
+                    agent.user.selectionsChanged(Route{(Keys &)(*this)});
             }
 
             inline void select(const std::vector<index_type> & addedSelections) // addedSelections must not be selected
             {
-                auto & sel = root.template getSelections<Pathway...>();
-                root.eventOffsets.push_back(root.events.size());
-                root.events.push_back(uint8_t(Op::SelectN));
-                root.template serializePathway<Pathway...>((Keys &)(*this));
+                auto & sel = agent.template getSelections<Pathway...>();
+                agent.eventOffsets.push_back(agent.events.size());
+                agent.events.push_back(uint8_t(Op::SelectN));
+                agent.template serializePathway<Pathway...>((Keys &)(*this));
 
                 index_type size = static_cast<index_type>(addedSelections.size());
-                root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
-                root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&(addedSelections[0])),
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&(addedSelections[0])),
                     reinterpret_cast<const std::uint8_t*>(&(addedSelections[0]))+sizeof(addedSelections[0])*static_cast<std::size_t>(size));
 
                 for ( auto i : addedSelections )
@@ -829,42 +842,42 @@ namespace RareEdit
                     else
                         throw std::invalid_argument("Cannot select an index that is already selected");
                 }
-                if constexpr ( Edit::template hasSelectionsChangedOp<Route> )
-                    root.user.selectionsChanged(Route{(Keys &)(*this)});
+                if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
+                    agent.user.selectionsChanged(Route{(Keys &)(*this)});
             }
 
             inline void deselect(index_type i) // i must be selected
             {
-                auto & sel = root.template getSelections<Pathway...>();
-                root.eventOffsets.push_back(root.events.size());
-                root.events.push_back(uint8_t(Op::Deselect));
-                root.template serializePathway<Pathway...>((Keys &)(*this));
+                auto & sel = agent.template getSelections<Pathway...>();
+                agent.eventOffsets.push_back(agent.events.size());
+                agent.events.push_back(uint8_t(Op::Deselect));
+                agent.template serializePathway<Pathway...>((Keys &)(*this));
                 
                 auto found = std::find(sel.begin(), sel.end(), i);
                 index_type foundAt = static_cast<index_type>(std::distance(std::begin(sel), found));
-                root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&i), reinterpret_cast<const std::uint8_t*>(&i)+sizeof(i));
-                root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&foundAt), reinterpret_cast<const std::uint8_t*>(&foundAt)+sizeof(foundAt));
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&i), reinterpret_cast<const std::uint8_t*>(&i)+sizeof(i));
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&foundAt), reinterpret_cast<const std::uint8_t*>(&foundAt)+sizeof(foundAt));
 
                 if ( found == sel.end() )
                     throw std::invalid_argument("Cannot deselect an index that is not selected");
                 else
                     sel.erase(found);
 
-                if constexpr ( Edit::template hasSelectionsChangedOp<Route> )
-                    root.user.selectionsChanged(Route{(Keys &)(*this)});
+                if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
+                    agent.user.selectionsChanged(Route{(Keys &)(*this)});
             }
 
             inline void deselect(const std::vector<index_type> & removedSelections) // removeSelections must be selected
             {
-                auto & sel = root.template getSelections<Pathway...>();
-                root.eventOffsets.push_back(root.events.size());
-                root.events.push_back(uint8_t(Op::DeselectN));
-                root.template serializePathway<Pathway...>((Keys &)(*this));
+                auto & sel = agent.template getSelections<Pathway...>();
+                agent.eventOffsets.push_back(agent.events.size());
+                agent.events.push_back(uint8_t(Op::DeselectN));
+                agent.template serializePathway<Pathway...>((Keys &)(*this));
 
                 auto numRemoved = removedSelections.size();
                 index_type size = static_cast<index_type>(numRemoved);
-                root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
-                root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&removedSelections[0]),
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&removedSelections[0]),
                     reinterpret_cast<const std::uint8_t*>(&removedSelections[0])+sizeof(removedSelections[0])*size);
 
                 for ( auto i : removedSelections )
@@ -873,49 +886,49 @@ namespace RareEdit
                     if ( found != sel.end() )
                     {
                         index_type foundAt = static_cast<index_type>(std::distance(std::begin(sel), found));
-                        root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&foundAt), reinterpret_cast<const std::uint8_t*>(&foundAt)+sizeof(foundAt));
+                        agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&foundAt), reinterpret_cast<const std::uint8_t*>(&foundAt)+sizeof(foundAt));
                         sel.erase(found);
                     }
                     else
                         throw std::invalid_argument("Cannot deselect an index that is not selected");
                 }
-                if constexpr ( Edit::template hasSelectionsChangedOp<Route> )
-                    root.user.selectionsChanged(Route{(Keys &)(*this)});
+                if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
+                    agent.user.selectionsChanged(Route{(Keys &)(*this)});
             }
 
             inline void toggleSelected(index_type i)
             {
-                auto & sel = root.template getSelections<Pathway...>();
-                root.eventOffsets.push_back(root.events.size());
-                root.events.push_back(uint8_t(Op::ToggleSelection));
-                root.template serializePathway<Pathway...>((Keys &)(*this));
-                root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&i), reinterpret_cast<const std::uint8_t*>(&i)+sizeof(i));
+                auto & sel = agent.template getSelections<Pathway...>();
+                agent.eventOffsets.push_back(agent.events.size());
+                agent.events.push_back(uint8_t(Op::ToggleSelection));
+                agent.template serializePathway<Pathway...>((Keys &)(*this));
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&i), reinterpret_cast<const std::uint8_t*>(&i)+sizeof(i));
                 auto found = std::find(sel.begin(), sel.end(), i);
-                u8bool::write(root.events, found != sel.end());
+                u8bool::write(agent.events, found != sel.end());
                 if ( found != sel.end() )
                 {
                     index_type foundAt = static_cast<index_type>(std::distance(std::begin(sel), found));
-                    root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&foundAt), reinterpret_cast<const std::uint8_t*>(&foundAt)+sizeof(foundAt));
+                    agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&foundAt), reinterpret_cast<const std::uint8_t*>(&foundAt)+sizeof(foundAt));
                     std::erase(sel, i);
                 }
                 else
                     RareTs::append(sel, i);
 
-                if constexpr ( Edit::template hasSelectionsChangedOp<Route> )
-                    root.user.selectionsChanged(Route{(Keys &)(*this)});
+                if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
+                    agent.user.selectionsChanged(Route{(Keys &)(*this)});
             }
 
             inline void toggleSelected(const std::vector<index_type> & toggledSelections)
             {
-                auto & sel = root.template getSelections<Pathway...>();
-                root.eventOffsets.push_back(root.events.size());
-                root.events.push_back(uint8_t(Op::ToggleSelectionN));
-                root.template serializePathway<Pathway...>((Keys &)(*this));
+                auto & sel = agent.template getSelections<Pathway...>();
+                agent.eventOffsets.push_back(agent.events.size());
+                agent.events.push_back(uint8_t(Op::ToggleSelectionN));
+                agent.template serializePathway<Pathway...>((Keys &)(*this));
 
                 auto numToggled = toggledSelections.size();
                 index_type size = static_cast<index_type>(numToggled);
-                root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
-                root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&toggledSelections[0]),
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&toggledSelections[0]),
                     reinterpret_cast<const std::uint8_t*>(&toggledSelections[0])+sizeof(toggledSelections[0])*static_cast<std::size_t>(size));
 
                 std::vector<bool> wasSelected(numToggled, false);
@@ -933,162 +946,163 @@ namespace RareEdit
                     else
                         RareTs::append(sel, toggledSelections[i]);
                 }
-                writeVecBoolData(root.events, wasSelected);
+                writeVecBoolData(agent.events, wasSelected);
                 if ( !prevSelIndexes.empty() )
                 {
-                    root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&prevSelIndexes[0]),
+                    agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&prevSelIndexes[0]),
                         reinterpret_cast<const std::uint8_t*>(&prevSelIndexes[0])+sizeof(prevSelIndexes[0])*std::size(prevSelIndexes));
                 }
 
-                if constexpr ( Edit::template hasSelectionsChangedOp<Route> )
-                    root.user.selectionsChanged(Route{(Keys &)(*this)});
+                if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
+                    agent.user.selectionsChanged(Route{(Keys &)(*this)});
             }
 
             inline void sortSelection()
             {
-                auto & sel = root.template getSelections<Pathway...>();
-                root.eventOffsets.push_back(root.events.size());
-                root.events.push_back(uint8_t(Op::SortSelections));
-                root.template serializePathway<Pathway...>((Keys &)(*this));
+                auto & sel = agent.template getSelections<Pathway...>();
+                agent.eventOffsets.push_back(agent.events.size());
+                agent.events.push_back(uint8_t(Op::SortSelections));
+                agent.template serializePathway<Pathway...>((Keys &)(*this));
 
                 auto sourceIndexes = trackedSort<false, index_type>(sel);
                 index_type serializedSize = static_cast<index_type>(sourceIndexes.size());
-                root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&serializedSize),
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&serializedSize),
                     reinterpret_cast<const std::uint8_t*>(&serializedSize)+sizeof(serializedSize));
 
                 for ( auto index : sourceIndexes )
                 {
                     index_type sourceIndex = static_cast<index_type>(index);
-                    root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&sourceIndex),
+                    agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&sourceIndex),
                         reinterpret_cast<const std::uint8_t*>(&sourceIndex)+sizeof(sourceIndex));
                 }
                 
-                if constexpr ( Edit::template hasSelectionsChangedOp<Route> )
-                    root.user.selectionsChanged(Route{(Keys &)(*this)});
+                if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
+                    agent.user.selectionsChanged(Route{(Keys &)(*this)});
             }
 
             inline void sortSelectionDescending()
             {
-                auto & sel = root.template getSelections<Pathway...>();
-                root.eventOffsets.push_back(root.events.size());
-                root.events.push_back(uint8_t(Op::SortSelectionsDesc));
-                root.template serializePathway<Pathway...>((Keys &)(*this));
+                auto & sel = agent.template getSelections<Pathway...>();
+                agent.eventOffsets.push_back(agent.events.size());
+                agent.events.push_back(uint8_t(Op::SortSelectionsDesc));
+                agent.template serializePathway<Pathway...>((Keys &)(*this));
 
                 auto sourceIndexes = trackedSort<true, index_type>(sel);
                 index_type serializedSize = static_cast<index_type>(sourceIndexes.size());
-                root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&serializedSize),
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&serializedSize),
                     reinterpret_cast<const std::uint8_t*>(&serializedSize)+sizeof(serializedSize));
 
                 for ( auto index : sourceIndexes )
                 {
                     index_type sourceIndex = static_cast<index_type>(index);
-                    root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&sourceIndex),
+                    agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&sourceIndex),
                         reinterpret_cast<const std::uint8_t*>(&sourceIndex)+sizeof(sourceIndex));
                 }
-                if constexpr ( Edit::template hasSelectionsChangedOp<Route> )
-                    root.user.selectionsChanged(Route{(Keys &)(*this)});
+                if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
+                    agent.user.selectionsChanged(Route{(Keys &)(*this)});
             }
             
-            constexpr auto selection() { return selection_op_type(root, (std::add_lvalue_reference_t<Keys>)(*this)); }
+            constexpr auto selection() { return selection_op_type(agent, (std::add_lvalue_reference_t<Keys>)(*this)); }
 
-            RandomAccess(Edit & root, Keys && keys) : Keys {std::move(keys)}, root(root) {}
+            RandomAccess(Agent & agent, Keys && keys) : Keys {std::move(keys)}, agent(agent) {}
 
-            auto operator[](std::size_t i) {
+            auto operator[](std::size_t i) const {
                 if constexpr ( RareTs::is_static_array_v<T> ) // Multi-dimensional array
-                    return sub_array_op_type(root, std::tuple_cat((std::add_lvalue_reference_t<Keys>)(*this), std::tuple{static_cast<index_type>(i)}));
+                    return sub_array_op_type(agent, std::tuple_cat((std::add_lvalue_reference_t<Keys>)(*this), std::tuple{static_cast<index_type>(i)}));
                 else
-                    return array_op_type(root, std::tuple_cat((std::add_lvalue_reference_t<Keys>)(*this), std::tuple{static_cast<index_type>(i)}));
+                    return array_op_type(agent, std::tuple_cat((std::add_lvalue_reference_t<Keys>)(*this), std::tuple{static_cast<index_type>(i)}));
             }
         };
 
     public:
         struct Array : RandomAccess
         {
-            Array(Edit & root, Keys keys) : RandomAccess { root, std::move(keys) } {}
-            void reset() { RandomAccess::root.template reset<Pathway...>((Keys &)(*this)); }
+            Array(Agent & agent, Keys keys) : RandomAccess { agent, std::move(keys) } {}
+            void reset() { RandomAccess::agent.template reset<Pathway...>((Keys &)(*this)); }
         };
 
         struct Vector : RandomAccess
         {
-            Vector(Edit & root, Keys keys) : RandomAccess { root, std::move(keys) } {}
-            void reset() { RandomAccess::root.template reset<Pathway...>((Keys &)(*this)); }
-            void reserve(std::size_t size) { RandomAccess::root.template reserve<Pathway...>(size, (Keys &)(*this)); }
-            void trim() { RandomAccess::root.template trim<Pathway...>((Keys &)(*this)); }
-            void assignDefault(std::size_t size) { RandomAccess::root.template assignDefault<Pathway...>(size, (Keys &)(*this)); }
-            template <class U> void assign(std::size_t size, U && value) { RandomAccess::root.template assign<Pathway...>(size, std::forward<U>(value), (Keys &)(*this)); }
+            Vector(Agent & agent, Keys keys) : RandomAccess { agent, std::move(keys) } {}
+            void reset() { RandomAccess::agent.template reset<Pathway...>((Keys &)(*this)); }
+            void reserve(std::size_t size) { RandomAccess::agent.template reserve<Pathway...>(size, (Keys &)(*this)); }
+            void trim() { RandomAccess::agent.template trim<Pathway...>((Keys &)(*this)); }
+            void assignDefault(std::size_t size) { RandomAccess::agent.template assignDefault<Pathway...>(size, (Keys &)(*this)); }
+            template <class U> void assign(std::size_t size, U && value) { RandomAccess::agent.template assign<Pathway...>(size, std::forward<U>(value), (Keys &)(*this)); }
             template <class U> void operator=(U && value) {
                 if constexpr ( has_path_selections<Pathway...> )
-                    RandomAccess::root.template setL<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+                    RandomAccess::agent.template setL<Pathway...>(std::forward<U>(value), (Keys &)(*this));
                 else
-                    RandomAccess::root.template set<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+                    RandomAccess::agent.template set<Pathway...>(std::forward<U>(value), (Keys &)(*this));
             }
-            template <class SetIndexes, class Value> void set(SetIndexes && indexes, Value && value) { RandomAccess::root.template setN<Pathway...>(indexes, std::forward<Value>(value), (Keys &)(*this)); }
+            template <class SetIndexes, class Value> void set(SetIndexes && indexes, Value && value) { RandomAccess::agent.template setN<Pathway...>(indexes, std::forward<Value>(value), (Keys &)(*this)); }
             template <class U> void append(U && value) {
                 if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> && !RareTs::is_optional_v<std::remove_cvref_t<U>> )
-                    RandomAccess::root.template appendN<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+                    RandomAccess::agent.template appendN<Pathway...>(std::forward<U>(value), (Keys &)(*this));
                 else
-                    RandomAccess::root.template append<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+                    RandomAccess::agent.template append<Pathway...>(std::forward<U>(value), (Keys &)(*this));
             }
             template <class InsertionIndex, class Value> void insert(InsertionIndex insertionIndex, Value && value) {
                 if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<Value>> && !RareTs::is_optional_v<std::remove_cvref_t<Value>> )
-                    RandomAccess::root.template insertN<Pathway...>(insertionIndex, std::forward<Value>(value), (Keys &)(*this));
+                    RandomAccess::agent.template insertN<Pathway...>(insertionIndex, std::forward<Value>(value), (Keys &)(*this));
                 else
-                    RandomAccess::root.template insert<Pathway...>(insertionIndex, std::forward<Value>(value), (Keys &)(*this));
+                    RandomAccess::agent.template insert<Pathway...>(insertionIndex, std::forward<Value>(value), (Keys &)(*this));
             }
             template <class RemovalIndex> void remove(RemovalIndex removalIndex) {
                 if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<RemovalIndex>> )
-                    RandomAccess::root.template removeN<Pathway...>(removalIndex, (Keys &)(*this));
+                    RandomAccess::agent.template removeN<Pathway...>(removalIndex, (Keys &)(*this));
                 else
-                    RandomAccess::root.template remove<Pathway...>(removalIndex, (Keys &)(*this));
+                    RandomAccess::agent.template remove<Pathway...>(removalIndex, (Keys &)(*this));
             }
-            void sort() { RandomAccess::root.template sort<Pathway...>((Keys &)(*this)); }
-            void sortDesc() { RandomAccess::root.template sortDesc<Pathway...>((Keys &)(*this)); }
-            void removeSelection() { RandomAccess::root.template removeL<Pathway...>((Keys &)(*this)); }
+            void sort() { RandomAccess::agent.template sort<Pathway...>((Keys &)(*this)); }
+            void sortDesc() { RandomAccess::agent.template sortDesc<Pathway...>((Keys &)(*this)); }
+            void removeSelection() { RandomAccess::agent.template removeL<Pathway...>((Keys &)(*this)); }
 
             template <class U> void moveUp(U && movedIndex) {
                 if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> )
-                    RandomAccess::root.template moveUpN<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
+                    RandomAccess::agent.template moveUpN<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
                 else
-                    RandomAccess::root.template moveUp<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
+                    RandomAccess::agent.template moveUp<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
             }
             template <class U> void moveTop(U && movedIndex) {
                 if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> )
-                    RandomAccess::root.template moveTopN<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
+                    RandomAccess::agent.template moveTopN<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
                 else
-                    RandomAccess::root.template moveTop<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
+                    RandomAccess::agent.template moveTop<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
             }
             template <class U> void moveDown(U && movedIndex) {
                 if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> )
-                    RandomAccess::root.template moveDownN<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
+                    RandomAccess::agent.template moveDownN<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
                 else
-                    RandomAccess::root.template moveDown<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
+                    RandomAccess::agent.template moveDown<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
             }
             template <class U> void moveBottom(U && movedIndex) {
                 if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> )
-                    RandomAccess::root.template moveBottomN<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
+                    RandomAccess::agent.template moveBottomN<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
                 else
-                    RandomAccess::root.template moveBottom<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
+                    RandomAccess::agent.template moveBottom<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
             }
             template <class I, class U> void moveTo(U && movedIndex, I indexMovedTo) {
                 if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> )
-                    RandomAccess::root.template moveToN<Pathway...>(std::forward<U>(movedIndex), indexMovedTo, (Keys &)(*this));
+                    RandomAccess::agent.template moveToN<Pathway...>(std::forward<U>(movedIndex), indexMovedTo, (Keys &)(*this));
                 else
-                    RandomAccess::root.template moveTo<Pathway...>(std::forward<U>(movedIndex), indexMovedTo, (Keys &)(*this));
+                    RandomAccess::agent.template moveTo<Pathway...>(std::forward<U>(movedIndex), indexMovedTo, (Keys &)(*this));
             }
 
-            void moveSelectionsUp() { RandomAccess::root.template moveUpL<Pathway...>((Keys &)(*this)); }
-            void moveSelectionsTop() { RandomAccess::root.template moveTopL<Pathway...>((Keys &)(*this)); }
-            void moveSelectionsDown() { RandomAccess::root.template moveDownL<Pathway...>((Keys &)(*this)); }
-            void moveSelectionsBottom() { RandomAccess::root.template moveBottomL<Pathway...>((Keys &)(*this)); }
-            template <class I> void moveSelectionsTo(I indexMovedTo) { RandomAccess::root.template moveToL<Pathway...>(indexMovedTo, (Keys &)(*this)); }
+            void moveSelectionsUp() { RandomAccess::agent.template moveUpL<Pathway...>((Keys &)(*this)); }
+            void moveSelectionsTop() { RandomAccess::agent.template moveTopL<Pathway...>((Keys &)(*this)); }
+            void moveSelectionsDown() { RandomAccess::agent.template moveDownL<Pathway...>((Keys &)(*this)); }
+            void moveSelectionsBottom() { RandomAccess::agent.template moveBottomL<Pathway...>((Keys &)(*this)); }
+            template <class I> void moveSelectionsTo(I indexMovedTo) { RandomAccess::agent.template moveToL<Pathway...>(indexMovedTo, (Keys &)(*this)); }
         };
     };
     
-    template <class Edit, class default_index_type, class RootData, class T, class Keys, class ... Pathway>
+    template <class Agent, class default_index_type, class RootData, class T, class Keys, class ... Pathway>
     struct EditOptional : Keys
     {
         using keys = Keys;
-        using path = RareTs::type_tags<Pathway...>;
+        using path = type_tags<Pathway...>;
+        using editor_type = typename Agent::editor_type;
         using type = T;
         using optional_value_type = typename std::remove_cvref_t<type>::value_type;
 
@@ -1096,47 +1110,47 @@ namespace RareEdit
         static constexpr auto derefType()
         {
             if constexpr ( RareTs::is_static_array_v<optional_value_type> )
-                return decltype(editArray<Edit, default_index_type, RootData, optional_value_type, Keys, Pathway..., PathMember<0>>()){};
+                return decltype(editArray<Agent, default_index_type, RootData, optional_value_type, Keys, Pathway..., PathMember<0>>()){};
             else if constexpr ( RareTs::is_specialization_v<optional_value_type, std::vector> ) // Vector
-                return decltype(editVector<Edit, default_index_type, RootData, optional_value_type, Keys, Pathway..., PathMember<0>>()){};
+                return decltype(editVector<Agent, default_index_type, RootData, optional_value_type, Keys, Pathway..., PathMember<0>>()){};
             else if constexpr ( RareTs::is_macro_reflected_v<optional_value_type> ) // Reflected object
-                return std::type_identity<edit_members<Edit, default_index_type, RootData, optional_value_type, Keys, Pathway..., PathMember<0>>>{};
+                return std::type_identity<edit_members<Agent, default_index_type, RootData, optional_value_type, Keys, Pathway..., PathMember<0>>>{};
             else if constexpr ( RareTs::is_optional_v<optional_value_type> )
-                return std::type_identity<EditOptional<Edit, default_index_type, RootData, optional_value_type, Keys, Pathway..., PathMember<0>>>{};
+                return std::type_identity<EditOptional<Agent, default_index_type, RootData, optional_value_type, Keys, Pathway..., PathMember<0>>>{};
             else // Primitive
-                return std::type_identity<EditPrimitive<Edit, default_index_type, RootData, optional_value_type, Keys, Pathway..., PathMember<0>>>{};
+                return std::type_identity<EditPrimitive<Agent, default_index_type, RootData, optional_value_type, Keys, Pathway..., PathMember<0>>>{};
         }
 
-        Edit & root;
+        Agent & agent;
         typename decltype(derefType())::type deref;
 
     public:
 
-        EditOptional(Edit & root, Keys keys) :
-            Keys {std::move(keys)}, root(root), deref{root, (Keys &)(*this)} {}
+        EditOptional(Agent & agent, Keys keys) :
+            Keys {std::move(keys)}, agent(agent), deref{agent, (Keys &)(*this)} {}
 
         template <class U> void operator=(U && value) {
             if constexpr ( has_path_selections<Pathway...> )
-                root.template setL<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+                agent.template setL<Pathway...>(std::forward<U>(value), (Keys &)(*this));
             else
-                root.template set<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+                agent.template set<Pathway...>(std::forward<U>(value), (Keys &)(*this));
         }
         constexpr auto operator->() { return &deref; }
     };
 
-    template <class Edit, class default_index_type, class RootData, class T, class Keys, class ... Pathway>
+    template <class Agent, class default_index_type, class RootData, class T, class Keys, class ... Pathway>
     static constexpr auto editVector()
     {
         using element_type = RareTs::element_type_t<T>;
         if constexpr ( RareTs::is_reflected_v<element_type> )
-            return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, Keys, edit_members, Pathway...>::Vector>{};
+            return std::type_identity<typename Editable<Agent, default_index_type, RootData, element_type, Keys, edit_members, Pathway...>::Vector>{};
         else if constexpr ( RareTs::is_optional_v<element_type> )
-            return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, Keys, EditOptional, Pathway...>::Vector>{};
+            return std::type_identity<typename Editable<Agent, default_index_type, RootData, element_type, Keys, EditOptional, Pathway...>::Vector>{};
         else
-            return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, Keys, EditPrimitive, Pathway...>::Vector>{};
+            return std::type_identity<typename Editable<Agent, default_index_type, RootData, element_type, Keys, EditPrimitive, Pathway...>::Vector>{};
     }
 
-    template <class Edit, class default_index_type, class RootData, class T, class Keys, class ... Pathway>
+    template <class Agent, class default_index_type, class RootData, class T, class Keys, class ... Pathway>
     static constexpr auto editArray()
     {
         using element_type = RareTs::element_type_t<T>;
@@ -1144,34 +1158,34 @@ namespace RareEdit
         {
             using sub_element_type = RareTs::element_type_t<element_type>;
             if constexpr ( RareTs::is_reflected_v<sub_element_type> )
-                return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, Keys, edit_members, Pathway...>::Array>{};
+                return std::type_identity<typename Editable<Agent, default_index_type, RootData, element_type, Keys, edit_members, Pathway...>::Array>{};
             else if constexpr ( RareTs::is_optional_v<sub_element_type> )
-                return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, Keys, EditOptional, Pathway...>::Array>{};
+                return std::type_identity<typename Editable<Agent, default_index_type, RootData, element_type, Keys, EditOptional, Pathway...>::Array>{};
             else
-                return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, Keys, EditPrimitive, Pathway...>::Array>{};
+                return std::type_identity<typename Editable<Agent, default_index_type, RootData, element_type, Keys, EditPrimitive, Pathway...>::Array>{};
         }
         else if constexpr ( RareTs::is_reflected_v<element_type> )
-            return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, Keys, edit_members, Pathway...>::Array>{};
+            return std::type_identity<typename Editable<Agent, default_index_type, RootData, element_type, Keys, edit_members, Pathway...>::Array>{};
         else if constexpr ( RareTs::is_optional_v<element_type> )
-            return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, Keys, EditOptional, Pathway...>::Array>{};
+            return std::type_identity<typename Editable<Agent, default_index_type, RootData, element_type, Keys, EditOptional, Pathway...>::Array>{};
         else
-            return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, Keys, EditPrimitive, Pathway...>::Array>{};
+            return std::type_identity<typename Editable<Agent, default_index_type, RootData, element_type, Keys, EditPrimitive, Pathway...>::Array>{};
     }
 
-    template <class Edit, class default_index_type, class RootData, class T, class Keys, std::size_t I, class ... Pathway>
+    template <class Agent, class default_index_type, class RootData, class T, class Keys, std::size_t I, class ... Pathway>
     static constexpr auto editMember()
     {
         using member_type = typename RareTs::Member<T, I>::type;
         if constexpr ( RareTs::is_static_array_v<member_type> )
-            return decltype(editArray<Edit, default_index_type, RootData, member_type, Keys, Pathway..., PathMember<I>>()){};
+            return decltype(editArray<Agent, default_index_type, RootData, member_type, Keys, Pathway..., PathMember<I>>()){};
         else if constexpr ( RareTs::is_specialization_v<member_type, std::vector> ) // Vector
-            return decltype(editVector<Edit, default_index_type, RootData, member_type, Keys, Pathway..., PathMember<I>>()){};
+            return decltype(editVector<Agent, default_index_type, RootData, member_type, Keys, Pathway..., PathMember<I>>()){};
         else if constexpr ( RareTs::is_macro_reflected_v<member_type> ) // Reflected object
-            return std::type_identity<edit_members<Edit, default_index_type, RootData, member_type, Keys, Pathway..., PathMember<I>>>{};
+            return std::type_identity<edit_members<Agent, default_index_type, RootData, member_type, Keys, Pathway..., PathMember<I>>>{};
         else if constexpr ( RareTs::is_optional_v<member_type> )
-            return std::type_identity<EditOptional<Edit, default_index_type, RootData, member_type, Keys, Pathway..., PathMember<I>>>{};
+            return std::type_identity<EditOptional<Agent, default_index_type, RootData, member_type, Keys, Pathway..., PathMember<I>>>{};
         else // Primitive
-            return std::type_identity<EditPrimitive<Edit, default_index_type, RootData, member_type, Keys, Pathway..., PathMember<I>>>{};
+            return std::type_identity<EditPrimitive<Agent, default_index_type, RootData, member_type, Keys, Pathway..., PathMember<I>>>{};
     }
 
     template <typename T> struct is_selection_leaf_member {
@@ -1267,15 +1281,25 @@ namespace RareEdit
         });
     }
 
-    template <class T, class User, class Editor>
-    struct EditRoot
+    template <class T, class Edit>
+    struct ReadEditPair
+    {
+        using read_type = T;
+        using edit_type = Edit;
+
+        const T & read;
+        Edit edit;
+    };
+
+    template <class T, class User, class EditorType>
+    struct Agent
     {
         using type = T;
+        using editor_type = EditorType;
         using default_index_type = typename decltype(defaultIndexType<T>())::type;
         decltype(RareEdit::selections<default_index_type, T>()) selections {};
         std::vector<std::uint8_t> events {std::uint8_t(0)}; // First byte is unused
         std::vector<std::uint64_t> eventOffsets {};
-        Editor & editor;
         T & t;
         User & user;
 
@@ -1346,7 +1370,7 @@ namespace RareEdit
             user.selectionsChanged(route);
         }
 
-        EditRoot(Editor & editor, T & t, User & user) : editor(editor), t(t), user(user) {}
+        Agent(T & t, User & user) : t(t), user(user) {}
 
         auto getEventOffsetRange(std::size_t eventIndex) const
         {
@@ -1387,7 +1411,7 @@ namespace RareEdit
 
         template <class ... Pathway>
         static constexpr bool hasSelections() {
-            return !std::is_null_pointer_v<std::remove_cvref_t<decltype(std::declval<EditRoot>().template getSelections<Pathway...>())>>;
+            return !std::is_null_pointer_v<std::remove_cvref_t<decltype(std::declval<Agent>().template getSelections<Pathway...>())>>;
         }
 
         template <class Keys, class U, class PathElement, class ... Pathway>
@@ -1561,7 +1585,7 @@ namespace RareEdit
                     auto newKeys = std::tuple_cat(std::tuple<index_type>{sel}, keys);
                     using path_tagged_keys = std::remove_cvref_t<decltype(newKeys)>;
                     if constexpr ( sizeof...(Pathway) == 0 )
-                        f(t[static_cast<std::size_t>(sel)], type_tags<LastMember, PathTaggedKeys<path_tagged_keys, RareTs::type_tags<PathTraversed..., PathIndex<0>>>>{}, newKeys);
+                        f(t[static_cast<std::size_t>(sel)], type_tags<LastMember, PathTaggedKeys<path_tagged_keys, type_tags<PathTraversed..., PathIndex<0>>, EditorType>>{}, newKeys);
                     else
                         operateThruSelImpl<true, path_tagged_keys, std::remove_cvref_t<decltype(t[0])>, F, LastMember, Pathway...>(t[sel], newKeys, f, type_tags<PathTraversed..., PathIndex<0>>{});
                 }
@@ -1570,7 +1594,7 @@ namespace RareEdit
             {
                 using Member = RareTs::Member<U, PathElement::index>;
                 if constexpr ( sizeof...(Pathway) == 0 )
-                    f(Member::value(t), type_tags<Member, PathTaggedKeys<Keys, type_tags<PathTraversed..., PathElement>>>{}, keys);
+                    f(Member::value(t), type_tags<Member, PathTaggedKeys<Keys, type_tags<PathTraversed..., PathElement>, EditorType>>{}, keys);
                 else
                     operateThruSelImpl<AfterSel, Keys, typename Member::type, F, Member, Pathway...>(Member::value(t), keys, f, type_tags<PathTraversed..., PathElement>{});
             }
@@ -1581,7 +1605,7 @@ namespace RareEdit
                 if constexpr ( sizeof...(Pathway) == 0 )
                 {
                     f(t[static_cast<std::size_t>(std::get<path_elem::index>(keys))],
-                        type_tags<LastMember, PathTaggedKeys<Keys, type_tags<PathTraversed..., path_elem>>>{}, keys);
+                        type_tags<LastMember, PathTaggedKeys<Keys, type_tags<PathTraversed..., path_elem>, EditorType>>{}, keys);
                 }
                 else
                 {
@@ -1609,7 +1633,7 @@ namespace RareEdit
                 for ( auto & sel : selData )
                 {
                     if constexpr ( sizeof...(Pathway) == 0 )
-                        f(t[static_cast<std::size_t>(sel)], type_tags<LastMember, PathTaggedKeys<Keys, type_tags<PathTraversed..., PathElement>>>{});
+                        f(t[static_cast<std::size_t>(sel)], type_tags<LastMember, PathTaggedKeys<Keys, type_tags<PathTraversed..., PathElement>, EditorType>>{});
                     else
                         operateOnImpl<Keys, std::remove_cvref_t<decltype(t[0])>, F, LastMember, Pathway...>(t[sel], keys, f, type_tags<PathTraversed..., PathElement>{});
                 }
@@ -1619,7 +1643,7 @@ namespace RareEdit
                 if constexpr ( RareTs::is_optional_v<std::remove_cvref_t<U>> )
                 {
                     if constexpr ( sizeof...(Pathway) == 0 )
-                        f(t, type_tags<LastMember, PathTaggedKeys<Keys, type_tags<PathTraversed..., PathElement>>>{});
+                        f(t, type_tags<LastMember, PathTaggedKeys<Keys, type_tags<PathTraversed..., PathElement>, EditorType>>{});
                     else if ( t.has_value() )
                         operateOnImpl<Keys, typename std::remove_cvref_t<U>::value_type, F, LastMember, Pathway...>(*t, keys, f, type_tags<PathTraversed..., PathElement>{});
                 }
@@ -1627,7 +1651,7 @@ namespace RareEdit
                 {
                     using Member = RareTs::Member<U, PathElement::index>;
                     if constexpr ( sizeof...(Pathway) == 0 )
-                        f(Member::value(t), type_tags<Member, PathTaggedKeys<Keys, type_tags<PathTraversed..., PathElement>>>{});
+                        f(Member::value(t), type_tags<Member, PathTaggedKeys<Keys, type_tags<PathTraversed..., PathElement>, EditorType>>{});
                     else
                         operateOnImpl<Keys, typename Member::type, F, Member, Pathway...>(Member::value(t), keys, f, type_tags<PathTraversed..., PathElement>{});
                 }
@@ -1635,7 +1659,7 @@ namespace RareEdit
             else if constexpr ( is_path_index_v<PathElement> )
             {
                 if constexpr ( sizeof...(Pathway) == 0 )
-                    f(t[static_cast<std::size_t>(std::get<PathElement::index>(keys))], type_tags<LastMember, PathTaggedKeys<Keys, type_tags<PathTraversed..., PathElement>>>{});
+                    f(t[static_cast<std::size_t>(std::get<PathElement::index>(keys))], type_tags<LastMember, PathTaggedKeys<Keys, type_tags<PathTraversed..., PathElement>, EditorType>>{});
                 else
                 {
                     operateOnImpl<Keys, std::remove_cvref_t<decltype(t[static_cast<std::size_t>(std::get<PathElement::index>(keys))])>,
@@ -1650,9 +1674,65 @@ namespace RareEdit
         void operateOn(U & t, Keys & keys, F f)
         {
             if constexpr ( sizeof...(Pathway) == 0 )
-                f(t, type_tags<void, PathTaggedKeys<Keys, type_tags<>>>{});
+                f(t, type_tags<void, PathTaggedKeys<Keys, type_tags<>, EditorType>>{});
             else
                 operateOnImpl<Keys, U, F, void, Pathway...>(t, keys, f, {});
+        }
+        
+        template <class Keys, class U, class LastMember, class PathElement, class ... Pathway, class ... PathTraversed>
+        auto editorFromPathImpl(auto && editor, U & t, Keys & keys, type_tags<PathTraversed...>)
+        {
+            if constexpr ( is_path_selections_v<PathElement> )
+            {
+                auto & selData = getSelections<PathTraversed...>();
+                for ( auto & sel : selData )
+                {
+                    if constexpr ( sizeof...(Pathway) == 0 )
+                        return ReadEditPair{((const U &)t)[sel], editor[sel]};
+                    else
+                        return editorFromPathImpl<Keys, std::remove_cvref_t<decltype(t[0])>, LastMember, Pathway...>(editor[sel], t[sel], keys, type_tags<PathTraversed..., PathElement>{});
+                }
+            }
+            else if constexpr ( is_path_member_v<PathElement> )
+            {
+                if constexpr ( RareTs::is_optional_v<std::remove_cvref_t<U>> )
+                {
+                    if constexpr ( sizeof...(Pathway) == 0 )
+                        return ReadEditPair{*((const U &)t), *editor};
+                    else if ( t.has_value() )
+                        return editorFromPathImpl<Keys, typename std::remove_cvref_t<U>::value_type, LastMember, Pathway...>(*editor, *t, keys, type_tags<PathTraversed..., PathElement>{});
+                }
+                else
+                {
+                    using Member = RareTs::Member<U, PathElement::index>;
+                    if constexpr ( sizeof...(Pathway) == 0 )
+                        return ReadEditPair{Member::value((const U &)t), editor.template fromMember<PathElement::index>()};
+                    else
+                        return editorFromPathImpl<Keys, typename Member::type, Member, Pathway...>(editor.template fromMember<PathElement::index>(), Member::value(t), keys, type_tags<PathTraversed..., PathElement>{});
+                }
+            }
+            else if constexpr ( is_path_index_v<PathElement> )
+            {
+                auto index = static_cast<std::size_t>(std::get<PathElement::index>(keys));
+                if constexpr ( sizeof...(Pathway) == 0 )
+                    return ReadEditPair{((const U &)t)[index], editor[index]};
+                else
+                {
+                    return editorFromPathImpl<Keys, std::remove_cvref_t<decltype(t[index])>,
+                        LastMember, Pathway...>(editor[index], t[index], keys, type_tags<PathTraversed..., PathElement>{});
+                }
+            }
+            else
+                static_assert(std::is_void_v<PathElement>, "Unexpected path element type!");
+        }
+
+        template <class ... Pathway, class Keys, class U>
+        auto editorFromPath(auto & editor, U & t, Keys & keys)
+        {
+            if constexpr ( sizeof...(Pathway) == 0 )
+                return ReadEditPair{(const U &)t, editor};
+            else
+                return editorFromPathImpl<Keys, U, void, Pathway...>(editor, t, keys, {});
         }
 
         template <class ... Pathway, class Keys>
@@ -1901,7 +1981,7 @@ namespace RareEdit
                 using index_type = index_type_t<default_index_type, Member>;
                 using ElemPath = type_tags<Pathway..., PathIndex<std::tuple_size_v<std::remove_cvref_t<decltype(keys)>>>>;
                 using ElemKeys = std::remove_cvref_t<decltype(std::tuple_cat(keys, std::tuple<index_type>{0}))>;
-                using ElemRoute = PathTaggedKeys<ElemKeys, ElemPath>;
+                using ElemRoute = PathTaggedKeys<ElemKeys, ElemPath, EditorType>;
                 constexpr bool isIterableElement = RareTs::is_iterable_v<element_type>;
                 if constexpr ( !std::is_void_v<element_type> )
                 {
@@ -3447,10 +3527,10 @@ namespace RareEdit
             using path_pack = type_tags<Pathway...>;
             using sel_type = std::remove_cvref_t<decltype(getSelections<Pathway...>())>;
             using element_type = RareTs::element_type_t<value_type>;
-            using Route = PathTaggedKeys<decltype(keys), path_pack>;
+            using Route = PathTaggedKeys<decltype(keys), path_pack, EditorType>;
             using ElemPath = type_tags<Pathway..., PathIndex<std::tuple_size_v<std::remove_cvref_t<decltype(keys)>>>>;
             using ElemKeys = std::remove_cvref_t<decltype(std::tuple_cat(keys, std::tuple<index_type>{0}))>;
-            using ElemRoute = PathTaggedKeys<ElemKeys, ElemPath>;
+            using ElemRoute = PathTaggedKeys<ElemKeys, ElemPath, EditorType>;
             constexpr bool hasSelections = !std::is_null_pointer_v<sel_type> && RareTs::is_specialization_v<sel_type, std::vector>;
             constexpr bool hasSelChangeOp = hasSelections && hasSelectionsChangedOp<Route>;
             constexpr bool isIterable = RareTs::is_iterable_v<value_type>;
@@ -5024,10 +5104,10 @@ namespace RareEdit
             using path_pack = type_tags<Pathway...>;
             using sel_type = std::remove_cvref_t<decltype(getSelections<Pathway...>())>;
             using element_type = RareTs::element_type_t<value_type>;
-            using Route = PathTaggedKeys<decltype(keys), path_pack>;
+            using Route = PathTaggedKeys<decltype(keys), path_pack, EditorType>;
             using ElemPath = type_tags<Pathway..., PathIndex<std::tuple_size_v<std::remove_cvref_t<decltype(keys)>>>>;
             using ElemKeys = std::remove_cvref_t<decltype(std::tuple_cat(keys, std::tuple<index_type>{0}))>;
-            using ElemRoute = PathTaggedKeys<ElemKeys, ElemPath>;
+            using ElemRoute = PathTaggedKeys<ElemKeys, ElemPath, EditorType>;
             constexpr bool hasSelections = !std::is_null_pointer_v<sel_type> && RareTs::is_specialization_v<sel_type, std::vector>;
             constexpr bool hasSelChangeOp = hasSelections && hasSelectionsChangedOp<Route>;
             constexpr bool isIterable = RareTs::is_iterable_v<value_type>;
@@ -6739,23 +6819,49 @@ namespace RareEdit
     requires RareTs::is_macro_reflected_v<Data> && std::is_object_v<User>
     class Tracked;
 
-    template <class T, class User>
-    class Edit : private EditRoot<T, User, Edit<T, User>>, public edit_members<EditRoot<T, User, Edit<T, User>>, typename decltype(defaultIndexType<T>())::type, T, T>
+    template <class T, class User, class Editor>
+    class EditRoot : private Agent<T, User, Editor>, public edit_members<Agent<T, User, Editor>, typename decltype(defaultIndexType<T>())::type, T, T>
     {
-        Edit(T & t, User & user) :
-            EditRoot<T, User, Edit<T, User>>(*this, t, user),
-            edit_members<EditRoot<T, User, Edit<T, User>>, typename decltype(defaultIndexType<T>())::type, T, T>{(EditRoot<T, User, Edit<T, User>>&)*this, std::tuple{}} {}
+        EditRoot(T & t, User & user) :
+            Agent<T, User, Editor>(t, user),
+            edit_members<Agent<T, User, Editor>, typename decltype(defaultIndexType<T>())::type, T, T>{(Agent<T, User, Editor>&)*this, std::tuple{}} {}
 
         friend class Tracked<T, User>;
-        friend struct EditRoot<T, User, Edit<T, User>>;
-        friend class Event;
+        friend struct Agent<T, User, Editor>;
 
     public:
-        using default_index_type = typename EditRoot<T, User, Edit<T, User>>::default_index_type;
+        using default_index_type = typename Agent<T, User, Editor>::default_index_type;
 
         void assign(const T & value) {
             std::tuple keys {}; // No keys/array indexes as this is the root
-            EditRoot<T, User, Edit<T, User>>::template set<>(value, keys);
+            Agent<T, User, Editor>::template set<>(value, keys);
+        }
+    };
+    
+    template <class Tracked>
+    class Editor // If moved-from, or maybe created with createSharedAction the action shouldn't be auto-submitted, allowing for brushing
+    {            // However... it should be ensured that there is only ever one such action
+                 // Maybe it's an optional contained within this class and a derefable wrapper for that including a bool is returned?
+        Tracked* parent = nullptr;
+
+    public:
+        Editor(Tracked* parent) : parent(parent) {
+            if ( parent != nullptr )
+                parent->actionReferenceCount++;
+        }
+        Editor(Editor && other) noexcept { std::swap(parent, other.parent); }
+        ~Editor() {
+            if ( parent != nullptr )
+                parent->actionReferenceCount--;
+        }
+        auto & operator*() noexcept { return parent->editable; }
+        auto operator->() noexcept { return &parent->editable; }
+
+        template <class Keys, class ... Pathway>
+        auto editFromPath(PathTaggedKeys<Keys, type_tags<Pathway...>, Editor<Tracked>> path)
+        {
+            auto & agent = (Agent<typename Tracked::data_type, typename Tracked::user_type, Editor> &)parent->editable;
+            return agent.template editorFromPath<Pathway...>(**this, static_cast<typename Tracked::data_type &>(*parent), path);
         }
     };
 
@@ -6763,35 +6869,23 @@ namespace RareEdit
     requires RareTs::is_macro_reflected_v<Data> && std::is_object_v<User>
     class Tracked : Data
     {
+        using data_type = Data;
+        using user_type = User;
+        using edit_root = EditRoot<Data, User, Editor<Tracked>>;
+
         static constexpr std::uint64_t flagElidedRedos    = 0x8000000000000000ull;
         static constexpr std::uint64_t maskElidedRedoSize = 0x7FFFFFFFFFFFFFFFull; // The total size of this elided redo branch, including sub-branches
 
-        using edit_type = Edit<Data, User>;
-        edit_type editable;
+        edit_root editable;
 
         std::vector<std::uint64_t> actionFirstEvent; // Index of the first data-change event for action[i] (presently the only persistent data for actions)
         int actionReferenceCount = 0; // Referencing counting for the current action, new actions can only be created when the old action is closed
         std::uint64_t redoCount = 0; // How many undos have occured since the last user-action/how many redos are available
         std::uint64_t redoSize = 0; // The size of the range including the redoable actions (includes elided redos)
 
-    protected:
+        friend class Editor<Tracked>;
 
-        struct Editor // If moved-from, or maybe created with createSharedAction the action shouldn't be auto-submitted, allowing for brushing
-        {             // However... it should be ensured that there is only ever one such action
-                      // Maybe it's an optional contained within this class and a derefable wrapper for that including a bool is returned?
-            Tracked<Data, User>* parent = nullptr;
-            Editor(Tracked<Data, User>* parent) : parent(parent) {
-                if ( parent != nullptr )
-                    parent->actionReferenceCount++;
-            }
-            Editor(Editor && other) noexcept { std::swap(parent, other.parent); }
-            ~Editor() {
-                if ( parent != nullptr )
-                    parent->actionReferenceCount--;
-            }
-            edit_type & operator*() noexcept { return parent->editable; }
-            edit_type* operator->() noexcept { return &parent->editable; }
-        };
+    protected:
 
         void elideRedos()
         {
@@ -6812,23 +6906,23 @@ namespace RareEdit
 
                 actionFirstEvent.push_back(editable.eventOffsets.size());
             }
-            return Editor{this};
+            return Editor<Tracked>{this};
         };
 
-        static inline Editor root {nullptr}; // Represents the root of the data structure, used by client code to create paths
+        static inline Editor<Tracked> root {nullptr}; // Represents the root of the data structure, used by client code to create paths
 
         template <class Input>
-        using MakePath = PathTaggedKeys<typename Input::keys, typename Input::path>;
+        using MakePath = PathTaggedKeys<typename Input::keys, typename Input::path, typename Input::editor_type>;
 
         #define PATH(...) MakePath<decltype(__VA_ARGS__)>
 
     public:
-        const edit_type & view; // Used to view selections data (and potentially other info associated with particular data paths)
+        const edit_root & view; // Used to view selections data (and potentially other info associated with particular data paths)
         Tracked(User* user) : editable(*this, *user), view(editable) {}
         Tracked(User & user) : editable(*this, user), view(editable) {}
 
         const Data & read = (const Data &)*this; // A read only version of the user data
-        EditRoot<Data, User, edit_type> & history = static_cast<EditRoot<Data, User, edit_type> &>(editable);
+        Agent<Data, User, Editor<Tracked>> & history = static_cast<Agent<Data, User, Editor<Tracked>> &>(editable);
         constexpr const Data & operator*() const noexcept { return read; }
         constexpr const Data* operator->() const noexcept { return this; }
         auto operator()() { 
@@ -6839,7 +6933,7 @@ namespace RareEdit
 
                 actionFirstEvent.push_back(editable.eventOffsets.size());
             }
-            return Editor{this};
+            return Editor<Tracked>{this};
         };
 
         void clearHistory()
@@ -6885,10 +6979,10 @@ namespace RareEdit
                 static_cast<std::int64_t>(actionFirstEvent[actionIndex+1]) :
                 static_cast<std::int64_t>(editable.eventOffsets.size());
             
-            auto & editRoot = (EditRoot<Data, User, edit_type> &)editable;
+            auto & agent = (Agent<Data, User, Editor<Tracked>> &)editable;
             for ( std::int64_t i=nextActionStart-1; i>=actionEventStart; i-- )
             {
-                editRoot.undoEvent(std::uint64_t(i));
+                agent.undoEvent(std::uint64_t(i));
                 //std::cout << '\n';
             }
 
@@ -6907,9 +7001,9 @@ namespace RareEdit
             std::uint64_t actionEventStart = actionFirstEvent[actionIndex];
             std::uint64_t nextActionStart = actionIndex<totalActions-1 ? actionFirstEvent[actionIndex+1] : editable.eventOffsets.size();
             
-            auto & editRoot = (EditRoot<Data, User, edit_type> &)editable;
+            auto & agent = (Agent<Data, User, Editor<Tracked>> &)editable;
             for ( auto i=actionEventStart; i<nextActionStart; i++ )
-                editRoot.redoEvent(i);
+                agent.redoEvent(i);
 
             redoCount--;
             if ( redoCount == 0 )
@@ -6999,7 +7093,7 @@ namespace RareEdit
         {
             auto & os = std::cout; // TODO: Lift
             using element = RareTs::element_type_t<std::remove_cvref_t<type>>;
-            using index_type = index_type_t<typename edit_type::default_index_type, member_type>;
+            using index_type = index_type_t<typename edit_root::default_index_type, member_type>;
             switch ( op )
             {
                 case Op::Reset: // .reset() // prevValue
@@ -7202,7 +7296,7 @@ namespace RareEdit
         template <class U, class Member = void, std::size_t ... Is>
         void printEvent(std::size_t & offset, std::uint8_t op, std::index_sequence<Is...>) const
         {
-            using base_index_type = index_type_t<typename edit_type::default_index_type, Member>;
+            using base_index_type = index_type_t<typename edit_root::default_index_type, Member>;
             std::uint8_t value = editable.events[offset];
             ++offset;
             
@@ -7353,6 +7447,29 @@ namespace RareEdit
         }
 
         REFLECT(Tracked, flagElidedRedos, maskElidedRedoSize, editable, actionFirstEvent, actionReferenceCount, redoCount, redoSize)
+    };
+
+    template <typename T, typename PathToElem,
+    typename EditorType = typename PathToElem::editor_type,
+    typename ReadEditPair = decltype(std::declval<EditorType>().editFromPath(PathToElem{}))>
+    class TrackedElement : public ReadEditPair
+    {
+        using keys_type = typename PathToElem::keys;
+
+        TrackedElement(EditorType action, keys_type keys)
+            : ReadEditPair{action.editFromPath(PathToElem{keys})}, action(std::move(action)) {}
+
+    public:
+
+        EditorType action;
+
+        TrackedElement(auto tracked, keys_type keys) : TrackedElement(tracked->operator()(), keys) {}
+    
+        TrackedElement(TrackedElement && other)
+            : ReadEditPair{std::move((ReadEditPair &)other)}, action(std::move(other.action)) {}
+
+        constexpr const T* operator->() const { return &(ReadEditPair::read); }
+        constexpr auto operator()() { return &(ReadEditPair::edit); }
     };
 }
 
