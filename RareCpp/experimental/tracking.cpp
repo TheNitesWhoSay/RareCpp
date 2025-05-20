@@ -11,13 +11,21 @@ namespace experimental
 
 using namespace RareEdit;
 
+struct Item
+{
+    int hitCount;
+
+    REFLECT(Item, hitCount)
+};
+
 struct Actor
 {
     int xc = 0;
     int yc = 0;
     std::string name = "";
+    std::vector<Item> items {Item{}};
 
-    REFLECT(Actor, xc, yc, name)
+    REFLECT(Actor, xc, yc, name, items)
 };
 
 NOTE(MyObj, IndexSize<std::uint32_t>)
@@ -32,14 +40,27 @@ struct MyObj
 
 struct TracedObj : Tracked<MyObj, TracedObj>
 {
+    struct ItemElem : TrackedElement<Item, PATH(root->actors[0].items[0])>
+    {
+        using TrackedElement::TrackedElement;
+
+        void hit()
+        {
+            edit.hitCount = read.hitCount+1;
+        }
+    };
+
     struct ActorElem : TrackedElement<Actor, PATH(root->actors[0])>
     {
         using TrackedElement::TrackedElement;
 
         void act()
         {
-            if ( read.xc < 100 )
-               edit.xc = 999;
+            edit.xc = read.xc+2;
+        }
+
+        auto getItemElem(std::size_t i) {
+            return ItemElem(this, view.items[i]);
         }
     };
 
@@ -126,8 +147,12 @@ void dataHistory()
     std::cout << "\n\ntestElemOp:\n";
     auto actor = myObj.getActorElem(1);
     actor.act();
+    auto item = actor.getItemElem(0);
+    item.hit();
+    actor.act();
+    item.hit();
     std::cout << Json::out(*myObj);
-    
+
     std::cout << "\n\ntestUndo:\n";
     myObj.undoAction();
     std::cout << Json::out(*myObj);
