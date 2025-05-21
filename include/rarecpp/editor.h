@@ -460,6 +460,11 @@ namespace RareEdit
         template <std::size_t I> constexpr const auto & index() { return std::get<I>((Keys &)(*this));}
     };
 
+    template <class Input>
+    using MakePath = PathTaggedKeys<typename Input::keys, typename Input::path, typename Input::editor_type>;
+
+    #define PATH(...) RareEdit::MakePath<decltype(__VA_ARGS__)>
+
     struct Rotation
     {
         std::size_t startIndex;
@@ -6910,11 +6915,6 @@ namespace RareEdit
         };
 
         static inline Editor<Tracked> root {nullptr}; // Represents the root of the data structure, used by client code to create paths
-
-        template <class Input>
-        using MakePath = PathTaggedKeys<typename Input::keys, typename Input::path, typename Input::editor_type>;
-
-        #define PATH(...) MakePath<decltype(__VA_ARGS__)>
 
     public:
         const edit_root & view; // Used to view selections data (and potentially other info associated with particular data paths)
