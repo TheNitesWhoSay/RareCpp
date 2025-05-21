@@ -287,7 +287,7 @@ namespace RareEdit
     template <typename T>
     void writeSelections(std::vector<std::uint8_t> & data, const T & t)
     {
-        if constexpr ( !RareTs::is_static_array_v<std::remove_cvref_t<T>> )
+        if constexpr ( !RareTs::is_static_array_v<std::remove_cvref_t<T>> && RareTs::is_specialization_v<T, std::vector> )
             writeSelectionVector(data, t);
     }
 
@@ -6843,11 +6843,19 @@ namespace RareEdit
         }
     };
     
+    template <typename T, typename PathToElem,
+    typename EditorType = typename PathToElem::editor_type,
+    typename ReadEditPair = decltype(std::declval<EditorType>().editFromPath(PathToElem{}))>
+    class TrackedElement;
+
     template <class Tracked>
     class Editor // If moved-from, or maybe created with createSharedAction the action shouldn't be auto-submitted, allowing for brushing
     {            // However... it should be ensured that there is only ever one such action
                  // Maybe it's an optional contained within this class and a derefable wrapper for that including a bool is returned?
         Tracked* parent = nullptr;
+
+        using tracked_type = Tracked;
+        template <typename, typename, typename, typename> friend class TrackedElement;
 
     public:
         Editor(Tracked* parent) : parent(parent) {
@@ -7449,21 +7457,24 @@ namespace RareEdit
         REFLECT(Tracked, flagElidedRedos, maskElidedRedoSize, editable, actionFirstEvent, actionReferenceCount, redoCount, redoSize)
     };
 
-    template <typename T, typename PathToElem,
-    typename EditorType = typename PathToElem::editor_type,
-    typename ReadEditPair = decltype(std::declval<EditorType>().editFromPath(PathToElem{}))>
+    template <typename T, typename PathToElem, typename EditorType, typename ReadEditPair>
     class TrackedElement : public ReadEditPair
     {
         using keys_type = typename PathToElem::keys;
+        using tracked_type = typename EditorType::tracked_type;
 
         TrackedElement(EditorType action, keys_type keys)
-            : ReadEditPair{action.editFromPath(PathToElem{keys})}, action(std::move(action)) {}
+            : ReadEditPair{action.editFromPath(PathToElem{keys})}, action(std::move(action)), view(ReadEditPair::edit) {}
 
     public:
 
         EditorType action;
+        const ReadEditPair::edit_type & view;
 
-        TrackedElement(auto tracked, keys_type keys) : TrackedElement(tracked->operator()(), keys) {}
+        TrackedElement(tracked_type* tracked, keys_type keys) : TrackedElement(tracked->operator()(), keys) {}
+
+        template <class ... Ts> TrackedElement(TrackedElement<Ts...>* parentElement, keys_type keys)
+            : TrackedElement(parentElement->action.parent->operator()(), keys) {}
     
         TrackedElement(TrackedElement && other)
             : ReadEditPair{std::move((ReadEditPair &)other)}, action(std::move(other.action)) {}
