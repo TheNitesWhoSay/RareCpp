@@ -1531,7 +1531,7 @@ namespace RareEdit
             }
             else if constexpr ( std::is_array_v<value_type> )
             {
-                auto span = as_1d<value_type>(value);
+                auto span = as_1d<const value_type>(value);
                 constexpr auto size = static_cast<index_type>(decltype(span)::size);
                 events.insert(events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
                 for ( auto it = span.flatBegin(); it != span.flatEnd(); ++it )
@@ -1952,7 +1952,7 @@ namespace RareEdit
                         for ( ; i>=0; --i )
                             notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
                     }
-                    else
+                    else if constexpr ( requires{ref = std::forward<Value>(value);} )
                         ref = std::forward<Value>(value);
 
                     if constexpr ( isIterable && hasElementAddedOp<Route> )
@@ -2040,7 +2040,7 @@ namespace RareEdit
                                 }
                             }
                         }
-                        else
+                        else if constexpr ( requires{ref[0] = value;} )
                         {
                             for ( auto setIndex : setIndexes )
                                 ref[setIndex] = value; // Make the change
