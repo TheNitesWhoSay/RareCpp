@@ -1334,17 +1334,27 @@ class MyObjAccess {
 
 TEST(ReflectionTest, AccessModifier)
 {
+
+#ifdef __clang__
+#if __clang_major__ >= 19
+#define CLANG19ANDUP
+#endif
+#endif
+
     constexpr RareTs::AccessMod publicReference = // Not supported if _MSC_VER < 1932 and defaults to private
 #ifdef RARE_DISABLE_REF_ACCESS
         RareTs::AccessMod::Private;
 #else
         RareTs::AccessMod::Public;
 #endif
+
+#ifndef CLANG19ANDUP
     constexpr RareTs::AccessMod protectedReference = // If _MSC_VER < 1932 then not supported/defaults to private
 #ifdef RARE_DISABLE_REF_ACCESS
         RareTs::AccessMod::Private;
 #else
         RareTs::AccessMod::Protected;
+#endif
 #endif
 
     RareTs::AccessMod accessModifier = RareTs::access_modifier_v<MyObjAccess, 0>;
@@ -1362,6 +1372,37 @@ TEST(ReflectionTest, AccessModifier)
     accessModifier = RareTs::access_modifier_v<MyObjAccess, 6>; // Overloads are not currently supported and default to private
     EXPECT_EQ(RareTs::AccessMod::Private, accessModifier);
 
+#ifdef CLANG19ANDUP
+    accessModifier = RareTs::access_modifier_v<MyObjAccess, 7>;
+    EXPECT_EQ(RareTs::AccessMod::Public, accessModifier);
+    accessModifier = RareTs::access_modifier_v<MyObjAccess, 8>; // If _MSC_VER < 1932 then not supported/defaults to private
+    EXPECT_EQ(RareTs::AccessMod::Public, accessModifier);
+    accessModifier = RareTs::access_modifier_v<MyObjAccess, 9>;
+    EXPECT_EQ(RareTs::AccessMod::Public, accessModifier);
+    accessModifier = RareTs::access_modifier_v<MyObjAccess, 10>;
+    EXPECT_EQ(RareTs::AccessMod::Public, accessModifier);
+    accessModifier = RareTs::access_modifier_v<MyObjAccess, 11>;
+    EXPECT_EQ(RareTs::AccessMod::Public, accessModifier);
+    accessModifier = RareTs::access_modifier_v<MyObjAccess, 12>;
+    EXPECT_EQ(RareTs::AccessMod::Public, accessModifier);
+    accessModifier = RareTs::access_modifier_v<MyObjAccess, 13>; // Overloads are not currently supported and default to private
+    EXPECT_EQ(RareTs::AccessMod::Private, accessModifier);
+
+    accessModifier = RareTs::access_modifier_v<MyObjAccess, 14>;
+    EXPECT_EQ(RareTs::AccessMod::Public, accessModifier);
+    accessModifier = RareTs::access_modifier_v<MyObjAccess, 15>;
+    EXPECT_EQ(RareTs::AccessMod::Public, accessModifier);
+    accessModifier = RareTs::access_modifier_v<MyObjAccess, 16>;
+    EXPECT_EQ(RareTs::AccessMod::Public, accessModifier);
+    accessModifier = RareTs::access_modifier_v<MyObjAccess, 17>;
+    EXPECT_EQ(RareTs::AccessMod::Public, accessModifier);
+    accessModifier = RareTs::access_modifier_v<MyObjAccess, 18>;
+    EXPECT_EQ(RareTs::AccessMod::Public, accessModifier);
+    accessModifier = RareTs::access_modifier_v<MyObjAccess, 19>;
+    EXPECT_EQ(RareTs::AccessMod::Public, accessModifier);
+    accessModifier = RareTs::access_modifier_v<MyObjAccess, 20>;
+    EXPECT_EQ(RareTs::AccessMod::Private, accessModifier);
+#else
     accessModifier = RareTs::access_modifier_v<MyObjAccess, 7>;
     EXPECT_EQ(RareTs::AccessMod::Protected, accessModifier);
     accessModifier = RareTs::access_modifier_v<MyObjAccess, 8>; // If _MSC_VER < 1932 then not supported/defaults to private
@@ -1390,5 +1431,60 @@ TEST(ReflectionTest, AccessModifier)
     accessModifier = RareTs::access_modifier_v<MyObjAccess, 19>;
     EXPECT_EQ(RareTs::AccessMod::Private, accessModifier);
     accessModifier = RareTs::access_modifier_v<MyObjAccess, 20>;
+    EXPECT_EQ(RareTs::AccessMod::Private, accessModifier);
+#endif
+}
+
+
+class MyObjAccessPrivRefl {
+    public:
+        int aData = 0;
+        static int aStaticData;
+        void aFunc();
+        static void aStaticFunc();
+    protected:
+        int bData = 0;
+        static int bStaticData;
+        void bFunc();
+        static void bStaticFunc();
+    private:
+        int cData = 0;
+        static int cStaticData;
+        void cFunc();
+        static void cStaticFunc();
+};
+
+REFLECT_PRIVATE(MyObjAccessPrivRefl,
+    aData, aStaticData, aFunc, aStaticFunc,
+    bData, bStaticData, bFunc, bStaticFunc,
+    cData, cStaticData, cFunc, cStaticFunc)
+
+TEST(ReflectionTest, PrivateReflectedAccessModifier)
+{
+    RareTs::AccessMod accessModifier = RareTs::access_modifier_v<MyObjAccessPrivRefl, 0>;
+    EXPECT_EQ(RareTs::AccessMod::Public, accessModifier);
+    accessModifier = RareTs::access_modifier_v<MyObjAccessPrivRefl, 1>;
+    EXPECT_EQ(RareTs::AccessMod::Public, accessModifier);
+    accessModifier = RareTs::access_modifier_v<MyObjAccessPrivRefl, 2>;
+    EXPECT_EQ(RareTs::AccessMod::Public, accessModifier);
+    accessModifier = RareTs::access_modifier_v<MyObjAccessPrivRefl, 3>;
+    EXPECT_EQ(RareTs::AccessMod::Public, accessModifier);
+
+    accessModifier = RareTs::access_modifier_v<MyObjAccessPrivRefl, 4>;
+    EXPECT_EQ(RareTs::AccessMod::Protected, accessModifier);
+    accessModifier = RareTs::access_modifier_v<MyObjAccessPrivRefl, 5>;
+    EXPECT_EQ(RareTs::AccessMod::Protected, accessModifier);
+    accessModifier = RareTs::access_modifier_v<MyObjAccessPrivRefl, 6>;
+    EXPECT_EQ(RareTs::AccessMod::Protected, accessModifier);
+    accessModifier = RareTs::access_modifier_v<MyObjAccessPrivRefl, 7>;
+    EXPECT_EQ(RareTs::AccessMod::Protected, accessModifier);
+
+    accessModifier = RareTs::access_modifier_v<MyObjAccessPrivRefl, 8>;
+    EXPECT_EQ(RareTs::AccessMod::Private, accessModifier);
+    accessModifier = RareTs::access_modifier_v<MyObjAccessPrivRefl, 9>;
+    EXPECT_EQ(RareTs::AccessMod::Private, accessModifier);
+    accessModifier = RareTs::access_modifier_v<MyObjAccessPrivRefl, 10>;
+    EXPECT_EQ(RareTs::AccessMod::Private, accessModifier);
+    accessModifier = RareTs::access_modifier_v<MyObjAccessPrivRefl, 11>;
     EXPECT_EQ(RareTs::AccessMod::Private, accessModifier);
 }
