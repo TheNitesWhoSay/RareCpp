@@ -587,6 +587,7 @@ namespace RareEdit
         RemoveL, // {} --{n, index0, ..., indexN, value0, ..., valueN, selections} // Same as removeN, except the selections make up the indexes
         Sort, // {n, index0SourceIndex, ..., indexNSourceIndex}
         SortDesc, // {n, index0SourceIndex, ..., indexNSourceIndex}
+        Swap, // {index0, index1}
         MoveUp, // {index}
         MoveUpN, // {n, index0, ..., indexN}
         MoveUpL, // {} --{selections} // Same as moveUpN, except the selections make up the indexes
@@ -1063,6 +1064,9 @@ namespace RareEdit
             void sortDesc() { RandomAccess::agent.template sortDesc<Pathway...>((Keys &)(*this)); }
             void removeSelection() { RandomAccess::agent.template removeL<Pathway...>((Keys &)(*this)); }
 
+            template <class U> void swap(U && firstIndex, U && secondIndex) {
+                RandomAccess::agent.template swap<Pathway...>(std::forward<U>(firstIndex), std::forward<U>(secondIndex), (Keys &)(*this));
+            }
             template <class U> void moveUp(U && movedIndex) {
                 if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> )
                     RandomAccess::agent.template moveUpN<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
@@ -1102,6 +1106,12 @@ namespace RareEdit
         };
     };
     
+    template <class Agent, class default_index_type, class RootData, class T, class Keys, class ... Pathway>
+    static constexpr auto editVector();
+    
+    template <class Agent, class default_index_type, class RootData, class T, class Keys, class ... Pathway>
+    static constexpr auto editArray();
+
     template <class Agent, class default_index_type, class RootData, class T, class Keys, class ... Pathway>
     struct EditOptional : Keys
     {
@@ -2496,6 +2506,31 @@ namespace RareEdit
                 }
                 if constexpr ( hasSelectionsChangedOp<Route> )
                     notifySelectionsChanged(user, Route{keys});
+            });
+        }
+
+        template <class ... Pathway, class MovedIndex, class Keys>
+        void swap(MovedIndex firstIndex, MovedIndex secondIndex, Keys & keys)
+        {
+            eventOffsets.push_back(events.size());
+            events.push_back(uint8_t(Op::Swap));
+            serializePathway<Pathway...>(keys);
+
+            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                serializeIndex<Member>(firstIndex);
+                serializeIndex<Member>(secondIndex);
+                if ( firstIndex != secondIndex && static_cast<std::size_t>(firstIndex) < std::size(ref) && static_cast<std::size_t>(secondIndex) < std::size(ref) )
+                {
+                    std::swap(ref[static_cast<std::size_t>(firstIndex)], ref[static_cast<std::size_t>(secondIndex)]);
+                    mirrorSwapToSelection(getSelections<Pathway...>(), static_cast<std::size_t>(firstIndex), static_cast<std::size_t>(secondIndex));
+                    if constexpr ( hasElementMovedOp<Route> )
+                    {
+                        notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(firstIndex), static_cast<std::size_t>(secondIndex));
+                        notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(secondIndex), static_cast<std::size_t>(firstIndex));
+                    }
+                    if constexpr ( hasSelections<Pathway...>() && hasSelectionsChangedOp<Route> )
+                        notifySelectionsChanged(user, Route{keys});
+                }
             });
         }
 
@@ -4266,6 +4301,27 @@ namespace RareEdit
                     }
                 }
                 break;
+                case Op::Swap:
+                {
+                    if constexpr ( hasMoveOps )
+                    {
+                        auto firstIndex = static_cast<std::size_t>(readIndex<index_type>(offset));
+                        auto secondIndex = static_cast<std::size_t>(readIndex<index_type>(offset));
+                        if ( firstIndex != secondIndex && firstIndex < std::size(ref) && secondIndex < std::size(ref) )
+                        {
+                            std::swap(ref[firstIndex], ref[secondIndex]);
+                            mirrorSwapToSelection(getSelections<Pathway...>(), firstIndex, secondIndex);
+                            if constexpr ( hasElementMovedOp<Route> )
+                            {
+                                notifyElementMoved(user, Route{keys}, secondIndex, firstIndex);
+                                notifyElementMoved(user, Route{keys}, firstIndex, secondIndex);
+                            }
+                            if constexpr ( hasSelections && hasSelChangeOp )
+                                notifySelectionsChanged(user, Route{keys});
+                        }
+                    }
+                }
+                break;
                 case Op::MoveUp:
                 {
                     if constexpr ( hasMoveOps )
@@ -5837,6 +5893,27 @@ namespace RareEdit
                     }
                 }
                 break;
+                case Op::Swap:
+                {
+                    if constexpr ( hasMoveOps )
+                    {
+                        auto firstIndex = static_cast<std::size_t>(readIndex<index_type>(offset));
+                        auto secondIndex = static_cast<std::size_t>(readIndex<index_type>(offset));
+                        if ( firstIndex != secondIndex && firstIndex < std::size(ref) && secondIndex < std::size(ref) )
+                        {
+                            std::swap(ref[firstIndex], ref[secondIndex]);
+                            mirrorSwapToSelection(getSelections<Pathway...>(), firstIndex, secondIndex);
+                            if constexpr ( hasElementMovedOp<Route> )
+                            {
+                                notifyElementMoved(user, Route{keys}, firstIndex, secondIndex);
+                                notifyElementMoved(user, Route{keys}, secondIndex, firstIndex);
+                            }
+                            if constexpr ( hasSelections && hasSelChangeOp )
+                                notifySelectionsChanged(user, Route{keys});
+                        }
+                    }
+                }
+                break;
                 case Op::MoveUp:
                 {
                     if constexpr ( hasMoveOps )
@@ -7237,6 +7314,9 @@ namespace RareEdit
                     put(os, ".sortDesc() // ").put(os, count).template putIndexes<index_type>(os, offset, count);
                 }
                 break;
+                case Op::Swap:
+                    put(os, ".swap(").template putIndex<index_type>(os, offset).put(os, ", ").template putIndex<index_type>(os, offset).put(os, ")");
+                    break;
                 case Op::MoveUp:
                     put(os, ".moveUp(").template putIndex<index_type>(os, offset).put(os, ")");
                     break;

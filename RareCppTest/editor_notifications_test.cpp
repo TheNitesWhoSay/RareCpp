@@ -946,6 +946,36 @@ TEST(OpNtfy, SortDesc)
     EXPECT_EQ(doExpected, obj.changes);
 }
 
+TEST(OpNtfy, Swap)
+{
+    Obj obj {};
+    obj()->vec = std::vector{4, 5, 6};
+    obj()->vec.select(0);
+
+    std::vector<Change> doExpected {
+        { .type = ChangeType::ElementMoved, .fieldIndex = vecFieldIndex, .oldIndex = 0, .index = 2 },
+        { .type = ChangeType::ElementMoved, .fieldIndex = vecFieldIndex, .oldIndex = 2, .index = 0 },
+        { .type = ChangeType::SelectionsChanged, .fieldIndex = vecFieldIndex }
+    };
+    std::vector<Change> undoExpected {
+        { .type = ChangeType::ElementMoved, .fieldIndex = vecFieldIndex, .oldIndex = 2, .index = 0 },
+        { .type = ChangeType::ElementMoved, .fieldIndex = vecFieldIndex, .oldIndex = 0, .index = 2 },
+        { .type = ChangeType::SelectionsChanged, .fieldIndex = vecFieldIndex }
+    };
+
+    obj.changes.clear();
+    obj()->vec.swap(0, 2);
+    EXPECT_EQ(doExpected, obj.changes);
+
+    obj.changes.clear();
+    obj.undoAction();
+    EXPECT_EQ(undoExpected, obj.changes);
+
+    obj.changes.clear();
+    obj.redoAction();
+    EXPECT_EQ(doExpected, obj.changes);
+}
+
 TEST(OpNtfy, MoveUp)
 {
     Obj obj {};

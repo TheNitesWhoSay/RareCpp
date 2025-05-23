@@ -900,6 +900,15 @@ namespace EditorCumulative
         EXPECT_EQ(expected, obj->ints);
     }
 
+    TEST(OpDo, Swap)
+    {
+        TrackDoOp obj {};
+        obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
+        obj()->ints.swap(0, 8);
+        auto expected = std::vector{88, 11, 22, 33, 44, 55, 66, 77, 0};
+        EXPECT_EQ(expected, obj->ints);
+    }
+
     TEST(OpDo, MoveUp)
     {
         TrackDoOp obj {};
@@ -1964,6 +1973,23 @@ namespace EditorCumulative
         EXPECT_EQ(values, obj->ints);
         obj.redoAction();
         EXPECT_EQ(expected, obj->ints);
+    }
+
+    TEST(OpUndoRedo, Swap)
+    {
+        TrackDoOp obj {};
+        const auto first = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
+        obj()->ints = first;
+        EXPECT_EQ(first, obj->ints);
+
+        obj()->ints.swap(0, 8);
+        const auto second = std::vector{88, 11, 22, 33, 44, 55, 66, 77, 0};
+        EXPECT_EQ(second, obj->ints);
+
+        obj.undoAction();
+        EXPECT_EQ(first, obj->ints);
+        obj.redoAction();
+        EXPECT_EQ(second, obj->ints);
     }
 
     TEST(OpUndoRedo, MoveUp)
@@ -3208,6 +3234,30 @@ namespace EditorCumulative
         obj.redoAction();
         EXPECT_EQ(expected, obj->ints);
         EXPECT_EQ(expectedSel, obj.view.ints.sel());
+    }
+
+    TEST(OpSelSync, Swap)
+    {
+        TrackDoOp obj {};
+        const auto first = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
+        const auto firstSel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
+        obj()->ints = first;
+        obj()->ints.select(firstSel);
+        EXPECT_EQ(first, obj->ints);
+        EXPECT_EQ(firstSel, obj.view.ints.sel());
+
+        obj()->ints.swap(0, 8);
+        const auto second = std::vector{88, 11, 22, 33, 44, 55, 66, 77, 0};
+        const auto secondSel = std::vector<std::size_t>{8, 1, 3, 4, 7, 0};
+        EXPECT_EQ(second, obj->ints);
+        EXPECT_EQ(secondSel, obj.view.ints.sel());
+
+        obj.undoAction();
+        EXPECT_EQ(first, obj->ints);
+        EXPECT_EQ(firstSel, obj.view.ints.sel());
+        obj.redoAction();
+        EXPECT_EQ(second, obj->ints);
+        EXPECT_EQ(secondSel, obj.view.ints.sel());
     }
 
     TEST(OpSelSync, MoveUp)
