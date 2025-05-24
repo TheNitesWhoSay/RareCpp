@@ -647,14 +647,14 @@ namespace RareEdit
             else
                 agent.template set<Pathway...>(std::forward<U>(value), (Keys &)(*this));
         }
-        template <class U> void operator +=(U && value) { RandomAccess::agent.template plusEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
-        template <class U> void operator -=(U && value) { RandomAccess::agent.template minusEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
-        template <class U> void operator *=(U && value) { RandomAccess::agent.template multEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
-        template <class U> void operator /=(U && value) { RandomAccess::agent.template divEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
-        template <class U> void operator %=(U && value) { RandomAccess::agent.template modEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
-        template <class U> void operator ^=(U && value) { RandomAccess::agent.template xorEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
-        template <class U> void operator &=(U && value) { RandomAccess::agent.template andEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
-        template <class U> void operator |=(U && value) { RandomAccess::agent.template orEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+        template <class U> void operator +=(U && value) { agent.template plusEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+        template <class U> void operator -=(U && value) { agent.template minusEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+        template <class U> void operator *=(U && value) { agent.template multEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+        template <class U> void operator /=(U && value) { agent.template divEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+        template <class U> void operator %=(U && value) { agent.template modEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+        template <class U> void operator ^=(U && value) { agent.template xorEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+        template <class U> void operator &=(U && value) { agent.template andEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+        template <class U> void operator |=(U && value) { agent.template orEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
     };
 
     template <class Agent, class default_index_type, class RootData, class T, class Keys, std::size_t I, class ... Pathway>
