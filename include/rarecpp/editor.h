@@ -1041,6 +1041,15 @@ namespace RareEdit
                 else
                     RandomAccess::agent.template set<Pathway...>(std::forward<U>(value), (Keys &)(*this));
             }
+            template <class U> void operator +=(U && value) { RandomAccess::agent.template plusEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+            template <class U> void operator -=(U && value) { RandomAccess::agent.template minusEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+            template <class U> void operator *=(U && value) { RandomAccess::agent.template multEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+            template <class U> void operator /=(U && value) { RandomAccess::agent.template divEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+            template <class U> void operator %=(U && value) { RandomAccess::agent.template modEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+            template <class U> void operator ^=(U && value) { RandomAccess::agent.template xorEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+            template <class U> void operator &=(U && value) { RandomAccess::agent.template andEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+            template <class U> void operator |=(U && value) { RandomAccess::agent.template orEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+
             template <class SetIndexes, class Value> void set(SetIndexes && indexes, Value && value) { RandomAccess::agent.template setN<Pathway...>(indexes, std::forward<Value>(value), (Keys &)(*this)); }
             template <class U> void append(U && value) {
                 if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> && !RareTs::is_optional_v<std::remove_cvref_t<U>> )
@@ -2129,6 +2138,222 @@ namespace RareEdit
                         for ( std::size_t i=0; i<std::size(ref); ++i )
                             notifyElementAdded(user, Route{newKeys}, i);
                     }
+                }
+            });
+        }
+
+        template <class ... Pathway, class Value, class Keys>
+        void plusEq(Value && value, Keys & keys)
+        {
+            eventOffsets.push_back(events.size());
+            events.push_back(uint8_t(Op::Set)); // "Set like operation"
+            serializePathway<Pathway...>(keys);
+
+            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                
+                using value_type = std::remove_cvref_t<decltype(ref)>;
+                if constexpr ( hasValueChangedOp<Route, value_type> )
+                {
+                    auto prevValue = ref;
+                    ref += std::forward<Value>(value);
+                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(value)); // Value set to
+                    serializeValue<Member>(prevValue); // Value before changing
+                    notifyValueChanged(user, Route{keys}, prevValue, ref);
+                }
+                else
+                {
+                    serializeValue<Member>(ref + value); // Value set to
+                    serializeValue<Member>(ref); // Value before changing
+                    ref += std::forward<Value>(value);
+                }
+            });
+        }
+
+        template <class ... Pathway, class Value, class Keys>
+        void minusEq(Value && value, Keys & keys)
+        {
+            eventOffsets.push_back(events.size());
+            events.push_back(uint8_t(Op::Set)); // "Set like operation"
+            serializePathway<Pathway...>(keys);
+
+            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                
+                using value_type = std::remove_cvref_t<decltype(ref)>;
+                if constexpr ( hasValueChangedOp<Route, value_type> )
+                {
+                    auto prevValue = ref;
+                    ref -= std::forward<Value>(value);
+                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(value)); // Value set to
+                    serializeValue<Member>(prevValue); // Value before changing
+                    notifyValueChanged(user, Route{keys}, prevValue, ref);
+                }
+                else
+                {
+                    serializeValue<Member>(ref - value); // Value set to
+                    serializeValue<Member>(ref); // Value before changing
+                    ref -= std::forward<Value>(value);
+                }
+            });
+        }
+
+        template <class ... Pathway, class Value, class Keys>
+        void multEq(Value && value, Keys & keys)
+        {
+            eventOffsets.push_back(events.size());
+            events.push_back(uint8_t(Op::Set)); // "Set like operation"
+            serializePathway<Pathway...>(keys);
+
+            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                
+                using value_type = std::remove_cvref_t<decltype(ref)>;
+                if constexpr ( hasValueChangedOp<Route, value_type> )
+                {
+                    auto prevValue = ref;
+                    ref *= std::forward<Value>(value);
+                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(value)); // Value set to
+                    serializeValue<Member>(prevValue); // Value before changing
+                    notifyValueChanged(user, Route{keys}, prevValue, ref);
+                }
+                else
+                {
+                    serializeValue<Member>(ref * value); // Value set to
+                    serializeValue<Member>(ref); // Value before changing
+                    ref *= std::forward<Value>(value);
+                }
+            });
+        }
+
+        template <class ... Pathway, class Value, class Keys>
+        void divEq(Value && value, Keys & keys)
+        {
+            eventOffsets.push_back(events.size());
+            events.push_back(uint8_t(Op::Set)); // "Set like operation"
+            serializePathway<Pathway...>(keys);
+
+            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                
+                using value_type = std::remove_cvref_t<decltype(ref)>;
+                if constexpr ( hasValueChangedOp<Route, value_type> )
+                {
+                    auto prevValue = ref;
+                    ref /= std::forward<Value>(value);
+                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(value)); // Value set to
+                    serializeValue<Member>(prevValue); // Value before changing
+                    notifyValueChanged(user, Route{keys}, prevValue, ref);
+                }
+                else
+                {
+                    serializeValue<Member>(ref / value); // Value set to
+                    serializeValue<Member>(ref); // Value before changing
+                    ref /= std::forward<Value>(value);
+                }
+            });
+        }
+
+        template <class ... Pathway, class Value, class Keys>
+        void modEq(Value && value, Keys & keys)
+        {
+            eventOffsets.push_back(events.size());
+            events.push_back(uint8_t(Op::Set)); // "Set like operation"
+            serializePathway<Pathway...>(keys);
+
+            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                
+                using value_type = std::remove_cvref_t<decltype(ref)>;
+                if constexpr ( hasValueChangedOp<Route, value_type> )
+                {
+                    auto prevValue = ref;
+                    ref %= std::forward<Value>(value);
+                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(value)); // Value set to
+                    serializeValue<Member>(prevValue); // Value before changing
+                    notifyValueChanged(user, Route{keys}, prevValue, ref);
+                }
+                else
+                {
+                    serializeValue<Member>(ref % value); // Value set to
+                    serializeValue<Member>(ref); // Value before changing
+                    ref %= std::forward<Value>(value);
+                }
+            });
+        }
+
+        template <class ... Pathway, class Value, class Keys>
+        void xorEq(Value && value, Keys & keys)
+        {
+            eventOffsets.push_back(events.size());
+            events.push_back(uint8_t(Op::Set)); // "Set like operation"
+            serializePathway<Pathway...>(keys);
+
+            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                
+                using value_type = std::remove_cvref_t<decltype(ref)>;
+                if constexpr ( hasValueChangedOp<Route, value_type> )
+                {
+                    auto prevValue = ref;
+                    ref ^= std::forward<Value>(value);
+                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(value)); // Value set to
+                    serializeValue<Member>(prevValue); // Value before changing
+                    notifyValueChanged(user, Route{keys}, prevValue, ref);
+                }
+                else
+                {
+                    serializeValue<Member>(ref ^ value); // Value set to
+                    serializeValue<Member>(ref); // Value before changing
+                    ref ^= std::forward<Value>(value);
+                }
+            });
+        }
+
+        template <class ... Pathway, class Value, class Keys>
+        void andEq(Value && value, Keys & keys)
+        {
+            eventOffsets.push_back(events.size());
+            events.push_back(uint8_t(Op::Set)); // "Set like operation"
+            serializePathway<Pathway...>(keys);
+
+            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                
+                using value_type = std::remove_cvref_t<decltype(ref)>;
+                if constexpr ( hasValueChangedOp<Route, value_type> )
+                {
+                    auto prevValue = ref;
+                    ref &= std::forward<Value>(value);
+                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(value)); // Value set to
+                    serializeValue<Member>(prevValue); // Value before changing
+                    notifyValueChanged(user, Route{keys}, prevValue, ref);
+                }
+                else
+                {
+                    serializeValue<Member>(ref & value); // Value set to
+                    serializeValue<Member>(ref); // Value before changing
+                    ref &= std::forward<Value>(value);
+                }
+            });
+        }
+
+        template <class ... Pathway, class Value, class Keys>
+        void orEq(Value && value, Keys & keys)
+        {
+            eventOffsets.push_back(events.size());
+            events.push_back(uint8_t(Op::Set)); // "Set like operation"
+            serializePathway<Pathway...>(keys);
+
+            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                
+                using value_type = std::remove_cvref_t<decltype(ref)>;
+                if constexpr ( hasValueChangedOp<Route, value_type> )
+                {
+                    auto prevValue = ref;
+                    ref |= std::forward<Value>(value);
+                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(value)); // Value set to
+                    serializeValue<Member>(prevValue); // Value before changing
+                    notifyValueChanged(user, Route{keys}, prevValue, ref);
+                }
+                else
+                {
+                    serializeValue<Member>(ref | value); // Value set to
+                    serializeValue<Member>(ref); // Value before changing
+                    ref |= std::forward<Value>(value);
                 }
             });
         }
