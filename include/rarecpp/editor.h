@@ -1729,7 +1729,7 @@ namespace RareEdit
                         if ( t.has_value() )
                             return ReadEditPair{*((const U &)t), *editor};
                         else
-                            return ReadEditPair{refNullOpt, *editor);
+                            return ReadEditPair{refNullOpt, *editor};
                     }
                     else if ( t.has_value() )
                         return editorFromPathImpl<Keys, typename std::remove_cvref_t<U>::value_type, LastMember, Pathway...>(*editor, *t, keys, type_tags<PathTraversed..., PathElement>{});
