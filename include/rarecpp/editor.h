@@ -26,6 +26,8 @@ namespace RareEdit
 
     template <typename SizeType> inline constexpr IndexSizeType<SizeType> IndexSize;
 
+    inline constexpr std::nullopt_t refNullOpt = std::nullopt;
+
     template <typename T>
     constexpr auto defaultIndexType()
     {
@@ -1539,7 +1541,8 @@ namespace RareEdit
             {
                 bool hasValue = value.has_value();
                 u8bool::write(events, hasValue);
-                serializeValue<Member>(*value);
+                if ( hasValue )
+                    serializeValue<Member>(*value);
             }
             else if constexpr ( is_flat_mdspan_v<value_type> )
             {
@@ -1722,7 +1725,12 @@ namespace RareEdit
                 if constexpr ( RareTs::is_optional_v<std::remove_cvref_t<U>> )
                 {
                     if constexpr ( sizeof...(Pathway) == 0 )
-                        return ReadEditPair{*((const U &)t), *editor};
+                    {
+                        if ( t.has_value() )
+                            return ReadEditPair{*((const U &)t), *editor};
+                        else
+                            return ReadEditPair{refNullOpt, *editor);
+                    }
                     else if ( t.has_value() )
                         return editorFromPathImpl<Keys, typename std::remove_cvref_t<U>::value_type, LastMember, Pathway...>(*editor, *t, keys, type_tags<PathTraversed..., PathElement>{});
                 }
