@@ -7239,7 +7239,11 @@ namespace RareEdit
 
         template <typename Usr> static constexpr bool hasAfterActionOp = RareTs::op_exists_v<AfterActionOp, Usr>;
 
-        void notifyAfterAction() { static_cast<Agent<Data, User, Editor<Tracked>> &>(editable).user.afterAction(actionFirstEvent.size()-1); }
+        void notifyAfterAction()
+        {
+            if ( actionFirstEvent.back() < editable.eventOffsets.size() )
+                static_cast<Agent<Data, User, Editor<Tracked>> &>(editable).user.afterAction(actionFirstEvent.size()-1);
+        }
 
     protected:
 
