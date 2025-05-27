@@ -8,6 +8,7 @@
 #include <numeric>
 #include <optional>
 #include <span>
+#include <sstream>
 #include <tuple>
 #include <type_traits>
 #include <unordered_set>
@@ -2086,7 +2087,6 @@ namespace RareEdit
 
             bool first = true;
             operateThruSel<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>, auto & newKeys) {
-                std::cout << RareTs::toStr<Route>() << '\n';
                 using value_type = std::remove_cvref_t<decltype(ref)>;
                 constexpr bool isIterable = RareTs::is_iterable_v<value_type>;
                 if ( first )
@@ -7174,7 +7174,15 @@ namespace RareEdit
         }
         Editor(Editor && other) noexcept { std::swap(parent, other.parent); }
         ~Editor() {
-            if ( parent != nullptr )
+            if constexpr ( Tracked::template hasAfterActionOp<typename Tracked::user_type> )
+            {
+                if ( parent != nullptr )
+                {
+                    if ( --(parent->actionReferenceCount) == 0 )
+                        parent->notifyAfterAction();
+                }
+            }
+            else if ( parent != nullptr )
                 parent->actionReferenceCount--;
         }
         auto & operator*() noexcept { return parent->editable; }
@@ -7186,6 +7194,27 @@ namespace RareEdit
             auto & agent = (Agent<typename Tracked::data_type, typename Tracked::user_type, Editor> &)parent->editable;
             return agent.template editorFromPath<Pathway...>(**this, static_cast<typename Tracked::data_type &>(*parent), path);
         }
+    };
+    
+    template <class Usr>
+    using AfterActionOp = decltype(std::declval<Usr>().afterAction(std::size_t(0)));
+
+    enum class ActionStatus {
+        Undoable = 0x1,
+        ElidedRedo = 0x2,
+        Redoable = 0x4
+    };
+
+    struct DataChangeEvent {
+        Op op {};
+        std::string summary {};
+        std::vector<std::string> breakdown {};
+    };
+
+    struct Action {
+        ActionStatus actionStatus {};
+        std::size_t elisionCount = 0;
+        std::vector<DataChangeEvent> changeEvents {};
     };
 
     template <class Data, class User>
@@ -7207,6 +7236,10 @@ namespace RareEdit
         std::uint64_t redoSize = 0; // The size of the range including the redoable actions (includes elided redos)
 
         friend class Editor<Tracked>;
+
+        template <typename Usr> static constexpr bool hasAfterActionOp = RareTs::op_exists_v<AfterActionOp, Usr>;
+
+        void notifyAfterAction() { static_cast<Agent<Data, User, Editor<Tracked>> &>(editable).user.afterAction(actionFirstEvent.size()-1); }
 
     protected:
 
@@ -7299,10 +7332,7 @@ namespace RareEdit
             
             auto & agent = (Agent<Data, User, Editor<Tracked>> &)editable;
             for ( std::int64_t i=nextActionStart-1; i>=actionEventStart; i-- )
-            {
                 agent.undoEvent(std::uint64_t(i));
-                //std::cout << '\n';
-            }
 
             redoCount++;
             redoSize = totalActions-actionIndex;
@@ -7407,9 +7437,8 @@ namespace RareEdit
         }
 
         template <class type, class member_type>
-        void printEventOp(std::size_t & offset, Op op) const
+        void printEventOp(std::ostream & os, std::size_t & offset, Op op) const
         {
-            auto & os = std::cout; // TODO: Lift
             using element = RareTs::element_type_t<std::remove_cvref_t<type>>;
             using index_type = index_type_t<typename edit_root::default_index_type, member_type>;
             switch ( op )
@@ -7615,7 +7644,7 @@ namespace RareEdit
         }
 
         template <class U, class Member = void, std::size_t ... Is>
-        void printEvent(std::size_t & offset, std::uint8_t op, std::index_sequence<Is...>) const
+        void printEvent(std::ostream & os, std::size_t & offset, std::uint8_t op, std::index_sequence<Is...>) const
         {
             using base_index_type = index_type_t<typename edit_root::default_index_type, Member>;
             std::uint8_t value = editable.events[offset];
@@ -7626,23 +7655,23 @@ namespace RareEdit
                 case PathOp::SelBranch:
                     if constexpr ( RareTs::is_static_array_v<U> || RareTs::is_specialization_v<U, std::vector> )
                     {
-                        std::cout << "[{sel}]";
+                        os << "[{sel}]";
                         using element_type = RareTs::element_type_t<std::remove_cvref_t<U>>;
                         constexpr bool isLeaf = !RareTs::is_reflected_v<element_type> && std::is_void_v<RareTs::element_type_t<element_type>>;
                         if constexpr ( isLeaf )
-                            printEventOp<element_type, Member>(offset, Op(op));
+                            printEventOp<element_type, Member>(os, offset, Op(op));
                         else
-                            printEvent<std::remove_cvref_t<decltype(std::declval<U>()[0])>, Member>(offset, op, std::make_index_sequence<reflectedMemberCount<std::remove_cvref_t<decltype(std::declval<U>()[0])>>()>());
+                            printEvent<std::remove_cvref_t<decltype(std::declval<U>()[0])>, Member>(os, offset, op, std::make_index_sequence<reflectedMemberCount<std::remove_cvref_t<decltype(std::declval<U>()[0])>>()>());
                     }
                     break;
                 case PathOp::LeafSelBranch:
                     if constexpr ( std::is_same_v<std::remove_cvref_t<Data>, std::remove_cvref_t<U>> ) // Root
-                        printEventOp<U, Member>(offset, Op(op));
+                        printEventOp<U, Member>(os, offset, Op(op));
                     else if constexpr ( RareTs::is_static_array_v<U> || RareTs::is_specialization_v<U, std::vector> )
                     {
-                        std::cout << "[{sel}]";
+                        os << "[{sel}]";
                         using element_type = RareTs::element_type_t<std::remove_cvref_t<U>>;
-                        printEventOp<element_type, Member>(offset, Op(op));
+                        printEventOp<element_type, Member>(os, offset, Op(op));
                     }
                     break;
                 case PathOp::Branch:
@@ -7655,26 +7684,26 @@ namespace RareEdit
                         else
                             index = editable.template readIndex<base_index_type>(offset);
 
-                        std::cout << '[' << static_cast<std::size_t>(index) << ']';
-                        printEvent<std::remove_cvref_t<decltype(std::declval<U>()[0])>, Member>(offset, op, std::make_index_sequence<reflectedMemberCount<std::remove_cvref_t<decltype(std::declval<U>()[0])>>()>());
+                        os << '[' << static_cast<std::size_t>(index) << ']';
+                        printEvent<std::remove_cvref_t<decltype(std::declval<U>()[0])>, Member>(os, offset, op, std::make_index_sequence<reflectedMemberCount<std::remove_cvref_t<decltype(std::declval<U>()[0])>>()>());
                     }
                     else if constexpr ( RareTs::is_optional_v<U> ) // Deref into optional
                     {
-                        printEvent<typename U::value_type, Member>(offset, op, std::make_index_sequence<reflectedMemberCount<std::remove_cvref_t<typename U::value_type>>()>());
+                        printEvent<typename U::value_type, Member>(os, offset, op, std::make_index_sequence<reflectedMemberCount<std::remove_cvref_t<typename U::value_type>>()>());
                     }
                     else if constexpr ( RareTs::is_macro_reflected_v<U> ) // Branch to field
                     {
                         std::size_t memberIndex = std::size_t(value & std::uint8_t(PathOp::LowBits));
                         (void)(
                             (Is == memberIndex ? (
-                                std::cout << "." << RareTs::Member<U, Is>::name,
-                                printEvent<std::remove_cvref_t<typename RareTs::Member<U, Is>::type>, RareTs::Member<U, Is>>(offset, op, std::make_index_sequence<reflectedMemberCount<std::remove_cvref_t<typename RareTs::Member<U, Is>::type>>()>()),
+                                os << "." << RareTs::Member<U, Is>::name,
+                                printEvent<std::remove_cvref_t<typename RareTs::Member<U, Is>::type>, RareTs::Member<U, Is>>(os, offset, op, std::make_index_sequence<reflectedMemberCount<std::remove_cvref_t<typename RareTs::Member<U, Is>::type>>()>()),
                                 true) : true) && ...
                         );
 
                         //RareTs::Members<U>::at(std::size_t(value & std::uint8_t(PathOp::LowBits)), [&](auto member) {
-                        //    std::cout << "." << member.name;
-                        //    printEvent<std::remove_cvref_t<typename decltype(member)::type>, decltype(member)>(offset, op, std::make_index_sequence<reflectedMemberCount<U>()>());
+                        //    os << "." << member.name;
+                        //    printEvent<std::remove_cvref_t<typename decltype(member)::type>, decltype(member)>(os, offset, op, std::make_index_sequence<reflectedMemberCount<U>()>());
                         //});
                     }
                 }
@@ -7689,25 +7718,25 @@ namespace RareEdit
                         else
                             index = editable.template readIndex<base_index_type>(offset);
 
-                        std::cout << "[" << static_cast<std::size_t>(index) << "]";
-                        printEventOp<RareTs::element_type_t<std::remove_cvref_t<U>>, Member>(offset, Op(op));
+                        os << "[" << static_cast<std::size_t>(index) << "]";
+                        printEventOp<RareTs::element_type_t<std::remove_cvref_t<U>>, Member>(os, offset, Op(op));
                     }
                     else if constexpr ( RareTs::is_optional_v<U> ) // Operate on optional
                     {
-                        printEventOp<typename U::value_type, Member>(offset, Op(op));
+                        printEventOp<typename U::value_type, Member>(os, offset, Op(op));
                     }
                     else if constexpr ( RareTs::is_reflected_v<U> ) // Op on field
                     {
                         std::size_t memberIndex = std::size_t(value & std::uint8_t(PathOp::LowBits));
                         (void)(
                             (Is == memberIndex ? (
-                                std::cout << "." << RareTs::Member<U, Is>::name,
-                                printEventOp<typename RareTs::Member<U, Is>::type, RareTs::Member<U, Is>>(offset, Op(op)),
+                                os << "." << RareTs::Member<U, Is>::name,
+                                printEventOp<typename RareTs::Member<U, Is>::type, RareTs::Member<U, Is>>(os, offset, Op(op)),
                                 true) : true) && ...
                         );
                         //RareTs::Members<U>::at(memberIndex, [&](auto member) {
-                        //    std::cout << "." << member.name;
-                        //    printEventOp<typename decltype(member)::type, decltype(member)>(offset, Op(value));
+                        //    os << "." << member.name;
+                        //    printEventOp<typename decltype(member)::type, decltype(member)>(os, offset, Op(value));
                         //});
                     }
                 }
@@ -7717,14 +7746,14 @@ namespace RareEdit
         }
 
         template <class U, class Member = void>
-        void printEvent(std::size_t & offset) const
+        void printEvent(std::ostream & os, std::size_t & offset) const
         {
             std::uint8_t op = editable.events[offset];
             ++offset;
-            printEvent<U, Member>(offset, op, std::make_index_sequence<reflectedMemberCount<U>()>());
+            printEvent<U, Member>(os, offset, op, std::make_index_sequence<reflectedMemberCount<U>()>());
         }
 
-        void printChangeHistory() const
+        void printChangeHistory(std::ostream & os) const
         {
             std::size_t totalActions = actionFirstEvent.size();
             for ( std::size_t actionIndex=0; actionIndex<totalActions; ++actionIndex )
@@ -7733,7 +7762,7 @@ namespace RareEdit
                 if ( (currActionStart & flagElidedRedos) == flagElidedRedos )
                 {
                     auto elisionCount = currActionStart & maskElidedRedoSize;
-                    std::cout << "Action[" << actionIndex << "] marks the previous " << elisionCount << " action(s) as elided redos\n";
+                    os << "Action[" << actionIndex << "] marks the previous " << elisionCount << " action(s) as elided redos\n";
                     continue;
                 }
 
@@ -7743,28 +7772,85 @@ namespace RareEdit
 
                 if ( currActionStart == nextActionStart )
                 {
-                    std::cout << "Action[" << actionIndex << "] is blank\n";
+                    os << "Action[" << actionIndex << "] is blank\n";
                     continue;
                 }
 
-                std::cout << "Action[" << actionIndex << "] contains events [" << currActionStart << ", " << nextActionStart << ")\n";
+                os << "Action[" << actionIndex << "] contains events [" << currActionStart << ", " << nextActionStart << ")\n";
                 for ( std::size_t eventIndex = currActionStart; eventIndex < nextActionStart; ++eventIndex )
                 {
                     auto [eventOffset, byteEnd] = editable.getEventOffsetRange(eventIndex);
 
-                    std::cout << "  [" << std::setw(2) << eventIndex << ','
+                    os << "  [" << std::setw(2) << eventIndex << ','
                         << std::setw(3) << eventOffset << ','
                         << std::setw(2) << (byteEnd-editable.eventOffsets[eventIndex]) << "] " << std::hex << std::uppercase;
                     for ( std::size_t i=eventOffset; i<byteEnd; ++i )
-                        std::cout << (editable.events[i] <= 0xF ? "0" : "") << int(editable.events[i]) << ' ';
-                    std::cout << std::nouppercase << std::dec;
+                        os << (editable.events[i] <= 0xF ? "0" : "") << int(editable.events[i]) << ' ';
+                    os << std::nouppercase << std::dec;
 
-                    std::cout << " // edit";
-                    printEvent<Data>(eventOffset);
-                    std::cout << '\n';
+                    os << " // edit";
+                    printEvent<Data>(os, eventOffset);
+                    os << '\n';
                 }
-                std::cout << '\n';
+                os << '\n';
             }
+        }
+
+        template <class U, class Member = void>
+        void renderEvent(DataChangeEvent & dataChangeEvent, std::size_t & offset) const
+        {
+            std::uint8_t op = editable.events[offset];
+            ++offset;
+            std::stringstream ss {};
+            printEvent<U, Member>(ss, offset, op, std::make_index_sequence<reflectedMemberCount<U>()>());
+            dataChangeEvent.summary += ss.str();
+        }
+
+        void renderAction(std::size_t actionIndex, Action & action) const
+        {
+            action.changeEvents = {};
+            std::size_t totalActions = actionFirstEvent.size();
+            std::size_t currActionStart = actionFirstEvent[actionIndex];
+            if ( (currActionStart & flagElidedRedos) == flagElidedRedos )
+            {
+                auto elisionCount = currActionStart & maskElidedRedoSize;
+                action.actionStatus = ActionStatus::ElidedRedo;
+                action.elisionCount = elisionCount;
+                return;
+            }
+
+            std::size_t nextActionStart = flagElidedRedos;
+            for ( std::size_t i=1; (nextActionStart & flagElidedRedos) == flagElidedRedos; ++i ) // Find the next event that isn't an elision marker
+                nextActionStart = actionIndex+i<totalActions ? (actionFirstEvent[actionIndex+i]) : editable.eventOffsets.size();
+
+            action.actionStatus = actionIndex < totalActions-redoCount ? ActionStatus::Undoable : ActionStatus::Redoable;
+            for ( std::size_t eventIndex = currActionStart; eventIndex < nextActionStart; ++eventIndex )
+            {
+                for ( std::size_t i=1; (nextActionStart & flagElidedRedos) == flagElidedRedos; ++i ) // Find the next event that isn't an elision marker
+                    nextActionStart = actionIndex+i<totalActions ? (actionFirstEvent[actionIndex+i]) : editable.eventOffsets.size();
+
+                if ( currActionStart == nextActionStart )
+                    return;
+
+                auto [eventOffset, byteEnd] = editable.getEventOffsetRange(eventIndex);
+                DataChangeEvent & dataChangeEvent = action.changeEvents.emplace_back();
+
+                dataChangeEvent.summary += "edit";
+                renderEvent<Data>(dataChangeEvent, eventOffset);
+            }
+        }
+
+        std::vector<Action> renderChangeHistory() const
+        {
+            std::vector<Action> rendering {};
+            std::size_t totalActions = actionFirstEvent.size();
+            for ( std::size_t actionIndex=0; actionIndex<totalActions; ++actionIndex )
+            {
+                Action & action = rendering.emplace_back();
+
+                renderAction(actionIndex, action);
+            }
+            return rendering;
         }
 
         REFLECT(Tracked, flagElidedRedos, maskElidedRedoSize, editable, actionFirstEvent, actionReferenceCount, redoCount, redoSize)

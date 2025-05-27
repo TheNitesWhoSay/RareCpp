@@ -86,6 +86,27 @@ struct TracedObj : Tracked<MyObj, TracedObj>
         //edit->actors.removeSelection();
     }
 
+    void afterAction(std::size_t actionIndex)
+    {
+        auto hist = Tracked::renderChangeHistory();
+        auto & action = hist[actionIndex];
+        std::cout << "New Action[" << actionIndex << "](";
+        switch ( action.actionStatus )
+        {
+        case RareEdit::ActionStatus::Undoable: std::cout << "Undoable"; break;
+        case RareEdit::ActionStatus::ElidedRedo: if ( action.elisionCount > 0 ) std::cout << "ElideLast:" << action.elisionCount; else std::cout << "ElidedRedo"; break;
+        case RareEdit::ActionStatus::Redoable: std::cout << "Redoable"; break;
+        }
+        std::cout << ")\n";
+
+        auto & changeEvents = hist[actionIndex].changeEvents;
+        for ( std::size_t j=0; j<changeEvents.size(); ++j )
+        {
+            auto & changeEvent = changeEvents[j];
+            std::cout << "  " << changeEvent.summary << '\n';
+        }
+    }
+
     ActorElem getActorElem(std::size_t i) {
         return ActorElem(this, view.actors[i]);
     }
@@ -145,12 +166,14 @@ void dataHistory()
     std::cout << Json::out(*myObj);
     
     std::cout << "\n\ntestElemOp:\n";
-    auto actor = myObj.getActorElem(1);
-    actor.act();
-    auto item = actor.getItemElem(0);
-    item.hit();
-    actor.act();
-    item.hit();
+    {
+        auto actor = myObj.getActorElem(1);
+        actor.act();
+        auto item = actor.getItemElem(0);
+        item.hit();
+        actor.act();
+        item.hit();
+    }
     std::cout << Json::out(*myObj);
 
     std::cout << "\n\ntestUndo:\n";
@@ -161,7 +184,7 @@ void dataHistory()
     myObj.redoAction();
     std::cout << Json::out(*myObj) << "\n\n";
 
-    myObj.printChangeHistory();
+    myObj.printChangeHistory(std::cout);
 }
 
 }
