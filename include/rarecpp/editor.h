@@ -7454,10 +7454,10 @@ namespace RareEdit
                     break;
                 case Op::Assign: // .assign(size, value) // prevValue
                     if constexpr ( !std::is_void_v<element> )
-                        put(os, ".assign(").template putIndex<index_type>(os, offset).template putValue<type, member_type>(os, offset).put(os, ") // ").template putValue<type, member_type>(os, offset);
+                        put(os, ".assign(").template putIndex<index_type>(os, offset).template putValue<element, member_type>(os, offset).put(os, ") // ").template putValue<type, member_type>(os, offset);
                     break;
                 case Op::AssignDefault: // .assign(size, {}) // prevValue
-                    put(os, ".assign(").template putIndex<index_type>(os, offset).template putValue<type, member_type>(os, offset).put(os, ", {}) // ").template putValue<type, member_type>(os, offset);
+                    put(os, ".assign(").template putIndex<index_type>(os, offset).put(os, ", {}) // ").template putValue<type, member_type>(os, offset);
                     break;
                 case Op::ClearSelections: // .clearSelections() // size, selIndexes
                 {
