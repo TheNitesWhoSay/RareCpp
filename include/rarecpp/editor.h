@@ -7260,7 +7260,11 @@ namespace RareEdit
                 if ( redoCount > 0 )
                     elideRedos();
 
-                actionFirstEvent.push_back(editable.eventOffsets.size());
+                if ( actionFirstEvent.empty() || actionFirstEvent.back() < editable.eventOffsets.size() ||
+                    (actionFirstEvent.back() & flagElidedRedos) == flagElidedRedos ) // If the last action is empty, and not a marker, no new action is needed
+                {
+                    actionFirstEvent.push_back(editable.eventOffsets.size());
+                }
             }
             return Editor<Tracked>{this};
         };
@@ -7282,7 +7286,11 @@ namespace RareEdit
                 if ( redoCount > 0 )
                     elideRedos();
 
-                actionFirstEvent.push_back(editable.eventOffsets.size());
+                if ( actionFirstEvent.empty() || actionFirstEvent.back() < editable.eventOffsets.size() ||
+                    (actionFirstEvent.back() & flagElidedRedos) == flagElidedRedos ) // If the last action is empty, and not a marker, no new action is needed
+                {
+                    actionFirstEvent.push_back(editable.eventOffsets.size());
+                }
             }
             return Editor<Tracked>{this};
         };

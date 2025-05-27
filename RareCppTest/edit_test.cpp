@@ -22,7 +22,7 @@ namespace EditorCumulative
 
         void act()
         {
-            createAction();
+            createAction()->a = 0;
         }
     };
 
@@ -74,7 +74,7 @@ namespace EditorCumulative
         EXPECT_EQ(check.actionFirstEvent.size(), 3);
         EXPECT_EQ(check.actionFirstEvent[0], 0);
         EXPECT_EQ(check.actionFirstEvent[1], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[2], 0);
+        EXPECT_EQ(check.actionFirstEvent[2], 1);
     }
 
     TEST(UndoRedoElision, AUR)
@@ -102,7 +102,7 @@ namespace EditorCumulative
         EXPECT_EQ(check.redoSize, 0);
         EXPECT_EQ(check.actionFirstEvent.size(), 2);
         EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
+        EXPECT_EQ(check.actionFirstEvent[1], 1);
     }
 
     TEST(UndoRedoElision, AAU)
@@ -117,7 +117,7 @@ namespace EditorCumulative
         EXPECT_EQ(check.redoSize, 1);
         EXPECT_EQ(check.actionFirstEvent.size(), 2);
         EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
+        EXPECT_EQ(check.actionFirstEvent[1], 1);
     }
 
     TEST(UndoRedoElision, AAUA)
@@ -133,9 +133,9 @@ namespace EditorCumulative
         EXPECT_EQ(check.redoSize, 0);
         EXPECT_EQ(check.actionFirstEvent.size(), 4);
         EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
+        EXPECT_EQ(check.actionFirstEvent[1], 1);
         EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
+        EXPECT_EQ(check.actionFirstEvent[3], 2);
     }
 
     TEST(UndoRedoElision, AAUAU)
@@ -152,9 +152,9 @@ namespace EditorCumulative
         EXPECT_EQ(check.redoSize, 1);
         EXPECT_EQ(check.actionFirstEvent.size(), 4);
         EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
+        EXPECT_EQ(check.actionFirstEvent[1], 1);
         EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
+        EXPECT_EQ(check.actionFirstEvent[3], 2);
     }
 
     TEST(UndoRedoElision, AAUAUU)
@@ -172,9 +172,9 @@ namespace EditorCumulative
         EXPECT_EQ(check.redoSize, 4);
         EXPECT_EQ(check.actionFirstEvent.size(), 4);
         EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
+        EXPECT_EQ(check.actionFirstEvent[1], 1);
         EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
+        EXPECT_EQ(check.actionFirstEvent[3], 2);
     }
 
     TEST(UndoRedoElision, AAUAUUA)
@@ -193,11 +193,11 @@ namespace EditorCumulative
         EXPECT_EQ(check.redoSize, 0);
         EXPECT_EQ(check.actionFirstEvent.size(), 6);
         EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
+        EXPECT_EQ(check.actionFirstEvent[1], 1);
         EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
+        EXPECT_EQ(check.actionFirstEvent[3], 2);
         EXPECT_EQ(check.actionFirstEvent[4], check.flagElidedRedos | 4);
-        EXPECT_EQ(check.actionFirstEvent[5], 0);
+        EXPECT_EQ(check.actionFirstEvent[5], 3);
     }
 
     TEST(UndoRedoElision, AAUAUA)
@@ -215,11 +215,11 @@ namespace EditorCumulative
         EXPECT_EQ(check.redoSize, 0);
         EXPECT_EQ(check.actionFirstEvent.size(), 6);
         EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
+        EXPECT_EQ(check.actionFirstEvent[1], 1);
         EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
+        EXPECT_EQ(check.actionFirstEvent[3], 2);
         EXPECT_EQ(check.actionFirstEvent[4], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[5], 0);
+        EXPECT_EQ(check.actionFirstEvent[5], 3);
     }
 
     TEST(UndoRedoElision, AAUAUAU)
@@ -238,11 +238,11 @@ namespace EditorCumulative
         EXPECT_EQ(check.redoSize, 1);
         EXPECT_EQ(check.actionFirstEvent.size(), 6);
         EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
+        EXPECT_EQ(check.actionFirstEvent[1], 1);
         EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
+        EXPECT_EQ(check.actionFirstEvent[3], 2);
         EXPECT_EQ(check.actionFirstEvent[4], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[5], 0);
+        EXPECT_EQ(check.actionFirstEvent[5], 3);
     }
 
     TEST(UndoRedoElision, AAUAUAUU)
@@ -262,11 +262,11 @@ namespace EditorCumulative
         EXPECT_EQ(check.redoSize, 6);
         EXPECT_EQ(check.actionFirstEvent.size(), 6);
         EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
+        EXPECT_EQ(check.actionFirstEvent[1], 1);
         EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
+        EXPECT_EQ(check.actionFirstEvent[3], 2);
         EXPECT_EQ(check.actionFirstEvent[4], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[5], 0);
+        EXPECT_EQ(check.actionFirstEvent[5], 3);
     }
 
     TEST(UndoRedoElision, AAUAUAUUA)
@@ -287,13 +287,13 @@ namespace EditorCumulative
         EXPECT_EQ(check.redoSize, 0);
         EXPECT_EQ(check.actionFirstEvent.size(), 8);
         EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
+        EXPECT_EQ(check.actionFirstEvent[1], 1);
         EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
+        EXPECT_EQ(check.actionFirstEvent[3], 2);
         EXPECT_EQ(check.actionFirstEvent[4], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[5], 0);
+        EXPECT_EQ(check.actionFirstEvent[5], 3);
         EXPECT_EQ(check.actionFirstEvent[6], check.flagElidedRedos | 6);
-        EXPECT_EQ(check.actionFirstEvent[7], 0);
+        EXPECT_EQ(check.actionFirstEvent[7], 4);
     }
 
     TEST(UndoRedoElision, AAUAA)
@@ -310,10 +310,10 @@ namespace EditorCumulative
         EXPECT_EQ(check.redoSize, 0);
         EXPECT_EQ(check.actionFirstEvent.size(), 5);
         EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
+        EXPECT_EQ(check.actionFirstEvent[1], 1);
         EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
-        EXPECT_EQ(check.actionFirstEvent[4], 0);
+        EXPECT_EQ(check.actionFirstEvent[3], 2);
+        EXPECT_EQ(check.actionFirstEvent[4], 3);
     }
 
     TEST(UndoRedoElision, AAUAAU)
@@ -331,10 +331,10 @@ namespace EditorCumulative
         EXPECT_EQ(check.redoSize, 1);
         EXPECT_EQ(check.actionFirstEvent.size(), 5);
         EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
+        EXPECT_EQ(check.actionFirstEvent[1], 1);
         EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
-        EXPECT_EQ(check.actionFirstEvent[4], 0);
+        EXPECT_EQ(check.actionFirstEvent[3], 2);
+        EXPECT_EQ(check.actionFirstEvent[4], 3);
     }
 
     TEST(UndoRedoElision, AAUAAUA)
@@ -353,12 +353,12 @@ namespace EditorCumulative
         EXPECT_EQ(check.redoSize, 0);
         EXPECT_EQ(check.actionFirstEvent.size(), 7);
         EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
+        EXPECT_EQ(check.actionFirstEvent[1], 1);
         EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
-        EXPECT_EQ(check.actionFirstEvent[4], 0);
+        EXPECT_EQ(check.actionFirstEvent[3], 2);
+        EXPECT_EQ(check.actionFirstEvent[4], 3);
         EXPECT_EQ(check.actionFirstEvent[5], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[6], 0);
+        EXPECT_EQ(check.actionFirstEvent[6], 4);
     }
 
     TEST(UndoRedoElision, AAUAAUAU)
@@ -378,12 +378,12 @@ namespace EditorCumulative
         EXPECT_EQ(check.redoSize, 1);
         EXPECT_EQ(check.actionFirstEvent.size(), 7);
         EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
+        EXPECT_EQ(check.actionFirstEvent[1], 1);
         EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
-        EXPECT_EQ(check.actionFirstEvent[4], 0);
+        EXPECT_EQ(check.actionFirstEvent[3], 2);
+        EXPECT_EQ(check.actionFirstEvent[4], 3);
         EXPECT_EQ(check.actionFirstEvent[5], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[6], 0);
+        EXPECT_EQ(check.actionFirstEvent[6], 4);
     }
 
     TEST(UndoRedoElision, AAUAAUAUU)
@@ -404,12 +404,12 @@ namespace EditorCumulative
         EXPECT_EQ(check.redoSize, 4);
         EXPECT_EQ(check.actionFirstEvent.size(), 7);
         EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
+        EXPECT_EQ(check.actionFirstEvent[1], 1);
         EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
-        EXPECT_EQ(check.actionFirstEvent[4], 0);
+        EXPECT_EQ(check.actionFirstEvent[3], 2);
+        EXPECT_EQ(check.actionFirstEvent[4], 3);
         EXPECT_EQ(check.actionFirstEvent[5], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[6], 0);
+        EXPECT_EQ(check.actionFirstEvent[6], 4);
     }
 
     TEST(UndoRedoElision, AAUAAUAUUU)
@@ -431,12 +431,12 @@ namespace EditorCumulative
         EXPECT_EQ(check.redoSize, 7);
         EXPECT_EQ(check.actionFirstEvent.size(), 7);
         EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
+        EXPECT_EQ(check.actionFirstEvent[1], 1);
         EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
-        EXPECT_EQ(check.actionFirstEvent[4], 0);
+        EXPECT_EQ(check.actionFirstEvent[3], 2);
+        EXPECT_EQ(check.actionFirstEvent[4], 3);
         EXPECT_EQ(check.actionFirstEvent[5], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[6], 0);
+        EXPECT_EQ(check.actionFirstEvent[6], 4);
     }
 
     TEST(UndoRedoElision, AAUAAUAUUUA)
@@ -459,14 +459,14 @@ namespace EditorCumulative
         EXPECT_EQ(check.redoSize, 0);
         EXPECT_EQ(check.actionFirstEvent.size(), 9);
         EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
+        EXPECT_EQ(check.actionFirstEvent[1], 1);
         EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
-        EXPECT_EQ(check.actionFirstEvent[4], 0);
+        EXPECT_EQ(check.actionFirstEvent[3], 2);
+        EXPECT_EQ(check.actionFirstEvent[4], 3);
         EXPECT_EQ(check.actionFirstEvent[5], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[6], 0);
+        EXPECT_EQ(check.actionFirstEvent[6], 4);
         EXPECT_EQ(check.actionFirstEvent[7], check.flagElidedRedos | 7);
-        EXPECT_EQ(check.actionFirstEvent[8], 0);
+        EXPECT_EQ(check.actionFirstEvent[8], 5);
     }
 
     NOTE(CumulativeTest, IndexSize<std::uint32_t>)
