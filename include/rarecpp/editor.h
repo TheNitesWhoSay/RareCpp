@@ -796,15 +796,18 @@ namespace RareEdit
             inline void clearSelections()
             {
                 auto & sel = agent.template getSelections<Pathway...>();
-                agent.eventOffsets.push_back(agent.events.size());
-                agent.events.push_back(uint8_t(Op::ClearSelections));
-                agent.template serializePathway<Pathway...>((Keys &)(*this));
+                if ( !sel.empty() )
+                {
+                    agent.eventOffsets.push_back(agent.events.size());
+                    agent.events.push_back(uint8_t(Op::ClearSelections));
+                    agent.template serializePathway<Pathway...>((Keys &)(*this));
 
-                writeSelectionVector(agent.events, sel);
-                RareTs::clear(sel);
+                    writeSelectionVector(agent.events, sel);
+                    RareTs::clear(sel);
 
-                if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
-                    agent.user.selectionsChanged(Route{(Keys &)(*this)});
+                    if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
+                        agent.user.selectionsChanged(Route{(Keys &)(*this)});
+                }
             }
 
             inline void selectAll()
@@ -7439,11 +7442,13 @@ namespace RareEdit
         template <class index_type>
         auto & putIndexes(std::ostream & os, std::size_t & offset, std::size_t size) const
         {
-            auto indexes = editable.template readIndexes<index_type>(offset, size);
             os << "{";
-            for ( std::size_t i=0; i<size; ++i )
-                os << (i>0 ? ", " : "") << (RareTs::promote_char_t<index_type>)indexes[i];
-
+            if ( size > 0 )
+            {
+                auto indexes = editable.template readIndexes<index_type>(offset, size);
+                for ( std::size_t i=0; i<size; ++i )
+                    os << (i>0 ? ", " : "") << (RareTs::promote_char_t<index_type>)indexes[i];
+            }
             os << "}";
             return *this;
         }
@@ -7474,7 +7479,7 @@ namespace RareEdit
                 case Op::ClearSelections: // .clearSelections() // size, selIndexes
                 {
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, "clearSelections() // ").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size);
+                    put(os, ".clearSelections() // ").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size);
                 }
                 break;
                 case Op::SelectAll: // .selectAll() // size, selIndexes
@@ -7493,33 +7498,33 @@ namespace RareEdit
                 }
                 break;
                 case Op::Deselect: // .deselect(index)
-                    put(os, "deselect(").template putIndex<index_type>(os, offset);
+                    put(os, ".deselect(").template putIndex<index_type>(os, offset);
                     break;
                 case Op::DeselectN:
                 {
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, "deselectN(").template putIndex<index_type>(os, offset).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
+                    put(os, ".deselectN(").template putIndex<index_type>(os, offset).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::ToggleSelection:
-                    put(os, "toggelSel(").template putIndex<index_type>(os, offset).put(os, ")");
+                    put(os, ".toggelSel(").template putIndex<index_type>(os, offset).put(os, ")");
                     break;
                 case Op::ToggleSelectionN:
                 {
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, "toggleSelN(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
+                    put(os, ".toggleSelN(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::SortSelections:
                 {
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, "sortSel(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
+                    put(os, ".sortSel(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::SortSelectionsDesc:
                 {
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, "sortSelDesc(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
+                    put(os, ".sortSelDesc(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::Set:
@@ -7529,7 +7534,7 @@ namespace RareEdit
                 if constexpr ( !std::is_void_v<element> )
                 {
                     std::size_t size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, "setN(").template putIndex<index_type>(os, offset).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, " = ").template putValue<type, member_type>(os, offset)
+                    put(os, ".setN(").template putIndex<index_type>(os, offset).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, " = ").template putValue<type, member_type>(os, offset)
                         .put(os, ") // ").template putValues<type, member_type>(os, offset, size);
                 }
                 break;
