@@ -7498,7 +7498,7 @@ namespace RareEdit
                 }
                 break;
                 case Op::Deselect: // .deselect(index)
-                    put(os, ".deselect(").template putIndex<index_type>(os, offset);
+                    put(os, ".deselect(").template putIndex<index_type>(os, offset).put(os, ")");
                     break;
                 case Op::DeselectN:
                 {
@@ -7534,7 +7534,7 @@ namespace RareEdit
                 if constexpr ( !std::is_void_v<element> )
                 {
                     std::size_t size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".setN(").template putIndex<index_type>(os, offset).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, " = ").template putValue<type, member_type>(os, offset)
+                    put(os, ".setN(").template putIndex<index_type>(os, offset).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")").put(os, " = ").template putValue<type, member_type>(os, offset)
                         .put(os, ") // ").template putValues<type, member_type>(os, offset, size);
                 }
                 break;
@@ -7655,7 +7655,7 @@ namespace RareEdit
                 }
                 break;
                 case Op::MoveToL:
-                    put(os, ".moveSelectionsTo(").template putIndex<index_type>(os, offset);
+                    put(os, ".moveSelectionsTo(").template putIndex<index_type>(os, offset).put(os, ")");
                     break;
             }
         }
