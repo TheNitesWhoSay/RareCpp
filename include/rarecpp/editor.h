@@ -7210,6 +7210,7 @@ namespace RareEdit
         ActionStatus actionStatus {};
         std::size_t elisionCount = 0;
         std::vector<DataChangeEvent> changeEvents {};
+        std::size_t byteCount = 0;
 
         constexpr bool isElisionMarker() const { return actionStatus == ActionStatus::ElidedRedo && elisionCount > 0; }
         constexpr bool isElided() const { return actionStatus == ActionStatus::ElidedRedo && elisionCount == 0; }
@@ -7383,6 +7384,11 @@ namespace RareEdit
                 }
                 redoSize = totalActions-actionIndex-1;
             }
+        }
+
+        std::size_t getCursorIndex()
+        {
+            return actionFirstEvent.size()-redoSize;
         }
 
         auto & put(std::ostream & os, auto && value) const
@@ -7821,6 +7827,7 @@ namespace RareEdit
 
         void renderAction(std::size_t actionIndex, Action & action, bool includeEvents = false) const
         {
+            action.byteCount = 8;
             action.changeEvents = {};
             std::size_t totalActions = actionFirstEvent.size();
             std::size_t currActionStart = actionFirstEvent[actionIndex];
@@ -7835,7 +7842,10 @@ namespace RareEdit
             std::size_t nextActionStart = flagElidedRedos;
             for ( std::size_t i=1; (nextActionStart & flagElidedRedos) == flagElidedRedos; ++i ) // Find the next event that isn't an elision marker
                 nextActionStart = actionIndex+i<totalActions ? (actionFirstEvent[actionIndex+i]) : editable.eventOffsets.size();
-
+            
+            auto [firstEventStart, unusedFirstEventEnd] = editable.getEventOffsetRange(currActionStart);
+            auto [unusedLastEventStart, lastEventEnd] = editable.getEventOffsetRange(nextActionStart-1);
+            action.byteCount += (nextActionStart-currActionStart)*8+(lastEventEnd-firstEventStart);
             action.actionStatus = actionIndex < totalActions-redoSize ? ActionStatus::Undoable : ActionStatus::Redoable;
             if ( includeEvents )
             {
