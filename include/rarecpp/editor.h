@@ -7195,9 +7195,10 @@ namespace RareEdit
     using AfterActionOp = decltype(std::declval<Usr>().afterAction(std::size_t(0)));
 
     enum class ActionStatus {
-        Undoable = 0x1,
-        ElidedRedo = 0x2,
-        Redoable = 0x4
+        Unknown = 0,
+        Undoable = 1,
+        ElidedRedo = 2,
+        Redoable = 3
     };
 
     struct DataChangeEvent {
@@ -7206,7 +7207,7 @@ namespace RareEdit
         std::vector<std::string> breakdown {};
     };
 
-    struct Action {
+    struct RenderAction {
         ActionStatus actionStatus {};
         std::size_t elisionCount = 0;
         std::vector<DataChangeEvent> changeEvents {};
@@ -7825,7 +7826,7 @@ namespace RareEdit
             dataChangeEvent.summary += ss.str();
         }
 
-        void renderAction(std::size_t actionIndex, Action & action, bool includeEvents = false) const
+        void renderAction(std::size_t actionIndex, RenderAction & action, bool includeEvents = false) const
         {
             action.byteCount = 8;
             action.changeEvents = {};
@@ -7866,13 +7867,13 @@ namespace RareEdit
             }
         }
 
-        std::vector<Action> renderChangeHistory(bool includeEvents = false) const
+        std::vector<RenderAction> renderChangeHistory(bool includeEvents = false) const
         {
-            std::vector<Action> rendering {};
+            std::vector<RenderAction> rendering {};
             std::size_t totalActions = actionFirstEvent.size();
             for ( std::size_t actionIndex=0; actionIndex<totalActions; ++actionIndex )
             {
-                Action & action = rendering.emplace_back();
+                RenderAction & action = rendering.emplace_back();
 
                 renderAction(actionIndex, action, includeEvents);
                 if ( action.actionStatus == ActionStatus::ElidedRedo && action.elisionCount > 0 )
