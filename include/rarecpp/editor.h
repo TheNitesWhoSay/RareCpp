@@ -7343,7 +7343,13 @@ namespace RareEdit
             std::uint64_t actionIndex = totalActions-redoSize-1;
 
             while ( (actionFirstEvent[actionIndex] & flagElidedRedos) == flagElidedRedos ) // Find the next unelided action
-                actionIndex -= ((actionFirstEvent[actionIndex] & maskElidedRedoSize)+1);
+            {
+                auto redoGap = ((actionFirstEvent[actionIndex] & maskElidedRedoSize)+1);
+                if ( redoGap <= actionIndex )
+                    actionIndex -= redoGap;
+                else
+                    return; // Every prior action was elided, nothing to undo
+            }
 
             std::int64_t actionEventStart = static_cast<std::int64_t>(actionFirstEvent[actionIndex]);
             std::int64_t nextActionStart = static_cast<std::size_t>(actionIndex)<totalActions-1 ?
@@ -7364,10 +7370,10 @@ namespace RareEdit
                 return;
 
             std::size_t totalActions = actionFirstEvent.size();
-            std::uint64_t actionIndex = totalActions-redoCount;
+            std::uint64_t actionIndex = totalActions-redoSize;
             
             std::uint64_t actionEventStart = actionFirstEvent[actionIndex];
-            std::uint64_t nextActionStart = actionIndex<totalActions-1 ? actionFirstEvent[actionIndex+1] : editable.eventOffsets.size();
+            std::uint64_t nextActionStart = actionIndex+1<totalActions ? actionFirstEvent[actionIndex+1] : editable.eventOffsets.size();
             
             auto & agent = (Agent<Data, User, Editor<Tracked>> &)editable;
             for ( auto i=actionEventStart; i<nextActionStart; i++ )
@@ -7390,7 +7396,7 @@ namespace RareEdit
                         --actionIndex;
                     }
                 }
-                redoSize = totalActions-actionIndex;
+                redoSize = totalActions-actionIndex-1;
             }
         }
 
@@ -7845,7 +7851,7 @@ namespace RareEdit
             for ( std::size_t i=1; (nextActionStart & flagElidedRedos) == flagElidedRedos; ++i ) // Find the next event that isn't an elision marker
                 nextActionStart = actionIndex+i<totalActions ? (actionFirstEvent[actionIndex+i]) : editable.eventOffsets.size();
 
-            action.actionStatus = actionIndex < totalActions-redoCount ? ActionStatus::Undoable : ActionStatus::Redoable;
+            action.actionStatus = actionIndex < totalActions-redoSize ? ActionStatus::Undoable : ActionStatus::Redoable;
             if ( includeEvents )
             {
                 for ( std::size_t eventIndex = currActionStart; eventIndex < nextActionStart; ++eventIndex )
