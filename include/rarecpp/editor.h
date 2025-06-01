@@ -7269,12 +7269,12 @@ namespace RareEdit
         {
             if ( actionReferenceCount == 0 )
             {
-                if ( redoCount > 0 )
-                    elideRedos();
-
                 if ( actionFirstEvent.empty() || actionFirstEvent.back() < editable.eventOffsets.size() ||
                     (actionFirstEvent.back() & flagElidedRedos) == flagElidedRedos ) // If the last action is empty, and not a marker, no new action is needed
                 {
+                    if ( redoCount > 0 )
+                        elideRedos();
+
                     actionFirstEvent.push_back(editable.eventOffsets.size());
                 }
             }
@@ -7295,12 +7295,12 @@ namespace RareEdit
         auto operator()() { 
             if ( actionReferenceCount == 0 )
             {
-                if ( redoCount > 0 )
-                    elideRedos();
-
                 if ( actionFirstEvent.empty() || actionFirstEvent.back() < editable.eventOffsets.size() ||
                     (actionFirstEvent.back() & flagElidedRedos) == flagElidedRedos ) // If the last action is empty, and not a marker, no new action is needed
                 {
+                    if ( redoCount > 0 )
+                        elideRedos();
+
                     actionFirstEvent.push_back(editable.eventOffsets.size());
                 }
             }
