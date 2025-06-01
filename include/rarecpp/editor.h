@@ -7177,16 +7177,8 @@ namespace RareEdit
         }
         Editor(Editor && other) noexcept { std::swap(parent, other.parent); }
         ~Editor() {
-            if constexpr ( Tracked::template hasAfterActionOp<typename Tracked::user_type> )
-            {
-                if ( parent != nullptr )
-                {
-                    if ( --(parent->actionReferenceCount) == 0 )
-                        parent->notifyAfterAction();
-                }
-            }
-            else if ( parent != nullptr )
-                parent->actionReferenceCount--;
+            if ( parent != nullptr && --(parent->actionReferenceCount) == 0 )
+                parent->submitAction();
         }
         auto & operator*() noexcept { return parent->editable; }
         auto operator->() noexcept { return &parent->editable; }
@@ -7238,6 +7230,7 @@ namespace RareEdit
 
         edit_root editable;
 
+        std::size_t pendingActionStart = 0; // Index of the first data-change event for the next action to be added
         std::vector<std::uint64_t> actionFirstEvent; // Index of the first data-change event for action[i] (presently the only persistent data for actions)
         int actionReferenceCount = 0; // Referencing counting for the current action, new actions can only be created when the old action is closed
         std::uint64_t redoCount = 0; // How many undos have occured since the last user-action/how many redos are available
@@ -7247,10 +7240,19 @@ namespace RareEdit
 
         template <typename Usr> static constexpr bool hasAfterActionOp = RareTs::op_exists_v<AfterActionOp, Usr>;
 
-        void notifyAfterAction()
+        void submitAction()
         {
-            if ( actionFirstEvent.back() < editable.eventOffsets.size() )
-                static_cast<Agent<Data, User, Editor<Tracked>> &>(editable).user.afterAction(actionFirstEvent.size()-1);
+            if ( pendingActionStart < editable.eventOffsets.size() ) // Action is not empty
+            {
+                if ( redoCount > 0 )
+                    elideRedos();
+
+                actionFirstEvent.push_back(pendingActionStart);
+                pendingActionStart = editable.eventOffsets.size();
+
+                if constexpr ( hasAfterActionOp<user_type> )
+                    static_cast<Agent<Data, User, Editor<Tracked>> &>(editable).user.afterAction(actionFirstEvent.size()-1); // Notify
+            }
         }
 
     protected:
@@ -7265,21 +7267,7 @@ namespace RareEdit
             redoSize = 0;
         }
 
-        auto createAction()
-        {
-            if ( actionReferenceCount == 0 )
-            {
-                if ( actionFirstEvent.empty() || actionFirstEvent.back() < editable.eventOffsets.size() ||
-                    (actionFirstEvent.back() & flagElidedRedos) == flagElidedRedos ) // If the last action is empty, and not a marker, no new action is needed
-                {
-                    if ( redoCount > 0 )
-                        elideRedos();
-
-                    actionFirstEvent.push_back(editable.eventOffsets.size());
-                }
-            }
-            return Editor<Tracked>{this};
-        };
+        auto createAction() { return Editor<Tracked>{this}; };
 
         static inline Editor<Tracked> root {nullptr}; // Represents the root of the data structure, used by client code to create paths
 
@@ -7292,20 +7280,7 @@ namespace RareEdit
         Agent<Data, User, Editor<Tracked>> & history = static_cast<Agent<Data, User, Editor<Tracked>> &>(editable);
         constexpr const Data & operator*() const noexcept { return read; }
         constexpr const Data* operator->() const noexcept { return this; }
-        auto operator()() { 
-            if ( actionReferenceCount == 0 )
-            {
-                if ( actionFirstEvent.empty() || actionFirstEvent.back() < editable.eventOffsets.size() ||
-                    (actionFirstEvent.back() & flagElidedRedos) == flagElidedRedos ) // If the last action is empty, and not a marker, no new action is needed
-                {
-                    if ( redoCount > 0 )
-                        elideRedos();
-
-                    actionFirstEvent.push_back(editable.eventOffsets.size());
-                }
-            }
-            return Editor<Tracked>{this};
-        };
+        auto operator()() { return Editor<Tracked>{this}; };
 
         void clearHistory()
         {
@@ -7373,7 +7348,17 @@ namespace RareEdit
             std::uint64_t actionIndex = totalActions-redoSize;
             
             std::uint64_t actionEventStart = actionFirstEvent[actionIndex];
-            std::uint64_t nextActionStart = actionIndex+1<totalActions ? actionFirstEvent[actionIndex+1] : editable.eventOffsets.size();
+            std::uint64_t nextActionStart = flagElidedRedos;
+            for ( std::size_t i=1; actionIndex+i<totalActions; ++i )
+            {
+                if ( (actionFirstEvent[actionIndex+i] & flagElidedRedos) != flagElidedRedos )
+                {
+                    nextActionStart = actionFirstEvent[actionIndex+i];
+                    break;
+                }
+            }
+            if ( nextActionStart == flagElidedRedos )
+                nextActionStart = editable.eventOffsets.size();
             
             auto & agent = (Agent<Data, User, Editor<Tracked>> &)editable;
             for ( auto i=actionEventStart; i<nextActionStart; i++ )
