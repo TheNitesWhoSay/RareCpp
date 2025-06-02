@@ -7133,18 +7133,20 @@ namespace RareEdit
         }
     };
 
-    template <class Data, class User>
+    struct NoUserData { friend constexpr bool operator==(NoUserData, NoUserData) noexcept { return false; } };
+
+    template <class Data, class User, class UserData = NoUserData>
     requires RareTs::is_macro_reflected_v<Data> && std::is_object_v<User>
     class Tracked;
 
-    template <class T, class User, class Editor>
+    template <class T, class User, class ActionUserData, class Editor>
     class EditRoot : private Agent<T, User, Editor>, public edit_members<Agent<T, User, Editor>, typename decltype(defaultIndexType<T>())::type, T, T>
     {
         EditRoot(T & t, User & user) :
             Agent<T, User, Editor>(t, user),
             edit_members<Agent<T, User, Editor>, typename decltype(defaultIndexType<T>())::type, T, T>{(Agent<T, User, Editor>&)*this, std::tuple{}} {}
 
-        friend class Tracked<T, User>;
+        friend class Tracked<T, User, ActionUserData>;
         friend struct Agent<T, User, Editor>;
 
     public:
@@ -7207,11 +7209,13 @@ namespace RareEdit
         std::vector<std::string> breakdown {};
     };
 
+    template <class ActionUserData>
     struct RenderAction {
         ActionStatus actionStatus {};
         std::size_t elisionCount = 0;
         std::vector<DataChangeEvent> changeEvents {};
         std::size_t byteCount = 0;
+        ActionUserData userData {};
 
         constexpr bool isElisionMarker() const { return actionStatus == ActionStatus::ElidedRedo && elisionCount > 0; }
         constexpr bool isElided() const { return actionStatus == ActionStatus::ElidedRedo && elisionCount == 0; }
@@ -7219,21 +7223,31 @@ namespace RareEdit
         constexpr bool isRedoable() const { return actionStatus == ActionStatus::Redoable; }
     };
 
-    template <class Data, class User>
+    template <class UserData = NoUserData>
+    struct Action : UserData
+    {
+        std::size_t firstEventIndex;
+        
+        constexpr Action(std::size_t firstEventIndex) noexcept : firstEventIndex(firstEventIndex) {}
+        constexpr Action(std::size_t firstEventIndex, const UserData & userData) noexcept : UserData(userData), firstEventIndex(firstEventIndex) {}
+    };
+
+    template <class Data, class User, class UserData>
     requires RareTs::is_macro_reflected_v<Data> && std::is_object_v<User>
     class Tracked : Data
     {
         using data_type = Data;
         using user_type = User;
-        using edit_root = EditRoot<Data, User, Editor<Tracked>>;
+        using edit_root = EditRoot<Data, User, UserData, Editor<Tracked>>;
 
         static constexpr std::uint64_t flagElidedRedos    = 0x8000000000000000ull;
         static constexpr std::uint64_t maskElidedRedoSize = 0x7FFFFFFFFFFFFFFFull; // The total size of this elided redo branch, including sub-branches
 
         edit_root editable;
 
+        UserData pendingActionUserData {}; // The user data that will be associated with the next action to be added
         std::size_t pendingActionStart = 0; // Index of the first data-change event for the next action to be added
-        std::vector<std::uint64_t> actionFirstEvent; // Index of the first data-change event for action[i] (presently the only persistent data for actions)
+        std::vector<Action<UserData>> actions; // Contains the index of the first data-change event for action[i] and any user-data
         int actionReferenceCount = 0; // Referencing counting for the current action, new actions can only be created when the old action is closed
         std::uint64_t redoCount = 0; // How many undos have occured since the last user-action/how many redos are available
         std::uint64_t redoSize = 0; // The size of the range including the redoable actions (includes elided redos)
@@ -7249,11 +7263,11 @@ namespace RareEdit
                 if ( redoCount > 0 )
                     elideRedos();
 
-                actionFirstEvent.push_back(pendingActionStart);
+                actions.push_back({pendingActionStart, pendingActionUserData});
                 pendingActionStart = editable.eventOffsets.size();
 
                 if constexpr ( hasAfterActionOp<user_type> )
-                    static_cast<Agent<Data, User, Editor<Tracked>> &>(editable).user.afterAction(actionFirstEvent.size()-1); // Notify
+                    static_cast<Agent<Data, User, Editor<Tracked>> &>(editable).user.afterAction(actions.size()-1); // Notify
             }
         }
 
@@ -7264,12 +7278,18 @@ namespace RareEdit
             if ( redoCount == 0 )
                 throw std::logic_error("Redos cannot be elided when there are no redos");
             
-            actionFirstEvent.push_back(redoSize | flagElidedRedos);
+            actions.push_back({redoSize | flagElidedRedos, pendingActionUserData});
             redoCount = 0;
             redoSize = 0;
         }
 
-        auto createAction() { return Editor<Tracked>{this}; };
+        auto createAction(UserData userData = {})
+        {
+            if ( actionReferenceCount == 0 || UserData{} == pendingActionUserData )
+                std::swap(userData, pendingActionUserData);
+
+            return Editor<Tracked>{this};
+        };
 
         static inline Editor<Tracked> root {nullptr}; // Represents the root of the data structure, used by client code to create paths
 
@@ -7282,7 +7302,14 @@ namespace RareEdit
         Agent<Data, User, Editor<Tracked>> & history = static_cast<Agent<Data, User, Editor<Tracked>> &>(editable);
         constexpr const Data & operator*() const noexcept { return read; }
         constexpr const Data* operator->() const noexcept { return this; }
-        auto operator()() { return Editor<Tracked>{this}; };
+
+        auto operator()(UserData userData = {})
+        {
+            if ( actionReferenceCount == 0 || UserData{} == pendingActionUserData )
+                std::swap(userData, pendingActionUserData);
+
+            return Editor<Tracked>{this};
+        };
 
         void clearHistory()
         {
@@ -7292,7 +7319,7 @@ namespace RareEdit
             history.clear();
             redoCount = 0;
             redoSize = 0;
-            actionFirstEvent.clear();
+            actions.clear();
         }
 
         // Initializes the stored data with the given input, this initialization is tracked of initTracked is true
@@ -7300,7 +7327,7 @@ namespace RareEdit
         template <bool initTracked = false>
         void initData(auto && data)
         {
-            if ( !actionFirstEvent.empty() )
+            if ( !actions.empty() )
                 throw std::logic_error("Cannot init an object that already has history!");
             else if ( actionReferenceCount > 0 )
                 throw std::logic_error("Cannot init an object that already has an active action!");
@@ -7313,24 +7340,24 @@ namespace RareEdit
 
         void undoAction()
         {
-            if ( redoSize >= actionFirstEvent.size() )
+            if ( redoSize >= actions.size() )
                 return;
 
-            std::size_t totalActions = actionFirstEvent.size();
+            std::size_t totalActions = actions.size();
             std::uint64_t actionIndex = totalActions-redoSize-1;
 
-            while ( (actionFirstEvent[actionIndex] & flagElidedRedos) == flagElidedRedos ) // Find the next unelided action
+            while ( (actions[actionIndex].firstEventIndex & flagElidedRedos) == flagElidedRedos ) // Find the next unelided action
             {
-                auto redoGap = ((actionFirstEvent[actionIndex] & maskElidedRedoSize)+1);
+                auto redoGap = ((actions[actionIndex].firstEventIndex & maskElidedRedoSize)+1);
                 if ( redoGap <= actionIndex )
                     actionIndex -= redoGap;
                 else
                     return; // Every prior action was elided, nothing to undo
             }
 
-            std::int64_t actionEventStart = static_cast<std::int64_t>(actionFirstEvent[actionIndex]);
+            std::int64_t actionEventStart = static_cast<std::int64_t>(actions[actionIndex].firstEventIndex);
             std::int64_t nextActionStart = static_cast<std::size_t>(actionIndex)<totalActions-1 ?
-                static_cast<std::int64_t>(actionFirstEvent[actionIndex+1]) :
+                static_cast<std::int64_t>(actions[actionIndex+1].firstEventIndex) :
                 static_cast<std::int64_t>(editable.eventOffsets.size());
             
             auto & agent = (Agent<Data, User, Editor<Tracked>> &)editable;
@@ -7346,16 +7373,16 @@ namespace RareEdit
             if ( redoCount == 0 )
                 return;
 
-            std::size_t totalActions = actionFirstEvent.size();
+            std::size_t totalActions = actions.size();
             std::uint64_t actionIndex = totalActions-redoSize;
             
-            std::uint64_t actionEventStart = actionFirstEvent[actionIndex];
+            std::uint64_t actionEventStart = actions[actionIndex].firstEventIndex;
             std::uint64_t nextActionStart = flagElidedRedos;
             for ( std::size_t i=1; actionIndex+i<totalActions; ++i )
             {
-                if ( (actionFirstEvent[actionIndex+i] & flagElidedRedos) != flagElidedRedos )
+                if ( (actions[actionIndex+i].firstEventIndex & flagElidedRedos) != flagElidedRedos )
                 {
-                    nextActionStart = actionFirstEvent[actionIndex+i];
+                    nextActionStart = actions[actionIndex+i].firstEventIndex;
                     break;
                 }
             }
@@ -7375,8 +7402,8 @@ namespace RareEdit
                 std::size_t unelidedCount = 0;
                 while ( unelidedCount < redoCount )
                 {
-                    if ( (actionFirstEvent[actionIndex] & flagElidedRedos) == flagElidedRedos )
-                        actionIndex -= ((actionFirstEvent[actionIndex] & maskElidedRedoSize)+1);
+                    if ( (actions[actionIndex].firstEventIndex & flagElidedRedos) == flagElidedRedos )
+                        actionIndex -= ((actions[actionIndex].firstEventIndex & maskElidedRedoSize)+1);
                     else
                     {
                         ++unelidedCount;
@@ -7389,7 +7416,7 @@ namespace RareEdit
 
         std::size_t getCursorIndex()
         {
-            return actionFirstEvent.size()-redoSize;
+            return actions.size()-redoSize;
         }
 
         auto & put(std::ostream & os, auto && value) const
@@ -7775,10 +7802,10 @@ namespace RareEdit
 
         void printChangeHistory(std::ostream & os) const
         {
-            std::size_t totalActions = actionFirstEvent.size();
+            std::size_t totalActions = actions.size();
             for ( std::size_t actionIndex=0; actionIndex<totalActions; ++actionIndex )
             {
-                std::size_t currActionStart = actionFirstEvent[actionIndex];
+                std::size_t currActionStart = actions[actionIndex].firstEventIndex;
                 if ( (currActionStart & flagElidedRedos) == flagElidedRedos )
                 {
                     auto elisionCount = currActionStart & maskElidedRedoSize;
@@ -7788,7 +7815,7 @@ namespace RareEdit
 
                 std::size_t nextActionStart = flagElidedRedos;
                 for ( std::size_t i=1; (nextActionStart & flagElidedRedos) == flagElidedRedos; ++i ) // Find the next event that isn't an elision marker
-                    nextActionStart = actionIndex+i<totalActions ? (actionFirstEvent[actionIndex+i]) : editable.eventOffsets.size();
+                    nextActionStart = actionIndex+i<totalActions ? (actions[actionIndex+i].firstEventIndex) : editable.eventOffsets.size();
 
                 if ( currActionStart == nextActionStart )
                 {
@@ -7826,12 +7853,13 @@ namespace RareEdit
             dataChangeEvent.summary += ss.str();
         }
 
-        void renderAction(std::size_t actionIndex, RenderAction & action, bool includeEvents = false) const
+        void renderAction(std::size_t actionIndex, RenderAction<UserData> & action, bool includeEvents = false) const
         {
+            action.userData = (UserData &)(actions[actionIndex]);
             action.byteCount = 8;
             action.changeEvents = {};
-            std::size_t totalActions = actionFirstEvent.size();
-            std::size_t currActionStart = actionFirstEvent[actionIndex];
+            std::size_t totalActions = actions.size();
+            std::size_t currActionStart = actions[actionIndex].firstEventIndex;
             if ( (currActionStart & flagElidedRedos) == flagElidedRedos )
             {
                 auto elisionCount = currActionStart & maskElidedRedoSize;
@@ -7842,7 +7870,7 @@ namespace RareEdit
 
             std::size_t nextActionStart = flagElidedRedos;
             for ( std::size_t i=1; (nextActionStart & flagElidedRedos) == flagElidedRedos; ++i ) // Find the next event that isn't an elision marker
-                nextActionStart = actionIndex+i<totalActions ? (actionFirstEvent[actionIndex+i]) : editable.eventOffsets.size();
+                nextActionStart = actionIndex+i<totalActions ? (actions[actionIndex+i].firstEventIndex) : editable.eventOffsets.size();
             
             auto [firstEventStart, unusedFirstEventEnd] = editable.getEventOffsetRange(currActionStart);
             auto [unusedLastEventStart, lastEventEnd] = editable.getEventOffsetRange(nextActionStart-1);
@@ -7853,7 +7881,7 @@ namespace RareEdit
                 for ( std::size_t eventIndex = currActionStart; eventIndex < nextActionStart; ++eventIndex )
                 {
                     for ( std::size_t i=1; (nextActionStart & flagElidedRedos) == flagElidedRedos; ++i ) // Find the next event that isn't an elision marker
-                        nextActionStart = actionIndex+i<totalActions ? (actionFirstEvent[actionIndex+i]) : editable.eventOffsets.size();
+                        nextActionStart = actionIndex+i<totalActions ? (actions[actionIndex+i].firstEventIndex) : editable.eventOffsets.size();
 
                     if ( currActionStart == nextActionStart )
                         return;
@@ -7867,13 +7895,13 @@ namespace RareEdit
             }
         }
 
-        std::vector<RenderAction> renderChangeHistory(bool includeEvents = false) const
+        std::vector<RenderAction<UserData>> renderChangeHistory(bool includeEvents = false) const
         {
-            std::vector<RenderAction> rendering {};
-            std::size_t totalActions = actionFirstEvent.size();
+            std::vector<RenderAction<UserData>> rendering {};
+            std::size_t totalActions = actions.size();
             for ( std::size_t actionIndex=0; actionIndex<totalActions; ++actionIndex )
             {
-                RenderAction & action = rendering.emplace_back();
+                RenderAction<UserData> & action = rendering.emplace_back();
 
                 renderAction(actionIndex, action, includeEvents);
                 if ( action.actionStatus == ActionStatus::ElidedRedo && action.elisionCount > 0 )
@@ -7886,7 +7914,7 @@ namespace RareEdit
             return rendering;
         }
 
-        REFLECT(Tracked, flagElidedRedos, maskElidedRedoSize, editable, actionFirstEvent, actionReferenceCount, redoCount, redoSize)
+        REFLECT(Tracked, flagElidedRedos, maskElidedRedoSize, editable, actions, actionReferenceCount, redoCount, redoSize)
     };
 
     template <typename T, typename PathToElem, typename EditorType, typename ReadEditPair>
