@@ -608,6 +608,24 @@ namespace RareEdit
         MoveToL // {targetIndex} --{selections} // Same as moveToN, except the selections make up the indexes
     };
 
+    constexpr bool isSelChangeOp(Op op)
+    {
+        switch ( op )
+        {
+            case Op::ClearSelections: return true;
+            case Op::SelectAll: return true;
+            case Op::Select: return true;
+            case Op::SelectN: return true;
+            case Op::Deselect: return true;
+            case Op::DeselectN: return true;
+            case Op::ToggleSelection: return true;
+            case Op::ToggleSelectionN: return true;
+            case Op::SortSelections: return true;
+            case Op::SortSelectionsDesc: return true;
+        }
+        return false;
+    }
+
     // Go to the Ith member of the current object
     template <std::size_t I> struct PathMember {
         static constexpr std::size_t index = I;
@@ -7207,6 +7225,7 @@ namespace RareEdit
         Op op {};
         std::string summary {};
         std::vector<std::string> breakdown {};
+        constexpr bool isSelChangeEvent() const { return isSelChangeOp(op); }
     };
 
     template <class ActionUserData>
@@ -7221,6 +7240,14 @@ namespace RareEdit
         constexpr bool isElided() const { return actionStatus == ActionStatus::ElidedRedo && elisionCount == 0; }
         constexpr bool isUndoable() const { return actionStatus == ActionStatus::Undoable; }
         constexpr bool isRedoable() const { return actionStatus == ActionStatus::Redoable; }
+        constexpr bool isSelChangeAction() const {
+            for ( auto event : changeEvents )
+            {
+                if ( !event.isSelChangeEvent() )
+                    return false;
+            }
+            return true;
+        }
     };
 
     template <class UserData = NoUserData>
@@ -7417,6 +7444,19 @@ namespace RareEdit
         std::size_t getCursorIndex()
         {
             return actions.size()-redoSize;
+        }
+
+        std::size_t lastUnelidedAction()
+        {
+            auto i = static_cast<std::ptrdiff_t>(getCursorIndex())-1;
+            for ( ; i>=0; --i )
+            {
+                if ( (actions[static_cast<std::size_t>(i)].firstEventIndex & flagElidedRedos) == flagElidedRedos )
+                    i -= static_cast<std::ptrdiff_t>(actions[static_cast<std::size_t>(i)].firstEventIndex & maskElidedRedoSize);
+                else
+                    break;
+            }
+            return static_cast<std::size_t>(i < 0 ? 0 : i);
         }
 
         auto & put(std::ostream & os, auto && value) const
@@ -7850,6 +7890,7 @@ namespace RareEdit
             ++offset;
             std::stringstream ss {};
             printEvent<U, Member>(ss, offset, op, std::make_index_sequence<reflectedMemberCount<U>()>());
+            dataChangeEvent.op = Op(op);
             dataChangeEvent.summary += ss.str();
         }
 
