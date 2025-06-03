@@ -2173,7 +2173,7 @@ namespace RareEdit
                 }
                 else
                 {
-                    serializeValue<Member>(ref + value); // Value set to
+                    serializeValue<Member>(std::remove_cvref_t<decltype(ref)>(ref + value)); // Value set to
                     serializeValue<Member>(ref); // Value before changing
                     ref += std::forward<Value>(value);
                 }
@@ -2200,7 +2200,7 @@ namespace RareEdit
                 }
                 else
                 {
-                    serializeValue<Member>(ref - value); // Value set to
+                    serializeValue<Member>(std::remove_cvref_t<decltype(ref)>(ref - value)); // Value set to
                     serializeValue<Member>(ref); // Value before changing
                     ref -= std::forward<Value>(value);
                 }
@@ -2227,7 +2227,7 @@ namespace RareEdit
                 }
                 else
                 {
-                    serializeValue<Member>(ref * value); // Value set to
+                    serializeValue<Member>(std::remove_cvref_t<decltype(ref)>(ref * value)); // Value set to
                     serializeValue<Member>(ref); // Value before changing
                     ref *= std::forward<Value>(value);
                 }
@@ -2254,7 +2254,7 @@ namespace RareEdit
                 }
                 else
                 {
-                    serializeValue<Member>(ref / value); // Value set to
+                    serializeValue<Member>(std::remove_cvref_t<decltype(ref)>(ref / value)); // Value set to
                     serializeValue<Member>(ref); // Value before changing
                     ref /= std::forward<Value>(value);
                 }
@@ -2281,7 +2281,7 @@ namespace RareEdit
                 }
                 else
                 {
-                    serializeValue<Member>(ref % value); // Value set to
+                    serializeValue<Member>(std::remove_cvref_t<decltype(ref)>(ref % value)); // Value set to
                     serializeValue<Member>(ref); // Value before changing
                     ref %= std::forward<Value>(value);
                 }
@@ -2308,7 +2308,7 @@ namespace RareEdit
                 }
                 else
                 {
-                    serializeValue<Member>(ref ^ value); // Value set to
+                    serializeValue<Member>(std::remove_cvref_t<decltype(ref)>(ref ^ value)); // Value set to
                     serializeValue<Member>(ref); // Value before changing
                     ref ^= std::forward<Value>(value);
                 }
@@ -2335,7 +2335,7 @@ namespace RareEdit
                 }
                 else
                 {
-                    serializeValue<Member>(ref & value); // Value set to
+                    serializeValue<Member>(std::remove_cvref_t<decltype(ref)>(ref & value)); // Value set to
                     serializeValue<Member>(ref); // Value before changing
                     ref &= std::forward<Value>(value);
                 }
@@ -2362,7 +2362,7 @@ namespace RareEdit
                 }
                 else
                 {
-                    serializeValue<Member>(ref | value); // Value set to
+                    serializeValue<Member>(std::remove_cvref_t<decltype(ref)>(ref | value)); // Value set to
                     serializeValue<Member>(ref); // Value before changing
                     ref |= std::forward<Value>(value);
                 }
