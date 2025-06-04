@@ -7441,22 +7441,21 @@ namespace RareEdit
             }
         }
 
-        std::size_t getCursorIndex()
+        std::size_t getCursorIndex() // One after the index of the last action which hasn't been undone
         {
             return actions.size()-redoSize;
         }
 
-        std::size_t lastUnelidedAction()
+        std::size_t previousCursorIndex() // One after the index of the most recent un-elided action before the current cursor
         {
-            auto i = static_cast<std::ptrdiff_t>(getCursorIndex())-1;
-            for ( ; i>=0; --i )
+            for ( auto i = static_cast<std::ptrdiff_t>(getCursorIndex())-2; i>=0; --i )
             {
                 if ( (actions[static_cast<std::size_t>(i)].firstEventIndex & flagElidedRedos) == flagElidedRedos )
                     i -= static_cast<std::ptrdiff_t>(actions[static_cast<std::size_t>(i)].firstEventIndex & maskElidedRedoSize);
                 else
-                    break;
+                    return i+1;
             }
-            return static_cast<std::size_t>(i < 0 ? 0 : i);
+            return 0;
         }
 
         auto & put(std::ostream & os, auto && value) const
