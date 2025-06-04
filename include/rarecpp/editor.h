@@ -7316,7 +7316,12 @@ namespace RareEdit
                 std::swap(userData, pendingActionUserData);
 
             return Editor<Tracked>{this};
-        };
+        }
+
+        void replacePendingActionUserData(UserData userData)
+        {
+            std::swap(userData, pendingActionUserData);
+        }
 
         static inline Editor<Tracked> root {nullptr}; // Represents the root of the data structure, used by client code to create paths
 
