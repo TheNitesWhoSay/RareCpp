@@ -2230,7 +2230,7 @@ namespace RareEdit
                 {
                     auto prevValue = ref;
                     ref += std::forward<Value>(value);
-                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(value)); // Value set to
+                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
                     serializeValue<Member>(prevValue); // Value before changing
                     notifyValueChanged(user, Route{keys}, prevValue, ref);
                 }
@@ -2257,7 +2257,7 @@ namespace RareEdit
                 {
                     auto prevValue = ref;
                     ref -= std::forward<Value>(value);
-                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(value)); // Value set to
+                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
                     serializeValue<Member>(prevValue); // Value before changing
                     notifyValueChanged(user, Route{keys}, prevValue, ref);
                 }
@@ -2284,7 +2284,7 @@ namespace RareEdit
                 {
                     auto prevValue = ref;
                     ref *= std::forward<Value>(value);
-                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(value)); // Value set to
+                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
                     serializeValue<Member>(prevValue); // Value before changing
                     notifyValueChanged(user, Route{keys}, prevValue, ref);
                 }
@@ -2311,7 +2311,7 @@ namespace RareEdit
                 {
                     auto prevValue = ref;
                     ref /= std::forward<Value>(value);
-                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(value)); // Value set to
+                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
                     serializeValue<Member>(prevValue); // Value before changing
                     notifyValueChanged(user, Route{keys}, prevValue, ref);
                 }
@@ -2338,7 +2338,7 @@ namespace RareEdit
                 {
                     auto prevValue = ref;
                     ref %= std::forward<Value>(value);
-                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(value)); // Value set to
+                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
                     serializeValue<Member>(prevValue); // Value before changing
                     notifyValueChanged(user, Route{keys}, prevValue, ref);
                 }
@@ -2365,7 +2365,7 @@ namespace RareEdit
                 {
                     auto prevValue = ref;
                     ref ^= std::forward<Value>(value);
-                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(value)); // Value set to
+                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
                     serializeValue<Member>(prevValue); // Value before changing
                     notifyValueChanged(user, Route{keys}, prevValue, ref);
                 }
@@ -2392,7 +2392,7 @@ namespace RareEdit
                 {
                     auto prevValue = ref;
                     ref &= std::forward<Value>(value);
-                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(value)); // Value set to
+                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
                     serializeValue<Member>(prevValue); // Value before changing
                     notifyValueChanged(user, Route{keys}, prevValue, ref);
                 }
@@ -2419,7 +2419,7 @@ namespace RareEdit
                 {
                     auto prevValue = ref;
                     ref |= std::forward<Value>(value);
-                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(value)); // Value set to
+                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
                     serializeValue<Member>(prevValue); // Value before changing
                     notifyValueChanged(user, Route{keys}, prevValue, ref);
                 }
@@ -5539,7 +5539,8 @@ namespace RareEdit
                 break;
                 case Op::Assign:
                 {
-                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.assign(0, {});} )
+                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> &&
+                        !RareTs::is_optional_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.assign(0, {});} )
                     {
                         std::size_t count = static_cast<std::size_t>(readIndex<index_type>(offset));
                         auto value = readValue<element_type, Member>(offset);
@@ -5580,7 +5581,8 @@ namespace RareEdit
                 break;
                 case Op::AssignDefault:
                 {
-                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref = value_type(0);} )
+                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> &&
+                        !RareTs::is_optional_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref = value_type(0);} )
                     {
                         std::size_t size = static_cast<std::size_t>(readIndex<index_type>(offset));
                         if constexpr ( hasElementRemovedOp<Route> )
@@ -5909,7 +5911,8 @@ namespace RareEdit
                 break;
                 case Op::AppendN:
                 {
-                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.push_back(element_type{});} )
+                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> &&
+                        !RareTs::is_optional_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.push_back(element_type{});} )
                     {
                         auto count = static_cast<std::size_t>(readIndex<index_type>(offset));
                         for ( std::size_t i=0; i<count; ++i )
@@ -5923,7 +5926,8 @@ namespace RareEdit
                 break;
                 case Op::Insert:
                 {
-                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.insert(ref.begin(), std::declval<element_type>());} )
+                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> &&
+                        !RareTs::is_optional_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.insert(ref.begin(), std::declval<element_type>());} )
                     {
                         auto insertionIndex = readIndex<index_type>(offset);
                         auto insertedValue = readValue<element_type, Member>(offset);
@@ -5953,7 +5957,8 @@ namespace RareEdit
                 break;
                 case Op::InsertN:
                 {
-                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> && !std::is_same_v<std::string, value_type> && requires {ref.insert(ref.begin(), std::declval<element_type>());} )
+                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> &&
+                        !RareTs::is_optional_v<value_type> && !std::is_same_v<std::string, value_type> && requires {ref.insert(ref.begin(), std::declval<element_type>());} )
                     {
                         std::size_t insertionCount = static_cast<std::size_t>(readIndex<index_type>(offset));
                         auto insertionIndex = readIndex<index_type>(offset);
@@ -5994,7 +5999,8 @@ namespace RareEdit
                 break;
                 case Op::Remove:
                 {
-                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.erase(ref.begin());} )
+                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> &&
+                        !RareTs::is_optional_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.erase(ref.begin());} )
                     {
                         auto removalIndex = readIndex<index_type>(offset);
                         ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removalIndex)));
@@ -6029,7 +6035,8 @@ namespace RareEdit
                 break;
                 case Op::RemoveN:
                 {
-                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.erase(ref.begin());} )
+                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> &&
+                        !RareTs::is_optional_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.erase(ref.begin());} )
                     {
                         auto & sel = getSelections<Pathway...>();
                         std::size_t removalCount = static_cast<std::size_t>(readIndex<index_type>(offset));
@@ -6085,7 +6092,8 @@ namespace RareEdit
                 break;
                 case Op::RemoveL:
                 {
-                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.erase(ref.begin());} )
+                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> &&
+                        !RareTs::is_optional_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.erase(ref.begin());} )
                     {
                         std::size_t removalCount = static_cast<std::size_t>(readIndex<index_type>(offset));
                         auto removalIndexes = readIndexes<index_type>(offset, removalCount);
@@ -7393,6 +7401,8 @@ namespace RareEdit
             if ( actionReferenceCount != 0 )
                 throw std::logic_error("Cannot clear history while an action is active");
 
+            pendingActionUserData = {};
+            pendingActionStart = 0;
             history.clear();
             redoCount = 0;
             redoSize = 0;

@@ -796,6 +796,78 @@ namespace EditorCumulative
         EXPECT_EQ(expected, obj->ints);
     }
 
+    TEST(OpDo, PlusEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(2);
+        EXPECT_EQ(obj->ints, std::vector{2});
+        obj()->ints[0] += 3;
+        EXPECT_EQ(obj->ints, std::vector{5});
+    }
+
+    TEST(OpDo, MinusEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(7);
+        EXPECT_EQ(obj->ints, std::vector{7});
+        obj()->ints[0] -= 2;
+        EXPECT_EQ(obj->ints, std::vector{5});
+    }
+
+    TEST(OpDo, MultEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(2);
+        EXPECT_EQ(obj->ints, std::vector{2});
+        obj()->ints[0] *= 2;
+        EXPECT_EQ(obj->ints, std::vector{4});
+    }
+
+    TEST(OpDo, DivEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(4);
+        EXPECT_EQ(obj->ints, std::vector{4});
+        obj()->ints[0] /= 2;
+        EXPECT_EQ(obj->ints, std::vector{2});
+    }
+
+    TEST(OpDo, ModEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(5);
+        EXPECT_EQ(obj->ints, std::vector{5});
+        obj()->ints[0] %= 2;
+        EXPECT_EQ(obj->ints, std::vector{1});
+    }
+
+    TEST(OpDo, XorEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(0b01);
+        EXPECT_EQ(obj->ints, std::vector{0b01});
+        obj()->ints[0] ^= 0b11;
+        EXPECT_EQ(obj->ints, std::vector{0b10});
+    }
+
+    TEST(OpDo, AndEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(0b101);
+        EXPECT_EQ(obj->ints, std::vector{0b101});
+        obj()->ints[0] &= 0b011;
+        EXPECT_EQ(obj->ints, std::vector{0b001});
+    }
+
+    TEST(OpDo, OrEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(0b00);
+        EXPECT_EQ(obj->ints, std::vector{0b00});
+        obj()->ints[0] |= 0b11;
+        EXPECT_EQ(obj->ints, std::vector{0b11});
+    }
+
     TEST(OpDo, Append)
     {
         TrackDoOp obj {};
@@ -1812,6 +1884,118 @@ namespace EditorCumulative
         EXPECT_EQ(values, obj->ints);
         obj.redoAction();
         EXPECT_EQ(expected, obj->ints);
+    }
+    
+    TEST(OpUndoRedo, PlusEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(2);
+        EXPECT_EQ(obj->ints, std::vector{2});
+        obj()->ints[0] += 3;
+        EXPECT_EQ(obj->ints, std::vector{5});
+
+        obj.undoAction();
+        EXPECT_EQ(obj->ints, std::vector{2});
+        obj.redoAction();
+        EXPECT_EQ(obj->ints, std::vector{5});
+    }
+
+    TEST(OpUndoRedo, MinusEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(7);
+        EXPECT_EQ(obj->ints, std::vector{7});
+        obj()->ints[0] -= 2;
+        EXPECT_EQ(obj->ints, std::vector{5});
+
+        obj.undoAction();
+        EXPECT_EQ(obj->ints, std::vector{7});
+        obj.redoAction();
+        EXPECT_EQ(obj->ints, std::vector{5});
+    }
+
+    TEST(OpUndoRedo, MultEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(2);
+        EXPECT_EQ(obj->ints, std::vector{2});
+        obj()->ints[0] *= 2;
+        EXPECT_EQ(obj->ints, std::vector{4});
+
+        obj.undoAction();
+        EXPECT_EQ(obj->ints, std::vector{2});
+        obj.redoAction();
+        EXPECT_EQ(obj->ints, std::vector{4});
+    }
+
+    TEST(OpUndoRedo, DivEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(4);
+        EXPECT_EQ(obj->ints, std::vector{4});
+        obj()->ints[0] /= 2;
+        EXPECT_EQ(obj->ints, std::vector{2});
+
+        obj.undoAction();
+        EXPECT_EQ(obj->ints, std::vector{4});
+        obj.redoAction();
+        EXPECT_EQ(obj->ints, std::vector{2});
+    }
+
+    TEST(OpUndoRedo, ModEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(5);
+        EXPECT_EQ(obj->ints, std::vector{5});
+        obj()->ints[0] %= 2;
+        EXPECT_EQ(obj->ints, std::vector{1});
+
+        obj.undoAction();
+        EXPECT_EQ(obj->ints, std::vector{5});
+        obj.redoAction();
+        EXPECT_EQ(obj->ints, std::vector{1});
+    }
+
+    TEST(OpUndoRedo, XorEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(0b01);
+        EXPECT_EQ(obj->ints, std::vector{0b01});
+        obj()->ints[0] ^= 0b11;
+        EXPECT_EQ(obj->ints, std::vector{0b10});
+
+        obj.undoAction();
+        EXPECT_EQ(obj->ints, std::vector{0b01});
+        obj.redoAction();
+        EXPECT_EQ(obj->ints, std::vector{0b10});
+    }
+
+    TEST(OpUndoRedo, AndEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(0b101);
+        EXPECT_EQ(obj->ints, std::vector{0b101});
+        obj()->ints[0] &= 0b011;
+        EXPECT_EQ(obj->ints, std::vector{0b001});
+
+        obj.undoAction();
+        EXPECT_EQ(obj->ints, std::vector{0b101});
+        obj.redoAction();
+        EXPECT_EQ(obj->ints, std::vector{0b001});
+    }
+
+    TEST(OpUndoRedo, OrEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(0b00);
+        EXPECT_EQ(obj->ints, std::vector{0b00});
+        obj()->ints[0] |= 0b11;
+        EXPECT_EQ(obj->ints, std::vector{0b11});
+
+        obj.undoAction();
+        EXPECT_EQ(obj->ints, std::vector{0b00});
+        obj.redoAction();
+        EXPECT_EQ(obj->ints, std::vector{0b11});
     }
 
     TEST(OpUndoRedo, Append)
@@ -4724,5 +4908,461 @@ namespace EditorCumulative
         EXPECT_EQ(expectedSel, obj.view.ints.sel());
     }
 
-}
+    struct MdArrayTest
+    {
+        int twoD[3][2] {{11, 22}, {33, 44}, {55, 66}};
+        int threeD[4][3][2] {
+            {{11, 22}, {33, 44}, {55, 66}},
+            {{111, 222}, {333, 444}, {555, 666}},
+            {{1111, 2222}, {3333, 4444}, {5555, 6666}},
+            {{11111, 22222}, {33333, 44444}, {55555, 66666}}
+        };
 
+        REFLECT(MdArrayTest, twoD, threeD)
+    };
+
+    struct EditMdArrayTest : Tracked<MdArrayTest, EditMdArrayTest>
+    {
+        EditMdArrayTest() : Tracked{this} {}
+    };
+    
+    TEST(MdArray, Reset)
+    {
+        EditMdArrayTest myObj {};
+        EXPECT_EQ(myObj->twoD[0][0], 11);
+        EXPECT_EQ(myObj->twoD[0][1], 22);
+        EXPECT_EQ(myObj->twoD[1][0], 33);
+        EXPECT_EQ(myObj->twoD[1][1], 44);
+        EXPECT_EQ(myObj->twoD[2][0], 55);
+        EXPECT_EQ(myObj->twoD[2][1], 66);
+        EXPECT_EQ(myObj->threeD[0][0][0], 11);
+        EXPECT_EQ(myObj->threeD[0][0][1], 22);
+        EXPECT_EQ(myObj->threeD[0][1][0], 33);
+        EXPECT_EQ(myObj->threeD[0][1][1], 44);
+        EXPECT_EQ(myObj->threeD[0][2][0], 55);
+        EXPECT_EQ(myObj->threeD[0][2][1], 66);
+        EXPECT_EQ(myObj->threeD[1][0][0], 111);
+        EXPECT_EQ(myObj->threeD[1][0][1], 222);
+        EXPECT_EQ(myObj->threeD[1][1][0], 333);
+        EXPECT_EQ(myObj->threeD[1][1][1], 444);
+        EXPECT_EQ(myObj->threeD[1][2][0], 555);
+        EXPECT_EQ(myObj->threeD[1][2][1], 666);
+        EXPECT_EQ(myObj->threeD[2][0][0], 1111);
+        EXPECT_EQ(myObj->threeD[2][0][1], 2222);
+        EXPECT_EQ(myObj->threeD[2][1][0], 3333);
+        EXPECT_EQ(myObj->threeD[2][1][1], 4444);
+        EXPECT_EQ(myObj->threeD[2][2][0], 5555);
+        EXPECT_EQ(myObj->threeD[2][2][1], 6666);
+        EXPECT_EQ(myObj->threeD[3][0][0], 11111);
+        EXPECT_EQ(myObj->threeD[3][0][1], 22222);
+        EXPECT_EQ(myObj->threeD[3][1][0], 33333);
+        EXPECT_EQ(myObj->threeD[3][1][1], 44444);
+        EXPECT_EQ(myObj->threeD[3][2][0], 55555);
+        EXPECT_EQ(myObj->threeD[3][2][1], 66666);
+        
+        myObj()->twoD.reset();
+        myObj()->threeD.reset();
+        EXPECT_EQ(myObj->twoD[0][0], 0);
+        EXPECT_EQ(myObj->twoD[0][1], 0);
+        EXPECT_EQ(myObj->twoD[1][0], 0);
+        EXPECT_EQ(myObj->twoD[1][1], 0);
+        EXPECT_EQ(myObj->twoD[2][0], 0);
+        EXPECT_EQ(myObj->twoD[2][1], 0);
+        EXPECT_EQ(myObj->threeD[0][0][0], 0);
+        EXPECT_EQ(myObj->threeD[0][0][1], 0);
+        EXPECT_EQ(myObj->threeD[0][1][0], 0);
+        EXPECT_EQ(myObj->threeD[0][1][1], 0);
+        EXPECT_EQ(myObj->threeD[0][2][0], 0);
+        EXPECT_EQ(myObj->threeD[0][2][1], 0);
+        EXPECT_EQ(myObj->threeD[1][0][0], 0);
+        EXPECT_EQ(myObj->threeD[1][0][1], 0);
+        EXPECT_EQ(myObj->threeD[1][1][0], 0);
+        EXPECT_EQ(myObj->threeD[1][1][1], 0);
+        EXPECT_EQ(myObj->threeD[1][2][0], 0);
+        EXPECT_EQ(myObj->threeD[1][2][1], 0);
+        EXPECT_EQ(myObj->threeD[2][0][0], 0);
+        EXPECT_EQ(myObj->threeD[2][0][1], 0);
+        EXPECT_EQ(myObj->threeD[2][1][0], 0);
+        EXPECT_EQ(myObj->threeD[2][1][1], 0);
+        EXPECT_EQ(myObj->threeD[2][2][0], 0);
+        EXPECT_EQ(myObj->threeD[2][2][1], 0);
+        EXPECT_EQ(myObj->threeD[3][0][0], 0);
+        EXPECT_EQ(myObj->threeD[3][0][1], 0);
+        EXPECT_EQ(myObj->threeD[3][1][0], 0);
+        EXPECT_EQ(myObj->threeD[3][1][1], 0);
+        EXPECT_EQ(myObj->threeD[3][2][0], 0);
+        EXPECT_EQ(myObj->threeD[3][2][1], 0);
+
+        myObj.undoAction();
+        myObj.undoAction();
+        EXPECT_EQ(myObj->twoD[0][0], 11);
+        EXPECT_EQ(myObj->twoD[0][1], 22);
+        EXPECT_EQ(myObj->twoD[1][0], 33);
+        EXPECT_EQ(myObj->twoD[1][1], 44);
+        EXPECT_EQ(myObj->twoD[2][0], 55);
+        EXPECT_EQ(myObj->twoD[2][1], 66);
+        EXPECT_EQ(myObj->threeD[0][0][0], 11);
+        EXPECT_EQ(myObj->threeD[0][0][1], 22);
+        EXPECT_EQ(myObj->threeD[0][1][0], 33);
+        EXPECT_EQ(myObj->threeD[0][1][1], 44);
+        EXPECT_EQ(myObj->threeD[0][2][0], 55);
+        EXPECT_EQ(myObj->threeD[0][2][1], 66);
+        EXPECT_EQ(myObj->threeD[1][0][0], 111);
+        EXPECT_EQ(myObj->threeD[1][0][1], 222);
+        EXPECT_EQ(myObj->threeD[1][1][0], 333);
+        EXPECT_EQ(myObj->threeD[1][1][1], 444);
+        EXPECT_EQ(myObj->threeD[1][2][0], 555);
+        EXPECT_EQ(myObj->threeD[1][2][1], 666);
+        EXPECT_EQ(myObj->threeD[2][0][0], 1111);
+        EXPECT_EQ(myObj->threeD[2][0][1], 2222);
+        EXPECT_EQ(myObj->threeD[2][1][0], 3333);
+        EXPECT_EQ(myObj->threeD[2][1][1], 4444);
+        EXPECT_EQ(myObj->threeD[2][2][0], 5555);
+        EXPECT_EQ(myObj->threeD[2][2][1], 6666);
+        EXPECT_EQ(myObj->threeD[3][0][0], 11111);
+        EXPECT_EQ(myObj->threeD[3][0][1], 22222);
+        EXPECT_EQ(myObj->threeD[3][1][0], 33333);
+        EXPECT_EQ(myObj->threeD[3][1][1], 44444);
+        EXPECT_EQ(myObj->threeD[3][2][0], 55555);
+        EXPECT_EQ(myObj->threeD[3][2][1], 66666);
+
+        myObj.redoAction();
+        myObj.redoAction();
+        EXPECT_EQ(myObj->twoD[0][0], 0);
+        EXPECT_EQ(myObj->twoD[0][1], 0);
+        EXPECT_EQ(myObj->twoD[1][0], 0);
+        EXPECT_EQ(myObj->twoD[1][1], 0);
+        EXPECT_EQ(myObj->twoD[2][0], 0);
+        EXPECT_EQ(myObj->twoD[2][1], 0);
+        EXPECT_EQ(myObj->threeD[0][0][0], 0);
+        EXPECT_EQ(myObj->threeD[0][0][1], 0);
+        EXPECT_EQ(myObj->threeD[0][1][0], 0);
+        EXPECT_EQ(myObj->threeD[0][1][1], 0);
+        EXPECT_EQ(myObj->threeD[0][2][0], 0);
+        EXPECT_EQ(myObj->threeD[0][2][1], 0);
+        EXPECT_EQ(myObj->threeD[1][0][0], 0);
+        EXPECT_EQ(myObj->threeD[1][0][1], 0);
+        EXPECT_EQ(myObj->threeD[1][1][0], 0);
+        EXPECT_EQ(myObj->threeD[1][1][1], 0);
+        EXPECT_EQ(myObj->threeD[1][2][0], 0);
+        EXPECT_EQ(myObj->threeD[1][2][1], 0);
+        EXPECT_EQ(myObj->threeD[2][0][0], 0);
+        EXPECT_EQ(myObj->threeD[2][0][1], 0);
+        EXPECT_EQ(myObj->threeD[2][1][0], 0);
+        EXPECT_EQ(myObj->threeD[2][1][1], 0);
+        EXPECT_EQ(myObj->threeD[2][2][0], 0);
+        EXPECT_EQ(myObj->threeD[2][2][1], 0);
+        EXPECT_EQ(myObj->threeD[3][0][0], 0);
+        EXPECT_EQ(myObj->threeD[3][0][1], 0);
+        EXPECT_EQ(myObj->threeD[3][1][0], 0);
+        EXPECT_EQ(myObj->threeD[3][1][1], 0);
+        EXPECT_EQ(myObj->threeD[3][2][0], 0);
+        EXPECT_EQ(myObj->threeD[3][2][1], 0);
+    }
+
+    TEST(MdArray, Set)
+    {
+        EditMdArrayTest myObj {};
+        EXPECT_EQ(myObj->twoD[0][0], 11);
+        EXPECT_EQ(myObj->twoD[0][1], 22);
+        EXPECT_EQ(myObj->twoD[1][0], 33);
+        EXPECT_EQ(myObj->twoD[1][1], 44);
+        EXPECT_EQ(myObj->twoD[2][0], 55);
+        EXPECT_EQ(myObj->twoD[2][1], 66);
+        EXPECT_EQ(myObj->threeD[0][0][0], 11);
+        EXPECT_EQ(myObj->threeD[0][0][1], 22);
+        EXPECT_EQ(myObj->threeD[0][1][0], 33);
+        EXPECT_EQ(myObj->threeD[0][1][1], 44);
+        EXPECT_EQ(myObj->threeD[0][2][0], 55);
+        EXPECT_EQ(myObj->threeD[0][2][1], 66);
+        EXPECT_EQ(myObj->threeD[1][0][0], 111);
+        EXPECT_EQ(myObj->threeD[1][0][1], 222);
+        EXPECT_EQ(myObj->threeD[1][1][0], 333);
+        EXPECT_EQ(myObj->threeD[1][1][1], 444);
+        EXPECT_EQ(myObj->threeD[1][2][0], 555);
+        EXPECT_EQ(myObj->threeD[1][2][1], 666);
+        EXPECT_EQ(myObj->threeD[2][0][0], 1111);
+        EXPECT_EQ(myObj->threeD[2][0][1], 2222);
+        EXPECT_EQ(myObj->threeD[2][1][0], 3333);
+        EXPECT_EQ(myObj->threeD[2][1][1], 4444);
+        EXPECT_EQ(myObj->threeD[2][2][0], 5555);
+        EXPECT_EQ(myObj->threeD[2][2][1], 6666);
+        EXPECT_EQ(myObj->threeD[3][0][0], 11111);
+        EXPECT_EQ(myObj->threeD[3][0][1], 22222);
+        EXPECT_EQ(myObj->threeD[3][1][0], 33333);
+        EXPECT_EQ(myObj->threeD[3][1][1], 44444);
+        EXPECT_EQ(myObj->threeD[3][2][0], 55555);
+        EXPECT_EQ(myObj->threeD[3][2][1], 66666);
+        
+        myObj()->twoD[2][1] = 77;
+        myObj()->threeD[3][2][1] = 77777;
+        EXPECT_EQ(myObj->twoD[2][1], 77);
+        EXPECT_EQ(myObj->threeD[3][2][1], 77777);
+
+        myObj.undoAction();
+        myObj.undoAction();
+        EXPECT_EQ(myObj->twoD[2][1], 66);
+        EXPECT_EQ(myObj->threeD[3][2][1], 66666);
+
+        myObj.redoAction();
+        myObj.redoAction();
+        EXPECT_EQ(myObj->twoD[2][1], 77);
+        EXPECT_EQ(myObj->threeD[3][2][1], 77777);
+    }
+
+    struct InitDataTest
+    {
+        int a = 1;
+        std::vector<int> b = {2, 3};
+
+        REFLECT(InitDataTest, a, b)
+    };
+
+    struct EditInitDataTest : Tracked<InitDataTest, EditInitDataTest>
+    {
+        EditInitDataTest() : Tracked{this} {}
+    };
+
+    TEST(MiscEdits, InitData)
+    {
+        EditInitDataTest myObj {};
+        EXPECT_EQ(1, myObj->a);
+        std::vector<int> expectedVec {2, 3};
+        EXPECT_EQ(expectedVec, myObj->b);
+
+        myObj.initData<false>(InitDataTest {
+            .a = 4,
+            .b = {5, 6}
+        });
+        EXPECT_EQ(0, myObj.getCursorIndex());
+        EXPECT_EQ(4, myObj->a);
+        expectedVec = {5, 6};
+        EXPECT_EQ(expectedVec, myObj->b);
+
+        myObj.initData<true>(InitDataTest {
+            .a = 7,
+            .b = {8, 9}
+        });
+        EXPECT_EQ(1, myObj.getCursorIndex());
+        EXPECT_EQ(7, myObj->a);
+        expectedVec = {8, 9};
+        EXPECT_EQ(expectedVec, myObj->b);
+
+        myObj.undoAction();
+        EXPECT_EQ(0, myObj.getCursorIndex());
+        EXPECT_EQ(4, myObj->a);
+        expectedVec = {5, 6};
+        EXPECT_EQ(expectedVec, myObj->b);
+
+        myObj.redoAction();
+        EXPECT_EQ(1, myObj.getCursorIndex());
+        EXPECT_EQ(7, myObj->a);
+        expectedVec = {8, 9};
+        EXPECT_EQ(expectedVec, myObj->b);
+        
+        EXPECT_ANY_THROW(myObj.initData<false>(InitDataTest{}));
+        EXPECT_ANY_THROW(myObj.initData<true>(InitDataTest{}));
+
+        myObj.clearHistory();
+        myObj.initData<true>(InitDataTest{
+            .a = 10,
+            .b = {11, 12}
+        });
+        EXPECT_EQ(1, myObj.getCursorIndex());
+        EXPECT_EQ(10, myObj->a);
+        expectedVec = {11, 12};
+        EXPECT_EQ(expectedVec, myObj->b);
+
+        myObj.undoAction();
+        EXPECT_EQ(0, myObj.getCursorIndex());
+        EXPECT_EQ(7, myObj->a);
+        expectedVec = {8, 9};
+        EXPECT_EQ(expectedVec, myObj->b);
+
+        myObj.redoAction();
+        EXPECT_EQ(1, myObj.getCursorIndex());
+        EXPECT_EQ(10, myObj->a);
+        expectedVec = {11, 12};
+        EXPECT_EQ(expectedVec, myObj->b);
+
+        myObj.clearHistory();
+        myObj.initData<false>(InitDataTest{
+            .a = 13,
+            .b = {14, 15}
+        });
+        EXPECT_EQ(0, myObj.getCursorIndex());
+        EXPECT_EQ(13, myObj->a);
+        expectedVec = {14, 15};
+        EXPECT_EQ(expectedVec, myObj->b);
+    }
+
+    TEST(MiscEdits, RootAssign)
+    {
+        EditInitDataTest myObj {};
+        EXPECT_EQ(1, myObj->a);
+        std::vector<int> expectedVec {2, 3};
+        EXPECT_EQ(expectedVec, myObj->b);
+
+        myObj()->assign(InitDataTest{
+            .a = 4,
+            .b = {5, 6}
+        });
+        EXPECT_EQ(4, myObj->a);
+        expectedVec = {5, 6};
+        EXPECT_EQ(expectedVec, myObj->b);
+
+        myObj.undoAction();
+        EXPECT_EQ(1, myObj->a);
+        expectedVec = {2, 3};
+        EXPECT_EQ(expectedVec, myObj->b);
+
+        myObj.redoAction();
+        EXPECT_EQ(4, myObj->a);
+        expectedVec = {5, 6};
+        EXPECT_EQ(expectedVec, myObj->b);
+    }
+
+    struct OptionalTest
+    {
+        std::optional<int> a = 1;
+
+        REFLECT(OptionalTest, a)
+    };
+
+    struct EditOptionalTest : Tracked<OptionalTest, EditOptionalTest>
+    {
+        EditOptionalTest() : Tracked{this} {}
+    };
+
+    TEST(MiscEdits, OptionalTest)
+    {
+        EditOptionalTest myObj {};
+        EXPECT_EQ(myObj->a.value(), 1);
+        myObj()->a = std::nullopt;
+        EXPECT_EQ(myObj->a, std::nullopt);
+        myObj()->a = 2;
+        EXPECT_EQ(myObj->a.value(), 2);
+
+        myObj.undoAction();
+        EXPECT_EQ(myObj->a, std::nullopt);
+        myObj.undoAction();
+        EXPECT_EQ(myObj->a, 1);
+
+        myObj.redoAction();
+        EXPECT_EQ(myObj->a, std::nullopt);
+        myObj.redoAction();
+        EXPECT_EQ(myObj->a, 2);
+    }
+
+    struct Item
+    {
+        int hitCount;
+
+        REFLECT(Item, hitCount)
+    };
+
+    struct Actor
+    {
+        int xc = 0;
+        int yc = 0;
+        std::vector<Item> items {Item{}};
+
+        REFLECT(Actor, xc, yc, items)
+    };
+
+    struct MyObj
+    {
+        std::vector<Actor> actors {};
+
+        REFLECT(MyObj, actors)
+    };
+
+    struct TracedObj : Tracked<MyObj, TracedObj>
+    {
+        struct ItemElem : TrackedElement<Item, PATH(root->actors[0].items[0])>
+        {
+            using TrackedElement::TrackedElement;
+            void hit() { edit.hitCount = read.hitCount+1; }
+        };
+
+        struct ActorElem : TrackedElement<Actor, PATH(root->actors[0])>
+        {
+            using TrackedElement::TrackedElement;
+            void act() { edit.xc = read.xc+2; }
+            auto getItemElem(std::size_t i) { return ItemElem(this, view.items[i]); }
+        };
+
+        TracedObj() : Tracked{this} {}
+
+        ActorElem getActorElem(std::size_t i) {
+            return ActorElem(this, view.actors[i]);
+        }
+    };
+
+    TEST(MiscEdits, SubElemTest)
+    {
+        TracedObj myObj {};
+        myObj.initData<false>(MyObj{
+            .actors = {
+                Actor{.xc = 11, .yc = 33, .items = {{0}, {0}}},
+                Actor{.xc = 22, .yc = 44, .items = {{0}, {0}, {0}}}
+            }
+        });
+        {
+            auto editActor = myObj.getActorElem(1);
+            EXPECT_EQ(myObj->actors[1].xc, 22);
+            editActor.act();
+            EXPECT_EQ(myObj->actors[1].xc, 24);
+
+            auto editItem = editActor.getItemElem(2);
+            EXPECT_EQ(myObj->actors[1].items[2].hitCount, 0);
+            editItem.hit();
+            EXPECT_EQ(myObj->actors[1].items[2].hitCount, 1);
+        }
+        myObj.undoAction();
+        EXPECT_EQ(myObj->actors[1].xc, 22);
+        EXPECT_EQ(myObj->actors[1].items[2].hitCount, 0);
+        
+        myObj.redoAction();
+        EXPECT_EQ(myObj->actors[1].xc, 24);
+        EXPECT_EQ(myObj->actors[1].items[2].hitCount, 1);
+    }
+
+    struct UserDefinedData
+    {
+        std::string descr = "";
+
+        inline bool operator==(const UserDefinedData & other) const { return descr == other.descr; }
+    };
+
+    struct UserDefinedTest
+    {
+        int a = 0;
+
+        REFLECT(UserDefinedTest, a)
+    };
+
+    struct EditUserDefinedTest : Tracked<UserDefinedTest, EditUserDefinedTest, UserDefinedData>
+    {
+        EditUserDefinedTest() : Tracked{this} {}
+    };
+
+    TEST(MiscEdits, UserDefinedActionData)
+    {
+        EditUserDefinedTest myObj {};
+        {
+            auto edit = myObj.operator()({"labeled action"});
+            edit->a = 1;
+        }
+        RareEdit::RenderAction<UserDefinedData> renderAction {};
+        myObj.renderAction(0, renderAction, false);
+        EXPECT_STREQ(renderAction.userData.descr.c_str(), "labeled action");
+        {
+            auto edit = myObj.operator()({"another action"});
+            edit->a = 2;
+        }
+        myObj.renderAction(1, renderAction, false);
+        EXPECT_STREQ(renderAction.userData.descr.c_str(), "another action");
+    }
+
+}
