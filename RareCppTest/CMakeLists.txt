@@ -11,6 +11,7 @@ set(Sources
   edit_test.cpp
   editor_notifications_test.cpp
   extended_type_support_test.cpp
+  flat_mdspan_test.cpp
   member_test.cpp
   generic_macro_test.cpp
   inherit_test.cpp

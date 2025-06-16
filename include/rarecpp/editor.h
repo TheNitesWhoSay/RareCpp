@@ -79,8 +79,9 @@ namespace RareEdit
             else
                 return flat_mdspan<T, Extents...>(&data[size/Extent*i]);
         }
+        template <typename U>
         struct It {
-            flat_mdspan* obj;
+            U* obj;
             std::size_t i;
             constexpr void operator++() { ++i; }
             constexpr decltype(auto) operator*() const { return (*obj)[i]; }
@@ -101,7 +102,7 @@ namespace RareEdit
         }
         constexpr void clear() { std::fill(flatBegin(), flatEnd(), T{}); }
         constexpr void fill(const T & value) { std::fill(flatBegin(), flatEnd(), value); }
-        constexpr void swap(flat_mdspan & other) {
+        constexpr void swap(flat_mdspan && other) {
             for ( std::size_t i=0; i<size; ++i )
                 std::swap(data[i], other.data[i]);
         }
@@ -616,18 +617,13 @@ namespace RareEdit
     {
         switch ( op )
         {
-            case Op::ClearSelections: return true;
-            case Op::SelectAll: return true;
-            case Op::Select: return true;
-            case Op::SelectN: return true;
-            case Op::Deselect: return true;
-            case Op::DeselectN: return true;
-            case Op::ToggleSelection: return true;
-            case Op::ToggleSelectionN: return true;
-            case Op::SortSelections: return true;
-            case Op::SortSelectionsDesc: return true;
+            case Op::ClearSelections: case Op::SelectAll: case Op::Select: case Op::SelectN:
+            case Op::Deselect: case Op::DeselectN: case Op::ToggleSelection: case Op::ToggleSelectionN:
+            case Op::SortSelections: case Op::SortSelectionsDesc:
+                return true;
+            default:
+                return false;
         }
-        return false;
     }
 
     // Go to the Ith member of the current object
@@ -7507,7 +7503,7 @@ namespace RareEdit
                 if ( (actions[static_cast<std::size_t>(i)].firstEventIndex & flagElidedRedos) == flagElidedRedos )
                     i -= static_cast<std::ptrdiff_t>(actions[static_cast<std::size_t>(i)].firstEventIndex & maskElidedRedoSize);
                 else
-                    return i+1;
+                    return static_cast<std::size_t>(i)+1;
             }
             return 0;
         }

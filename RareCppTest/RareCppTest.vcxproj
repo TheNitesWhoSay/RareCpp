@@ -190,6 +190,7 @@
     <ClCompile Include="editor_notifications_test.cpp" />
     <ClCompile Include="edit_test.cpp" />
     <ClCompile Include="extended_type_support_test.cpp" />
+    <ClCompile Include="flat_mdspan_test.cpp" />
     <ClCompile Include="member_test.cpp" />
     <ClCompile Include="generic_macro_test.cpp" />
     <ClCompile Include="inherit_test.cpp" />

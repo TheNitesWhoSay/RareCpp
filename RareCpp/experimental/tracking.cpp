@@ -99,6 +99,7 @@ struct TracedObj : Tracked<MyObj, TracedObj>
         std::cout << "New Action[" << actionIndex << "](";
         switch ( action.actionStatus )
         {
+        case RareEdit::ActionStatus::Unknown: std::cout << "Unknown"; break;
         case RareEdit::ActionStatus::Undoable: std::cout << "Undoable"; break;
         case RareEdit::ActionStatus::ElidedRedo: if ( action.elisionCount > 0 ) std::cout << "ElideLast:" << action.elisionCount; else std::cout << "ElidedRedo"; break;
         case RareEdit::ActionStatus::Redoable: std::cout << "Redoable"; break;
