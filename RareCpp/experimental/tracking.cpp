@@ -18,6 +18,8 @@ struct Item
     REFLECT(Item, hitCount)
 };
 
+struct ActorLink { std::string label {}; };
+
 struct Actor
 {
     int xc = 0;
@@ -33,6 +35,7 @@ struct MyObj
 {
     std::vector<int> ints {};
     Actor actor {};
+    NOTE(actors, AttachData<ActorLink>)
     std::vector<Actor> actors {};
 
     REFLECT_NOTED(MyObj, ints, actor, actors)
@@ -84,6 +87,9 @@ struct TracedObj : Tracked<MyObj, TracedObj>
         edit->actors.select(0);
         edit->actors.moveSelectionsDown();
         //edit->actors.removeSelection();
+
+        auto & attachedData = view.actors.attachedData();
+        std::cout << RareTs::toStr<decltype(attachedData)>() << '\n';
     }
 
     void afterAction(std::size_t actionIndex)

@@ -27,6 +27,10 @@ namespace RareEdit
 
     template <typename SizeType> inline constexpr IndexSizeType<SizeType> IndexSize;
 
+    template <typename AttachedType> struct AttachDataType { using type = AttachedType; };
+
+    template <typename AttachedType> inline constexpr AttachDataType<AttachedType> AttachData;
+
     inline constexpr std::nullopt_t refNullOpt = std::nullopt;
 
     template <typename T>
@@ -808,8 +812,9 @@ namespace RareEdit
             using selection_op_type = SubElement<Agent, default_index_type, RootData, T, Keys, Pathway..., PathSelections>;
             using array_op_type = decltype(arrayOpType(std::make_index_sequence<std::tuple_size_v<Keys>>()));
             using sub_array_op_type = decltype(subArrayOpType(std::make_index_sequence<std::tuple_size_v<Keys>>()));
-
+            
             constexpr const auto & sel() const { return agent.template getSelections<Pathway...>(); }
+            constexpr auto & attachedData() const { return agent.template getAttachedData<Pathway...>(); }
 
             inline void clearSelections()
             {
@@ -1260,6 +1265,13 @@ namespace RareEdit
     template <typename T> struct is_selection_member {
         static constexpr bool value = hasSelectionMember<T>(std::make_index_sequence<reflectedMemberCount<typename T::type>()>());
     };
+
+    template <class DefaultIndexType, class Member, class AttachedType>
+    struct leaf_data
+    {
+        std::vector<AttachedType> attachedData;
+        std::vector<index_type_t<DefaultIndexType, Member>> sel;
+    };
     
     template <class DefaultIndexType, class T, std::size_t ... Is>
     struct object_selection;
@@ -1276,7 +1288,18 @@ namespace RareEdit
             });
         }
         else if constexpr ( RareTs::is_static_array_v<member_type> || RareTs::is_specialization_v<member_type, std::vector> )
-            return std::vector<index_type_t<DefaultIndexType, member>> {};
+        {
+            if constexpr ( member::template hasNote<AttachDataType>() )
+            {
+                using attached_type = typename std::remove_cvref_t<decltype(member::template getNote<AttachDataType>())>::type;
+                if constexpr ( !std::is_void_v<attached_type> )
+                    return leaf_data<DefaultIndexType, member, attached_type> {};
+                else
+                    return std::vector<index_type_t<DefaultIndexType, member>> {};
+            }
+            else
+                return std::vector<index_type_t<DefaultIndexType, member>> {};
+        }
         else
             static_assert(std::is_void_v<T>, "Unexpected member selection!");
     }
@@ -1287,6 +1310,7 @@ namespace RareEdit
     };
     
     inline constexpr std::nullptr_t noSelection {};
+    inline constexpr std::nullptr_t noAttachedData {};
 
     template <class DefaultIndexType, class T, std::size_t ... Is>
     struct object_selection : RareTs::Class::adapt_member<member_selection<DefaultIndexType, T>::template type, T, Is>...
@@ -1454,12 +1478,37 @@ namespace RareEdit
             if constexpr ( sizeof...(Pathway) == 0 )
                 return noSelection;
             else
-                return getSelectionsData<Pathway...>(selections);
+            {
+                auto & selData = getSelectionsData<Pathway...>(selections);
+                if constexpr ( requires{selData.sel;} )
+                    return selData.sel;
+                else
+                    return selData;
+            }
+        }
+
+        template <class ... Pathway>
+        constexpr auto & getAttachedData() {
+            if constexpr ( sizeof...(Pathway) == 0 )
+                return noAttachedData;
+            else
+            {
+                auto & selData = getSelectionsData<Pathway...>(selections);
+                if constexpr ( requires{selData.attachedData;} )
+                    return selData.attachedData;
+                else
+                    return noAttachedData;
+            }
         }
 
         template <class ... Pathway>
         static constexpr bool hasSelections() {
             return !std::is_null_pointer_v<std::remove_cvref_t<decltype(std::declval<Agent>().template getSelections<Pathway...>())>>;
+        }
+
+        template <class ... Pathway>
+        static constexpr bool hasAttachedData() {
+            return !std::is_null_pointer_v<std::remove_cvref_t<decltype(std::declval<Agent>().template getAttachedData<Pathway...>())>>;
         }
 
         template <class Keys, class U, class PathElement, class ... Pathway>
