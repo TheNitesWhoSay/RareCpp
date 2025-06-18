@@ -95,6 +95,9 @@
     <ClCompile Include="flat_mdspan_test.cpp">
       <Filter>Source Files\EditorTest</Filter>
     </ClCompile>
+    <ClCompile Include="editor_attach_test.cpp">
+      <Filter>Source Files\EditorTest</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="json_input_test.h">

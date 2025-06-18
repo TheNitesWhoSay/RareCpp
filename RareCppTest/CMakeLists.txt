@@ -9,6 +9,7 @@ set(Headers
 set(Sources
   builder_test.cpp
   edit_test.cpp
+  editor_attach_test.cpp
   editor_notifications_test.cpp
   extended_type_support_test.cpp
   flat_mdspan_test.cpp
