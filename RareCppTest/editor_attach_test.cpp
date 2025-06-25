@@ -853,4 +853,13 @@ TEST(AttachData, MoveToL)
     EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "a");
 }
 
+TEST(AttachData, Init)
+{
+    EditData obj {};
+    obj.initData(Data {
+        .vec {0, 0, 0, 0}
+    });
+    EXPECT_EQ(4, obj.view.vec.readAttachedData().size());
+}
+
 }

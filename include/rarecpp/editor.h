@@ -1335,12 +1335,35 @@ namespace RareEdit
             }
         }
 
+        template <class ... Pathway, class Sizer>
+        constexpr void initAttachedData(Sizer sizer)
+        {
+            (initAttachedDatum<Is, Pathway...>(sizer), ...);
+        }
+
+        template <std::size_t I, class ... Pathway, class Sizer>
+        constexpr void initAttachedDatum(Sizer sizer)
+        {
+            auto & [leafData] = static_cast<RareTs::Class::adapt_member<member_selection<DefaultIndexType, T>::template type, T, I> &>(*this);
+            if constexpr ( requires { leafData.template initAttachedData<Pathway..., PathMember<I>>(sizer); } )
+            {
+                leafData.template initAttachedData<Pathway..., PathMember<I>>(sizer);
+            }
+            else if constexpr ( requires { leafData.attachedData.clear(); } )
+            {
+                using attached_data_vec = std::remove_cvref_t<decltype(leafData.attachedData)>;
+                leafData.attachedData = attached_data_vec(sizer(type_tags<Pathway..., PathMember<I>>{}));
+            }
+        }
+
         template <std::size_t I>
         void clear()
         {
             using U = RareTs::Class::adapt_member<member_selection<DefaultIndexType, T>::template type, T, I>;
             if constexpr ( requires { static_cast<U &>(*this).clear(); } )
                 static_cast<U &>(*this).clear();
+            else if constexpr ( requires { static_cast<U &>(*this).sel.clear(); } )
+                static_cast<U &>(*this).sel.clear();
         }
 
         void clear()
@@ -1843,6 +1866,22 @@ namespace RareEdit
                 return ReadEditPair{(const U &)t, editor};
             else
                 return editorFromPathImpl<Keys, U, void, Pathway...>(editor, t, keys, {});
+        }
+
+        constexpr void initAttachedData()
+        {
+            auto dataSizer = [&]<class ... Pathway>(type_tags<Pathway...>) {
+                std::size_t dataSize = 0;
+                if constexpr ( hasAttachedData<Pathway...>() )
+                {
+                    std::tuple<> keys {};
+                    operateOn<Pathway...>(t, keys, [&dataSize]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                        dataSize = std::size(ref);
+                    });
+                }
+                return dataSize;
+            };
+            selections.template initAttachedData<>(dataSizer);
         }
 
         template <class ... Pathway, class Keys>
@@ -7612,6 +7651,8 @@ namespace RareEdit
         void assign(const T & value) {
             std::tuple keys {}; // No keys/array indexes as this is the root
             Agent<T, User, Editor>::template set<>(value, keys);
+            Agent<T, User, Editor>::selections.clear();
+            Agent<T, User, Editor>::initAttachedData();
         }
     };
     
@@ -7808,7 +7849,11 @@ namespace RareEdit
             if constexpr ( initTracked )
                 createAction()->assign(data);
             else
+            {
+                history.selections.clear();
                 std::swap((Data&)*this, data);
+                history.initAttachedData();
+            }
         }
 
         void undoAction()
