@@ -181,10 +181,15 @@ void dataHistory()
     myObj.undoAction();
     std::cout << Json::out(*myObj);
 
+    std::cout << "\n\ntestDo:\n";
+    myObj.doSomething();
+    std::cout << Json::out(*myObj);
+
     std::cout << "\n\ntestRedo:\n";
     myObj.redoAction();
-    std::cout << Json::out(*myObj) << "\n\n";
+    std::cout << Json::out(*myObj);
 
+    std::cout << "\n\n";
     myObj.printChangeHistory(std::cout);
 }
 
