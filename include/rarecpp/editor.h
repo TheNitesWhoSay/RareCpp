@@ -7899,6 +7899,84 @@ namespace RareEdit
             pendingActionStart = editable.eventOffsets.size();
         }
 
+        std::uint64_t trimHistoryToSize(std::uint64_t maxSize) // Returns the new size
+        {
+            if ( actionReferenceCount != 0 || redoCount > 0 )
+                throw std::logic_error("Cannot trim history while an action is active or redos are present");
+
+            if ( maxSize == 0 )
+            {
+                clearHistory(); // Clear everything
+                return 0;
+            }
+            else if ( actions.empty() )
+                throw std::logic_error("Trim history to size called when actions were empty!");
+            
+            std::size_t totalActions = actions.size();
+            std::uint64_t totalSize = 0;
+            for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(actions.size()) - 1; i > 0; )
+            {
+                if ( (actions[i].firstEventIndex & flagElidedRedos) == flagElidedRedos ) // Elided
+                {
+                    std::uint64_t countElided = (actions[i].firstEventIndex & maskElidedRedoSize)+1;
+                    std::uint64_t nextSize = totalSize + 8*countElided;
+                    std::ptrdiff_t nextI = i -= static_cast<std::ptrdiff_t>(countElided); // Next after elided actions
+                    for ( std::ptrdiff_t j=i; j>nextI; --j )
+                    {
+                        std::size_t actionIndex = static_cast<std::size_t>(j);
+                        std::size_t currActionStart = actions[actionIndex].firstEventIndex;
+                        if ( (currActionStart & flagElidedRedos) == flagElidedRedos )
+                            continue; // No events to count for this action
+                        
+                        std::size_t nextActionStart = flagElidedRedos;
+                        for ( std::size_t i=1; (nextActionStart & flagElidedRedos) == flagElidedRedos; ++i ) // Find the next event that isn't an elision marker
+                            nextActionStart = actionIndex+i<totalActions ? (actions[actionIndex+i].firstEventIndex) : editable.eventOffsets.size();
+
+                        auto [firstEventStart, unusedFirstEventEnd] = editable.getEventOffsetRange(currActionStart);
+                        auto [unusedLastEventStart, lastEventEnd] = editable.getEventOffsetRange(nextActionStart-1);
+                        nextSize += lastEventEnd-firstEventStart;
+                    }
+                    if ( nextSize > maxSize ) // i is the correct target
+                    {
+                        trimHistory(static_cast<std::size_t>(i));
+                        return totalSize;
+                    }
+                    else
+                    {
+                        i = nextI;
+                        totalSize = nextSize;
+                    }
+                }
+                else // Non-elided, haven't yet reached maxSize
+                {
+                    std::size_t actionIndex = static_cast<std::size_t>(i);
+                    std::uint64_t nextSize = totalSize + 8;
+                    std::size_t currActionStart = actions[actionIndex].firstEventIndex;
+                    if ( (currActionStart & flagElidedRedos) == flagElidedRedos )
+                        continue; // No events to count for this action
+                        
+                    std::size_t nextActionStart = flagElidedRedos;
+                    for ( std::size_t i=1; (nextActionStart & flagElidedRedos) == flagElidedRedos; ++i ) // Find the next event that isn't an elision marker
+                        nextActionStart = actionIndex+i<totalActions ? (actions[actionIndex+i].firstEventIndex) : editable.eventOffsets.size();
+
+                    auto [firstEventStart, unusedFirstEventEnd] = editable.getEventOffsetRange(currActionStart);
+                    auto [unusedLastEventStart, lastEventEnd] = editable.getEventOffsetRange(nextActionStart-1);
+                    nextSize += lastEventEnd-firstEventStart;
+
+                    if ( nextSize > maxSize )
+                    {
+                        trimHistory(static_cast<std::size_t>(i));
+                        return totalSize;
+                    }
+                    else
+                    {
+                        totalSize = nextSize;
+                        --i;
+                    }
+                }
+            }
+        }
+
         // Initializes the stored data with the given input, this initialization is tracked of initTracked is true
         // If there's an active action or any stored actions a logic_error will be thrown
         template <bool initTracked = false>
