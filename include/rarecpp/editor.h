@@ -7909,8 +7909,8 @@ namespace RareEdit
                 clearHistory(); // Clear everything
                 return 0;
             }
-            else if ( actions.empty() )
-                throw std::logic_error("Trim history to size called when actions were empty!");
+            else if ( actions.empty() ) // Nothing to trim
+                return 0;
             
             std::size_t totalActions = actions.size();
             std::uint64_t totalSize = 0;
@@ -7975,6 +7975,7 @@ namespace RareEdit
                     }
                 }
             }
+            return totalSize;
         }
 
         // Initializes the stored data with the given input, this initialization is tracked of initTracked is true
