@@ -8,6 +8,7 @@
 #include <numeric>
 #include <optional>
 #include <span>
+#include <sstream>
 #include <tuple>
 #include <type_traits>
 #include <unordered_set>
@@ -22,16 +23,29 @@
 namespace RareEdit
 {
     using RareTs::type_tags;
-    template <typename SizeType> struct IndexSize { using type = SizeType; };
+    template <typename SizeType> struct IndexSizeType { using type = SizeType; };
+
+    template <typename SizeType> inline constexpr IndexSizeType<SizeType> IndexSize;
+
+    template <typename AttachedType> struct AttachDataType { using type = AttachedType; };
+
+    template <typename AttachedType> inline constexpr AttachDataType<AttachedType> AttachData;
+
+    inline constexpr std::nullopt_t refNullOpt = std::nullopt;
 
     template <typename T>
     constexpr auto defaultIndexType()
     {
-        if constexpr ( RareTs::Notes<T>::template hasNote<RareEdit::IndexSize>() )
-            return RareTs::Notes<T>::template getNote<RareEdit::IndexSize>();
+        if constexpr ( RareTs::Notes<T>::template hasNote<RareEdit::IndexSizeType>() )
+            return RareTs::Notes<T>::template getNote<RareEdit::IndexSizeType>();
         else
             return std::type_identity<std::size_t>{};
     }
+
+    template <typename T> struct is_array_member : std::false_type {};
+    template <typename T, std::size_t I> struct is_array_member<RareTs::Member<T, I>> :
+        std::bool_constant<std::is_array_v<typename RareTs::Member<T, I>::type>> {};
+    template <typename T> inline constexpr bool is_array_member_v = is_array_member<T>::value;
 
     template <typename T>
     inline constexpr std::size_t reflectedMemberCount() {
@@ -39,6 +53,83 @@ namespace RareEdit
             return RareTs::Members<T>::total;
         else
             return 0;
+    }
+
+    template <class T, std::size_t Extent, std::size_t ... Extents>
+    class flat_mdspan
+    {
+        T* data;
+
+    public:
+        using element_type = T;
+        using extents = std::index_sequence<Extent, Extents...>;
+        static constexpr std::size_t rank = 1+sizeof...(Extents);
+        static constexpr std::size_t size = Extent*(Extents * ... * 1); // Sum of all extents
+        constexpr flat_mdspan(T* data) : data(data) {}
+    
+        constexpr decltype(auto) operator[](std::size_t i) {
+            if constexpr ( sizeof...(Extents) == 0 )
+                return data[i];
+            else
+                return flat_mdspan<T, Extents...>(&data[size/Extent*i]);
+        }
+        constexpr decltype(auto) operator[](std::size_t i) const {
+            if constexpr ( sizeof...(Extents) == 0 )
+                return data[i];
+            else
+                return flat_mdspan<T, Extents...>(&data[size/Extent*i]);
+        }
+        template <typename U>
+        struct It {
+            U* obj;
+            std::size_t i;
+            constexpr void operator++() { ++i; }
+            constexpr decltype(auto) operator*() const { return (*obj)[i]; }
+            constexpr bool operator!=(It other) { return i != other.i; }
+        };
+        constexpr auto begin() { return It{this, 0}; }
+        constexpr auto end() { return It{this, Extent}; }
+        constexpr auto begin() const { return It{this, 0}; }
+        constexpr auto end() const { return It{this, Extent}; }
+
+        constexpr T* flatBegin() { return data; }
+        constexpr T* flatEnd() { return data+size; }
+        constexpr const T* flatBegin() const { return data; }
+        constexpr const T* flatEnd() const { return data+size; }
+
+        constexpr void operator=(const flat_mdspan & other) {
+            std::copy(other.flatBegin(), other.flatEnd(), flatBegin());
+        }
+        constexpr void clear() { std::fill(flatBegin(), flatEnd(), T{}); }
+        constexpr void fill(const T & value) { std::fill(flatBegin(), flatEnd(), value); }
+        constexpr void swap(flat_mdspan && other) {
+            for ( std::size_t i=0; i<size; ++i )
+                std::swap(data[i], other.data[i]);
+        }
+    };
+
+    template <class ...> struct is_flat_mdspan : std::false_type {};
+    template <class T> struct is_flat_mdspan<const T> : is_flat_mdspan<T> {};
+    template <class T, std::size_t ... Is> struct is_flat_mdspan<flat_mdspan<T, Is...>> : std::true_type {};
+    template <class T> inline constexpr bool is_flat_mdspan_v = is_flat_mdspan<T>::value;
+
+    template <typename T> constexpr auto array_header(T && array) {
+        if constexpr ( std::rank_v<std::remove_reference_t<T>> == 0 ) return &array;
+        else if constexpr ( std::rank_v<std::remove_reference_t<T>> == 1 ) return &array[0];
+        else if constexpr ( std::rank_v<std::remove_reference_t<T>> == 2 ) return &array[0][0];
+        else return array_header(array[0]);
+    }
+
+    template <typename T>
+    constexpr auto as_1d(T & array) requires (std::is_array_v<std::remove_reference_t<T>>)
+    {
+        using U = std::remove_reference_t<T>;
+        using Element = std::remove_all_extents_t<U>;
+        constexpr auto rank = std::rank_v<U>;
+        return [&]<std::size_t ... Is>(std::index_sequence<Is...>) {
+            static_assert(sizeof(U) == sizeof(Element)*(std::extent_v<U, Is> * ... * 1), "array passed to as_1d was not contiguous!");
+            return flat_mdspan<Element, std::extent_v<U, Is>...>(array_header(array));
+        }(std::make_index_sequence<rank>());
     }
 
     inline void writeVecBoolData(std::vector<std::uint8_t> & data, const std::vector<bool> & vecBool) // Does not include the size
@@ -204,7 +295,7 @@ namespace RareEdit
     template <typename T>
     void writeSelections(std::vector<std::uint8_t> & data, const T & t)
     {
-        if constexpr ( !RareTs::is_static_array_v<std::remove_cvref_t<T>> )
+        if constexpr ( !RareTs::is_static_array_v<std::remove_cvref_t<T>> && RareTs::is_specialization_v<T, std::vector> )
             writeSelectionVector(data, t);
     }
 
@@ -367,14 +458,20 @@ namespace RareEdit
         }
     }
 
-    template <class Keys, class Pathway>
+    template <class Keys, class Pathway, class EditorType>
     struct PathTaggedKeys : Keys // (aka: route) this combines the path to a particular (sub/)member and any map keys/array indexes
     {
         using pathway = Pathway;
         using keys = Keys;
+        using editor_type = EditorType;
 
         template <std::size_t I> constexpr const auto & index() { return std::get<I>((Keys &)(*this));}
     };
+
+    template <class Input>
+    using MakePath = PathTaggedKeys<typename Input::keys, typename Input::path, typename Input::editor_type>;
+
+    #define PATH(...) RareEdit::MakePath<decltype(__VA_ARGS__)>
 
     struct Rotation
     {
@@ -416,6 +513,13 @@ namespace RareEdit
         }
     }
 
+    template <class T>
+    void mirrorSwapTo(T & collection, std::size_t leftIndex, std::size_t rightIndex)
+    {
+        if constexpr ( !std::is_null_pointer_v<T> )
+            std::swap(collection[leftIndex], collection[rightIndex]);
+    }
+
     template <class Selection>
     void mirrorRotationToSelection(Selection & selection, std::size_t first, std::size_t middle, std::size_t last)
     {
@@ -438,13 +542,16 @@ namespace RareEdit
         }
     }
 
-    template <class Indexes>
-    void mirrorRotationToIndexes(Indexes & indexes, auto first, auto middle, auto last)
+    template <class Collection>
+    void mirrorRotationTo(Collection & collection, auto first, auto middle, auto last)
     {
-        std::rotate(
-            std::next(indexes.begin(), static_cast<std::ptrdiff_t>(first)),
-            std::next(indexes.begin(), static_cast<std::ptrdiff_t>(middle)),
-            std::next(indexes.begin(), static_cast<std::ptrdiff_t>(last)));
+        if constexpr ( !std::is_null_pointer_v<Collection> )
+        {
+            std::rotate(
+                std::next(collection.begin(), static_cast<std::ptrdiff_t>(first)),
+                std::next(collection.begin(), static_cast<std::ptrdiff_t>(middle)),
+                std::next(collection.begin(), static_cast<std::ptrdiff_t>(last)));
+        }
     }
 
     enum class PathOp : std::uint8_t {
@@ -455,6 +562,7 @@ namespace RareEdit
         //   SelBranch: lower 6-bits unused, SelBranch indicates the operation applies over the selection for this container (may branch further down from here)
         //   LeafBranch: same as Branch except this also indicates it's the last branch in the sequence
         //   LeafSelBranch: same as SelBranch except this also indicates it's the last branch in the sequence
+        //                  special case: if this is the first element, it means use the root element
         HighBits      = 0b11000000,
         LowBits       = 0b00111111,
 
@@ -464,7 +572,8 @@ namespace RareEdit
         Branch        = 0b00000000,
         SelBranch     = 0b01000000,
         LeafBranch    = 0b10000000,
-        LeafSelBranch = 0b11000000
+        LeafSelBranch = 0b11000000,
+        RootPath      = LeafSelBranch
     };
 
     enum class Op : std::uint8_t {
@@ -496,6 +605,7 @@ namespace RareEdit
         RemoveL, // {} --{n, index0, ..., indexN, value0, ..., valueN, selections} // Same as removeN, except the selections make up the indexes
         Sort, // {n, index0SourceIndex, ..., indexNSourceIndex}
         SortDesc, // {n, index0SourceIndex, ..., indexNSourceIndex}
+        Swap, // {index0, index1}
         MoveUp, // {index}
         MoveUpN, // {n, index0, ..., indexN}
         MoveUpL, // {} --{selections} // Same as moveUpN, except the selections make up the indexes
@@ -512,6 +622,19 @@ namespace RareEdit
         MoveToN, // {n, targetIndex, index0, ..., indexN} --{selections}
         MoveToL // {targetIndex} --{selections} // Same as moveToN, except the selections make up the indexes
     };
+
+    constexpr bool isSelChangeOp(Op op)
+    {
+        switch ( op )
+        {
+            case Op::ClearSelections: case Op::SelectAll: case Op::Select: case Op::SelectN:
+            case Op::Deselect: case Op::DeselectN: case Op::ToggleSelection: case Op::ToggleSelectionN:
+            case Op::SortSelections: case Op::SortSelectionsDesc:
+                return true;
+            default:
+                return false;
+        }
+    }
 
     // Go to the Ith member of the current object
     template <std::size_t I> struct PathMember {
@@ -536,54 +659,81 @@ namespace RareEdit
 
     template <class ... Ts> concept has_path_selections = (std::same_as<PathSelections, Ts> || ...);
 
-    template <class Edit, class default_index_type, class RootData, class T, class Keys, class ... Pathway>
+    template <class Agent, class default_index_type, class RootData, class T, class Keys, class ... Pathway>
     class EditPrimitive : public Keys
     {
-        Edit & root;
+        Agent & agent;
 
     public:
         using keys = Keys;
-        using path = RareTs::type_tags<Pathway...>;
+        using path = type_tags<Pathway...>;
+        using editor_type = typename Agent::editor_type;
         using type = T;
 
-        EditPrimitive(Edit & root, Keys keys) :
-            Keys {std::move(keys)}, root(root) {}
+        EditPrimitive(Agent & agent, Keys keys) :
+            Keys {std::move(keys)}, agent(agent) {}
         template <class U> void operator=(U && value) {
             if constexpr ( has_path_selections<Pathway...> )
-                root.template setL<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+                agent.template setL<Pathway...>(std::forward<U>(value), (Keys &)(*this));
             else
-                root.template set<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+                agent.template set<Pathway...>(std::forward<U>(value), (Keys &)(*this));
         }
+        template <class U> void operator +=(U && value) { agent.template plusEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+        template <class U> void operator -=(U && value) { agent.template minusEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+        template <class U> void operator *=(U && value) { agent.template multEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+        template <class U> void operator /=(U && value) { agent.template divEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+        template <class U> void operator %=(U && value) { agent.template modEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+        template <class U> void operator ^=(U && value) { agent.template xorEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+        template <class U> void operator &=(U && value) { agent.template andEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+        template <class U> void operator |=(U && value) { agent.template orEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
     };
 
-    template <class Edit, class default_index_type, class RootData, class T, class Keys, std::size_t I, class ... Pathway>
+    template <class Agent, class default_index_type, class RootData, class T, class Keys, std::size_t I, class ... Pathway>
     static constexpr auto editMember();
 
-    template <class Edit, class default_index_type, class RootData, class T, class Keys, class ... Pathway> struct edit_member
+    template <class Agent, class default_index_type, class RootData, class T, class Keys, class ... Pathway> struct edit_member
     {
-        template <std::size_t I> using type = typename decltype(editMember<Edit, default_index_type, RootData, T, Keys, I, Pathway...>())::type;
+        template <std::size_t I> using type = typename decltype(editMember<Agent, default_index_type, RootData, T, Keys, I, Pathway...>())::type;
     };
 
     template <class ... Pathway>
     struct EditMembers
     {
-        template <class Edit, class default_index_type, class RootData, class T, class Keys, std::size_t ... Is>
-        struct Membs : Keys, RareTs::Class::adapt_member<edit_member<Edit, default_index_type, RootData, T, Keys, Pathway...>::template type, T, Is>...
+        template <class Agent, class default_index_type, class RootData, class T, class Keys, std::size_t ... Is>
+        struct Membs : Keys, RareTs::Class::adapt_member<edit_member<Agent, default_index_type, RootData, T, Keys, Pathway...>::template type, T, Is>...
         {
-            Membs(Edit & root, Keys keys) :
+            using keys = Keys;
+            using path = type_tags<Pathway...>;
+            using editor_type = typename Agent::editor_type;
+
+            Membs(Agent & agent, Keys keys) :
                 Keys {keys},
-                RareTs::Class::template adapt_member<edit_member<Edit, default_index_type, RootData, T, Keys, Pathway...>::template type, T, Is> {{ root, keys }}...,
-                root(root) {}
+                RareTs::Class::template adapt_member<edit_member<Agent, default_index_type, RootData, T, Keys, Pathway...>::template type, T, Is> {{ agent, keys }}...,
+                agent(agent) {}
+
+            template <std::size_t I> constexpr auto & fromMember()
+            {
+                auto & [editMember] = static_cast<RareTs::Class::adapt_member<edit_member<Agent, default_index_type, RootData, T, Keys, Pathway...>::template type, T, I> &>(*this);
+                return editMember;
+            }
+
+            template <class U> constexpr void operator=(U && value) {
+                if constexpr ( has_path_selections<Pathway...> )
+                    agent.template setL<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+                else
+                    agent.template set<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+            }
+
         private:
-            Edit & root;
+            Agent & agent;
         };
     };
 
-    template <class Edit, class default_index_type, class RootData, class T, class Keys, class ... Pathway, std::size_t... Is>
-    EditMembers<Pathway...>::template Membs<Edit, default_index_type, RootData, T, Keys, Is...> editMembers(std::index_sequence<Is...>);
+    template <class Agent, class default_index_type, class RootData, class T, class Keys, class ... Pathway, std::size_t... Is>
+    EditMembers<Pathway...>::template Membs<Agent, default_index_type, RootData, T, Keys, Is...> editMembers(std::index_sequence<Is...>);
 
-    template <class Edit, class default_index_type, class RootData, class T, class Keys = std::tuple<>, class ... Pathway>
-    using edit_members = decltype(editMembers<Edit, default_index_type, RootData, T, Keys, Pathway...>(std::make_index_sequence<RareTs::Members<T>::total>()));
+    template <class Agent, class default_index_type, class RootData, class T, class Keys = std::tuple<>, class ... Pathway>
+    using edit_members = decltype(editMembers<Agent, default_index_type, RootData, T, Keys, Pathway...>(std::make_index_sequence<RareTs::Members<T>::total>()));
 
     template <class DefaultIndexType, class Member>
     inline constexpr auto index_typer()
@@ -604,8 +754,8 @@ namespace RareEdit
                 else
                     return std::type_identity<std::size_t>{};
             }
-            else if constexpr ( Member::template hasNote<RareEdit::IndexSize>() )
-                return Member::template getNote<RareEdit::IndexSize>();
+            else if constexpr ( Member::template hasNote<RareEdit::IndexSizeType>() )
+                return Member::template getNote<RareEdit::IndexSizeType>();
             else
                 return std::type_identity<DefaultIndexType>{};
         }
@@ -616,7 +766,7 @@ namespace RareEdit
     template <class DefaultIndexType, class Member>
     using index_type_t = typename decltype(RareEdit::index_typer<DefaultIndexType, Member>())::type;
 
-    template <class Edit, class default_index_type, class RootData, class T, class Keys, template <class...> class SubElement, class ... Pathway>
+    template <class Agent, class default_index_type, class RootData, class T, class Keys, template <class...> class SubElement, class ... Pathway>
     class Editable
     {
         template <class U, class LastMember, class PathElement, class ... PathElements>
@@ -650,83 +800,89 @@ namespace RareEdit
             using index_type = index_type_t<default_index_type, typename std::remove_cvref_t<decltype(getMemberImpl<RootData, void, Pathway...>())>::type>;
 
             template <std::size_t... Is> static constexpr auto arrayOpType(std::index_sequence<Is...>) -> SubElement<
-                Edit, default_index_type, RootData, T, std::tuple<std::tuple_element_t<Is, Keys>..., index_type>, Pathway..., PathIndex<sizeof...(Is)>>;
+                Agent, default_index_type, RootData, T, std::tuple<std::tuple_element_t<Is, Keys>..., index_type>, Pathway..., PathIndex<sizeof...(Is)>>;
             template <std::size_t... Is> static constexpr auto subArrayOpType(std::index_sequence<Is...>) -> Editable<
-                Edit, default_index_type, RootData, RareTs::element_type_t<T>, std::tuple<std::tuple_element_t<Is, Keys>..., index_type>, SubElement, Pathway..., PathIndex<sizeof...(Is)>>::Array;
+                Agent, default_index_type, RootData, RareTs::element_type_t<T>, std::tuple<std::tuple_element_t<Is, Keys>..., index_type>, SubElement, Pathway..., PathIndex<sizeof...(Is)>>::Array;
 
         protected:
-            Edit & root;
+            Agent & agent;
 
-            constexpr auto & memberRef() { return root.template getMemberReference<Pathway...>(root.t, (Keys &)(*this)); }
+            constexpr auto & memberRef() { return agent.template getMemberReference<Pathway...>(agent.t, (Keys &)(*this)); }
 
         public:
             using keys = Keys;
-            using path = RareTs::type_tags<Pathway...>;
-            using Route = PathTaggedKeys<Keys, path>;
+            using path = type_tags<Pathway...>;
+            using editor_type = typename Agent::editor_type;
+            using Route = PathTaggedKeys<Keys, path, typename Agent::editor_type>;
 
-            using selection_op_type = SubElement<Edit, default_index_type, RootData, T, Keys, Pathway..., PathSelections>;
+            using selection_op_type = SubElement<Agent, default_index_type, RootData, T, Keys, Pathway..., PathSelections>;
             using array_op_type = decltype(arrayOpType(std::make_index_sequence<std::tuple_size_v<Keys>>()));
             using sub_array_op_type = decltype(subArrayOpType(std::make_index_sequence<std::tuple_size_v<Keys>>()));
-
-            constexpr const auto & sel() const { return root.template getSelections<Pathway...>(); }
+            
+            constexpr const auto & sel() const { return agent.template getSelections<Pathway...>(); }
+            constexpr auto & attachedData(std::size_t i) const { return agent.template getAttachedData<Pathway...>()[i]; }
+            constexpr const auto & readAttachedData() const { return agent.template getAttachedData<Pathway...>(); }
 
             inline void clearSelections()
             {
-                auto & sel = root.template getSelections<Pathway...>();
-                root.eventOffsets.push_back(root.events.size());
-                root.events.push_back(uint8_t(Op::ClearSelections));
-                root.template serializePathway<Pathway...>((Keys &)(*this));
+                auto & sel = agent.template getSelections<Pathway...>();
+                if ( !sel.empty() )
+                {
+                    agent.eventOffsets.push_back(agent.events.size());
+                    agent.events.push_back(uint8_t(Op::ClearSelections));
+                    agent.template serializePathway<Pathway...>((Keys &)(*this));
 
-                writeSelectionVector(root.events, sel);
-                RareTs::clear(sel);
+                    writeSelectionVector(agent.events, sel);
+                    RareTs::clear(sel);
 
-                if constexpr ( Edit::template hasSelectionsChangedOp<Route> )
-                    root.user.selectionsChanged(Route{(Keys &)(*this)});
+                    if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
+                        agent.user.selectionsChanged(Route{(Keys &)(*this)});
+                }
             }
 
             inline void selectAll()
             {
-                auto & sel = root.template getSelections<Pathway...>();
-                root.eventOffsets.push_back(root.events.size());
-                root.events.push_back(uint8_t(Op::SelectAll));
-                root.template serializePathway<Pathway...>((Keys &)(*this));
+                auto & sel = agent.template getSelections<Pathway...>();
+                agent.eventOffsets.push_back(agent.events.size());
+                agent.events.push_back(uint8_t(Op::SelectAll));
+                agent.template serializePathway<Pathway...>((Keys &)(*this));
 
-                writeSelectionVector(root.events, sel);
+                writeSelectionVector(agent.events, sel);
                 RareTs::clear(sel);
                 sel.assign(memberRef().size(), 0);
                 std::iota(sel.begin(), sel.end(), (RareTs::element_type_t<RareTs::remove_cvref_t<decltype(sel)>>)0);
 
-                if constexpr ( Edit::template hasSelectionsChangedOp<Route> )
-                    root.user.selectionsChanged(Route{(Keys &)(*this)});
+                if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
+                    agent.user.selectionsChanged(Route{(Keys &)(*this)});
             }
 
             inline void select(index_type i) // i must not be selected
             {
-                auto & sel = root.template getSelections<Pathway...>();
-                root.eventOffsets.push_back(root.events.size());
-                root.events.push_back(uint8_t(Op::Select));
-                root.template serializePathway<Pathway...>((Keys &)(*this));
+                auto & sel = agent.template getSelections<Pathway...>();
+                agent.eventOffsets.push_back(agent.events.size());
+                agent.events.push_back(uint8_t(Op::Select));
+                agent.template serializePathway<Pathway...>((Keys &)(*this));
 
-                root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&i), reinterpret_cast<const std::uint8_t*>(&i)+sizeof(i));
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&i), reinterpret_cast<const std::uint8_t*>(&i)+sizeof(i));
                 if ( std::find(sel.begin(), sel.end(), i) == sel.end() )
                     RareTs::append(sel, i);
                 else
                     throw std::invalid_argument("Cannot select an index that is already selected");
 
-                if constexpr ( Edit::template hasSelectionsChangedOp<Route> )
-                    root.user.selectionsChanged(Route{(Keys &)(*this)});
+                if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
+                    agent.user.selectionsChanged(Route{(Keys &)(*this)});
             }
 
             inline void select(const std::vector<index_type> & addedSelections) // addedSelections must not be selected
             {
-                auto & sel = root.template getSelections<Pathway...>();
-                root.eventOffsets.push_back(root.events.size());
-                root.events.push_back(uint8_t(Op::SelectN));
-                root.template serializePathway<Pathway...>((Keys &)(*this));
+                auto & sel = agent.template getSelections<Pathway...>();
+                agent.eventOffsets.push_back(agent.events.size());
+                agent.events.push_back(uint8_t(Op::SelectN));
+                agent.template serializePathway<Pathway...>((Keys &)(*this));
 
                 index_type size = static_cast<index_type>(addedSelections.size());
-                root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
-                root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&(addedSelections[0])),
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&(addedSelections[0])),
                     reinterpret_cast<const std::uint8_t*>(&(addedSelections[0]))+sizeof(addedSelections[0])*static_cast<std::size_t>(size));
 
                 for ( auto i : addedSelections )
@@ -736,42 +892,42 @@ namespace RareEdit
                     else
                         throw std::invalid_argument("Cannot select an index that is already selected");
                 }
-                if constexpr ( Edit::template hasSelectionsChangedOp<Route> )
-                    root.user.selectionsChanged(Route{(Keys &)(*this)});
+                if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
+                    agent.user.selectionsChanged(Route{(Keys &)(*this)});
             }
 
             inline void deselect(index_type i) // i must be selected
             {
-                auto & sel = root.template getSelections<Pathway...>();
-                root.eventOffsets.push_back(root.events.size());
-                root.events.push_back(uint8_t(Op::Deselect));
-                root.template serializePathway<Pathway...>((Keys &)(*this));
+                auto & sel = agent.template getSelections<Pathway...>();
+                agent.eventOffsets.push_back(agent.events.size());
+                agent.events.push_back(uint8_t(Op::Deselect));
+                agent.template serializePathway<Pathway...>((Keys &)(*this));
                 
                 auto found = std::find(sel.begin(), sel.end(), i);
                 index_type foundAt = static_cast<index_type>(std::distance(std::begin(sel), found));
-                root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&i), reinterpret_cast<const std::uint8_t*>(&i)+sizeof(i));
-                root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&foundAt), reinterpret_cast<const std::uint8_t*>(&foundAt)+sizeof(foundAt));
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&i), reinterpret_cast<const std::uint8_t*>(&i)+sizeof(i));
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&foundAt), reinterpret_cast<const std::uint8_t*>(&foundAt)+sizeof(foundAt));
 
                 if ( found == sel.end() )
                     throw std::invalid_argument("Cannot deselect an index that is not selected");
                 else
                     sel.erase(found);
 
-                if constexpr ( Edit::template hasSelectionsChangedOp<Route> )
-                    root.user.selectionsChanged(Route{(Keys &)(*this)});
+                if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
+                    agent.user.selectionsChanged(Route{(Keys &)(*this)});
             }
 
             inline void deselect(const std::vector<index_type> & removedSelections) // removeSelections must be selected
             {
-                auto & sel = root.template getSelections<Pathway...>();
-                root.eventOffsets.push_back(root.events.size());
-                root.events.push_back(uint8_t(Op::DeselectN));
-                root.template serializePathway<Pathway...>((Keys &)(*this));
+                auto & sel = agent.template getSelections<Pathway...>();
+                agent.eventOffsets.push_back(agent.events.size());
+                agent.events.push_back(uint8_t(Op::DeselectN));
+                agent.template serializePathway<Pathway...>((Keys &)(*this));
 
                 auto numRemoved = removedSelections.size();
                 index_type size = static_cast<index_type>(numRemoved);
-                root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
-                root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&removedSelections[0]),
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&removedSelections[0]),
                     reinterpret_cast<const std::uint8_t*>(&removedSelections[0])+sizeof(removedSelections[0])*size);
 
                 for ( auto i : removedSelections )
@@ -780,49 +936,49 @@ namespace RareEdit
                     if ( found != sel.end() )
                     {
                         index_type foundAt = static_cast<index_type>(std::distance(std::begin(sel), found));
-                        root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&foundAt), reinterpret_cast<const std::uint8_t*>(&foundAt)+sizeof(foundAt));
+                        agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&foundAt), reinterpret_cast<const std::uint8_t*>(&foundAt)+sizeof(foundAt));
                         sel.erase(found);
                     }
                     else
                         throw std::invalid_argument("Cannot deselect an index that is not selected");
                 }
-                if constexpr ( Edit::template hasSelectionsChangedOp<Route> )
-                    root.user.selectionsChanged(Route{(Keys &)(*this)});
+                if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
+                    agent.user.selectionsChanged(Route{(Keys &)(*this)});
             }
 
             inline void toggleSelected(index_type i)
             {
-                auto & sel = root.template getSelections<Pathway...>();
-                root.eventOffsets.push_back(root.events.size());
-                root.events.push_back(uint8_t(Op::ToggleSelection));
-                root.template serializePathway<Pathway...>((Keys &)(*this));
-                root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&i), reinterpret_cast<const std::uint8_t*>(&i)+sizeof(i));
+                auto & sel = agent.template getSelections<Pathway...>();
+                agent.eventOffsets.push_back(agent.events.size());
+                agent.events.push_back(uint8_t(Op::ToggleSelection));
+                agent.template serializePathway<Pathway...>((Keys &)(*this));
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&i), reinterpret_cast<const std::uint8_t*>(&i)+sizeof(i));
                 auto found = std::find(sel.begin(), sel.end(), i);
-                u8bool::write(root.events, found != sel.end());
+                u8bool::write(agent.events, found != sel.end());
                 if ( found != sel.end() )
                 {
                     index_type foundAt = static_cast<index_type>(std::distance(std::begin(sel), found));
-                    root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&foundAt), reinterpret_cast<const std::uint8_t*>(&foundAt)+sizeof(foundAt));
+                    agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&foundAt), reinterpret_cast<const std::uint8_t*>(&foundAt)+sizeof(foundAt));
                     std::erase(sel, i);
                 }
                 else
                     RareTs::append(sel, i);
 
-                if constexpr ( Edit::template hasSelectionsChangedOp<Route> )
-                    root.user.selectionsChanged(Route{(Keys &)(*this)});
+                if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
+                    agent.user.selectionsChanged(Route{(Keys &)(*this)});
             }
 
             inline void toggleSelected(const std::vector<index_type> & toggledSelections)
             {
-                auto & sel = root.template getSelections<Pathway...>();
-                root.eventOffsets.push_back(root.events.size());
-                root.events.push_back(uint8_t(Op::ToggleSelectionN));
-                root.template serializePathway<Pathway...>((Keys &)(*this));
+                auto & sel = agent.template getSelections<Pathway...>();
+                agent.eventOffsets.push_back(agent.events.size());
+                agent.events.push_back(uint8_t(Op::ToggleSelectionN));
+                agent.template serializePathway<Pathway...>((Keys &)(*this));
 
                 auto numToggled = toggledSelections.size();
                 index_type size = static_cast<index_type>(numToggled);
-                root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
-                root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&toggledSelections[0]),
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&toggledSelections[0]),
                     reinterpret_cast<const std::uint8_t*>(&toggledSelections[0])+sizeof(toggledSelections[0])*static_cast<std::size_t>(size));
 
                 std::vector<bool> wasSelected(numToggled, false);
@@ -840,167 +996,221 @@ namespace RareEdit
                     else
                         RareTs::append(sel, toggledSelections[i]);
                 }
-                writeVecBoolData(root.events, wasSelected);
+                writeVecBoolData(agent.events, wasSelected);
                 if ( !prevSelIndexes.empty() )
                 {
-                    root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&prevSelIndexes[0]),
+                    agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&prevSelIndexes[0]),
                         reinterpret_cast<const std::uint8_t*>(&prevSelIndexes[0])+sizeof(prevSelIndexes[0])*std::size(prevSelIndexes));
                 }
 
-                if constexpr ( Edit::template hasSelectionsChangedOp<Route> )
-                    root.user.selectionsChanged(Route{(Keys &)(*this)});
+                if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
+                    agent.user.selectionsChanged(Route{(Keys &)(*this)});
             }
 
             inline void sortSelection()
             {
-                auto & sel = root.template getSelections<Pathway...>();
-                root.eventOffsets.push_back(root.events.size());
-                root.events.push_back(uint8_t(Op::SortSelections));
-                root.template serializePathway<Pathway...>((Keys &)(*this));
+                auto & sel = agent.template getSelections<Pathway...>();
+                agent.eventOffsets.push_back(agent.events.size());
+                agent.events.push_back(uint8_t(Op::SortSelections));
+                agent.template serializePathway<Pathway...>((Keys &)(*this));
 
                 auto sourceIndexes = trackedSort<false, index_type>(sel);
                 index_type serializedSize = static_cast<index_type>(sourceIndexes.size());
-                root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&serializedSize),
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&serializedSize),
                     reinterpret_cast<const std::uint8_t*>(&serializedSize)+sizeof(serializedSize));
 
                 for ( auto index : sourceIndexes )
                 {
                     index_type sourceIndex = static_cast<index_type>(index);
-                    root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&sourceIndex),
+                    agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&sourceIndex),
                         reinterpret_cast<const std::uint8_t*>(&sourceIndex)+sizeof(sourceIndex));
                 }
                 
-                if constexpr ( Edit::template hasSelectionsChangedOp<Route> )
-                    root.user.selectionsChanged(Route{(Keys &)(*this)});
+                if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
+                    agent.user.selectionsChanged(Route{(Keys &)(*this)});
             }
 
             inline void sortSelectionDescending()
             {
-                auto & sel = root.template getSelections<Pathway...>();
-                root.eventOffsets.push_back(root.events.size());
-                root.events.push_back(uint8_t(Op::SortSelectionsDesc));
-                root.template serializePathway<Pathway...>((Keys &)(*this));
+                auto & sel = agent.template getSelections<Pathway...>();
+                agent.eventOffsets.push_back(agent.events.size());
+                agent.events.push_back(uint8_t(Op::SortSelectionsDesc));
+                agent.template serializePathway<Pathway...>((Keys &)(*this));
 
                 auto sourceIndexes = trackedSort<true, index_type>(sel);
                 index_type serializedSize = static_cast<index_type>(sourceIndexes.size());
-                root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&serializedSize),
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&serializedSize),
                     reinterpret_cast<const std::uint8_t*>(&serializedSize)+sizeof(serializedSize));
 
                 for ( auto index : sourceIndexes )
                 {
                     index_type sourceIndex = static_cast<index_type>(index);
-                    root.events.insert(root.events.end(), reinterpret_cast<const std::uint8_t*>(&sourceIndex),
+                    agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&sourceIndex),
                         reinterpret_cast<const std::uint8_t*>(&sourceIndex)+sizeof(sourceIndex));
                 }
-                if constexpr ( Edit::template hasSelectionsChangedOp<Route> )
-                    root.user.selectionsChanged(Route{(Keys &)(*this)});
+                if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
+                    agent.user.selectionsChanged(Route{(Keys &)(*this)});
             }
             
-            constexpr auto selection() { return selection_op_type(root, (std::add_lvalue_reference_t<Keys>)(*this)); }
+            constexpr auto selection() { return selection_op_type(agent, (std::add_lvalue_reference_t<Keys>)(*this)); }
 
-            RandomAccess(Edit & root, Keys && keys) : Keys {std::move(keys)}, root(root) {}
+            RandomAccess(Agent & agent, Keys && keys) : Keys {std::move(keys)}, agent(agent) {}
 
-            auto operator[](std::size_t i) {
+            auto operator[](std::size_t i) const {
                 if constexpr ( RareTs::is_static_array_v<T> ) // Multi-dimensional array
-                    return sub_array_op_type(root, std::tuple_cat((std::add_lvalue_reference_t<Keys>)(*this), std::tuple{static_cast<index_type>(i)}));
+                    return sub_array_op_type(agent, std::tuple_cat((std::add_lvalue_reference_t<Keys>)(*this), std::tuple{static_cast<index_type>(i)}));
                 else
-                    return array_op_type(root, std::tuple_cat((std::add_lvalue_reference_t<Keys>)(*this), std::tuple{static_cast<index_type>(i)}));
+                    return array_op_type(agent, std::tuple_cat((std::add_lvalue_reference_t<Keys>)(*this), std::tuple{static_cast<index_type>(i)}));
             }
         };
 
     public:
         struct Array : RandomAccess
         {
-            Array(Edit & root, Keys keys) : RandomAccess { root, std::move(keys) } {}
+            Array(Agent & agent, Keys keys) : RandomAccess { agent, std::move(keys) } {}
+            void reset() { RandomAccess::agent.template reset<Pathway...>((Keys &)(*this)); }
         };
 
         struct Vector : RandomAccess
         {
-            Vector(Edit & root, Keys keys) : RandomAccess { root, std::move(keys) } {}
-            void reset() { RandomAccess::root.template reset<Pathway...>((Keys &)(*this)); }
-            void reserve(std::size_t size) { RandomAccess::root.template reserve<Pathway...>(size, (Keys &)(*this)); }
-            void trim() { RandomAccess::root.template trim<Pathway...>((Keys &)(*this)); }
-            void assignDefault(std::size_t size) { RandomAccess::root.template assignDefault<Pathway...>(size, (Keys &)(*this)); }
-            template <class U> void assign(std::size_t size, U && value) { RandomAccess::root.template assign<Pathway...>(size, std::forward<U>(value), (Keys &)(*this)); }
+            Vector(Agent & agent, Keys keys) : RandomAccess { agent, std::move(keys) } {}
+            void reset() { RandomAccess::agent.template reset<Pathway...>((Keys &)(*this)); }
+            void reserve(std::size_t size) { RandomAccess::agent.template reserve<Pathway...>(size, (Keys &)(*this)); }
+            void trim() { RandomAccess::agent.template trim<Pathway...>((Keys &)(*this)); }
+            void assignDefault(std::size_t size) { RandomAccess::agent.template assignDefault<Pathway...>(size, (Keys &)(*this)); }
+            template <class U> void assign(std::size_t size, U && value) { RandomAccess::agent.template assign<Pathway...>(size, std::forward<U>(value), (Keys &)(*this)); }
             template <class U> void operator=(U && value) {
                 if constexpr ( has_path_selections<Pathway...> )
-                    RandomAccess::root.template setL<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+                    RandomAccess::agent.template setL<Pathway...>(std::forward<U>(value), (Keys &)(*this));
                 else
-                    RandomAccess::root.template set<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+                    RandomAccess::agent.template set<Pathway...>(std::forward<U>(value), (Keys &)(*this));
             }
-            template <class SetIndexes, class Value> void set(SetIndexes && indexes, Value && value) { RandomAccess::root.template setN<Pathway...>(indexes, std::forward<Value>(value), (Keys &)(*this)); }
+
+            template <class SetIndexes, class Value> void set(SetIndexes && indexes, Value && value) { RandomAccess::agent.template setN<Pathway...>(indexes, std::forward<Value>(value), (Keys &)(*this)); }
             template <class U> void append(U && value) {
-                if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> )
-                    RandomAccess::root.template appendN<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+                if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> && !RareTs::is_optional_v<std::remove_cvref_t<U>> )
+                    RandomAccess::agent.template appendN<Pathway...>(std::forward<U>(value), (Keys &)(*this));
                 else
-                    RandomAccess::root.template append<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+                    RandomAccess::agent.template append<Pathway...>(std::forward<U>(value), (Keys &)(*this));
             }
             template <class InsertionIndex, class Value> void insert(InsertionIndex insertionIndex, Value && value) {
-                if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<Value>> )
-                    RandomAccess::root.template insertN<Pathway...>(insertionIndex, std::forward<Value>(value), (Keys &)(*this));
+                if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<Value>> && !RareTs::is_optional_v<std::remove_cvref_t<Value>> )
+                    RandomAccess::agent.template insertN<Pathway...>(insertionIndex, std::forward<Value>(value), (Keys &)(*this));
                 else
-                    RandomAccess::root.template insert<Pathway...>(insertionIndex, std::forward<Value>(value), (Keys &)(*this));
+                    RandomAccess::agent.template insert<Pathway...>(insertionIndex, std::forward<Value>(value), (Keys &)(*this));
             }
             template <class RemovalIndex> void remove(RemovalIndex removalIndex) {
                 if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<RemovalIndex>> )
-                    RandomAccess::root.template removeN<Pathway...>(removalIndex, (Keys &)(*this));
+                    RandomAccess::agent.template removeN<Pathway...>(removalIndex, (Keys &)(*this));
                 else
-                    RandomAccess::root.template remove<Pathway...>(removalIndex, (Keys &)(*this));
+                    RandomAccess::agent.template remove<Pathway...>(removalIndex, (Keys &)(*this));
             }
-            void sort() { RandomAccess::root.template sort<Pathway...>((Keys &)(*this)); }
-            void sortDesc() { RandomAccess::root.template sortDesc<Pathway...>((Keys &)(*this)); }
-            void removeSelection() { RandomAccess::root.template removeL<Pathway...>((Keys &)(*this)); }
+            void sort() { RandomAccess::agent.template sort<Pathway...>((Keys &)(*this)); }
+            void sortDesc() { RandomAccess::agent.template sortDesc<Pathway...>((Keys &)(*this)); }
+            void removeSelection() { RandomAccess::agent.template removeL<Pathway...>((Keys &)(*this)); }
 
+            template <class U> void swap(U && firstIndex, U && secondIndex) {
+                RandomAccess::agent.template swap<Pathway...>(std::forward<U>(firstIndex), std::forward<U>(secondIndex), (Keys &)(*this));
+            }
             template <class U> void moveUp(U && movedIndex) {
                 if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> )
-                    RandomAccess::root.template moveUpN<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
+                    RandomAccess::agent.template moveUpN<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
                 else
-                    RandomAccess::root.template moveUp<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
+                    RandomAccess::agent.template moveUp<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
             }
             template <class U> void moveTop(U && movedIndex) {
                 if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> )
-                    RandomAccess::root.template moveTopN<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
+                    RandomAccess::agent.template moveTopN<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
                 else
-                    RandomAccess::root.template moveTop<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
+                    RandomAccess::agent.template moveTop<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
             }
             template <class U> void moveDown(U && movedIndex) {
                 if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> )
-                    RandomAccess::root.template moveDownN<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
+                    RandomAccess::agent.template moveDownN<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
                 else
-                    RandomAccess::root.template moveDown<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
+                    RandomAccess::agent.template moveDown<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
             }
             template <class U> void moveBottom(U && movedIndex) {
                 if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> )
-                    RandomAccess::root.template moveBottomN<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
+                    RandomAccess::agent.template moveBottomN<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
                 else
-                    RandomAccess::root.template moveBottom<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
+                    RandomAccess::agent.template moveBottom<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
             }
             template <class I, class U> void moveTo(U && movedIndex, I indexMovedTo) {
                 if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> )
-                    RandomAccess::root.template moveToN<Pathway...>(std::forward<U>(movedIndex), indexMovedTo, (Keys &)(*this));
+                    RandomAccess::agent.template moveToN<Pathway...>(std::forward<U>(movedIndex), indexMovedTo, (Keys &)(*this));
                 else
-                    RandomAccess::root.template moveTo<Pathway...>(std::forward<U>(movedIndex), indexMovedTo, (Keys &)(*this));
+                    RandomAccess::agent.template moveTo<Pathway...>(std::forward<U>(movedIndex), indexMovedTo, (Keys &)(*this));
             }
 
-            void moveSelectionsUp() { RandomAccess::root.template moveUpL<Pathway...>((Keys &)(*this)); }
-            void moveSelectionsTop() { RandomAccess::root.template moveTopL<Pathway...>((Keys &)(*this)); }
-            void moveSelectionsDown() { RandomAccess::root.template moveDownL<Pathway...>((Keys &)(*this)); }
-            void moveSelectionsBottom() { RandomAccess::root.template moveBottomL<Pathway...>((Keys &)(*this)); }
-            template <class I> void moveSelectionsTo(I indexMovedTo) { RandomAccess::root.template moveToL<Pathway...>(indexMovedTo, (Keys &)(*this)); }
+            void moveSelectionsUp() { RandomAccess::agent.template moveUpL<Pathway...>((Keys &)(*this)); }
+            void moveSelectionsTop() { RandomAccess::agent.template moveTopL<Pathway...>((Keys &)(*this)); }
+            void moveSelectionsDown() { RandomAccess::agent.template moveDownL<Pathway...>((Keys &)(*this)); }
+            void moveSelectionsBottom() { RandomAccess::agent.template moveBottomL<Pathway...>((Keys &)(*this)); }
+            template <class I> void moveSelectionsTo(I indexMovedTo) { RandomAccess::agent.template moveToL<Pathway...>(indexMovedTo, (Keys &)(*this)); }
         };
     };
+    
+    template <class Agent, class default_index_type, class RootData, class T, class Keys, class ... Pathway>
+    static constexpr auto editVector();
+    
+    template <class Agent, class default_index_type, class RootData, class T, class Keys, class ... Pathway>
+    static constexpr auto editArray();
 
-    template <class Edit, class default_index_type, class RootData, class T, class Keys, class ... Pathway>
+    template <class Agent, class default_index_type, class RootData, class T, class Keys, class ... Pathway>
+    struct EditOptional : Keys
+    {
+        using keys = Keys;
+        using path = type_tags<Pathway...>;
+        using editor_type = typename Agent::editor_type;
+        using type = T;
+        using optional_value_type = typename std::remove_cvref_t<type>::value_type;
+
+    private:
+        static constexpr auto derefType()
+        {
+            if constexpr ( RareTs::is_static_array_v<optional_value_type> )
+                return decltype(editArray<Agent, default_index_type, RootData, optional_value_type, Keys, Pathway..., PathMember<0>>()){};
+            else if constexpr ( RareTs::is_specialization_v<optional_value_type, std::vector> ) // Vector
+                return decltype(editVector<Agent, default_index_type, RootData, optional_value_type, Keys, Pathway..., PathMember<0>>()){};
+            else if constexpr ( RareTs::is_macro_reflected_v<optional_value_type> ) // Reflected object
+                return std::type_identity<edit_members<Agent, default_index_type, RootData, optional_value_type, Keys, Pathway..., PathMember<0>>>{};
+            else if constexpr ( RareTs::is_optional_v<optional_value_type> )
+                return std::type_identity<EditOptional<Agent, default_index_type, RootData, optional_value_type, Keys, Pathway..., PathMember<0>>>{};
+            else // Primitive
+                return std::type_identity<EditPrimitive<Agent, default_index_type, RootData, optional_value_type, Keys, Pathway..., PathMember<0>>>{};
+        }
+
+        Agent & agent;
+        typename decltype(derefType())::type deref;
+
+    public:
+
+        EditOptional(Agent & agent, Keys keys) :
+            Keys {std::move(keys)}, agent(agent), deref{agent, (Keys &)(*this)} {}
+
+        template <class U> void operator=(U && value) {
+            if constexpr ( has_path_selections<Pathway...> )
+                agent.template setL<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+            else
+                agent.template set<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+        }
+        constexpr auto operator->() { return &deref; }
+    };
+
+    template <class Agent, class default_index_type, class RootData, class T, class Keys, class ... Pathway>
     static constexpr auto editVector()
     {
         using element_type = RareTs::element_type_t<T>;
         if constexpr ( RareTs::is_reflected_v<element_type> )
-            return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, Keys, edit_members, Pathway...>::Vector>{};
+            return std::type_identity<typename Editable<Agent, default_index_type, RootData, element_type, Keys, edit_members, Pathway...>::Vector>{};
+        else if constexpr ( RareTs::is_optional_v<element_type> )
+            return std::type_identity<typename Editable<Agent, default_index_type, RootData, element_type, Keys, EditOptional, Pathway...>::Vector>{};
         else
-            return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, Keys, EditPrimitive, Pathway...>::Vector>{};
+            return std::type_identity<typename Editable<Agent, default_index_type, RootData, element_type, Keys, EditPrimitive, Pathway...>::Vector>{};
     }
 
-    template <class Edit, class default_index_type, class RootData, class T, class Keys, class ... Pathway>
+    template <class Agent, class default_index_type, class RootData, class T, class Keys, class ... Pathway>
     static constexpr auto editArray()
     {
         using element_type = RareTs::element_type_t<T>;
@@ -1008,28 +1218,34 @@ namespace RareEdit
         {
             using sub_element_type = RareTs::element_type_t<element_type>;
             if constexpr ( RareTs::is_reflected_v<sub_element_type> )
-                return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, Keys, edit_members, Pathway...>::Array>{};
+                return std::type_identity<typename Editable<Agent, default_index_type, RootData, element_type, Keys, edit_members, Pathway...>::Array>{};
+            else if constexpr ( RareTs::is_optional_v<sub_element_type> )
+                return std::type_identity<typename Editable<Agent, default_index_type, RootData, element_type, Keys, EditOptional, Pathway...>::Array>{};
             else
-                return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, Keys, EditPrimitive, Pathway...>::Array>{};
+                return std::type_identity<typename Editable<Agent, default_index_type, RootData, element_type, Keys, EditPrimitive, Pathway...>::Array>{};
         }
         else if constexpr ( RareTs::is_reflected_v<element_type> )
-            return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, Keys, edit_members, Pathway...>::Array>{};
+            return std::type_identity<typename Editable<Agent, default_index_type, RootData, element_type, Keys, edit_members, Pathway...>::Array>{};
+        else if constexpr ( RareTs::is_optional_v<element_type> )
+            return std::type_identity<typename Editable<Agent, default_index_type, RootData, element_type, Keys, EditOptional, Pathway...>::Array>{};
         else
-            return std::type_identity<typename Editable<Edit, default_index_type, RootData, element_type, Keys, EditPrimitive, Pathway...>::Array>{};
+            return std::type_identity<typename Editable<Agent, default_index_type, RootData, element_type, Keys, EditPrimitive, Pathway...>::Array>{};
     }
 
-    template <class Edit, class default_index_type, class RootData, class T, class Keys, std::size_t I, class ... Pathway>
+    template <class Agent, class default_index_type, class RootData, class T, class Keys, std::size_t I, class ... Pathway>
     static constexpr auto editMember()
     {
         using member_type = typename RareTs::Member<T, I>::type;
         if constexpr ( RareTs::is_static_array_v<member_type> )
-            return decltype(editArray<Edit, default_index_type, RootData, member_type, Keys, Pathway..., PathMember<I>>()){};
+            return decltype(editArray<Agent, default_index_type, RootData, member_type, Keys, Pathway..., PathMember<I>>()){};
         else if constexpr ( RareTs::is_specialization_v<member_type, std::vector> ) // Vector
-            return decltype(editVector<Edit, default_index_type, RootData, member_type, Keys, Pathway..., PathMember<I>>()){};
+            return decltype(editVector<Agent, default_index_type, RootData, member_type, Keys, Pathway..., PathMember<I>>()){};
         else if constexpr ( RareTs::is_macro_reflected_v<member_type> ) // Reflected object
-            return std::type_identity<edit_members<Edit, default_index_type, RootData, member_type, Keys, Pathway..., PathMember<I>>>{};
+            return std::type_identity<edit_members<Agent, default_index_type, RootData, member_type, Keys, Pathway..., PathMember<I>>>{};
+        else if constexpr ( RareTs::is_optional_v<member_type> )
+            return std::type_identity<EditOptional<Agent, default_index_type, RootData, member_type, Keys, Pathway..., PathMember<I>>>{};
         else // Primitive
-            return std::type_identity<EditPrimitive<Edit, default_index_type, RootData, member_type, Keys, Pathway..., PathMember<I>>>{};
+            return std::type_identity<EditPrimitive<Agent, default_index_type, RootData, member_type, Keys, Pathway..., PathMember<I>>>{};
     }
 
     template <typename T> struct is_selection_leaf_member {
@@ -1056,6 +1272,13 @@ namespace RareEdit
     template <typename T> struct is_selection_member {
         static constexpr bool value = hasSelectionMember<T>(std::make_index_sequence<reflectedMemberCount<typename T::type>()>());
     };
+
+    template <class DefaultIndexType, class Member, class AttachedType>
+    struct leaf_data
+    {
+        std::vector<AttachedType> attachedData;
+        std::vector<index_type_t<DefaultIndexType, Member>> sel;
+    };
     
     template <class DefaultIndexType, class T, std::size_t ... Is>
     struct object_selection;
@@ -1072,7 +1295,18 @@ namespace RareEdit
             });
         }
         else if constexpr ( RareTs::is_static_array_v<member_type> || RareTs::is_specialization_v<member_type, std::vector> )
-            return std::vector<index_type_t<DefaultIndexType, member>> {};
+        {
+            if constexpr ( member::template hasNote<AttachDataType>() )
+            {
+                using attached_type = typename std::remove_cvref_t<decltype(member::template getNote<AttachDataType>())>::type;
+                if constexpr ( !std::is_void_v<attached_type> )
+                    return leaf_data<DefaultIndexType, member, attached_type> {};
+                else
+                    return std::vector<index_type_t<DefaultIndexType, member>> {};
+            }
+            else
+                return std::vector<index_type_t<DefaultIndexType, member>> {};
+        }
         else
             static_assert(std::is_void_v<T>, "Unexpected member selection!");
     }
@@ -1083,6 +1317,7 @@ namespace RareEdit
     };
     
     inline constexpr std::nullptr_t noSelection {};
+    inline constexpr std::nullptr_t noAttachedData {};
 
     template <class DefaultIndexType, class T, std::size_t ... Is>
     struct object_selection : RareTs::Class::adapt_member<member_selection<DefaultIndexType, T>::template type, T, Is>...
@@ -1099,6 +1334,42 @@ namespace RareEdit
                 return noSelection;
             }
         }
+
+        template <class ... Pathway, class Sizer>
+        constexpr void initAttachedData([[maybe_unused]] Sizer sizer)
+        {
+            (initAttachedDatum<Is, Pathway...>(sizer), ...);
+        }
+
+        template <std::size_t I, class ... Pathway, class Sizer>
+        constexpr void initAttachedDatum(Sizer sizer)
+        {
+            auto & [leafData] = static_cast<RareTs::Class::adapt_member<member_selection<DefaultIndexType, T>::template type, T, I> &>(*this);
+            if constexpr ( requires { leafData.template initAttachedData<Pathway..., PathMember<I>>(sizer); } )
+            {
+                leafData.template initAttachedData<Pathway..., PathMember<I>>(sizer);
+            }
+            else if constexpr ( requires { leafData.attachedData.clear(); } )
+            {
+                using attached_data_vec = std::remove_cvref_t<decltype(leafData.attachedData)>;
+                leafData.attachedData = attached_data_vec(sizer(type_tags<Pathway..., PathMember<I>>{}));
+            }
+        }
+
+        template <std::size_t I>
+        void clear()
+        {
+            using U = RareTs::Class::adapt_member<member_selection<DefaultIndexType, T>::template type, T, I>;
+            if constexpr ( requires { static_cast<U &>(*this).clear(); } )
+                static_cast<U &>(*this).clear();
+            else if constexpr ( requires { static_cast<U &>(*this).sel.clear(); } )
+                static_cast<U &>(*this).sel.clear();
+        }
+
+        void clear()
+        {
+            (clear<Is>(), ...);
+        }
     };
 
     template <class DefaultIndexType, class T, std::size_t ... Is>
@@ -1112,17 +1383,57 @@ namespace RareEdit
         });
     }
 
-    template <class T, class User, class Editor>
-    struct EditRoot
+    template <class T, class Edit>
+    struct ReadEditPair
+    {
+        using read_type = T;
+        using edit_type = Edit;
+
+        const T & read;
+        Edit edit;
+    };
+
+    template <class T, class User, class EditorType>
+    struct Agent
     {
         using type = T;
+        using editor_type = EditorType;
         using default_index_type = typename decltype(defaultIndexType<T>())::type;
         decltype(RareEdit::selections<default_index_type, T>()) selections {};
         std::vector<std::uint8_t> events {std::uint8_t(0)}; // First byte is unused
         std::vector<std::uint64_t> eventOffsets {};
-        Editor & editor;
         T & t;
         User & user;
+
+        void clear()
+        {
+            selections.clear();
+            eventOffsets.clear();
+            events = {std::uint8_t(0)};
+        }
+
+        std::size_t trim(std::size_t newFirstEvent) // Returns the count of trimmed events
+        {
+            if ( newFirstEvent >= eventOffsets.size() )
+            {
+                newFirstEvent = eventOffsets.size();
+                eventOffsets.clear();
+                events = {std::uint8_t(0)};
+                return newFirstEvent;
+            }
+            else if ( newFirstEvent > 0 )
+            {
+                std::uint64_t newFirstEventOffset = eventOffsets[newFirstEvent];
+                eventOffsets.erase(eventOffsets.begin(), std::next(eventOffsets.begin(), static_cast<std::ptrdiff_t>(newFirstEvent)));
+                events.erase(std::next(events.begin(), 1), std::next(events.begin(), static_cast<std::ptrdiff_t>(newFirstEventOffset)));
+                for ( auto & eventOffset : eventOffsets )
+                    eventOffset -= (newFirstEventOffset-1);
+
+                return newFirstEvent;
+            }
+            else
+                return 0;
+        }
 
         template <class Usr, class Route, class Value>
         using ValueChangedOp = decltype(std::declval<Usr>().valueChanged(std::declval<Route>(), std::declval<Value>(), std::declval<Value>()));
@@ -1184,7 +1495,7 @@ namespace RareEdit
             user.selectionsChanged(route);
         }
 
-        EditRoot(Editor & editor, T & t, User & user) : editor(editor), t(t), user(user) {}
+        Agent(T & t, User & user) : t(t), user(user) {}
 
         auto getEventOffsetRange(std::size_t eventIndex) const
         {
@@ -1220,12 +1531,37 @@ namespace RareEdit
             if constexpr ( sizeof...(Pathway) == 0 )
                 return noSelection;
             else
-                return getSelectionsData<Pathway...>(selections);
+            {
+                auto & selData = getSelectionsData<Pathway...>(selections);
+                if constexpr ( requires{selData.sel;} )
+                    return selData.sel;
+                else
+                    return selData;
+            }
+        }
+
+        template <class ... Pathway>
+        constexpr auto & getAttachedData() {
+            if constexpr ( sizeof...(Pathway) == 0 )
+                return noAttachedData;
+            else
+            {
+                auto & selData = getSelectionsData<Pathway...>(selections);
+                if constexpr ( requires{selData.attachedData;} )
+                    return selData.attachedData;
+                else
+                    return noAttachedData;
+            }
         }
 
         template <class ... Pathway>
         static constexpr bool hasSelections() {
-            return !std::is_null_pointer_v<std::remove_cvref_t<decltype(std::declval<EditRoot>().template getSelections<Pathway...>())>>;
+            return !std::is_null_pointer_v<std::remove_cvref_t<decltype(std::declval<Agent>().template getSelections<Pathway...>())>>;
+        }
+
+        template <class ... Pathway>
+        static constexpr bool hasAttachedData() {
+            return !std::is_null_pointer_v<std::remove_cvref_t<decltype(std::declval<Agent>().template getAttachedData<Pathway...>())>>;
         }
 
         template <class Keys, class U, class PathElement, class ... Pathway>
@@ -1325,12 +1661,34 @@ namespace RareEdit
                 events.insert(events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
                 events.insert(events.end(), reinterpret_cast<const std::uint8_t*>(value.c_str()), reinterpret_cast<const std::uint8_t*>(value.c_str()+size));
             }
+            else if constexpr ( RareTs::is_optional_v<value_type> )
+            {
+                bool hasValue = value.has_value();
+                u8bool::write(events, hasValue);
+                if ( hasValue )
+                    serializeValue<Member>(*value);
+            }
+            else if constexpr ( is_flat_mdspan_v<value_type> )
+            {
+                constexpr auto size = static_cast<index_type>(value_type::size);
+                events.insert(events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
+                for ( auto it = value.flatBegin(); it != value.flatEnd(); ++it )
+                    serializeValue<Member>(*it);
+            }
+            else if constexpr ( std::is_array_v<value_type> )
+            {
+                auto span = as_1d<const value_type>(value);
+                constexpr auto size = static_cast<index_type>(decltype(span)::size);
+                events.insert(events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
+                for ( auto it = span.flatBegin(); it != span.flatEnd(); ++it )
+                    serializeValue<Member>(*it);
+            }
             else if constexpr ( RareTs::is_static_array_v<value_type> )
             {
                 constexpr auto size = static_cast<index_type>(RareTs::static_array_size_v<value_type>);
                 events.insert(events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
                 for ( auto & val : value )
-                    serializeValue<Member>(val);
+                    serializeValue<Member>(value);
             }
             else if constexpr ( RareTs::is_iterable_v<value_type> )
             {
@@ -1378,7 +1736,7 @@ namespace RareEdit
                     auto newKeys = std::tuple_cat(std::tuple<index_type>{sel}, keys);
                     using path_tagged_keys = std::remove_cvref_t<decltype(newKeys)>;
                     if constexpr ( sizeof...(Pathway) == 0 )
-                        f(t[static_cast<std::size_t>(sel)], type_tags<LastMember, PathTaggedKeys<path_tagged_keys, RareTs::type_tags<PathTraversed..., PathIndex<0>>>>{}, newKeys);
+                        f(t[static_cast<std::size_t>(sel)], type_tags<LastMember, PathTaggedKeys<path_tagged_keys, type_tags<PathTraversed..., PathIndex<0>>, EditorType>>{}, newKeys);
                     else
                         operateThruSelImpl<true, path_tagged_keys, std::remove_cvref_t<decltype(t[0])>, F, LastMember, Pathway...>(t[sel], newKeys, f, type_tags<PathTraversed..., PathIndex<0>>{});
                 }
@@ -1387,7 +1745,7 @@ namespace RareEdit
             {
                 using Member = RareTs::Member<U, PathElement::index>;
                 if constexpr ( sizeof...(Pathway) == 0 )
-                    f(Member::value(t), type_tags<Member, PathTaggedKeys<Keys, type_tags<PathTraversed..., PathElement>>>{}, keys);
+                    f(Member::value(t), type_tags<Member, PathTaggedKeys<Keys, type_tags<PathTraversed..., PathElement>, EditorType>>{}, keys);
                 else
                     operateThruSelImpl<AfterSel, Keys, typename Member::type, F, Member, Pathway...>(Member::value(t), keys, f, type_tags<PathTraversed..., PathElement>{});
             }
@@ -1398,7 +1756,7 @@ namespace RareEdit
                 if constexpr ( sizeof...(Pathway) == 0 )
                 {
                     f(t[static_cast<std::size_t>(std::get<path_elem::index>(keys))],
-                        type_tags<LastMember, PathTaggedKeys<Keys, type_tags<PathTraversed..., path_elem>>>{}, keys);
+                        type_tags<LastMember, PathTaggedKeys<Keys, type_tags<PathTraversed..., path_elem>, EditorType>>{}, keys);
                 }
                 else
                 {
@@ -1426,23 +1784,33 @@ namespace RareEdit
                 for ( auto & sel : selData )
                 {
                     if constexpr ( sizeof...(Pathway) == 0 )
-                        f(t[static_cast<std::size_t>(sel)], type_tags<LastMember, PathTaggedKeys<Keys, type_tags<PathTraversed..., PathElement>>>{});
+                        f(t[static_cast<std::size_t>(sel)], type_tags<LastMember, PathTaggedKeys<Keys, type_tags<PathTraversed..., PathElement>, EditorType>>{});
                     else
                         operateOnImpl<Keys, std::remove_cvref_t<decltype(t[0])>, F, LastMember, Pathway...>(t[sel], keys, f, type_tags<PathTraversed..., PathElement>{});
                 }
             }
             else if constexpr ( is_path_member_v<PathElement> )
             {
-                using Member = RareTs::Member<U, PathElement::index>;
-                if constexpr ( sizeof...(Pathway) == 0 )
-                    f(Member::value(t), type_tags<Member, PathTaggedKeys<Keys, type_tags<PathTraversed..., PathElement>>>{});
+                if constexpr ( RareTs::is_optional_v<std::remove_cvref_t<U>> )
+                {
+                    if constexpr ( sizeof...(Pathway) == 0 )
+                        f(t, type_tags<LastMember, PathTaggedKeys<Keys, type_tags<PathTraversed..., PathElement>, EditorType>>{});
+                    else if ( t.has_value() )
+                        operateOnImpl<Keys, typename std::remove_cvref_t<U>::value_type, F, LastMember, Pathway...>(*t, keys, f, type_tags<PathTraversed..., PathElement>{});
+                }
                 else
-                    operateOnImpl<Keys, typename Member::type, F, Member, Pathway...>(Member::value(t), keys, f, type_tags<PathTraversed..., PathElement>{});
+                {
+                    using Member = RareTs::Member<U, PathElement::index>;
+                    if constexpr ( sizeof...(Pathway) == 0 )
+                        f(Member::value(t), type_tags<Member, PathTaggedKeys<Keys, type_tags<PathTraversed..., PathElement>, EditorType>>{});
+                    else
+                        operateOnImpl<Keys, typename Member::type, F, Member, Pathway...>(Member::value(t), keys, f, type_tags<PathTraversed..., PathElement>{});
+                }
             }
             else if constexpr ( is_path_index_v<PathElement> )
             {
                 if constexpr ( sizeof...(Pathway) == 0 )
-                    f(t[static_cast<std::size_t>(std::get<PathElement::index>(keys))], type_tags<LastMember, PathTaggedKeys<Keys, type_tags<PathTraversed..., PathElement>>>{});
+                    f(t[static_cast<std::size_t>(std::get<PathElement::index>(keys))], type_tags<LastMember, PathTaggedKeys<Keys, type_tags<PathTraversed..., PathElement>, EditorType>>{});
                 else
                 {
                     operateOnImpl<Keys, std::remove_cvref_t<decltype(t[static_cast<std::size_t>(std::get<PathElement::index>(keys))])>,
@@ -1456,7 +1824,87 @@ namespace RareEdit
         template <class ... Pathway, class Keys, class U, class F>
         void operateOn(U & t, Keys & keys, F f)
         {
-            operateOnImpl<Keys, U, F, void, Pathway...>(t, keys, f, {});
+            if constexpr ( sizeof...(Pathway) == 0 )
+                f(t, type_tags<void, PathTaggedKeys<Keys, type_tags<>, EditorType>>{});
+            else
+                operateOnImpl<Keys, U, F, void, Pathway...>(t, keys, f, {});
+        }
+        
+        template <class Keys, class U, class LastMember, class PathElement, class ... Pathway, class ... PathTraversed>
+        auto editorFromPathImpl(auto && editor, U & t, Keys & keys, type_tags<PathTraversed...>)
+        {
+            if constexpr ( is_path_selections_v<PathElement> )
+            {
+                auto & selData = getSelections<PathTraversed...>();
+                for ( auto & sel : selData )
+                {
+                    if constexpr ( sizeof...(Pathway) == 0 )
+                        return ReadEditPair{((const U &)t)[sel], editor[sel]};
+                    else
+                        return editorFromPathImpl<Keys, std::remove_cvref_t<decltype(t[0])>, LastMember, Pathway...>(editor[sel], t[sel], keys, type_tags<PathTraversed..., PathElement>{});
+                }
+            }
+            else if constexpr ( is_path_member_v<PathElement> )
+            {
+                if constexpr ( RareTs::is_optional_v<std::remove_cvref_t<U>> )
+                {
+                    if constexpr ( sizeof...(Pathway) == 0 )
+                    {
+                        if ( t.has_value() )
+                            return ReadEditPair{*((const U &)t), *editor};
+                        else
+                            return ReadEditPair{refNullOpt, *editor};
+                    }
+                    else if ( t.has_value() )
+                        return editorFromPathImpl<Keys, typename std::remove_cvref_t<U>::value_type, LastMember, Pathway...>(*editor, *t, keys, type_tags<PathTraversed..., PathElement>{});
+                }
+                else
+                {
+                    using Member = RareTs::Member<U, PathElement::index>;
+                    if constexpr ( sizeof...(Pathway) == 0 )
+                        return ReadEditPair{Member::value((const U &)t), editor.template fromMember<PathElement::index>()};
+                    else
+                        return editorFromPathImpl<Keys, typename Member::type, Member, Pathway...>(editor.template fromMember<PathElement::index>(), Member::value(t), keys, type_tags<PathTraversed..., PathElement>{});
+                }
+            }
+            else if constexpr ( is_path_index_v<PathElement> )
+            {
+                auto index = static_cast<std::size_t>(std::get<PathElement::index>(keys));
+                if constexpr ( sizeof...(Pathway) == 0 )
+                    return ReadEditPair{((const U &)t)[index], editor[index]};
+                else
+                {
+                    return editorFromPathImpl<Keys, std::remove_cvref_t<decltype(t[index])>,
+                        LastMember, Pathway...>(editor[index], t[index], keys, type_tags<PathTraversed..., PathElement>{});
+                }
+            }
+            else
+                static_assert(std::is_void_v<PathElement>, "Unexpected path element type!");
+        }
+
+        template <class ... Pathway, class Keys, class U>
+        auto editorFromPath(auto & editor, U & t, Keys & keys)
+        {
+            if constexpr ( sizeof...(Pathway) == 0 )
+                return ReadEditPair{(const U &)t, editor};
+            else
+                return editorFromPathImpl<Keys, U, void, Pathway...>(editor, t, keys, {});
+        }
+
+        constexpr void initAttachedData()
+        {
+            auto dataSizer = [&]<class ... Pathway>(type_tags<Pathway...>) {
+                std::size_t dataSize = 0;
+                if constexpr ( hasAttachedData<Pathway...>() )
+                {
+                    std::tuple<> keys {};
+                    operateOn<Pathway...>(t, keys, [&dataSize]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                        dataSize = std::size(ref);
+                    });
+                }
+                return dataSize;
+            };
+            selections.template initAttachedData<>(dataSizer);
         }
 
         template <class ... Pathway, class Keys>
@@ -1473,23 +1921,44 @@ namespace RareEdit
                 {
                     std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1;
                     serializeValue<Member>(ref);
-                    ref = {};
                     for ( ; i>=0; --i )
                         notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i)); // Issue remove changes
-                }
-                else if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> ) // Non-iterables
-                {
-                    auto prevValue = ref;
-                    serializeValue<Member>(ref);
+                    
                     ref = {};
-                    notifyValueChanged(user, Route{keys}, prevValue, ref); // Issue change notification
+                    if constexpr ( hasAttachedData<Pathway...>() )
+                        getAttachedData<Pathway...>() = {};
+                }
+                else if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> ) // Non-iterables (also no selections)
+                {
+                    if constexpr ( std::is_array_v<typename Member::type> )
+                    {
+                        serializeValue<Member>(ref);
+                        typename Member::type prevValue {};
+                        auto refArray = as_1d<typename Member::type>(ref);
+                        as_1d(prevValue) = refArray;
+                        refArray.clear();
+                        notifyValueChanged(user, Route{keys}, prevValue, ref); // Issue change notification
+                    }
+                    else
+                    {
+                        auto prevValue = ref;
+                        serializeValue<Member>(ref);
+                        ref = {};
+                        notifyValueChanged(user, Route{keys}, prevValue, ref); // Issue change notification
+                    }
                 }
                 else
                 {
                     serializeValue<Member>(ref);
-                    ref = {};
+                    if constexpr ( std::is_array_v<typename Member::type> )
+                        as_1d<typename Member::type>(ref).clear();
+                    else
+                        ref = {};
+                    
+                    if constexpr ( hasAttachedData<Pathway...>() )
+                        getAttachedData<Pathway...>() = {};
                 }
-
+                    
                 if constexpr ( hasSelections<Pathway...>() )
                 {
                     auto & sel = getSelections<Pathway...>();
@@ -1546,13 +2015,12 @@ namespace RareEdit
                 serializeValue<Member>(ref);
                 if constexpr ( hasElementRemovedOp<Route> )
                 {
-                    std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1;
-                    ref.assign(size, value);
-                    for ( ; i>=0; --i )
+                    for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1; i>=0; --i )
                         notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
                 }
-                else
-                    ref.assign(size, value);
+                ref.assign(size, value);
+                if constexpr ( hasAttachedData<Pathway...>() )
+                    getAttachedData<Pathway...>() = std::remove_cvref_t<decltype(getAttachedData<Pathway...>())>(size); // = std::vector(size) ctor
 
                 if constexpr ( hasElementAddedOp<Route> )
                 {
@@ -1591,13 +2059,12 @@ namespace RareEdit
                 
                 if constexpr ( hasElementRemovedOp<Route> )
                 {
-                    std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1;
-                    ref = std::remove_cvref_t<decltype(ref)>(size);
-                    for ( ; i>=0; --i )
+                    for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1; i>=0; --i )
                         notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
                 }
-                else
-                    ref = std::remove_cvref_t<decltype(ref)>(size);
+                ref = std::remove_cvref_t<decltype(ref)>(size); // = std::vector(size) ctor
+                if constexpr ( hasAttachedData<Pathway...>() )
+                    getAttachedData<Pathway...>() = std::remove_cvref_t<decltype(getAttachedData<Pathway...>())>(size); // = std::vector(size) ctor
 
                 if constexpr ( hasElementAddedOp<Route> )
                 {
@@ -1628,11 +2095,14 @@ namespace RareEdit
         {
             eventOffsets.push_back(events.size());
             events.push_back(uint8_t(Op::Set));
-            serializePathway<Pathway...>(keys);
+            if constexpr ( sizeof...(Pathway) > 0 )
+                serializePathway<Pathway...>(keys);
+            else
+                events.push_back(uint8_t(PathOp::RootPath));
 
             operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
                 using value_type = std::remove_cvref_t<decltype(ref)>;
-                constexpr bool isIterable = RareTs::is_iterable_v<value_type>;
+                constexpr bool isIterable = !RareTs::is_optional_v<value_type> && RareTs::is_iterable_v<value_type>;
                 if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> )
                 {
                     auto prevValue = ref;
@@ -1648,14 +2118,15 @@ namespace RareEdit
                         
                     if constexpr ( isIterable && hasElementRemovedOp<Route> )
                     {
-                        std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1;
-                        ref = std::forward<Value>(value);
-                        for ( ; i>=0; --i )
+                        for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1; i>=0; --i )
                             notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
                     }
-                    else
+                    if constexpr ( requires{ref = std::forward<Value>(value);} )
+                    {
                         ref = std::forward<Value>(value);
-
+                        if constexpr ( hasAttachedData<Pathway...>() )
+                            getAttachedData<Pathway...>() = std::remove_cvref_t<decltype(getAttachedData<Pathway...>())>(std::size(ref)); // = std::vector(size)
+                    }
                     if constexpr ( isIterable && hasElementAddedOp<Route> )
                     {
                         for ( std::size_t i=0; i<std::size(ref); ++i )
@@ -1687,7 +2158,7 @@ namespace RareEdit
                 using index_type = index_type_t<default_index_type, Member>;
                 using ElemPath = type_tags<Pathway..., PathIndex<std::tuple_size_v<std::remove_cvref_t<decltype(keys)>>>>;
                 using ElemKeys = std::remove_cvref_t<decltype(std::tuple_cat(keys, std::tuple<index_type>{0}))>;
-                using ElemRoute = PathTaggedKeys<ElemKeys, ElemPath>;
+                using ElemRoute = PathTaggedKeys<ElemKeys, ElemPath, EditorType>;
                 constexpr bool isIterableElement = RareTs::is_iterable_v<element_type>;
                 if constexpr ( !std::is_void_v<element_type> )
                 {
@@ -1726,13 +2197,10 @@ namespace RareEdit
                             {
                                 if constexpr ( hasElementRemovedOp<Route> )
                                 {
-                                    std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref[setIndex]))-1;
-                                    ref[setIndex] = value; // Make the change
-                                    for ( ; i>=0; --i )
+                                    for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref[setIndex]))-1; i>=0; --i )
                                         notifyElementRemoved(user, ElemRoute{std::tuple_cat(keys, std::tuple<index_type>{setIndex})}, static_cast<std::size_t>(i));
                                 }
-                                else
-                                    ref[setIndex] = value; // Make the change
+                                ref[setIndex] = value; // Make the change
                                 
                                 if constexpr ( hasElementAddedOp<Route> )
                                 {
@@ -1741,7 +2209,7 @@ namespace RareEdit
                                 }
                             }
                         }
-                        else
+                        else if constexpr ( requires{ref[0] = value;} )
                         {
                             for ( auto setIndex : setIndexes )
                                 ref[setIndex] = value; // Make the change
@@ -1760,7 +2228,6 @@ namespace RareEdit
 
             bool first = true;
             operateThruSel<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>, auto & newKeys) {
-                std::cout << RareTs::toStr<Route>() << '\n';
                 using value_type = std::remove_cvref_t<decltype(ref)>;
                 constexpr bool isIterable = RareTs::is_iterable_v<value_type>;
                 if ( first )
@@ -1780,13 +2247,10 @@ namespace RareEdit
                         serializeValue<Member>(ref); // Value before changing
                         if constexpr ( isIterable && hasElementRemovedOp<Route> )
                         {
-                            std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1;
-                            ref = std::forward<Value>(value);
-                            for ( ; i>=0; --i )
+                            for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1; i>=0; --i )
                                 notifyElementRemoved(user, Route{newKeys}, static_cast<std::size_t>(i));
                         }
-                        else
-                            ref = std::forward<Value>(value);
+                        ref = std::forward<Value>(value);
 
                         if constexpr ( isIterable && hasElementAddedOp<Route> )
                         {
@@ -1807,19 +2271,232 @@ namespace RareEdit
                     serializeValue<Member>(ref); // Value before changing
                     if constexpr ( isIterable && hasElementRemovedOp<Route> )
                     {
-                        std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1;
-                        ref = std::forward<Value>(value);
-                        for ( ; i>=0; --i )
+                        for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1; i>=0; --i )
                             notifyElementRemoved(user, Route{newKeys}, static_cast<std::size_t>(i));
                     }
-                    else
-                        ref = std::forward<Value>(value);
+                    ref = std::forward<Value>(value);
 
                     if constexpr ( isIterable && hasElementAddedOp<Route> )
                     {
                         for ( std::size_t i=0; i<std::size(ref); ++i )
                             notifyElementAdded(user, Route{newKeys}, i);
                     }
+                }
+            });
+        }
+
+        template <class ... Pathway, class Value, class Keys>
+        void plusEq(Value && value, Keys & keys)
+        {
+            eventOffsets.push_back(events.size());
+            events.push_back(uint8_t(Op::Set)); // "Set like operation"
+            serializePathway<Pathway...>(keys);
+
+            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                
+                using value_type = std::remove_cvref_t<decltype(ref)>;
+                if constexpr ( hasValueChangedOp<Route, value_type> )
+                {
+                    auto prevValue = ref;
+                    ref += std::forward<Value>(value);
+                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
+                    serializeValue<Member>(prevValue); // Value before changing
+                    notifyValueChanged(user, Route{keys}, prevValue, ref);
+                }
+                else
+                {
+                    serializeValue<Member>(std::remove_cvref_t<decltype(ref)>(ref + value)); // Value set to
+                    serializeValue<Member>(ref); // Value before changing
+                    ref += std::forward<Value>(value);
+                }
+            });
+        }
+
+        template <class ... Pathway, class Value, class Keys>
+        void minusEq(Value && value, Keys & keys)
+        {
+            eventOffsets.push_back(events.size());
+            events.push_back(uint8_t(Op::Set)); // "Set like operation"
+            serializePathway<Pathway...>(keys);
+
+            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                
+                using value_type = std::remove_cvref_t<decltype(ref)>;
+                if constexpr ( hasValueChangedOp<Route, value_type> )
+                {
+                    auto prevValue = ref;
+                    ref -= std::forward<Value>(value);
+                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
+                    serializeValue<Member>(prevValue); // Value before changing
+                    notifyValueChanged(user, Route{keys}, prevValue, ref);
+                }
+                else
+                {
+                    serializeValue<Member>(std::remove_cvref_t<decltype(ref)>(ref - value)); // Value set to
+                    serializeValue<Member>(ref); // Value before changing
+                    ref -= std::forward<Value>(value);
+                }
+            });
+        }
+
+        template <class ... Pathway, class Value, class Keys>
+        void multEq(Value && value, Keys & keys)
+        {
+            eventOffsets.push_back(events.size());
+            events.push_back(uint8_t(Op::Set)); // "Set like operation"
+            serializePathway<Pathway...>(keys);
+
+            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                
+                using value_type = std::remove_cvref_t<decltype(ref)>;
+                if constexpr ( hasValueChangedOp<Route, value_type> )
+                {
+                    auto prevValue = ref;
+                    ref *= std::forward<Value>(value);
+                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
+                    serializeValue<Member>(prevValue); // Value before changing
+                    notifyValueChanged(user, Route{keys}, prevValue, ref);
+                }
+                else
+                {
+                    serializeValue<Member>(std::remove_cvref_t<decltype(ref)>(ref * value)); // Value set to
+                    serializeValue<Member>(ref); // Value before changing
+                    ref *= std::forward<Value>(value);
+                }
+            });
+        }
+
+        template <class ... Pathway, class Value, class Keys>
+        void divEq(Value && value, Keys & keys)
+        {
+            eventOffsets.push_back(events.size());
+            events.push_back(uint8_t(Op::Set)); // "Set like operation"
+            serializePathway<Pathway...>(keys);
+
+            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                
+                using value_type = std::remove_cvref_t<decltype(ref)>;
+                if constexpr ( hasValueChangedOp<Route, value_type> )
+                {
+                    auto prevValue = ref;
+                    ref /= std::forward<Value>(value);
+                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
+                    serializeValue<Member>(prevValue); // Value before changing
+                    notifyValueChanged(user, Route{keys}, prevValue, ref);
+                }
+                else
+                {
+                    serializeValue<Member>(std::remove_cvref_t<decltype(ref)>(ref / value)); // Value set to
+                    serializeValue<Member>(ref); // Value before changing
+                    ref /= std::forward<Value>(value);
+                }
+            });
+        }
+
+        template <class ... Pathway, class Value, class Keys>
+        void modEq(Value && value, Keys & keys)
+        {
+            eventOffsets.push_back(events.size());
+            events.push_back(uint8_t(Op::Set)); // "Set like operation"
+            serializePathway<Pathway...>(keys);
+
+            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                
+                using value_type = std::remove_cvref_t<decltype(ref)>;
+                if constexpr ( hasValueChangedOp<Route, value_type> )
+                {
+                    auto prevValue = ref;
+                    ref %= std::forward<Value>(value);
+                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
+                    serializeValue<Member>(prevValue); // Value before changing
+                    notifyValueChanged(user, Route{keys}, prevValue, ref);
+                }
+                else
+                {
+                    serializeValue<Member>(std::remove_cvref_t<decltype(ref)>(ref % value)); // Value set to
+                    serializeValue<Member>(ref); // Value before changing
+                    ref %= std::forward<Value>(value);
+                }
+            });
+        }
+
+        template <class ... Pathway, class Value, class Keys>
+        void xorEq(Value && value, Keys & keys)
+        {
+            eventOffsets.push_back(events.size());
+            events.push_back(uint8_t(Op::Set)); // "Set like operation"
+            serializePathway<Pathway...>(keys);
+
+            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                
+                using value_type = std::remove_cvref_t<decltype(ref)>;
+                if constexpr ( hasValueChangedOp<Route, value_type> )
+                {
+                    auto prevValue = ref;
+                    ref ^= std::forward<Value>(value);
+                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
+                    serializeValue<Member>(prevValue); // Value before changing
+                    notifyValueChanged(user, Route{keys}, prevValue, ref);
+                }
+                else
+                {
+                    serializeValue<Member>(std::remove_cvref_t<decltype(ref)>(ref ^ value)); // Value set to
+                    serializeValue<Member>(ref); // Value before changing
+                    ref ^= std::forward<Value>(value);
+                }
+            });
+        }
+
+        template <class ... Pathway, class Value, class Keys>
+        void andEq(Value && value, Keys & keys)
+        {
+            eventOffsets.push_back(events.size());
+            events.push_back(uint8_t(Op::Set)); // "Set like operation"
+            serializePathway<Pathway...>(keys);
+
+            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                
+                using value_type = std::remove_cvref_t<decltype(ref)>;
+                if constexpr ( hasValueChangedOp<Route, value_type> )
+                {
+                    auto prevValue = ref;
+                    ref &= std::forward<Value>(value);
+                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
+                    serializeValue<Member>(prevValue); // Value before changing
+                    notifyValueChanged(user, Route{keys}, prevValue, ref);
+                }
+                else
+                {
+                    serializeValue<Member>(std::remove_cvref_t<decltype(ref)>(ref & value)); // Value set to
+                    serializeValue<Member>(ref); // Value before changing
+                    ref &= std::forward<Value>(value);
+                }
+            });
+        }
+
+        template <class ... Pathway, class Value, class Keys>
+        void orEq(Value && value, Keys & keys)
+        {
+            eventOffsets.push_back(events.size());
+            events.push_back(uint8_t(Op::Set)); // "Set like operation"
+            serializePathway<Pathway...>(keys);
+
+            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                
+                using value_type = std::remove_cvref_t<decltype(ref)>;
+                if constexpr ( hasValueChangedOp<Route, value_type> )
+                {
+                    auto prevValue = ref;
+                    ref |= std::forward<Value>(value);
+                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
+                    serializeValue<Member>(prevValue); // Value before changing
+                    notifyValueChanged(user, Route{keys}, prevValue, ref);
+                }
+                else
+                {
+                    serializeValue<Member>(std::remove_cvref_t<decltype(ref)>(ref | value)); // Value set to
+                    serializeValue<Member>(ref); // Value before changing
+                    ref |= std::forward<Value>(value);
                 }
             });
         }
@@ -1833,6 +2510,8 @@ namespace RareEdit
             
             operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
                 ref.push_back(std::forward<Value>(value));
+                if constexpr ( hasAttachedData<Pathway...>() )
+                    getAttachedData<Pathway...>().push_back({});
                 serializeValue<Member>(ref.back());
                 if constexpr ( hasElementAddedOp<Route> )
                     notifyElementAdded(user, Route{keys}, ref.size()-1);
@@ -1851,6 +2530,9 @@ namespace RareEdit
                 for ( auto & value : values )
                 {
                     ref.push_back(value);
+                    if constexpr ( hasAttachedData<Pathway...>() )
+                        getAttachedData<Pathway...>().push_back({});
+
                     serializeValue<Member>(ref.back());
                     if constexpr ( hasElementAddedOp<Route> )
                         notifyElementAdded(user, Route{keys}, ref.size()-1);
@@ -1869,13 +2551,18 @@ namespace RareEdit
                 serializeIndex<Member>(insertionIndex);
                 serializeValue<Member>(value);
                 ref.insert(std::next(ref.begin(), static_cast<std::ptrdiff_t>(insertionIndex)), std::forward<Value>(value));
+                if constexpr ( hasAttachedData<Pathway...>() )
+                {
+                    auto & attachedData = getAttachedData<Pathway...>();
+                    attachedData.emplace(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(insertionIndex)));
+                }
+                if constexpr ( hasElementAddedOp<Route> )
+                    notifyElementAdded(user, Route{keys}, static_cast<std::size_t>(insertionIndex));
                 if constexpr ( hasElementMovedOp<Route> )
                 {
                     for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(std::size(ref))-1; i>static_cast<std::ptrdiff_t>(insertionIndex); --i )
                         notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(i-1), static_cast<std::size_t>(i));
                 }
-                if constexpr ( hasElementAddedOp<Route> )
-                    notifyElementAdded(user, Route{keys}, static_cast<std::size_t>(insertionIndex));
 
                 if constexpr ( hasSelections<Pathway...>() )
                 {
@@ -1904,19 +2591,25 @@ namespace RareEdit
                 for ( auto & value : values )
                     serializeValue<Member>(value);
                 
-                ref.insert(std::next(ref.begin(), static_cast<std::ptrdiff_t>(insertionIndex)) , std::begin(values), std::end(values));
-                if constexpr ( hasElementMovedOp<Route> )
+                ref.insert(std::next(ref.begin(), static_cast<std::ptrdiff_t>(insertionIndex)), std::begin(values), std::end(values));
+                if constexpr ( hasAttachedData<Pathway...>() )
                 {
-                    std::size_t countInserted = std::size(values);
-                    std::size_t prevSize = std::size(ref) - countInserted;
-                    for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(prevSize)-1; i>=static_cast<std::ptrdiff_t>(insertionIndex); --i )
-                        notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(i), static_cast<std::size_t>(i)+countInserted);
+                    auto & attachedData = getAttachedData<Pathway...>();
+                    for ( std::size_t i=0; i<std::size(values); ++i )
+                        attachedData.emplace(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(insertionIndex)));
                 }
                 if constexpr ( hasElementAddedOp<Route> )
                 {
                     auto limit = insertionIndex + static_cast<InsertionIndex>(std::size(values));
                     for ( auto i = insertionIndex; i < limit; ++i )
                         notifyElementAdded(user, Route{keys}, static_cast<std::size_t>(i));
+                }
+                if constexpr ( hasElementMovedOp<Route> )
+                {
+                    std::size_t countInserted = std::size(values);
+                    std::size_t prevSize = std::size(ref) - countInserted;
+                    for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(prevSize)-1; i>=static_cast<std::ptrdiff_t>(insertionIndex); --i )
+                        notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(i), static_cast<std::size_t>(i)+countInserted);
                 }
 
                 if constexpr ( hasSelections<Pathway...>() )
@@ -1947,10 +2640,15 @@ namespace RareEdit
                 serializeIndex<Member>(removalIndex);
                 serializeValue<Member>(ref[static_cast<std::size_t>(removalIndex)]);
                 
-                ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removalIndex)));
                 if constexpr ( hasElementRemovedOp<Route> )
                     notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(removalIndex));
 
+                ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removalIndex)));
+                if constexpr ( hasAttachedData<Pathway...>() )
+                {
+                    auto & attachedData = getAttachedData<Pathway...>();
+                    attachedData.erase(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(removalIndex)));
+                }
                 if constexpr ( hasElementMovedOp<Route> )
                 {
                     for ( std::size_t i=static_cast<std::size_t>(removalIndex); i<std::size(ref); ++i )
@@ -1997,14 +2695,28 @@ namespace RareEdit
                     serializeIndex<Member>(removalIndex);
                 for ( auto removalIndex : removalIndexes )
                     serializeValue<Member>(ref[static_cast<std::size_t>(removalIndex)]);
-                for ( auto removalIndex : removalIndexes )
-                    ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removalIndex)));
 
                 if constexpr ( hasElementRemovedOp<Route> )
                 {
                     for ( auto removalIndex : removalIndexes )
                         notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(removalIndex));
                 }
+
+                if constexpr ( hasAttachedData<Pathway...>() )
+                {
+                    auto & attachedData = getAttachedData<Pathway...>();
+                    for ( auto removalIndex : removalIndexes )
+                    {
+                        ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removalIndex)));
+                        attachedData.erase(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(removalIndex)));
+                    }
+                }
+                else
+                {
+                    for ( auto removalIndex : removalIndexes )
+                        ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removalIndex)));
+                }
+
                 if constexpr ( hasElementMovedOp<Route> )
                 {
                     if ( !ref.empty() )
@@ -2083,15 +2795,24 @@ namespace RareEdit
                 {
                     if constexpr ( hasElementRemovedOp<Route> )
                     {
-                        auto value = ref[i];
-                        serializeValue<Member>(value);
-                        ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(i)));
+                        serializeValue<Member>(ref[i]);
                         notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
+                        ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(i)));
+                        if constexpr ( hasAttachedData<Pathway...>() )
+                        {
+                            auto & attachedData = getAttachedData<Pathway...>();
+                            attachedData.erase(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(i)));
+                        }
                     }
                     else
                     {
                         serializeValue<Member>(ref[i]);
                         ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(i)));
+                        if constexpr ( hasAttachedData<Pathway...>() )
+                        {
+                            auto & attachedData = getAttachedData<Pathway...>();
+                            attachedData.erase(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(i)));
+                        }
                     }
                 }
                 if constexpr ( hasElementMovedOp<Route> )
@@ -2131,6 +2852,9 @@ namespace RareEdit
             operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
                 using index_type = index_type_t<default_index_type, Member>;
                 auto sourceIndexes = trackedSort<false, index_type>(ref);
+                if constexpr ( hasAttachedData<Pathway...>() )
+                    redoSort(getAttachedData<Pathway...>(), std::span(sourceIndexes));
+
                 index_type serializedSize = static_cast<index_type>(sourceIndexes.size());
                 serializeIndex<Member>(serializedSize);
                 for ( auto index : sourceIndexes )
@@ -2170,6 +2894,9 @@ namespace RareEdit
             operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
                 using index_type = index_type_t<default_index_type, Member>;
                 auto sourceIndexes = trackedSort<true, index_type>(ref);
+                if constexpr ( hasAttachedData<Pathway...>() )
+                    redoSort(getAttachedData<Pathway...>(), std::span(sourceIndexes));
+
                 index_type serializedSize = static_cast<index_type>(sourceIndexes.size());
                 serializeIndex<Member>(serializedSize);
                 for ( auto index : sourceIndexes )
@@ -2201,6 +2928,34 @@ namespace RareEdit
         }
 
         template <class ... Pathway, class MovedIndex, class Keys>
+        void swap(MovedIndex firstIndex, MovedIndex secondIndex, Keys & keys)
+        {
+            eventOffsets.push_back(events.size());
+            events.push_back(uint8_t(Op::Swap));
+            serializePathway<Pathway...>(keys);
+
+            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                serializeIndex<Member>(firstIndex);
+                serializeIndex<Member>(secondIndex);
+                if ( firstIndex != secondIndex && static_cast<std::size_t>(firstIndex) < std::size(ref) && static_cast<std::size_t>(secondIndex) < std::size(ref) )
+                {
+                    std::swap(ref[static_cast<std::size_t>(firstIndex)], ref[static_cast<std::size_t>(secondIndex)]);
+                    if constexpr ( hasAttachedData<Pathway...>() )
+                        mirrorSwapTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(firstIndex), static_cast<std::size_t>(secondIndex));
+
+                    mirrorSwapToSelection(getSelections<Pathway...>(), static_cast<std::size_t>(firstIndex), static_cast<std::size_t>(secondIndex));
+                    if constexpr ( hasElementMovedOp<Route> )
+                    {
+                        notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(firstIndex), static_cast<std::size_t>(secondIndex));
+                        notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(secondIndex), static_cast<std::size_t>(firstIndex));
+                    }
+                    if constexpr ( hasSelections<Pathway...>() && hasSelectionsChangedOp<Route> )
+                        notifySelectionsChanged(user, Route{keys});
+                }
+            });
+        }
+
+        template <class ... Pathway, class MovedIndex, class Keys>
         void moveUp(MovedIndex movedIndex, Keys & keys)
         {
             eventOffsets.push_back(events.size());
@@ -2212,6 +2967,9 @@ namespace RareEdit
                 if ( movedIndex > 0 && static_cast<std::size_t>(movedIndex) < std::size(ref) )
                 {
                     std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex-1)]);
+                    if constexpr ( hasAttachedData<Pathway...>() )
+                        mirrorSwapTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(movedIndex)-1);
+
                     mirrorSwapToSelection(getSelections<Pathway...>(), static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(movedIndex)-1);
                     if constexpr ( hasElementMovedOp<Route> )
                     {
@@ -2244,6 +3002,9 @@ namespace RareEdit
                     if ( movedIndex > nextAvailable && static_cast<std::size_t>(movedIndex) < std::size(ref) )
                     {
                         std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex-1)]);
+                        if constexpr ( hasAttachedData<Pathway...>() )
+                            mirrorSwapTo(getAttachedData<Pathway...>(), movedIndex, movedIndex-1);
+
                         mirrorSwapToSelection(getSelections<Pathway...>(), movedIndex, movedIndex-1);
                         nextAvailable = movedIndex;
                     }
@@ -2296,6 +3057,9 @@ namespace RareEdit
                     if ( movedIndex > nextAvailable && static_cast<std::size_t>(movedIndex) < std::size(ref) )
                     {
                         std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex-1)]);
+                        if constexpr ( hasAttachedData<Pathway...>() )
+                            mirrorSwapTo(getAttachedData<Pathway...>(), movedIndex, movedIndex-1);
+
                         mirrorSwapToSelection(getSelections<Pathway...>(), movedIndex, movedIndex-1);
                         nextAvailable = movedIndex;
                     }
@@ -2343,6 +3107,9 @@ namespace RareEdit
                 {
                     auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(movedIndex));
                     std::rotate(ref.begin(), it, it+1); // [0, movedIndex) are moved forward 1... [movedIndex] is moved to 0
+                    if constexpr ( hasAttachedData<Pathway...>() )
+                        mirrorRotationTo(getAttachedData<Pathway...>(), 0, static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(movedIndex)+1);
+
                     mirrorRotationToSelection(getSelections<Pathway...>(), 0, static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(movedIndex)+1);
                     if constexpr ( hasElementMovedOp<Route> )
                     {
@@ -2386,9 +3153,12 @@ namespace RareEdit
                     {
                         auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
                         std::rotate(std::next(ref.begin(), insertionIndex), it, it+1);
+                        if constexpr ( hasAttachedData<Pathway...>() )
+                            mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(insertionIndex), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1);
+
                         mirrorRotationToSelection(getSelections<Pathway...>(), static_cast<std::size_t>(insertionIndex), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1);
                         if constexpr ( hasElementMovedOp<Route> )
-                            mirrorRotationToIndexes(trackedIndexes, insertionIndex, i, i+1);
+                            mirrorRotationTo(trackedIndexes, insertionIndex, i, i+1);
                     }
                     ++insertionIndex;
                 }
@@ -2434,9 +3204,12 @@ namespace RareEdit
                     {
                         auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
                         std::rotate(std::next(ref.begin(), insertionIndex), it, it+1);
+                        if constexpr ( hasAttachedData<Pathway...>() )
+                            mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(insertionIndex), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1);
+
                         mirrorRotationToSelection(getSelections<Pathway...>(), static_cast<std::size_t>(insertionIndex), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1);
                         if constexpr ( hasElementMovedOp<Route> )
-                            mirrorRotationToIndexes(trackedIndexes, insertionIndex, i, i+1);
+                            mirrorRotationTo(trackedIndexes, insertionIndex, i, i+1);
                     }
                     ++insertionIndex;
                 }
@@ -2466,6 +3239,9 @@ namespace RareEdit
                 if ( static_cast<std::size_t>(movedIndex)+1 < std::size(ref) )
                 {
                     std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex)+1]);
+                    if constexpr ( hasAttachedData<Pathway...>() )
+                        mirrorSwapTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(movedIndex)+1);
+
                     mirrorSwapToSelection(getSelections<Pathway...>(), static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(movedIndex)+1);
                     if constexpr ( hasElementMovedOp<Route> )
                     {
@@ -2500,6 +3276,9 @@ namespace RareEdit
                         if ( static_cast<std::size_t>(movedIndex)+1 < limit )
                         {
                             std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex)+1]);
+                            if constexpr ( hasAttachedData<Pathway...>() )
+                                mirrorSwapTo(getAttachedData<Pathway...>(), movedIndex, movedIndex+1);
+
                             mirrorSwapToSelection(getSelections<Pathway...>(), movedIndex, movedIndex+1);
                             limit = movedIndex+1;
                         }
@@ -2559,6 +3338,9 @@ namespace RareEdit
                         if ( static_cast<std::size_t>(movedIndex)+1 < limit )
                         {
                             std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex)+1]);
+                            if constexpr ( hasAttachedData<Pathway...>() )
+                                mirrorSwapTo(getAttachedData<Pathway...>(), movedIndex, movedIndex+1);
+
                             mirrorSwapToSelection(getSelections<Pathway...>(), movedIndex, movedIndex+1);
                         }
                         else if ( limit > 0 )
@@ -2608,6 +3390,9 @@ namespace RareEdit
                 {
                     auto it = std::next(ref.begin(), movedIndex);
                     std::rotate(it, it+1, ref.end());
+                    if constexpr ( hasAttachedData<Pathway...>() )
+                        mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(movedIndex)+1, std::size(ref));
+
                     mirrorRotationToSelection(getSelections<Pathway...>(), static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(movedIndex)+1, std::size(ref));
                     if constexpr ( hasElementMovedOp<Route> )
                     {
@@ -2651,9 +3436,12 @@ namespace RareEdit
                     {
                         auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
                         std::rotate(it, it+1, std::next(ref.begin(), insertionIndex));
+                        if constexpr ( hasAttachedData<Pathway...>() )
+                            mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
+
                         mirrorRotationToSelection(getSelections<Pathway...>(), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
                         if constexpr ( hasElementMovedOp<Route> )
-                            mirrorRotationToIndexes(trackedIndexes, i, i+1, insertionIndex);
+                            mirrorRotationTo(trackedIndexes, i, i+1, insertionIndex);
                     }
                     --insertionIndex;
                 }
@@ -2700,9 +3488,12 @@ namespace RareEdit
                     {
                         auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
                         std::rotate(it, it+1, std::next(ref.begin(), insertionIndex));
+                        if constexpr ( hasAttachedData<Pathway...>() )
+                            mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
+
                         mirrorRotationToSelection(getSelections<Pathway...>(), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
                         if constexpr ( hasElementMovedOp<Route> )
-                            mirrorRotationToIndexes(trackedIndexes, i, i+1, insertionIndex);
+                            mirrorRotationTo(trackedIndexes, i, i+1, insertionIndex);
                     }
                     --insertionIndex;
                 }
@@ -2735,6 +3526,9 @@ namespace RareEdit
                 if ( static_cast<std::ptrdiff_t>(indexMovedTo) < static_cast<std::ptrdiff_t>(movedIndex) && indexMovedTo >= 0 && static_cast<std::size_t>(movedIndex) < std::size(ref) )
                 {
                     std::rotate(std::next(ref.begin(), indexMovedTo), it, it+1);
+                    if constexpr ( hasAttachedData<Pathway...>() )
+                        mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(indexMovedTo), static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(movedIndex)+1);
+
                     mirrorRotationToSelection(getSelections<Pathway...>(), static_cast<std::size_t>(indexMovedTo), static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(movedIndex)+1);
                     if constexpr ( hasElementMovedOp<Route> )
                     {
@@ -2748,6 +3542,9 @@ namespace RareEdit
                 else if ( static_cast<std::ptrdiff_t>(indexMovedTo) > static_cast<std::ptrdiff_t>(movedIndex) && movedIndex >= 0 && static_cast<std::size_t>(indexMovedTo) < std::size(ref) )
                 {
                     std::rotate(it, it+1, std::next(ref.begin(), indexMovedTo)+1);
+                    if constexpr ( hasAttachedData<Pathway...>() )
+                        mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(movedIndex)+1, static_cast<std::size_t>(indexMovedTo)+1);
+
                     mirrorRotationToSelection(getSelections<Pathway...>(), static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(movedIndex)+1, static_cast<std::size_t>(indexMovedTo)+1);
                     if constexpr ( hasElementMovedOp<Route> )
                     {
@@ -2812,9 +3609,12 @@ namespace RareEdit
                             {
                                 auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
                                 std::rotate(it, it+1, std::next(ref.begin(), insertionIndex));
+                                if constexpr ( hasAttachedData<Pathway...>() )
+                                    mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
+
                                 mirrorRotationToSelection(sel, static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
                                 if constexpr ( hasElementMovedOp<Route> )
-                                    mirrorRotationToIndexes(trackedIndexes, static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
+                                    mirrorRotationTo(trackedIndexes, static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
                             }
                             --insertionIndex;
                         }
@@ -2851,9 +3651,12 @@ namespace RareEdit
                             auto leftStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
                             auto leftEnd = std::next(leftStart, static_cast<std::ptrdiff_t>(leftChunkSize));
                             std::rotate(leftStart, leftEnd, std::next(ref.begin(), static_cast<std::ptrdiff_t>(movedIndexes[i+1])));
+                            if constexpr ( hasAttachedData<Pathway...>() )
+                                mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]);
+
                             mirrorRotationToSelection(sel, leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]);
                             if constexpr ( hasElementMovedOp<Route> )
-                                mirrorRotationToIndexes(trackedIndexes, leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]);
+                                mirrorRotationTo(trackedIndexes, leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]);
                             leftChunkFirst = static_cast<std::size_t>(movedIndexes[i+1])-leftChunkSize;
                             ++leftChunkSize;
                         }
@@ -2863,9 +3666,12 @@ namespace RareEdit
                             auto rightStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(rightChunkFirst));
                             auto rightEnd = std::next(rightStart, static_cast<std::ptrdiff_t>(rightChunkSize));
                             std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(movedIndexes[i-1])+1), rightStart, rightEnd);
+                            if constexpr ( hasAttachedData<Pathway...>() )
+                                mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(movedIndexes[i-1])+1, rightChunkFirst, rightChunkFirst+rightChunkSize);
+
                             mirrorRotationToSelection(sel, static_cast<std::size_t>(movedIndexes[i-1])+1, rightChunkFirst, rightChunkFirst+rightChunkSize);
                             if constexpr ( hasElementMovedOp<Route> )
-                                mirrorRotationToIndexes(trackedIndexes, static_cast<std::size_t>(movedIndexes[i-1])+1, rightChunkFirst, rightChunkFirst+rightChunkSize);
+                                mirrorRotationTo(trackedIndexes, static_cast<std::size_t>(movedIndexes[i-1])+1, rightChunkFirst, rightChunkFirst+rightChunkSize);
                             rightChunkFirst = static_cast<std::size_t>(movedIndexes[i-1]);
                             ++rightChunkSize;
                         }
@@ -2878,9 +3684,12 @@ namespace RareEdit
                                 auto leftStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
                                 auto leftEnd = std::next(leftStart, static_cast<std::ptrdiff_t>(leftChunkSize));
                                 std::rotate(leftStart, leftEnd, std::next(ref.begin(), static_cast<std::ptrdiff_t>(rightChunkFirst)));
+                                if constexpr ( hasAttachedData<Pathway...>() )
+                                    mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst);
+
                                 mirrorRotationToSelection(sel, leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst);
                                 if constexpr ( hasElementMovedOp<Route> )
-                                    mirrorRotationToIndexes(trackedIndexes, leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst);
+                                    mirrorRotationTo(trackedIndexes, leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst);
                                 leftChunkFirst = rightChunkFirst-leftChunkSize;
                             }
                             else // Left chunk closer to target, move right up to left
@@ -2888,9 +3697,12 @@ namespace RareEdit
                                 auto rightStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(rightChunkFirst));
                                 auto rightEnd = std::next(rightStart, static_cast<std::ptrdiff_t>(rightChunkSize));
                                 std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst+leftChunkSize)), rightStart, rightEnd);
+                                if constexpr ( hasAttachedData<Pathway...>() )
+                                    mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize);
+
                                 mirrorRotationToSelection(sel, leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize);
                                 if constexpr ( hasElementMovedOp<Route> )
-                                    mirrorRotationToIndexes(trackedIndexes, leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize);
+                                    mirrorRotationTo(trackedIndexes, leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize);
                                 rightChunkFirst = leftChunkFirst+leftChunkSize;
                             }
                         }
@@ -2899,18 +3711,24 @@ namespace RareEdit
                             auto chunkStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
                             auto chunkEnd = std::next(chunkStart, static_cast<std::ptrdiff_t>(countValidIndexes));
                             std::rotate(chunkStart, chunkEnd, std::next(chunkEnd, static_cast<std::ptrdiff_t>(static_cast<std::size_t>(indexMovedTo)-leftChunkFirst)));
+                            if constexpr ( hasAttachedData<Pathway...>() )
+                                mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst, leftChunkFirst+countValidIndexes, leftChunkFirst+countValidIndexes+static_cast<std::size_t>(indexMovedTo)-leftChunkFirst);
+
                             mirrorRotationToSelection(sel, leftChunkFirst, leftChunkFirst+countValidIndexes, leftChunkFirst+countValidIndexes+static_cast<std::size_t>(indexMovedTo)-leftChunkFirst);
                             if constexpr ( hasElementMovedOp<Route> )
-                                mirrorRotationToIndexes(trackedIndexes, leftChunkFirst, leftChunkFirst+countValidIndexes, leftChunkFirst+countValidIndexes+static_cast<std::size_t>(indexMovedTo)-leftChunkFirst);
+                                mirrorRotationTo(trackedIndexes, leftChunkFirst, leftChunkFirst+countValidIndexes, leftChunkFirst+countValidIndexes+static_cast<std::size_t>(indexMovedTo)-leftChunkFirst);
                         }
                         else if ( leftChunkFirst > static_cast<std::size_t>(indexMovedTo) ) // Rotate combined chunk leftwards to final position
                         {
                             auto chunkStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
                             auto chunkEnd = std::next(chunkStart, static_cast<std::ptrdiff_t>(countValidIndexes));
                             std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(indexMovedTo)), chunkStart, chunkEnd);
+                            if constexpr ( hasAttachedData<Pathway...>() )
+                                mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(indexMovedTo), leftChunkFirst, leftChunkFirst+countValidIndexes);
+
                             mirrorRotationToSelection(sel, static_cast<std::size_t>(indexMovedTo), leftChunkFirst, leftChunkFirst+countValidIndexes);
                             if constexpr ( hasElementMovedOp<Route> )
-                                mirrorRotationToIndexes(trackedIndexes, static_cast<std::size_t>(indexMovedTo), leftChunkFirst, leftChunkFirst+countValidIndexes);
+                                mirrorRotationTo(trackedIndexes, static_cast<std::size_t>(indexMovedTo), leftChunkFirst, leftChunkFirst+countValidIndexes);
                         }
                     }
                     
@@ -2976,9 +3794,12 @@ namespace RareEdit
                             {
                                 auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
                                 std::rotate(it, it+1, std::next(ref.begin(), insertionIndex));
+                                if constexpr ( hasAttachedData<Pathway...>() )
+                                    mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
+
                                 mirrorRotationToSelection(sel, static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
                                 if constexpr ( hasElementMovedOp<Route> )
-                                    mirrorRotationToIndexes(trackedIndexes, static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
+                                    mirrorRotationTo(trackedIndexes, static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
                             }
                             --insertionIndex;
                         }
@@ -3015,9 +3836,12 @@ namespace RareEdit
                             auto leftStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
                             auto leftEnd = std::next(leftStart, static_cast<std::ptrdiff_t>(leftChunkSize));
                             std::rotate(leftStart, leftEnd, std::next(ref.begin(), static_cast<std::ptrdiff_t>(movedIndexes[i+1])));
+                            if constexpr ( hasAttachedData<Pathway...>() )
+                                mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]);
+
                             mirrorRotationToSelection(sel, leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]);
                             if constexpr ( hasElementMovedOp<Route> )
-                                mirrorRotationToIndexes(trackedIndexes, leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]);
+                                mirrorRotationTo(trackedIndexes, leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]);
                             leftChunkFirst = static_cast<std::size_t>(movedIndexes[i+1])-leftChunkSize;
                             ++leftChunkSize;
                         }
@@ -3027,9 +3851,12 @@ namespace RareEdit
                             auto rightStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(rightChunkFirst));
                             auto rightEnd = std::next(rightStart, static_cast<std::ptrdiff_t>(rightChunkSize));
                             std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(movedIndexes[i-1])+1), rightStart, rightEnd);
+                            if constexpr ( hasAttachedData<Pathway...>() )
+                                mirrorRotationTo(getAttachedData<Pathway...>(), movedIndexes[i-1]+1, rightChunkFirst, rightChunkFirst+rightChunkSize);
+
                             mirrorRotationToSelection(sel, movedIndexes[i-1]+1, rightChunkFirst, rightChunkFirst+rightChunkSize);
                             if constexpr ( hasElementMovedOp<Route> )
-                                mirrorRotationToIndexes(trackedIndexes, movedIndexes[i-1]+1, rightChunkFirst, rightChunkFirst+rightChunkSize);
+                                mirrorRotationTo(trackedIndexes, movedIndexes[i-1]+1, rightChunkFirst, rightChunkFirst+rightChunkSize);
                             rightChunkFirst = static_cast<std::size_t>(movedIndexes[i-1]);
                             ++rightChunkSize;
                         }
@@ -3042,9 +3869,12 @@ namespace RareEdit
                                 auto leftStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
                                 auto leftEnd = std::next(leftStart, static_cast<std::ptrdiff_t>(leftChunkSize));
                                 std::rotate(leftStart, leftEnd, std::next(ref.begin(), static_cast<std::ptrdiff_t>(rightChunkFirst)));
+                                if constexpr ( hasAttachedData<Pathway...>() )
+                                    mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst);
+
                                 mirrorRotationToSelection(sel, leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst);
                                 if constexpr ( hasElementMovedOp<Route> )
-                                    mirrorRotationToIndexes(trackedIndexes, leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst);
+                                    mirrorRotationTo(trackedIndexes, leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst);
                                 leftChunkFirst = rightChunkFirst-leftChunkSize;
                             }
                             else // Left chunk closer to target, move right up to left
@@ -3052,9 +3882,12 @@ namespace RareEdit
                                 auto rightStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(rightChunkFirst));
                                 auto rightEnd = std::next(rightStart, static_cast<std::ptrdiff_t>(rightChunkSize));
                                 std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst+leftChunkSize)), rightStart, rightEnd);
+                                if constexpr ( hasAttachedData<Pathway...>() )
+                                    mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize);
+
                                 mirrorRotationToSelection(sel, leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize);
                                 if constexpr ( hasElementMovedOp<Route> )
-                                    mirrorRotationToIndexes(trackedIndexes, leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize);
+                                    mirrorRotationTo(trackedIndexes, leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize);
                                 rightChunkFirst = leftChunkFirst+leftChunkSize;
                             }
                         }
@@ -3063,18 +3896,24 @@ namespace RareEdit
                             auto chunkStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
                             auto chunkEnd = std::next(chunkStart, static_cast<std::ptrdiff_t>(countValidIndexes));
                             std::rotate(chunkStart, chunkEnd, std::next(chunkEnd, static_cast<std::ptrdiff_t>(static_cast<std::size_t>(indexMovedTo)-leftChunkFirst)));
+                            if constexpr ( hasAttachedData<Pathway...>() )
+                                mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst, leftChunkFirst+countValidIndexes, leftChunkFirst+countValidIndexes+static_cast<std::size_t>(indexMovedTo)-leftChunkFirst);
+
                             mirrorRotationToSelection(sel, leftChunkFirst, leftChunkFirst+countValidIndexes, leftChunkFirst+countValidIndexes+static_cast<std::size_t>(indexMovedTo)-leftChunkFirst);
                             if constexpr ( hasElementMovedOp<Route> )
-                                mirrorRotationToIndexes(trackedIndexes, leftChunkFirst, leftChunkFirst+countValidIndexes, leftChunkFirst+countValidIndexes+static_cast<std::size_t>(indexMovedTo)-leftChunkFirst);
+                                mirrorRotationTo(trackedIndexes, leftChunkFirst, leftChunkFirst+countValidIndexes, leftChunkFirst+countValidIndexes+static_cast<std::size_t>(indexMovedTo)-leftChunkFirst);
                         }
                         else if ( leftChunkFirst > static_cast<std::size_t>(indexMovedTo) ) // Rotate combined chunk leftwards to final position
                         {
                             auto chunkStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
                             auto chunkEnd = std::next(chunkStart, static_cast<std::ptrdiff_t>(countValidIndexes));
                             std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(indexMovedTo)), chunkStart, chunkEnd);
+                            if constexpr ( hasAttachedData<Pathway...>() )
+                                mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(indexMovedTo), leftChunkFirst, leftChunkFirst+countValidIndexes);
+
                             mirrorRotationToSelection(sel, static_cast<std::size_t>(indexMovedTo), leftChunkFirst, leftChunkFirst+countValidIndexes);
                             if constexpr ( hasElementMovedOp<Route> )
-                                mirrorRotationToIndexes(trackedIndexes, static_cast<std::size_t>(indexMovedTo), leftChunkFirst, leftChunkFirst+countValidIndexes);
+                                mirrorRotationTo(trackedIndexes, static_cast<std::size_t>(indexMovedTo), leftChunkFirst, leftChunkFirst+countValidIndexes);
                         }
                     }
                     
@@ -3093,11 +3932,13 @@ namespace RareEdit
         }
 
         template <class Value, class Member>
-        void readValue(std::size_t & offset, auto & value) const
+        void readValue(std::size_t & offset, auto && value) const
         {
-            if constexpr ( std::is_same_v<Value, std::string> )
+            using U = std::remove_cvref_t<Value>;
+            using index_type = index_type_t<default_index_type, Member>;
+            if constexpr ( std::is_same_v<U, std::string> )
             {
-                auto stringSize = (index_type_t<default_index_type, Member> &)events[offset];
+                auto stringSize = (index_type &)events[offset];
                 offset += sizeof(stringSize);
                 if ( stringSize > 0 )
                 {
@@ -3105,64 +3946,64 @@ namespace RareEdit
                     offset += stringSize;
                 }
             }
-            else if constexpr ( RareTs::is_static_array_v<Value> )
+            else if constexpr ( RareTs::is_optional_v<U> )
             {
-                constexpr std::size_t size = RareTs::static_array_size_v<Value>;
-                offset += sizeof(size);
-                for ( std::size_t i=0; i<size; ++i )
-                    readValue<std::remove_cvref_t<decltype(std::declval<Value>()[0])>, Member>(offset, value[i]);
+                if ( u8bool::read(events, offset) ) // optional.has_value()
+                {
+                    value = typename U::value_type{};
+                    readValue<typename U::value_type, Member>(offset, *value);
+                }
+                else
+                    value = std::nullopt;
             }
-            else if constexpr ( RareTs::is_iterable_v<Value> && requires{value.resize(std::size_t{0});} )
+            else if constexpr ( is_flat_mdspan_v<U> )
             {
-                using index_type = index_type_t<default_index_type, Member>;
+                offset += sizeof(index_type); // Skip over array size
+                for ( auto it = value.flatBegin(); it != value.flatEnd(); ++it )
+                    readValue<typename U::element_type, Member>(offset, *it);
+            }
+            else if constexpr ( std::is_array_v<U> )
+            {
+                auto span = as_1d<Value>(value);
+                offset += sizeof(index_type); // Skip over array size
+                for ( auto it = span.flatBegin(); it != span.flatEnd(); ++it )
+                    readValue<typename decltype(span)::element_type, Member>(offset, *it);
+            }
+            else if constexpr ( RareTs::is_static_array_v<U> )
+            {
+                constexpr std::size_t size = RareTs::static_array_size_v<U>;
+                offset += sizeof(size); // Skip over array size
+                for ( std::size_t i=0; i<size; ++i )
+                    readValue<std::remove_cvref_t<decltype(std::declval<U>()[0])>, Member>(offset, value[i]);
+            }
+            else if constexpr ( RareTs::is_iterable_v<U> && requires{value.resize(std::size_t{0});} )
+            {
                 auto size = static_cast<std::size_t>((index_type &)events[offset]);
                 value.resize(std::size_t{size});
                 offset += sizeof(index_type);
                 for ( decltype(size) i=0; i<size; ++i )
-                    readValue<std::remove_cvref_t<decltype(std::declval<Value>()[0])>, Member>(offset, value[i]);
+                    readValue<std::remove_cvref_t<decltype(std::declval<U>()[0])>, Member>(offset, value[i]);
             }
-            else if constexpr ( RareTs::is_reflected_v<Value> )
+            else if constexpr ( RareTs::is_reflected_v<U> )
             {
-                RareTs::Members<Value>::forEach([&](auto member) {
+                RareTs::Members<U>::forEach([&](auto member) {
                     readValue<std::remove_cvref_t<typename decltype(member)::type>, decltype(member)>(offset, member.value(value));
                 });
             }
             else
             {
-                value = (Value &)events[offset];
-                offset += sizeof(Value);
+                value = (U &)events[offset];
+                offset += sizeof(U);
             }
         }
 
         template <class Value, class Member>
         auto readValue(std::size_t & offset) const
         {
-            if constexpr ( std::is_array_v<Value> ) // Avoid trying to return array[] types, make a vector
-            {
-                using element_type = std::remove_cvref_t<RareTs::element_type_t<Value>>;
-                if constexpr ( std::is_array_v<element_type> )
-                {
-                    using sub_elem_type = std::remove_cvref_t<RareTs::element_type_t<element_type>>;
-                    std::vector<std::vector<sub_elem_type>> value(RareTs::static_array_size_v<Value>);
-                    for ( auto & vec : value )
-                        vec.assign(RareTs::static_array_size_v<element_type>, {});
-
-                    readValue<decltype(value), Member>(offset, value);
-                    return value;
-                }
-                else
-                {
-                    std::vector<element_type> value { std::size_t{RareTs::static_array_size_v<Value>} };
-                    readValue<decltype(value), Member>(offset, value);
-                    return value;
-                }
-            }
-            else
-            {
-                std::remove_cvref_t<Value> value {};
-                readValue<Value, Member>(offset, value);
-                return value;
-            }
+            static_assert(!std::is_array_v<Value>, "Cannot return array[] types, use the readValue reference overload");
+            std::remove_cvref_t<Value> value {};
+            readValue<Value, Member>(offset, value);
+            return value;
         }
 
         template <class Value, class Member>
@@ -3211,17 +4052,29 @@ namespace RareEdit
         }
 
         template <class index_type>
-        std::span<const index_type> readIndexes(std::size_t & offset, std::size_t count) const {
-            std::span<const index_type> indexes(reinterpret_cast<const index_type*>(&events[offset]), count);
-            offset += sizeof(index_type)*count;
-            return indexes;
+        std::span<const index_type> readIndexes(std::size_t & offset, std::size_t count) const
+        {
+            if ( count > 0 )
+            {
+                std::span<const index_type> indexes(reinterpret_cast<const index_type*>(&events[offset]), count);
+                offset += sizeof(index_type)*count;
+                return indexes;
+            }
+            else
+                return std::span<const index_type>();
         }
 
         template <class index_type>
-        std::span<const index_type> readIndexes(std::ptrdiff_t & offset, std::size_t count) const {
-            std::span<const index_type> indexes(reinterpret_cast<const index_type*>(&events[static_cast<std::size_t>(offset)]), count);
-            offset += sizeof(index_type)*count;
-            return indexes;
+        std::span<const index_type> readIndexes(std::ptrdiff_t & offset, std::size_t count) const
+        {
+            if ( count > 0 )
+            {
+                std::span<const index_type> indexes(reinterpret_cast<const index_type*>(&events[static_cast<std::size_t>(offset)]), count);
+                offset += sizeof(index_type)*count;
+                return indexes;
+            }
+            else
+                return std::span<const index_type>();
         }
 
         template <class value_type, class Member, class ... Pathway>
@@ -3231,10 +4084,12 @@ namespace RareEdit
             using path_pack = type_tags<Pathway...>;
             using sel_type = std::remove_cvref_t<decltype(getSelections<Pathway...>())>;
             using element_type = RareTs::element_type_t<value_type>;
-            using Route = PathTaggedKeys<decltype(keys), path_pack>;
+            using attached_data_type = std::remove_cvref_t<decltype(getAttachedData<Pathway...>())>;
+            using Route = PathTaggedKeys<decltype(keys), path_pack, EditorType>;
             using ElemPath = type_tags<Pathway..., PathIndex<std::tuple_size_v<std::remove_cvref_t<decltype(keys)>>>>;
             using ElemKeys = std::remove_cvref_t<decltype(std::tuple_cat(keys, std::tuple<index_type>{0}))>;
-            using ElemRoute = PathTaggedKeys<ElemKeys, ElemPath>;
+            using ElemRoute = PathTaggedKeys<ElemKeys, ElemPath, EditorType>;
+            constexpr bool hasAttachedData = Agent::hasAttachedData<Pathway...>();
             constexpr bool hasSelections = !std::is_null_pointer_v<sel_type> && RareTs::is_specialization_v<sel_type, std::vector>;
             constexpr bool hasSelChangeOp = hasSelections && hasSelectionsChangedOp<Route>;
             constexpr bool isIterable = RareTs::is_iterable_v<value_type>;
@@ -3244,29 +4099,45 @@ namespace RareEdit
             {
                 case Op::Reset:
                 {
-                    if constexpr ( !RareTs::is_static_array_v<value_type> && RareTs::is_assignable_v<decltype(ref), value_type> )
+                    if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> )
                     {
-                        if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> )
+                        if constexpr ( std::is_array_v<typename Member::type> )
+                        {
+                            typename Member::type prevValue {};
+                            auto refArray = as_1d<typename Member::type>(ref);
+                            as_1d(prevValue) = refArray;
+                            readValue<value_type, Member>(offset, refArray);
+                            notifyValueChanged(user, Route{keys}, prevValue, ref); // Issue change notification
+                        }
+                        else
                         {
                             auto prevValue = ref;
                             ref = readValue<value_type, Member>(offset);
                             notifyValueChanged(user, Route{keys}, prevValue, ref);
                         }
-                        else if constexpr ( isIterable && hasElementAddedOp<Route> )
-                        {
-                            ref = readValue<value_type, Member>(offset);
-                            for ( std::size_t i=0; i<std::size(ref); ++i )
-                                notifyElementAdded(user, Route{keys}, i);
-                        }
-                        else
-                            ref = readValue<value_type, Member>(offset);
+                    }
+                    else if constexpr ( isIterable && hasElementAddedOp<Route> )
+                    {
+                        ref = readValue<value_type, Member>(offset);
+                        if constexpr ( hasAttachedData )
+                            getAttachedData<Pathway...>() = attached_data_type(std::size(ref));
+                        for ( std::size_t i=0; i<std::size(ref); ++i )
+                            notifyElementAdded(user, Route{keys}, i);
+                    }
+                    else if constexpr ( is_array_member_v<Member> && requires { ref[0]; } )
+                        readValue<value_type, Member>(offset, ref);
+                    else
+                    {
+                        ref = readValue<value_type, Member>(offset);
+                        if constexpr ( hasAttachedData )
+                            getAttachedData<Pathway...>() = attached_data_type(std::size(ref));
+                    }
 
-                        if constexpr ( hasSelections )
-                        {
-                            readSelections(events, offset, getSelections<Pathway...>());
-                            if constexpr ( hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
-                        }
+                    if constexpr ( hasSelections )
+                    {
+                        readSelections(events, offset, getSelections<Pathway...>());
+                        if constexpr ( hasSelChangeOp )
+                            notifySelectionsChanged(user, Route{keys});
                     }
                 }
                 break;
@@ -3294,13 +4165,15 @@ namespace RareEdit
                         for ( std::size_t i=0; i<size; ++i )
                             prevContainer.push_back(readValue<element_type, Member>(offset));
 
-                        std::swap(ref, prevContainer);
                         if constexpr ( hasElementRemovedOp<Route> )
                         {
-                            std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(prevContainer))-1;
-                            for ( ; i>=0; --i )
+                            for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1; i>=0; --i )
                                 notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
                         }
+                        std::swap(ref, prevContainer);
+                        if constexpr ( hasAttachedData )
+                            getAttachedData<Pathway...>() = attached_data_type(std::size(ref));
+
                         if constexpr ( hasElementAddedOp<Route> )
                         {
                             for ( std::size_t i=0; i<std::size(ref); ++i )
@@ -3329,13 +4202,15 @@ namespace RareEdit
                         for ( std::size_t i=0; i<size; ++i )
                             prevContainer.push_back(readValue<element_type, Member>(offset));
 
-                        std::swap(ref, prevContainer);
                         if constexpr ( hasElementRemovedOp<Route> )
                         {
-                            std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(prevContainer))-1;
-                            for ( ; i>=0; --i )
+                            for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1; i>=0; --i )
                                 notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
                         }
+                        std::swap(ref, prevContainer);
+                        if constexpr ( hasAttachedData )
+                            getAttachedData<Pathway...>() = attached_data_type(std::size(ref));
+
                         if constexpr ( hasElementAddedOp<Route> )
                         {
                             for ( std::size_t i=0; i<std::size(ref); ++i )
@@ -3536,13 +4411,13 @@ namespace RareEdit
                         {
                             if constexpr ( isIterable && hasElementRemovedOp<Route> )
                             {
-                                std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1;
-                                ref = prevValue;
-                                for ( ; i>=0; --i )
+                                for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1; i>=0; --i )
                                     notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
                             }
-                            else
-                                ref = prevValue;
+
+                            ref = prevValue;
+                            if constexpr ( hasAttachedData )
+                                getAttachedData<Pathway...>() = attached_data_type(std::size(ref));
 
                             if constexpr ( isIterable && hasElementAddedOp<Route> )
                             {
@@ -3583,10 +4458,10 @@ namespace RareEdit
                         {
                             for ( auto index : setIndexes )
                             {
-                                std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref[index]))-1;
-                                ref[index] = readValue<element_type, Member>(offset);
-                                for ( ; i>=0; --i )
+                                for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref[index]))-1; i>=0; --i )
                                     notifyElementRemoved(user, ElemRoute{std::tuple_cat(keys, std::tuple<index_type>{index})}, static_cast<std::size_t>(i));
+
+                                ref[index] = readValue<element_type, Member>(offset);
 
                                 if constexpr ( hasElementAddedOp<Route> )
                                 {
@@ -3630,13 +4505,10 @@ namespace RareEdit
                         {
                             if constexpr ( isIterable && hasElementRemovedOp<Route> )
                             {
-                                std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1;
-                                ref = prevValue;
-                                for ( ; i>=0; --i )
+                                for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1; i>=0; --i )
                                     notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
                             }
-                            else
-                                ref = prevValue;
+                            ref = prevValue;
 
                             if constexpr ( isIterable && hasElementAddedOp<Route> )
                             {
@@ -3649,10 +4521,12 @@ namespace RareEdit
                 break;
                 case Op::Append:
                 {
+                    if constexpr ( hasElementRemovedOp<Route> && requires { ref.size(); } )
+                        notifyElementRemoved(user, Route{keys}, ref.size()-1);
                     if constexpr ( RareTs::has_pop_back_v<decltype(ref)> )
                         ref.pop_back();
-                    if constexpr ( hasElementRemovedOp<Route> && requires { ref.size(); } )
-                        notifyElementRemoved(user, Route{keys}, ref.size());
+                    if constexpr ( hasAttachedData )
+                        getAttachedData<Pathway...>().pop_back();
                 }
                 break;
                 case Op::AppendN:
@@ -3661,11 +4535,16 @@ namespace RareEdit
                     {
                         auto count = static_cast<std::ptrdiff_t>(readIndex<index_type>(offset));
                         auto size = static_cast<std::ptrdiff_t>(ref.size());
-                        ref.erase(std::next(ref.begin(), size-count), ref.end());
                         if constexpr ( hasElementRemovedOp<Route> )
                         {
                             for ( std::ptrdiff_t i=size-1; i>=size-count; --i )
                                 notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
+                        }
+                        ref.erase(std::next(ref.begin(), size-count), ref.end());
+                        if constexpr ( hasAttachedData )
+                        {
+                            auto & attachedData = getAttachedData<Pathway...>();
+                            attachedData.erase(std::next(attachedData.begin(), size-count), attachedData.end());
                         }
                     }
                 }
@@ -3675,9 +4554,16 @@ namespace RareEdit
                     if constexpr ( hasSelections && !std::is_void_v<element_type> && requires { ref.erase(ref.begin()); } )
                     {
                         auto insertionIndex = readIndex<index_type>(offset);
-                        ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(insertionIndex)));
                         if constexpr ( hasElementRemovedOp<Route> )
                             notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(insertionIndex));
+
+                        ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(insertionIndex)));
+                        if constexpr ( hasAttachedData )
+                        {
+                            auto & attachedData = getAttachedData<Pathway...>();
+                            attachedData.erase(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(insertionIndex)));
+                        }
+
                         if constexpr ( hasElementMovedOp<Route> )
                         {
                             for ( std::size_t i=static_cast<std::size_t>(insertionIndex); i<std::size(ref); ++i )
@@ -3704,10 +4590,6 @@ namespace RareEdit
                     {
                         auto insertionCount = readIndex<index_type>(offset);
                         auto insertionIndex = readIndex<index_type>(offset);
-                        ref.erase(
-                            std::next(ref.begin(), static_cast<std::ptrdiff_t>(insertionIndex)),
-                            std::next(ref.begin(), static_cast<std::ptrdiff_t>(insertionIndex)+static_cast<std::ptrdiff_t>(insertionCount))
-                        );
                         if constexpr ( hasElementRemovedOp<Route> )
                         {
                             for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(insertionIndex)+static_cast<std::ptrdiff_t>(insertionCount)-1;
@@ -3715,6 +4597,18 @@ namespace RareEdit
                             {
                                 notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
                             }
+                        }
+                        ref.erase(
+                            std::next(ref.begin(), static_cast<std::ptrdiff_t>(insertionIndex)),
+                            std::next(ref.begin(), static_cast<std::ptrdiff_t>(insertionIndex)+static_cast<std::ptrdiff_t>(insertionCount))
+                        );
+                        if constexpr ( hasAttachedData )
+                        {
+                            auto & attachedData = getAttachedData<Pathway...>();
+                            attachedData.erase(
+                                std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(insertionIndex)),
+                                std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(insertionIndex)+static_cast<std::ptrdiff_t>(insertionCount))
+                            );
                         }
                         if constexpr ( hasElementMovedOp<Route> )
                         {
@@ -3745,13 +4639,19 @@ namespace RareEdit
                         auto removalIndex = readIndex<index_type>(offset);
                         auto removedValue = readValue<element_type, Member>(offset);
                         ref.insert(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removalIndex)), removedValue);
+                        if constexpr ( hasAttachedData )
+                        {
+                            auto & attachedData = getAttachedData<Pathway...>();
+                            attachedData.emplace(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(removalIndex)));
+                        }
+                        if constexpr ( hasElementAddedOp<Route> )
+                            notifyElementAdded(user, Route{keys}, removalIndex);
+
                         if constexpr ( hasElementMovedOp<Route> )
                         {
                             for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(std::size(ref))-1; i>static_cast<std::ptrdiff_t>(removalIndex); --i )
                                 notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(i-1), static_cast<std::size_t>(i));
                         }
-                        if constexpr ( hasElementAddedOp<Route> )
-                            notifyElementAdded(user, Route{keys}, removalIndex);
 
                         if ( u8bool::read(events, offset) )
                         {
@@ -3788,6 +4688,11 @@ namespace RareEdit
                         {
                             auto reinsertedIndex = removalIndexes[static_cast<std::size_t>(i)];
                             ref.insert(std::next(ref.begin(), static_cast<std::ptrdiff_t>(reinsertedIndex)), removedValues[static_cast<std::size_t>(i)]);
+                            if constexpr ( hasAttachedData )
+                            {
+                                auto & attachedData = getAttachedData<Pathway...>();
+                                attachedData.emplace(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(reinsertedIndex)));
+                            }
                             if constexpr ( hasSelections )
                             {
                                 auto & sel = getSelections<Pathway...>();
@@ -3797,6 +4702,11 @@ namespace RareEdit
                                         ++s;
                                 }
                             }
+                        }
+                        if constexpr ( hasElementAddedOp<Route> )
+                        {
+                            for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(std::size(removalIndexes))-1; i>=0; --i )
+                                notifyElementAdded(user, Route{keys}, static_cast<std::size_t>(removalIndexes[static_cast<std::size_t>(i)]));
                         }
                         if constexpr ( hasElementMovedOp<Route> )
                         {
@@ -3810,11 +4720,6 @@ namespace RareEdit
                                 for ( collectionIndex = static_cast<std::ptrdiff_t>(removalIndexes[i-1])-1; collectionIndex > static_cast<std::ptrdiff_t>(removalIndexes[i]); --collectionIndex )
                                     notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(collectionIndex-moveDistance), static_cast<std::size_t>(collectionIndex));
                             }
-                        }
-                        if constexpr ( hasElementAddedOp<Route> )
-                        {
-                            for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(std::size(removalIndexes))-1; i>=0; --i )
-                                notifyElementAdded(user, Route{keys}, static_cast<std::size_t>(removalIndexes[static_cast<std::size_t>(i)]));
                         }
 
                         if constexpr ( hasSelections )
@@ -3858,6 +4763,19 @@ namespace RareEdit
                         for ( std::ptrdiff_t i=removalCount-1; i>=0; --i ) // insert values which were removed from the lowest indexes first
                             ref.insert(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removalIndexes[static_cast<std::size_t>(i)])), removedValues[static_cast<std::size_t>(i)]);
 
+                        if constexpr ( hasAttachedData )
+                        {
+                            auto & attachedData = getAttachedData<Pathway...>();
+                            for ( std::ptrdiff_t i=removalCount-1; i>=0; --i )
+                                attachedData.emplace(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(removalIndexes[static_cast<std::size_t>(i)])));
+                        }
+
+                        if constexpr ( hasElementAddedOp<Route> )
+                        {
+                            for ( std::ptrdiff_t i=removalCount-1; i>=0; --i ) // insert values which were removed from the lowest indexes first
+                                notifyElementAdded(user, Route{keys}, static_cast<std::size_t>(removalIndexes[static_cast<std::size_t>(i)]));
+                        }
+
                         if constexpr ( hasElementMovedOp<Route> )
                         {
                             std::ptrdiff_t collectionIndex = static_cast<std::ptrdiff_t>(std::size(ref))-1;
@@ -3870,12 +4788,6 @@ namespace RareEdit
                                 for ( collectionIndex = static_cast<std::ptrdiff_t>(removalIndexes[i-1])-1; collectionIndex > static_cast<std::ptrdiff_t>(removalIndexes[i]); --collectionIndex )
                                     notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(collectionIndex-moveDistance), static_cast<std::size_t>(collectionIndex));
                             }
-                        }
-                            
-                        if constexpr ( hasElementAddedOp<Route> )
-                        {
-                            for ( std::ptrdiff_t i=removalCount-1; i>=0; --i ) // insert values which were removed from the lowest indexes first
-                                notifyElementAdded(user, Route{keys}, static_cast<std::size_t>(removalIndexes[static_cast<std::size_t>(i)]));
                         }
 
                         readSelections(events, offset, getSelections<Pathway...>());
@@ -3893,6 +4805,17 @@ namespace RareEdit
                         auto sourceIndexes = readIndexes<index_type>(offset, count);
 
                         undoSort(ref, sourceIndexes);
+                        if constexpr ( hasAttachedData )
+                            undoSort(getAttachedData<Pathway...>(), sourceIndexes);
+
+                        if constexpr ( hasElementMovedOp<Route> )
+                        {
+                            for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(count)-1; i>=0; --i )
+                            {
+                                if ( i != static_cast<std::ptrdiff_t>(sourceIndexes[static_cast<std::size_t>(i)]) )
+                                    notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(i), static_cast<std::size_t>(sourceIndexes[static_cast<std::size_t>(i)]));
+                            }
+                        }
 
                         if constexpr ( hasSelections )
                         {
@@ -3905,18 +4828,10 @@ namespace RareEdit
                             }
 
                             std::swap(sel, oldSel);
-                        }
 
-                        if constexpr ( hasElementMovedOp<Route> )
-                        {
-                            for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(count)-1; i>=0; --i )
-                            {
-                                if ( i != static_cast<std::ptrdiff_t>(sourceIndexes[static_cast<std::size_t>(i)]) )
-                                    notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(i), static_cast<std::size_t>(sourceIndexes[static_cast<std::size_t>(i)]));
-                            }
+                            if constexpr ( hasSelChangeOp )
+                                notifySelectionsChanged(user, Route{keys});
                         }
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
                     }
                 }
                 break;
@@ -3928,6 +4843,17 @@ namespace RareEdit
                         auto sourceIndexes = readIndexes<index_type>(offset, count);
                             
                         undoSort(ref, sourceIndexes);
+                        if constexpr ( hasAttachedData )
+                            undoSort(getAttachedData<Pathway...>(), sourceIndexes);
+
+                        if constexpr ( hasElementMovedOp<Route> )
+                        {
+                            for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(count)-1; i>=0; --i )
+                            {
+                                if ( i != static_cast<std::ptrdiff_t>(sourceIndexes[static_cast<std::size_t>(i)]) )
+                                    notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(i), static_cast<std::size_t>(sourceIndexes[static_cast<std::size_t>(i)]));
+                            }
+                        }
 
                         if constexpr ( hasSelections )
                         {
@@ -3940,18 +4866,34 @@ namespace RareEdit
                             }
 
                             std::swap(sel, oldSel);
-                        }
 
-                        if constexpr ( hasElementMovedOp<Route> )
-                        {
-                            for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(count)-1; i>=0; --i )
-                            {
-                                if ( i != static_cast<std::ptrdiff_t>(sourceIndexes[static_cast<std::size_t>(i)]) )
-                                    notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(i), static_cast<std::size_t>(sourceIndexes[static_cast<std::size_t>(i)]));
-                            }
+                            if constexpr ( hasSelChangeOp )
+                                notifySelectionsChanged(user, Route{keys});
                         }
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                    }
+                }
+                break;
+                case Op::Swap:
+                {
+                    if constexpr ( hasMoveOps )
+                    {
+                        auto firstIndex = static_cast<std::size_t>(readIndex<index_type>(offset));
+                        auto secondIndex = static_cast<std::size_t>(readIndex<index_type>(offset));
+                        if ( firstIndex != secondIndex && firstIndex < std::size(ref) && secondIndex < std::size(ref) )
+                        {
+                            std::swap(ref[firstIndex], ref[secondIndex]);
+                            if constexpr ( hasAttachedData )
+                                mirrorSwapTo(getAttachedData<Pathway...>(), firstIndex, secondIndex);
+
+                            mirrorSwapToSelection(getSelections<Pathway...>(), firstIndex, secondIndex);
+                            if constexpr ( hasElementMovedOp<Route> )
+                            {
+                                notifyElementMoved(user, Route{keys}, secondIndex, firstIndex);
+                                notifyElementMoved(user, Route{keys}, firstIndex, secondIndex);
+                            }
+                            if constexpr ( hasSelections && hasSelChangeOp )
+                                notifySelectionsChanged(user, Route{keys});
+                        }
                     }
                 }
                 break;
@@ -3963,6 +4905,9 @@ namespace RareEdit
                         if ( movedIndex > 0 && movedIndex < std::size(ref) )
                         {
                             std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex-1)]);
+                            if constexpr ( hasAttachedData )
+                                mirrorSwapTo(getAttachedData<Pathway...>(), movedIndex, movedIndex-1);
+
                             mirrorSwapToSelection(getSelections<Pathway...>(), movedIndex, movedIndex-1);
                             if constexpr ( hasElementMovedOp<Route> )
                             {
@@ -3998,6 +4943,9 @@ namespace RareEdit
                                 if ( i > minimumIndexMoved && i < std::size(ref) )
                                 {
                                     std::swap(ref[i-1], ref[i]);
+                                    if constexpr ( hasAttachedData )
+                                        mirrorSwapTo(getAttachedData<Pathway...>(), i-1, i);
+
                                     mirrorSwapToSelection(getSelections<Pathway...>(), i-1, i);
                                 }
                             }
@@ -4055,7 +5003,11 @@ namespace RareEdit
                         {
                             auto i = static_cast<std::size_t>(*it);
                             if ( i > minimumIndexMoved && i < size )
+                            {
                                 std::swap(ref[i-1], ref[i]);
+                                if constexpr ( hasAttachedData )
+                                    mirrorSwapTo(getAttachedData<Pathway...>(), i-1, i);
+                            }
                         }
                         std::swap(sel, prevSel);
 
@@ -4094,6 +5046,9 @@ namespace RareEdit
                         {
                             auto it = ref.begin();
                             std::rotate(it, it+1, std::next(ref.begin(), static_cast<std::ptrdiff_t>(movedIndex))+1);
+                            if constexpr ( hasAttachedData )
+                                mirrorRotationTo(getAttachedData<Pathway...>(), 0, 1, movedIndex+1);
+
                             mirrorRotationToSelection(getSelections<Pathway...>(), 0, 1, movedIndex+1);
                             if constexpr ( hasElementMovedOp<Route> )
                             {
@@ -4146,8 +5101,10 @@ namespace RareEdit
                                 auto toMove = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
                                 auto dest = std::next(ref.begin(), static_cast<std::ptrdiff_t>(*it));
                                 std::rotate(toMove, toMove+1, dest+1);
+                                if constexpr ( hasAttachedData )
+                                    mirrorRotationTo(getAttachedData<Pathway...>(), i, i+1, *it+1);
                                 if constexpr ( hasElementMovedOp<Route> )
-                                    mirrorRotationToIndexes(trackedIndexes, i, i+1, *it+1);
+                                    mirrorRotationTo(trackedIndexes, i, i+1, *it+1);
 
                                 --i;
                             }
@@ -4200,8 +5157,10 @@ namespace RareEdit
                                 auto toMove = std::next(ref.begin(), static_cast<std::ptrdiff_t>(toMoveIndex));
                                 auto dest = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
                                 std::rotate(toMove, toMove+1, dest+1);
+                                if constexpr ( hasAttachedData )
+                                    mirrorRotationTo(getAttachedData<Pathway...>(), toMoveIndex, toMoveIndex+1, i+1);
                                 if constexpr ( hasElementMovedOp<Route> )
-                                    mirrorRotationToIndexes(trackedIndexes, toMoveIndex, toMoveIndex+1, i+1);
+                                    mirrorRotationTo(trackedIndexes, toMoveIndex, toMoveIndex+1, i+1);
 
                                 --toMoveIndex;
                             }
@@ -4229,6 +5188,9 @@ namespace RareEdit
                         if ( movedIndex+1 < std::size(ref) )
                         {
                             std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex+1)]);
+                            if constexpr ( hasAttachedData )
+                                mirrorSwapTo(getAttachedData<Pathway...>(), movedIndex, movedIndex+1);
+
                             mirrorSwapToSelection(getSelections<Pathway...>(), movedIndex, movedIndex+1);
                             if constexpr ( hasElementMovedOp<Route> )
                             {
@@ -4265,6 +5227,9 @@ namespace RareEdit
                                 if ( i+1 < maximumIndexMoved )
                                 {
                                     std::swap(ref[i], ref[i+1]);
+                                    if constexpr ( hasAttachedData )
+                                        mirrorSwapTo(getAttachedData<Pathway...>(), i, i+1);
+
                                     mirrorSwapToSelection(getSelections<Pathway...>(), i, i+1);
                                 }
                             }
@@ -4322,7 +5287,11 @@ namespace RareEdit
                         {
                             auto i = static_cast<std::size_t>(*it);
                             if ( static_cast<std::size_t>(i)+1 < maximumIndexMoved )
+                            {
                                 std::swap(ref[static_cast<std::size_t>(i)], ref[static_cast<std::size_t>(i)+1]);
+                                if constexpr ( hasAttachedData )
+                                    mirrorSwapTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1);
+                            }
                         }
                         std::swap(sel, prevSel);
 
@@ -4363,6 +5332,9 @@ namespace RareEdit
                             auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(movedIndex));
                             auto movedTo = std::next(ref.begin(), static_cast<std::ptrdiff_t>(std::size(ref))-1);
                             std::rotate(it, movedTo, ref.end());
+                            if constexpr ( hasAttachedData )
+                                mirrorRotationTo(getAttachedData<Pathway...>(), movedIndex, std::size(ref)-1, std::size(ref));
+
                             mirrorRotationToSelection(getSelections<Pathway...>(), movedIndex, std::size(ref)-1, std::size(ref));
                             if constexpr ( hasElementMovedOp<Route> )
                             {
@@ -4415,8 +5387,10 @@ namespace RareEdit
                                 auto toMove = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
                                 auto dest = std::next(ref.begin(), static_cast<std::ptrdiff_t>(*it));
                                 std::rotate(dest, toMove, toMove+1);
+                                if constexpr ( hasAttachedData )
+                                    mirrorRotationTo(getAttachedData<Pathway...>(), *it, i, i+1);
                                 if constexpr ( hasElementMovedOp<Route> )
-                                    mirrorRotationToIndexes(trackedIndexes, *it, i, i+1);
+                                    mirrorRotationTo(trackedIndexes, *it, i, i+1);
                                 ++i;
                             }
                         }
@@ -4469,8 +5443,10 @@ namespace RareEdit
                                 auto toMove = std::next(ref.begin(), static_cast<std::ptrdiff_t>(toMoveIndex));
                                 auto dest = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
                                 std::rotate(dest, toMove, toMove+1);
+                                if constexpr ( hasAttachedData )
+                                    mirrorRotationTo(getAttachedData<Pathway...>(), i, toMoveIndex, toMoveIndex+1);
                                 if constexpr ( hasElementMovedOp<Route> )
-                                    mirrorRotationToIndexes(trackedIndexes, i, toMoveIndex, toMoveIndex+1);
+                                    mirrorRotationTo(trackedIndexes, i, toMoveIndex, toMoveIndex+1);
                                 ++toMoveIndex;
                             }
                         }
@@ -4502,6 +5478,9 @@ namespace RareEdit
                         if ( indexMovedTo < movedIndex && movedIndex < std::size(ref) )
                         {
                             std::rotate(target, target+1, it+1);
+                            if constexpr ( hasAttachedData )
+                                mirrorRotationTo(getAttachedData<Pathway...>(), indexMovedTo, indexMovedTo+1, movedIndex+1);
+
                             mirrorRotationToSelection(getSelections<Pathway...>(), indexMovedTo, indexMovedTo+1, movedIndex+1);
                             if constexpr ( hasElementMovedOp<Route> )
                             {
@@ -4515,6 +5494,9 @@ namespace RareEdit
                         else if ( indexMovedTo > movedIndex && indexMovedTo < std::size(ref) )
                         {
                             std::rotate(it, target, target+1);
+                            if constexpr ( hasAttachedData )
+                                mirrorRotationTo(getAttachedData<Pathway...>(), movedIndex, indexMovedTo, indexMovedTo+1);
+
                             mirrorRotationToSelection(getSelections<Pathway...>(), movedIndex, indexMovedTo, indexMovedTo+1);
                             if constexpr ( hasElementMovedOp<Route> )
                             {
@@ -4634,6 +5616,8 @@ namespace RareEdit
                         for ( auto it = rotations.rbegin(); it != rotations.rend(); ++it )
                         {
                             it->perform(ref);
+                            if constexpr ( hasAttachedData )
+                                it->perform(getAttachedData<Pathway...>());
                             if constexpr ( hasElementMovedOp<Route> )
                                 it->perform(trackedIndexes);
                         }
@@ -4769,6 +5753,8 @@ namespace RareEdit
                         for ( auto it = rotations.rbegin(); it != rotations.rend(); ++it )
                         {
                             it->perform(ref);
+                            if constexpr ( hasAttachedData )
+                                it->perform(getAttachedData<Pathway...>());
                             if constexpr ( hasElementMovedOp<Route> )
                                 it->perform(trackedIndexes);
                         }
@@ -4798,10 +5784,12 @@ namespace RareEdit
             using path_pack = type_tags<Pathway...>;
             using sel_type = std::remove_cvref_t<decltype(getSelections<Pathway...>())>;
             using element_type = RareTs::element_type_t<value_type>;
-            using Route = PathTaggedKeys<decltype(keys), path_pack>;
+            using attached_data_type = std::remove_cvref_t<decltype(getAttachedData<Pathway...>())>;
+            using Route = PathTaggedKeys<decltype(keys), path_pack, EditorType>;
             using ElemPath = type_tags<Pathway..., PathIndex<std::tuple_size_v<std::remove_cvref_t<decltype(keys)>>>>;
             using ElemKeys = std::remove_cvref_t<decltype(std::tuple_cat(keys, std::tuple<index_type>{0}))>;
-            using ElemRoute = PathTaggedKeys<ElemKeys, ElemPath>;
+            using ElemRoute = PathTaggedKeys<ElemKeys, ElemPath, EditorType>;
+            constexpr bool hasAttachedData = Agent::hasAttachedData<Pathway...>();
             constexpr bool hasSelections = !std::is_null_pointer_v<sel_type> && RareTs::is_specialization_v<sel_type, std::vector>;
             constexpr bool hasSelChangeOp = hasSelections && hasSelectionsChangedOp<Route>;
             constexpr bool isIterable = RareTs::is_iterable_v<value_type>;
@@ -4811,38 +5799,57 @@ namespace RareEdit
             {
                 case Op::Reset:
                 {
-                    if constexpr ( !RareTs::is_static_array_v<value_type> && requires { ref = {}; } )
+                    if constexpr ( isIterable && hasElementRemovedOp<Route> ) // Iterable
                     {
-                        if constexpr ( isIterable && hasElementRemovedOp<Route> ) // Iterable
+                        for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1; i>=0; --i )
+                            notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i)); // Issue remove changes
+
+                        ref = {};
+                        if constexpr ( hasAttachedData )
+                            getAttachedData<Pathway...>() = {};
+                    }
+                    else if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> ) // Non-iterables
+                    {
+                        if constexpr ( std::is_array_v<typename Member::type> )
                         {
-                            std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1;
-                            ref = {};
-                            for ( ; i>=0; --i )
-                                notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i)); // Issue remove changes
+                            typename Member::type prevValue {};
+                            auto refArray = as_1d<typename Member::type>(ref);
+                            as_1d(prevValue) = refArray;
+                            refArray.clear();
+                            notifyValueChanged(user, Route{keys}, prevValue, ref); // Issue change notification
                         }
-                        else if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> ) // Non-iterables
+                        else
                         {
                             auto prevValue = ref;
                             ref = {};
                             notifyValueChanged(user, Route{keys}, prevValue, ref); // Issue change notification
                         }
+                    }
+                    else
+                    {
+                        if constexpr ( std::is_array_v<value_type> && requires { ref[0]; } )
+                            as_1d<value_type>(ref).clear();
                         else
-                            ref = {};
-                            
-                        if constexpr ( hasSelections )
                         {
-                            auto & sel = getSelections<Pathway...>();
-                            if constexpr ( hasSelChangeOp )
-                            {
-                                if ( !std::empty(sel) )
-                                {
-                                    clearSel(sel);
-                                    notifySelectionsChanged(user, Route{keys});
-                                }
-                            }
-                            else
-                                clearSel(sel);
+                            ref = {};
+                            if constexpr ( hasAttachedData )
+                                getAttachedData<Pathway...>() = {};
                         }
+                    }
+                            
+                    if constexpr ( hasSelections )
+                    {
+                        auto & sel = getSelections<Pathway...>();
+                        if constexpr ( hasSelChangeOp )
+                        {
+                            if ( !std::empty(sel) )
+                            {
+                                clearSel(sel);
+                                notifySelectionsChanged(user, Route{keys});
+                            }
+                        }
+                        else
+                            clearSel(sel);
                     }
                 }
                 break;
@@ -4860,20 +5867,20 @@ namespace RareEdit
                 break;
                 case Op::Assign:
                 {
-                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.assign(0, {});} )
+                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> &&
+                        !RareTs::is_optional_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.assign(0, {});} )
                     {
                         std::size_t count = static_cast<std::size_t>(readIndex<index_type>(offset));
                         auto value = readValue<element_type, Member>(offset);
 
                         if constexpr ( hasElementRemovedOp<Route> )
                         {
-                            std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1;
-                            ref.assign(count, value);
-                            for ( ; i>=0; --i )
+                            for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1; i>=0; --i )
                                 notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i)); // Issue remove changes
                         }
-                        else
-                            ref.assign(count, value);
+                        ref.assign(count, value);
+                        if constexpr ( hasAttachedData )
+                            getAttachedData<Pathway...>() = attached_data_type(count);
 
                         if constexpr ( hasElementAddedOp<Route> )
                         {
@@ -4901,18 +5908,18 @@ namespace RareEdit
                 break;
                 case Op::AssignDefault:
                 {
-                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref = value_type(0);} )
+                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> &&
+                        !RareTs::is_optional_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref = value_type(0);} )
                     {
                         std::size_t size = static_cast<std::size_t>(readIndex<index_type>(offset));
                         if constexpr ( hasElementRemovedOp<Route> )
                         {
-                            std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1;
-                            ref = value_type(size);
-                            for ( ; i>=0; --i )
+                            for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1; i>=0; --i )
                                 notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i)); // Issue remove changes
                         }
-                        else
-                            ref = value_type(size);
+                        ref = value_type(size);
+                        if constexpr ( hasAttachedData )
+                            getAttachedData<Pathway...>() = attached_data_type(size);
 
                         if constexpr ( hasElementAddedOp<Route> )
                         {
@@ -5110,13 +6117,12 @@ namespace RareEdit
                         {
                             if constexpr ( isIterable && hasElementRemovedOp<Route> )
                             {
-                                std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1;
-                                ref = newValue;
-                                for ( ; i>=0; --i )
+                                for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1; i>=0; --i )
                                     notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
                             }
-                            else
-                                ref = newValue;
+                            ref = newValue;
+                            if constexpr ( hasAttachedData )
+                                getAttachedData<Pathway...>() = attached_data_type(std::size(ref));
 
                             if constexpr ( isIterable && hasElementAddedOp<Route> )
                             {
@@ -5157,10 +6163,11 @@ namespace RareEdit
                         {
                             for ( auto index : setIndexes )
                             {
-                                std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref[index]))-1;
-                                ref[index] = newValue;
-                                for ( ; i>=0; --i )
+                                for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref[index]))-1; i>=0; --i )
                                     notifyElementRemoved(user, ElemRoute{std::tuple_cat(keys, std::tuple<index_type>{index})}, static_cast<std::size_t>(i));
+
+                                ref[index] = newValue;
+
                                 if constexpr ( hasElementAddedOp<Route> )
                                 {
                                     for ( std::size_t j=0; j<std::size(ref[index]); ++j )
@@ -5200,13 +6207,10 @@ namespace RareEdit
                         {
                             if constexpr ( isIterable && hasElementRemovedOp<Route> )
                             {
-                                std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1;
-                                ref = peekValue<value_type, Member>(*secondaryOffset);
-                                for ( ; i>=0; --i )
+                                for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1; i>=0; --i )
                                     notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
                             }
-                            else
-                                ref = peekValue<value_type, Member>(*secondaryOffset);
+                            ref = peekValue<value_type, Member>(*secondaryOffset);
 
                             if constexpr ( isIterable && hasElementAddedOp<Route> )
                             {
@@ -5223,6 +6227,8 @@ namespace RareEdit
                     {
                         auto value = readValue<element_type, Member>(offset);
                         ref.push_back(value);
+                        if constexpr ( hasAttachedData )
+                            getAttachedData<Pathway...>().push_back({});
                         if constexpr ( hasElementAddedOp<Route> )
                             notifyElementAdded(user, Route{keys}, ref.size()-1);
                     }
@@ -5230,12 +6236,15 @@ namespace RareEdit
                 break;
                 case Op::AppendN:
                 {
-                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.push_back(element_type{});} )
+                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> &&
+                        !RareTs::is_optional_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.push_back(element_type{});} )
                     {
                         auto count = static_cast<std::size_t>(readIndex<index_type>(offset));
                         for ( std::size_t i=0; i<count; ++i )
                         {
                             ref.push_back(readValue<element_type, Member>(offset));
+                            if constexpr ( hasAttachedData )
+                                getAttachedData<Pathway...>().push_back({});
                             if constexpr ( hasElementAddedOp<Route> )
                                 notifyElementAdded(user, Route{keys}, ref.size()-1);
                         }
@@ -5244,19 +6253,26 @@ namespace RareEdit
                 break;
                 case Op::Insert:
                 {
-                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.insert(ref.begin(), std::declval<element_type>());} )
+                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> &&
+                        !RareTs::is_optional_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.insert(ref.begin(), std::declval<element_type>());} )
                     {
                         auto insertionIndex = readIndex<index_type>(offset);
                         auto insertedValue = readValue<element_type, Member>(offset);
                         ref.insert(std::next(ref.begin(), static_cast<std::ptrdiff_t>(insertionIndex)), insertedValue);
+                        if constexpr ( hasAttachedData )
+                        {
+                            auto & attachedData = getAttachedData<Pathway...>();
+                            attachedData.emplace(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(insertionIndex)));
+                        }
+                        
+                        if constexpr ( hasElementAddedOp<Route> )
+                            notifyElementAdded(user, Route{keys}, static_cast<std::size_t>(insertionIndex));
 
                         if constexpr ( hasElementMovedOp<Route> )
                         {
                             for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(std::size(ref))-1; i>static_cast<std::ptrdiff_t>(insertionIndex); --i )
                                 notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(i-1), static_cast<std::size_t>(i));
                         }
-                        if constexpr ( hasElementAddedOp<Route> )
-                            notifyElementAdded(user, Route{keys}, static_cast<std::size_t>(insertionIndex));
 
                         if constexpr ( hasSelections )
                         {
@@ -5274,7 +6290,8 @@ namespace RareEdit
                 break;
                 case Op::InsertN:
                 {
-                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> && !std::is_same_v<std::string, value_type> && requires {ref.insert(ref.begin(), std::declval<element_type>());} )
+                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> &&
+                        !RareTs::is_optional_v<value_type> && !std::is_same_v<std::string, value_type> && requires {ref.insert(ref.begin(), std::declval<element_type>());} )
                     {
                         std::size_t insertionCount = static_cast<std::size_t>(readIndex<index_type>(offset));
                         auto insertionIndex = readIndex<index_type>(offset);
@@ -5284,19 +6301,25 @@ namespace RareEdit
                                 std::next(ref.begin(), static_cast<std::ptrdiff_t>(insertionIndex+i)),
                                 readValue<element_type, Member>(offset)
                             );
+                            if constexpr ( hasAttachedData )
+                            {
+                                auto & attachedData = getAttachedData<Pathway...>();
+                                attachedData.emplace(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(insertionIndex+i)));
+                            }
                         }
-                            
-                        if constexpr ( hasElementMovedOp<Route> )
-                        {
-                            std::size_t prevSize = std::size(ref) - insertionCount;
-                            for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(prevSize)-1; i>=static_cast<std::ptrdiff_t>(insertionIndex); --i )
-                                notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(i), static_cast<std::size_t>(i)+insertionCount);
-                        }
+
                         if constexpr ( hasElementAddedOp<Route> )
                         {
                             auto limit = static_cast<std::size_t>(insertionIndex) + insertionCount;
                             for ( auto i = static_cast<std::size_t>(insertionIndex); i < limit; ++i )
                                 notifyElementAdded(user, Route{keys}, i);
+                        }
+
+                        if constexpr ( hasElementMovedOp<Route> )
+                        {
+                            std::size_t prevSize = std::size(ref) - insertionCount;
+                            for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(prevSize)-1; i>=static_cast<std::ptrdiff_t>(insertionIndex); --i )
+                                notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(i), static_cast<std::size_t>(i)+insertionCount);
                         }
 
                         if constexpr ( hasSelections )
@@ -5315,12 +6338,19 @@ namespace RareEdit
                 break;
                 case Op::Remove:
                 {
-                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.erase(ref.begin());} )
+                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> &&
+                        !RareTs::is_optional_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.erase(ref.begin());} )
                     {
                         auto removalIndex = readIndex<index_type>(offset);
-                        ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removalIndex)));
                         if constexpr ( hasElementRemovedOp<Route> )
                             notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(removalIndex));
+
+                        ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removalIndex)));
+                        if constexpr ( hasAttachedData )
+                        {
+                            auto & attachedData = getAttachedData<Pathway...>();
+                            attachedData.erase(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(removalIndex)));
+                        }
 
                         if constexpr ( hasElementMovedOp<Route> )
                         {
@@ -5350,15 +6380,26 @@ namespace RareEdit
                 break;
                 case Op::RemoveN:
                 {
-                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.erase(ref.begin());} )
+                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> &&
+                        !RareTs::is_optional_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.erase(ref.begin());} )
                     {
                         auto & sel = getSelections<Pathway...>();
                         std::size_t removalCount = static_cast<std::size_t>(readIndex<index_type>(offset));
                         auto removalIndexes = readIndexes<index_type>(offset, removalCount);
+                        if constexpr ( hasElementRemovedOp<Route> )
+                        {
+                            for ( auto removalIndex : removalIndexes )
+                                notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(removalIndex));
+                        }
                         for ( std::size_t i=0; i<removalCount; ++i )
                         {
                             auto indexRemoved = removalIndexes[i];
                             ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(indexRemoved)));
+                            if constexpr ( hasAttachedData )
+                            {
+                                auto & attachedData = getAttachedData<Pathway...>();
+                                attachedData.erase(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(indexRemoved)));
+                            }
                             if constexpr ( hasSelections )
                             {
                                 auto found = sel.end();
@@ -5373,12 +6414,7 @@ namespace RareEdit
                                     sel.erase(found);
                             }
                         }
-                            
-                        if constexpr ( hasElementRemovedOp<Route> )
-                        {
-                            for ( auto removalIndex : removalIndexes )
-                                notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(removalIndex));
-                        }
+
                         if constexpr ( hasElementMovedOp<Route> )
                         {
                             if ( !ref.empty() )
@@ -5406,15 +6442,22 @@ namespace RareEdit
                 break;
                 case Op::RemoveL:
                 {
-                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.erase(ref.begin());} )
+                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> &&
+                        !RareTs::is_optional_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.erase(ref.begin());} )
                     {
                         std::size_t removalCount = static_cast<std::size_t>(readIndex<index_type>(offset));
                         auto removalIndexes = readIndexes<index_type>(offset, removalCount);
                         for ( std::size_t i=0; i<removalCount; ++i )
                         {
-                            ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removalIndexes[i])));
                             if constexpr ( hasElementRemovedOp<Route> )
                                 notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(removalIndexes[i]));
+
+                            ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removalIndexes[i])));
+                            if constexpr ( hasAttachedData )
+                            {
+                                auto & attachedData = getAttachedData<Pathway...>();
+                                attachedData.erase(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(removalIndexes[i])));
+                            }
                         }
                         if constexpr ( hasElementMovedOp<Route> )
                         {
@@ -5452,6 +6495,8 @@ namespace RareEdit
                         auto sourceIndexes = readIndexes<index_type>(offset, count);
                             
                         redoSort(ref, sourceIndexes);
+                        if constexpr ( hasAttachedData )
+                            redoSort(getAttachedData<Pathway...>(), sourceIndexes);
 
                         if constexpr ( hasElementMovedOp<Route> )
                         {
@@ -5487,6 +6532,8 @@ namespace RareEdit
                         auto sourceIndexes = readIndexes<index_type>(offset, count);
                             
                         redoSort(ref, sourceIndexes);
+                        if constexpr ( hasAttachedData )
+                            redoSort(getAttachedData<Pathway...>(), sourceIndexes);
 
                         if constexpr ( hasElementMovedOp<Route> )
                         {
@@ -5513,6 +6560,30 @@ namespace RareEdit
                     }
                 }
                 break;
+                case Op::Swap:
+                {
+                    if constexpr ( hasMoveOps )
+                    {
+                        auto firstIndex = static_cast<std::size_t>(readIndex<index_type>(offset));
+                        auto secondIndex = static_cast<std::size_t>(readIndex<index_type>(offset));
+                        if ( firstIndex != secondIndex && firstIndex < std::size(ref) && secondIndex < std::size(ref) )
+                        {
+                            std::swap(ref[firstIndex], ref[secondIndex]);
+                            if constexpr ( hasAttachedData )
+                                mirrorSwapTo(getAttachedData<Pathway...>(), firstIndex, secondIndex);
+
+                            mirrorSwapToSelection(getSelections<Pathway...>(), firstIndex, secondIndex);
+                            if constexpr ( hasElementMovedOp<Route> )
+                            {
+                                notifyElementMoved(user, Route{keys}, firstIndex, secondIndex);
+                                notifyElementMoved(user, Route{keys}, secondIndex, firstIndex);
+                            }
+                            if constexpr ( hasSelections && hasSelChangeOp )
+                                notifySelectionsChanged(user, Route{keys});
+                        }
+                    }
+                }
+                break;
                 case Op::MoveUp:
                 {
                     if constexpr ( hasMoveOps )
@@ -5521,6 +6592,9 @@ namespace RareEdit
                         if ( movedIndex > 0 && movedIndex < std::size(ref) )
                         {
                             std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex-1)]);
+                            if constexpr ( hasAttachedData )
+                                mirrorSwapTo(getAttachedData<Pathway...>(), movedIndex, movedIndex-1);
+
                             mirrorSwapToSelection(getSelections<Pathway...>(), movedIndex, movedIndex-1);
                             if constexpr ( hasElementMovedOp<Route> )
                             {
@@ -5546,6 +6620,9 @@ namespace RareEdit
                             if ( movedIndex > nextAvailable && static_cast<std::size_t>(movedIndex) < std::size(ref) )
                             {
                                 std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex-1)]);
+                                if constexpr ( hasAttachedData )
+                                    mirrorSwapTo(getAttachedData<Pathway...>(), movedIndex, movedIndex-1);
+
                                 mirrorSwapToSelection(getSelections<Pathway...>(), movedIndex, movedIndex-1);
                             }
                             else if ( movedIndex == nextAvailable )
@@ -5593,6 +6670,9 @@ namespace RareEdit
                             if ( movedIndex > nextAvailable && static_cast<std::size_t>(movedIndex) < std::size(ref) )
                             {
                                 std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex)-1]);
+                                if constexpr ( hasAttachedData )
+                                    mirrorSwapTo(getAttachedData<Pathway...>(), movedIndex, static_cast<std::size_t>(movedIndex)-1);
+
                                 mirrorSwapToSelection(sel, movedIndex, static_cast<std::size_t>(movedIndex)-1);
                                 nextAvailable = movedIndex;
                             }
@@ -5635,6 +6715,9 @@ namespace RareEdit
                         {
                             auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(movedIndex));
                             std::rotate(ref.begin(), it, it+1);
+                            if constexpr ( hasAttachedData )
+                                mirrorRotationTo(getAttachedData<Pathway...>(), 0, movedIndex, movedIndex+1);
+
                             mirrorRotationToSelection(getSelections<Pathway...>(), 0, movedIndex, movedIndex+1);
                             if constexpr ( hasElementMovedOp<Route> )
                             {
@@ -5671,9 +6754,12 @@ namespace RareEdit
                             {
                                 auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
                                 std::rotate(std::next(ref.begin(), insertionIndex), it, it+1);
+                                if constexpr ( hasAttachedData )
+                                    mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(insertionIndex), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1);
+
                                 mirrorRotationToSelection(sel, static_cast<std::size_t>(insertionIndex), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1);
                                 if constexpr ( hasElementMovedOp<Route> )
-                                    mirrorRotationToIndexes(trackedIndexes, insertionIndex, i, i+1);
+                                    mirrorRotationTo(trackedIndexes, insertionIndex, i, i+1);
                             }
                             ++insertionIndex;
                         }
@@ -5715,9 +6801,12 @@ namespace RareEdit
                             {
                                 auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
                                 std::rotate(std::next(ref.begin(), insertionIndex), it, it+1);
+                                if constexpr ( hasAttachedData )
+                                    mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(insertionIndex), i, static_cast<std::size_t>(i)+1);
+
                                 mirrorRotationToSelection(sel, static_cast<std::size_t>(insertionIndex), i, static_cast<std::size_t>(i)+1);
                                 if constexpr ( hasElementMovedOp<Route> )
-                                    mirrorRotationToIndexes(trackedIndexes, insertionIndex, i, i+1);
+                                    mirrorRotationTo(trackedIndexes, insertionIndex, i, i+1);
                             }
                             ++insertionIndex;
                         }
@@ -5743,6 +6832,9 @@ namespace RareEdit
                         if ( movedIndex+1 < std::size(ref) )
                         {
                             std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex+1)]);
+                            if constexpr ( hasAttachedData )
+                                mirrorSwapTo(getAttachedData<Pathway...>(), movedIndex, movedIndex+1);
+
                             mirrorSwapToSelection(getSelections<Pathway...>(), movedIndex, movedIndex+1);
                             if constexpr ( hasElementMovedOp<Route> )
                             {
@@ -5771,6 +6863,9 @@ namespace RareEdit
                                 if ( static_cast<std::size_t>(movedIndex)+1 < limit )
                                 {
                                     std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex)+1]);
+                                    if constexpr ( hasAttachedData )
+                                        mirrorSwapTo(getAttachedData<Pathway...>(), movedIndex, static_cast<std::size_t>(movedIndex)+1);
+
                                     mirrorSwapToSelection(getSelections<Pathway...>(), movedIndex, static_cast<std::size_t>(movedIndex)+1);
                                     limit = static_cast<std::size_t>(movedIndex)+1;
                                 }
@@ -5827,6 +6922,9 @@ namespace RareEdit
                                 if ( static_cast<std::size_t>(movedIndex)+1 < limit )
                                 {
                                     std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex)+1]);
+                                    if constexpr ( hasAttachedData )
+                                        mirrorSwapTo(getAttachedData<Pathway...>(), movedIndex, static_cast<std::size_t>(movedIndex)+1);
+
                                     mirrorSwapToSelection(sel, movedIndex, static_cast<std::size_t>(movedIndex)+1);
                                     limit = static_cast<std::size_t>(movedIndex)+1;
                                 }
@@ -5871,6 +6969,9 @@ namespace RareEdit
                         {
                             auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(movedIndex));
                             std::rotate(it, it+1, ref.end());
+                            if constexpr ( hasAttachedData )
+                                mirrorRotationTo(getAttachedData<Pathway...>(), movedIndex, movedIndex+1, std::size(ref));
+
                             mirrorRotationToSelection(getSelections<Pathway...>(), movedIndex, movedIndex+1, std::size(ref));
                             if constexpr ( hasElementMovedOp<Route> )
                             {
@@ -5907,9 +7008,12 @@ namespace RareEdit
                             {
                                 auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
                                 std::rotate(it, it+1, std::next(ref.begin(), insertionIndex));
+                                if constexpr ( hasAttachedData )
+                                    mirrorRotationTo(getAttachedData<Pathway...>(), i, static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
+
                                 mirrorRotationToSelection(sel, i, static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
                                 if constexpr ( hasElementMovedOp<Route> )
-                                    mirrorRotationToIndexes(trackedIndexes, i, i+1, insertionIndex);
+                                    mirrorRotationTo(trackedIndexes, i, i+1, insertionIndex);
                             }
                             --insertionIndex;
                         }
@@ -5952,9 +7056,12 @@ namespace RareEdit
                             {
                                 auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
                                 std::rotate(it, it+1, std::next(ref.begin(), insertionIndex));
+                                if constexpr ( hasAttachedData )
+                                    mirrorRotationTo(getAttachedData<Pathway...>(), i, static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
+
                                 mirrorRotationToSelection(sel, i, static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
                                 if constexpr ( hasElementMovedOp<Route> )
-                                    mirrorRotationToIndexes(trackedIndexes, i, i+1, insertionIndex);
+                                    mirrorRotationTo(trackedIndexes, i, i+1, insertionIndex);
                             }
                             --insertionIndex;
                         }
@@ -5984,6 +7091,9 @@ namespace RareEdit
                         if ( indexMovedTo < movedIndex && movedIndex < std::size(ref) )
                         {
                             std::rotate(target, it, it+1);
+                            if constexpr ( hasAttachedData )
+                                mirrorRotationTo(getAttachedData<Pathway...>(), indexMovedTo, movedIndex, movedIndex+1);
+
                             mirrorRotationToSelection(getSelections<Pathway...>(), indexMovedTo, movedIndex, movedIndex+1);
                             if constexpr ( hasElementMovedOp<Route> )
                             {
@@ -5997,6 +7107,9 @@ namespace RareEdit
                         else if ( indexMovedTo > movedIndex && indexMovedTo < std::size(ref) )
                         {
                             std::rotate(it, it+1, target+1);
+                            if constexpr ( hasAttachedData )
+                                mirrorRotationTo(getAttachedData<Pathway...>(), movedIndex, movedIndex+1, indexMovedTo+1);
+
                             mirrorRotationToSelection(getSelections<Pathway...>(), movedIndex, movedIndex+1, indexMovedTo+1);
                             if constexpr ( hasElementMovedOp<Route> )
                             {
@@ -6048,9 +7161,12 @@ namespace RareEdit
                                     {
                                         auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
                                         std::rotate(it, it+1, std::next(ref.begin(), insertionIndex));
+                                        if constexpr ( hasAttachedData )
+                                            mirrorRotationTo(getAttachedData<Pathway...>(), i, static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
+
                                         mirrorRotationToSelection(sel, i, static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
                                         if constexpr ( hasElementMovedOp<Route> )
-                                            mirrorRotationToIndexes(trackedIndexes, i, i+1, static_cast<std::size_t>(insertionIndex));
+                                            mirrorRotationTo(trackedIndexes, i, i+1, static_cast<std::size_t>(insertionIndex));
                                     }
                                     --insertionIndex;
                                 }
@@ -6087,9 +7203,12 @@ namespace RareEdit
                                     auto leftStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
                                     auto leftEnd = std::next(leftStart, static_cast<std::ptrdiff_t>(leftChunkSize));
                                     std::rotate(leftStart, leftEnd, std::next(ref.begin(), static_cast<std::ptrdiff_t>(movedIndexes[i+1])));
+                                    if constexpr ( hasAttachedData )
+                                        mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]);
+
                                     mirrorRotationToSelection(sel, leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]);
                                     if constexpr ( hasElementMovedOp<Route> )
-                                        mirrorRotationToIndexes(trackedIndexes, leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]);
+                                        mirrorRotationTo(trackedIndexes, leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]);
                                     leftChunkFirst = static_cast<std::size_t>(movedIndexes[i+1])-leftChunkSize;
                                     ++leftChunkSize;
                                 }
@@ -6099,9 +7218,12 @@ namespace RareEdit
                                     auto rightStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(rightChunkFirst));
                                     auto rightEnd = std::next(rightStart, static_cast<std::ptrdiff_t>(rightChunkSize));
                                     std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(movedIndexes[i-1])+1), rightStart, rightEnd);
+                                    if constexpr ( hasAttachedData )
+                                        mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(movedIndexes[i-1])+1, rightChunkFirst, rightChunkFirst+rightChunkSize);
+
                                     mirrorRotationToSelection(sel, static_cast<std::size_t>(movedIndexes[i-1])+1, rightChunkFirst, rightChunkFirst+rightChunkSize);
                                     if constexpr ( hasElementMovedOp<Route> )
-                                        mirrorRotationToIndexes(trackedIndexes, movedIndexes[i-1]+1, rightChunkFirst, rightChunkFirst+rightChunkSize);
+                                        mirrorRotationTo(trackedIndexes, movedIndexes[i-1]+1, rightChunkFirst, rightChunkFirst+rightChunkSize);
                                     rightChunkFirst = static_cast<std::size_t>(movedIndexes[i-1]);
                                     ++rightChunkSize;
                                 }
@@ -6114,9 +7236,12 @@ namespace RareEdit
                                         auto leftStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
                                         auto leftEnd = std::next(leftStart, static_cast<std::ptrdiff_t>(leftChunkSize));
                                         std::rotate(leftStart, leftEnd, std::next(ref.begin(), static_cast<std::ptrdiff_t>(rightChunkFirst)));
+                                        if constexpr ( hasAttachedData )
+                                            mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst);
+
                                         mirrorRotationToSelection(sel, leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst);
                                         if constexpr ( hasElementMovedOp<Route> )
-                                            mirrorRotationToIndexes(trackedIndexes, leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst);
+                                            mirrorRotationTo(trackedIndexes, leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst);
                                         leftChunkFirst = rightChunkFirst-leftChunkSize;
                                     }
                                     else // Left chunk closer to target, move right up to left
@@ -6124,9 +7249,12 @@ namespace RareEdit
                                         auto rightStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(rightChunkFirst));
                                         auto rightEnd = std::next(rightStart, static_cast<std::ptrdiff_t>(rightChunkSize));
                                         std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst+leftChunkSize)), rightStart, rightEnd);
+                                        if constexpr ( hasAttachedData )
+                                            mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize);
+
                                         mirrorRotationToSelection(sel, leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize);
                                         if constexpr ( hasElementMovedOp<Route> )
-                                            mirrorRotationToIndexes(trackedIndexes, leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize);
+                                            mirrorRotationTo(trackedIndexes, leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize);
                                         rightChunkFirst = leftChunkFirst+leftChunkSize;
                                     }
                                 }
@@ -6135,18 +7263,24 @@ namespace RareEdit
                                     auto chunkStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
                                     auto chunkEnd = std::next(chunkStart, static_cast<std::ptrdiff_t>(countValidIndexes));
                                     std::rotate(chunkStart, chunkEnd, std::next(chunkEnd, static_cast<std::ptrdiff_t>(static_cast<std::size_t>(indexMovedTo)-leftChunkFirst)));
+                                    if constexpr ( hasAttachedData )
+                                        mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst, leftChunkFirst+countValidIndexes, leftChunkFirst+countValidIndexes+static_cast<std::size_t>(indexMovedTo)-leftChunkFirst);
+
                                     mirrorRotationToSelection(sel, leftChunkFirst, leftChunkFirst+countValidIndexes, leftChunkFirst+countValidIndexes+static_cast<std::size_t>(indexMovedTo)-leftChunkFirst);
                                     if constexpr ( hasElementMovedOp<Route> )
-                                        mirrorRotationToIndexes(trackedIndexes, leftChunkFirst, leftChunkFirst+countValidIndexes, leftChunkFirst+countValidIndexes+static_cast<std::size_t>(indexMovedTo)-leftChunkFirst);
+                                        mirrorRotationTo(trackedIndexes, leftChunkFirst, leftChunkFirst+countValidIndexes, leftChunkFirst+countValidIndexes+static_cast<std::size_t>(indexMovedTo)-leftChunkFirst);
                                 }
                                 else if ( leftChunkFirst > static_cast<std::size_t>(indexMovedTo) ) // Rotate combined chunk leftwards to final position
                                 {
                                     auto chunkStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
                                     auto chunkEnd = std::next(chunkStart, static_cast<std::ptrdiff_t>(countValidIndexes));
                                     std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(indexMovedTo)), chunkStart, chunkEnd);
+                                    if constexpr ( hasAttachedData )
+                                        mirrorRotationTo(getAttachedData<Pathway...>(), indexMovedTo, leftChunkFirst, leftChunkFirst+countValidIndexes);
+
                                     mirrorRotationToSelection(sel, indexMovedTo, leftChunkFirst, leftChunkFirst+countValidIndexes);
                                     if constexpr ( hasElementMovedOp<Route> )
-                                        mirrorRotationToIndexes(trackedIndexes, indexMovedTo, leftChunkFirst, leftChunkFirst+countValidIndexes);
+                                        mirrorRotationTo(trackedIndexes, indexMovedTo, leftChunkFirst, leftChunkFirst+countValidIndexes);
                                 }
                             }
                     
@@ -6205,9 +7339,13 @@ namespace RareEdit
                                     {
                                         auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
                                         std::rotate(it, it+1, std::next(ref.begin(), insertionIndex));
+                                        if constexpr ( hasAttachedData )
+                                            mirrorRotationTo(getAttachedData<Pathway...>(), i, static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
+
                                         mirrorRotationToSelection(sel, i, static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
+
                                         if constexpr ( hasElementMovedOp<Route> )
-                                            mirrorRotationToIndexes(trackedIndexes, i, i+1, static_cast<std::size_t>(insertionIndex));
+                                            mirrorRotationTo(trackedIndexes, i, i+1, static_cast<std::size_t>(insertionIndex));
                                     }
                                     --insertionIndex;
                                 }
@@ -6244,9 +7382,12 @@ namespace RareEdit
                                     auto leftStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
                                     auto leftEnd = std::next(leftStart, static_cast<std::ptrdiff_t>(leftChunkSize));
                                     std::rotate(leftStart, leftEnd, std::next(ref.begin(), static_cast<std::ptrdiff_t>(movedIndexes[i+1])));
+                                    if constexpr ( hasAttachedData )
+                                        mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]);
+
                                     mirrorRotationToSelection(sel, leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]);
                                     if constexpr ( hasElementMovedOp<Route> )
-                                        mirrorRotationToIndexes(trackedIndexes, leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]);
+                                        mirrorRotationTo(trackedIndexes, leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]);
                                     leftChunkFirst = static_cast<std::size_t>(movedIndexes[i+1])-leftChunkSize;
                                     ++leftChunkSize;
                                 }
@@ -6256,9 +7397,12 @@ namespace RareEdit
                                     auto rightStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(rightChunkFirst));
                                     auto rightEnd = std::next(rightStart, static_cast<std::ptrdiff_t>(rightChunkSize));
                                     std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(movedIndexes[i-1])+1), rightStart, rightEnd);
+                                    if constexpr ( hasAttachedData )
+                                        mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(movedIndexes[i-1])+1, rightChunkFirst, rightChunkFirst+rightChunkSize);
+
                                     mirrorRotationToSelection(sel, static_cast<std::size_t>(movedIndexes[i-1])+1, rightChunkFirst, rightChunkFirst+rightChunkSize);
                                     if constexpr ( hasElementMovedOp<Route> )
-                                        mirrorRotationToIndexes(trackedIndexes, movedIndexes[i-1]+1, rightChunkFirst, rightChunkFirst+rightChunkSize);
+                                        mirrorRotationTo(trackedIndexes, movedIndexes[i-1]+1, rightChunkFirst, rightChunkFirst+rightChunkSize);
                                     rightChunkFirst = static_cast<std::size_t>(movedIndexes[i-1]);
                                     ++rightChunkSize;
                                 }
@@ -6271,9 +7415,12 @@ namespace RareEdit
                                         auto leftStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
                                         auto leftEnd = std::next(leftStart, static_cast<std::ptrdiff_t>(leftChunkSize));
                                         std::rotate(leftStart, leftEnd, std::next(ref.begin(), static_cast<std::ptrdiff_t>(rightChunkFirst)));
+                                        if constexpr ( hasAttachedData )
+                                            mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst);
+
                                         mirrorRotationToSelection(sel, leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst);
                                         if constexpr ( hasElementMovedOp<Route> )
-                                            mirrorRotationToIndexes(trackedIndexes, leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst);
+                                            mirrorRotationTo(trackedIndexes, leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst);
                                         leftChunkFirst = rightChunkFirst-leftChunkSize;
                                     }
                                     else // Left chunk closer to target, move right up to left
@@ -6281,9 +7428,12 @@ namespace RareEdit
                                         auto rightStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(rightChunkFirst));
                                         auto rightEnd = std::next(rightStart, static_cast<std::ptrdiff_t>(rightChunkSize));
                                         std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst+leftChunkSize)), rightStart, rightEnd);
+                                        if constexpr ( hasAttachedData )
+                                            mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize);
+
                                         mirrorRotationToSelection(sel, leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize);
                                         if constexpr ( hasElementMovedOp<Route> )
-                                            mirrorRotationToIndexes(trackedIndexes, leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize);
+                                            mirrorRotationTo(trackedIndexes, leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize);
                                         rightChunkFirst = leftChunkFirst+leftChunkSize;
                                     }
                                 }
@@ -6292,18 +7442,24 @@ namespace RareEdit
                                     auto chunkStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
                                     auto chunkEnd = std::next(chunkStart, static_cast<std::ptrdiff_t>(countValidIndexes));
                                     std::rotate(chunkStart, chunkEnd, std::next(chunkEnd, static_cast<std::ptrdiff_t>(static_cast<std::size_t>(indexMovedTo)-leftChunkFirst)));
+                                    if constexpr ( hasAttachedData )
+                                        mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst, leftChunkFirst+countValidIndexes, leftChunkFirst+countValidIndexes+static_cast<std::size_t>(indexMovedTo)-leftChunkFirst);
+
                                     mirrorRotationToSelection(sel, leftChunkFirst, leftChunkFirst+countValidIndexes, leftChunkFirst+countValidIndexes+static_cast<std::size_t>(indexMovedTo)-leftChunkFirst);
                                     if constexpr ( hasElementMovedOp<Route> )
-                                        mirrorRotationToIndexes(trackedIndexes, leftChunkFirst, leftChunkFirst+countValidIndexes, leftChunkFirst+countValidIndexes+static_cast<std::size_t>(indexMovedTo)-leftChunkFirst);
+                                        mirrorRotationTo(trackedIndexes, leftChunkFirst, leftChunkFirst+countValidIndexes, leftChunkFirst+countValidIndexes+static_cast<std::size_t>(indexMovedTo)-leftChunkFirst);
                                 }
                                 else if ( leftChunkFirst > static_cast<std::size_t>(indexMovedTo) ) // Rotate combined chunk leftwards to final position
                                 {
                                     auto chunkStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
                                     auto chunkEnd = std::next(chunkStart, static_cast<std::ptrdiff_t>(countValidIndexes));
                                     std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(indexMovedTo)), chunkStart, chunkEnd);
+                                    if constexpr ( hasAttachedData )
+                                        mirrorRotationTo(getAttachedData<Pathway...>(), indexMovedTo, leftChunkFirst, leftChunkFirst+countValidIndexes);
+
                                     mirrorRotationToSelection(sel, indexMovedTo, leftChunkFirst, leftChunkFirst+countValidIndexes);
                                     if constexpr ( hasElementMovedOp<Route> )
-                                        mirrorRotationToIndexes(trackedIndexes, indexMovedTo, leftChunkFirst, leftChunkFirst+countValidIndexes);
+                                        mirrorRotationTo(trackedIndexes, indexMovedTo, leftChunkFirst, leftChunkFirst+countValidIndexes);
                                 }
                             }
                     
@@ -6351,7 +7507,11 @@ namespace RareEdit
                     }
                     break;
                 case PathOp::LeafSelBranch:
-                    if constexpr ( hasSel && requires{t[0];} )
+                    if constexpr ( sizeof...(Pathway) == 0 && Undo )
+                        processUndoEvent<std::remove_cvref_t<U>, void>(op, offset, secondaryOffset, t, keys);
+                    else if constexpr ( sizeof...(Pathway) == 0 && !Undo )
+                        processRedoEvent<std::remove_cvref_t<U>, void>(op, offset, secondaryOffset, t, keys);
+                    else if constexpr ( hasSel && requires{t[0];} )
                     {
                         using element_type = std::remove_cvref_t<RareTs::element_type_t<std::remove_cvref_t<U>>>;
                         
@@ -6492,130 +7652,389 @@ namespace RareEdit
         }
     };
 
-    template <class Data, class User>
+    struct NoUserData { friend constexpr bool operator==(NoUserData, NoUserData) noexcept { return false; } };
+
+    template <class Data, class User, class UserData = NoUserData>
     requires RareTs::is_macro_reflected_v<Data> && std::is_object_v<User>
     class Tracked;
 
-    template <class T, class User>
-    class Edit : private EditRoot<T, User, Edit<T, User>>, public edit_members<EditRoot<T, User, Edit<T, User>>, typename decltype(defaultIndexType<T>())::type, T, T>
+    template <class T, class User, class ActionUserData, class Editor>
+    class EditRoot : private Agent<T, User, Editor>, public edit_members<Agent<T, User, Editor>, typename decltype(defaultIndexType<T>())::type, T, T>
     {
-        Edit(T & t, User & user) :
-            EditRoot<T, User, Edit<T, User>>(*this, t, user),
-            edit_members<EditRoot<T, User, Edit<T, User>>, typename decltype(defaultIndexType<T>())::type, T, T>{(EditRoot<T, User, Edit<T, User>>&)*this, std::tuple{}} {}
+        EditRoot(T & t, User & user) :
+            Agent<T, User, Editor>(t, user),
+            edit_members<Agent<T, User, Editor>, typename decltype(defaultIndexType<T>())::type, T, T>{(Agent<T, User, Editor>&)*this, std::tuple{}} {}
 
-        friend class Tracked<T, User>;
-        friend struct EditRoot<T, User, Edit<T, User>>;
-        friend class Event;
+        friend class Tracked<T, User, ActionUserData>;
+        friend struct Agent<T, User, Editor>;
 
     public:
-        using default_index_type = typename EditRoot<T, User, Edit<T, User>>::default_index_type;
+        using default_index_type = typename Agent<T, User, Editor>::default_index_type;
+
+        void assign(const T & value) {
+            std::tuple keys {}; // No keys/array indexes as this is the root
+            Agent<T, User, Editor>::template set<>(value, keys);
+            Agent<T, User, Editor>::selections.clear();
+            Agent<T, User, Editor>::initAttachedData();
+        }
+    };
+    
+    template <typename T, typename PathToElem,
+    typename EditorType = typename PathToElem::editor_type,
+    typename ReadEditPair = decltype(std::declval<EditorType>().editFromPath(PathToElem{}))>
+    class TrackedElement;
+
+    template <class Tracked>
+    class Editor // If moved-from, or maybe created with createSharedAction the action shouldn't be auto-submitted, allowing for brushing
+    {            // However... it should be ensured that there is only ever one such action
+                 // Maybe it's an optional contained within this class and a derefable wrapper for that including a bool is returned?
+        Tracked* parent = nullptr;
+
+        using tracked_type = Tracked;
+        template <typename, typename, typename, typename> friend class TrackedElement;
+
+    public:
+        Editor(Tracked* parent) : parent(parent) {
+            if ( parent != nullptr )
+                parent->actionReferenceCount++;
+        }
+        Editor(Editor && other) noexcept { std::swap(parent, other.parent); }
+        ~Editor() {
+            if ( parent != nullptr && --(parent->actionReferenceCount) == 0 )
+                parent->submitAction();
+        }
+        auto & operator*() noexcept { return parent->editable; }
+        auto operator->() noexcept { return &parent->editable; }
+
+        template <class Keys, class ... Pathway>
+        auto editFromPath(PathTaggedKeys<Keys, type_tags<Pathway...>, Editor<Tracked>> path)
+        {
+            auto & agent = (Agent<typename Tracked::data_type, typename Tracked::user_type, Editor> &)parent->editable;
+            return agent.template editorFromPath<Pathway...>(**this, static_cast<typename Tracked::data_type &>(*parent), path);
+        }
+    };
+    
+    template <class Usr>
+    using AfterActionOp = decltype(std::declval<Usr>().afterAction(std::size_t(0)));
+
+    enum class ActionStatus {
+        Unknown = 0,
+        Undoable = 1,
+        ElidedRedo = 2,
+        Redoable = 3
     };
 
-    template <class Data, class User>
+    struct DataChangeEvent {
+        Op op {};
+        std::string summary {};
+        std::vector<std::string> breakdown {};
+        constexpr bool isSelChangeEvent() const { return isSelChangeOp(op); }
+    };
+
+    template <class ActionUserData>
+    struct RenderAction {
+        ActionStatus actionStatus {};
+        std::size_t elisionCount = 0;
+        std::vector<DataChangeEvent> changeEvents {};
+        std::size_t byteCount = 0;
+        ActionUserData userData {};
+
+        constexpr bool isElisionMarker() const { return actionStatus == ActionStatus::ElidedRedo && elisionCount > 0; }
+        constexpr bool isElided() const { return actionStatus == ActionStatus::ElidedRedo && elisionCount == 0; }
+        constexpr bool isUndoable() const { return actionStatus == ActionStatus::Undoable; }
+        constexpr bool isRedoable() const { return actionStatus == ActionStatus::Redoable; }
+        constexpr bool isSelChangeAction() const {
+            for ( auto event : changeEvents )
+            {
+                if ( !event.isSelChangeEvent() )
+                    return false;
+            }
+            return true;
+        }
+    };
+
+    template <class UserData = NoUserData>
+    struct Action : UserData
+    {
+        std::size_t firstEventIndex;
+        
+        constexpr Action(std::size_t firstEventIndex) noexcept : firstEventIndex(firstEventIndex) {}
+        constexpr Action(std::size_t firstEventIndex, const UserData & userData) noexcept : UserData(userData), firstEventIndex(firstEventIndex) {}
+    };
+
+    template <class Data, class User, class UserData>
     requires RareTs::is_macro_reflected_v<Data> && std::is_object_v<User>
     class Tracked : Data
     {
+        using data_type = Data;
+        using user_type = User;
+        using edit_root = EditRoot<Data, User, UserData, Editor<Tracked>>;
+
         static constexpr std::uint64_t flagElidedRedos    = 0x8000000000000000ull;
         static constexpr std::uint64_t maskElidedRedoSize = 0x7FFFFFFFFFFFFFFFull; // The total size of this elided redo branch, including sub-branches
 
-        using edit_type = Edit<Data, User>;
-        edit_type editable;
+        edit_root editable;
 
-        std::vector<std::uint64_t> actionFirstEvent; // Index of the first data-change event for the given action
+        UserData pendingActionUserData {}; // The user data that will be associated with the next action to be added
+        std::size_t pendingActionStart = 0; // Index of the first data-change event for the next action to be added
+        std::vector<Action<UserData>> actions; // Contains the index of the first data-change event for action[i] and any user-data
         int actionReferenceCount = 0; // Referencing counting for the current action, new actions can only be created when the old action is closed
         std::uint64_t redoCount = 0; // How many undos have occured since the last user-action/how many redos are available
         std::uint64_t redoSize = 0; // The size of the range including the redoable actions (includes elided redos)
 
-    protected:
+        friend class Editor<Tracked>;
 
-        struct Editor // If moved-from, or maybe created with createSharedAction the action shouldn't be auto-submitted, allowing for brushing
-        {             // However... it should be ensured that there is only ever one such action
-                      // Maybe it's an optional contained within this class and a derefable wrapper for that including a bool is returned?
-            Tracked<Data, User>* parent = nullptr;
-            Editor(Tracked<Data, User>* parent) : parent(parent) {
-                if ( parent != nullptr )
-                    parent->actionReferenceCount++;
+        template <typename Usr> static constexpr bool hasAfterActionOp = RareTs::op_exists_v<AfterActionOp, Usr>;
+
+        void submitAction()
+        {
+            if ( pendingActionStart < editable.eventOffsets.size() ) // Action is not empty
+            {
+                if ( redoCount > 0 )
+                    elideRedos();
+
+                actions.push_back({pendingActionStart, pendingActionUserData});
+                pendingActionStart = editable.eventOffsets.size();
+
+                if constexpr ( hasAfterActionOp<user_type> )
+                    static_cast<Agent<Data, User, Editor<Tracked>> &>(editable).user.afterAction(actions.size()-1); // Notify
             }
-            Editor(Editor && other) noexcept { std::swap(parent, other.parent); }
-            ~Editor() {
-                if ( parent != nullptr )
-                    parent->actionReferenceCount--;
-            }
-            edit_type & operator*() noexcept { return parent->editable; }
-            edit_type* operator->() noexcept { return &parent->editable; }
-        };
+        }
+
+    protected:
 
         void elideRedos()
         {
             if ( redoCount == 0 )
                 throw std::logic_error("Redos cannot be elided when there are no redos");
             
-            actionFirstEvent.push_back(redoSize | flagElidedRedos);
+            actions.push_back({redoSize | flagElidedRedos, pendingActionUserData});
             redoCount = 0;
             redoSize = 0;
         }
 
-        auto createAction()
+        auto createAction(UserData userData = {})
         {
-            if ( actionReferenceCount == 0 )
-            {
-                if ( redoCount > 0 )
-                    elideRedos();
+            if ( actionReferenceCount == 0 || UserData{} == pendingActionUserData )
+                std::swap(userData, pendingActionUserData);
 
-                actionFirstEvent.push_back(editable.eventOffsets.size());
-            }
-            return Editor{this};
-        };
+            return Editor<Tracked>{this};
+        }
 
-        static inline Editor root {nullptr};
+        void replacePendingActionUserData(UserData userData)
+        {
+            std::swap(userData, pendingActionUserData);
+        }
 
-        template <class Input>
-        using MakePath = PathTaggedKeys<typename Input::keys, typename Input::path>;
-
-        #define PATH(...) MakePath<decltype(__VA_ARGS__)>
+        static inline Editor<Tracked> root {nullptr}; // Represents the root of the data structure, used by client code to create paths
 
     public:
-        const edit_type & view;
+        const edit_root & view; // Used to view selections data (and potentially other info associated with particular data paths)
         Tracked(User* user) : editable(*this, *user), view(editable) {}
         Tracked(User & user) : editable(*this, user), view(editable) {}
 
-        const Data & read = (const Data &)*this;
-        EditRoot<Data, User, edit_type> & history = static_cast<EditRoot<Data, User, edit_type> &>(editable);
+        const Data & read = (const Data &)*this; // A read only version of the user data
+        Agent<Data, User, Editor<Tracked>> & history = static_cast<Agent<Data, User, Editor<Tracked>> &>(editable);
         constexpr const Data & operator*() const noexcept { return read; }
         constexpr const Data* operator->() const noexcept { return this; }
-        auto operator()() { 
-            if ( actionReferenceCount == 0 )
-            {
-                if ( redoCount > 0 )
-                    elideRedos();
 
-                actionFirstEvent.push_back(editable.eventOffsets.size());
-            }
-            return Editor{this};
+        auto operator()(UserData userData = {})
+        {
+            if ( actionReferenceCount == 0 || UserData{} == pendingActionUserData )
+                std::swap(userData, pendingActionUserData);
+
+            return Editor<Tracked>{this};
         };
+
+        void clearHistory()
+        {
+            if ( actionReferenceCount != 0 )
+                throw std::logic_error("Cannot clear history while an action is active");
+
+            pendingActionUserData = {};
+            pendingActionStart = 0;
+            history.clear();
+            redoCount = 0;
+            redoSize = 0;
+            actions.clear();
+        }
+
+        std::size_t trimHistory(std::size_t newFirstAction) // Trims history so it starts at newFirstAction, returns corrected newFirstAction
+        {
+            if ( actionReferenceCount != 0 || redoCount > 0 )
+                throw std::logic_error("Cannot trim history while an action is active or redos are present");
+
+            if ( newFirstAction >= actions.size() )
+            {
+                clearHistory(); // Clear everything
+                return 0;
+            }
+            else if ( newFirstAction == 0 || actions.empty() )
+                return 0; // Nothing to clear
+
+            for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(actions.size()) - 1; i > 0; )
+            {
+                if ( (actions[static_cast<std::size_t>(i)].firstEventIndex & flagElidedRedos) == flagElidedRedos ) // Elided
+                {
+                    i -= static_cast<std::ptrdiff_t>((actions[static_cast<std::size_t>(i)].firstEventIndex & maskElidedRedoSize)+1); // Skip over elided actions
+                    if ( i <= 0 )
+                        return 0; // Nothing to clear before the given "newFirstAction" that wasn't elided
+                }
+                else if ( i > static_cast<std::ptrdiff_t>(newFirstAction) ) // Non-elided, haven't yet reached newFirstAction
+                    --i; // Keep moving towards newFirstAction
+                else // Reached or passed newFirstAction
+                {
+                    if ( i <= 0 )
+                        return 0; // Nothing to clear before the given "newFirstAction" that wasn't elided
+                    else
+                    {
+                        newFirstAction = static_cast<std::size_t>(i); // Fix newFirstAction to the last action that wasn't elided
+                        break;
+                    }
+                }
+            }
+
+            std::size_t firstEventIndex = actions[newFirstAction].firstEventIndex;
+            std::size_t countEventIndexesTrimmed = history.trim(firstEventIndex);
+            actions.erase(actions.begin(), std::next(actions.begin(), static_cast<std::ptrdiff_t>(newFirstAction)));
+            for ( auto & action : actions )
+            {
+                if ( (action.firstEventIndex & flagElidedRedos) != flagElidedRedos )
+                    action.firstEventIndex -= countEventIndexesTrimmed;
+            }
+
+            pendingActionStart = editable.eventOffsets.size();
+            return newFirstAction;
+        }
+
+        std::uint64_t trimHistoryToSize(std::uint64_t maxSize) // Returns the new size
+        {
+            if ( actionReferenceCount != 0 || redoCount > 0 )
+                throw std::logic_error("Cannot trim history while an action is active or redos are present");
+
+            if ( maxSize == 0 )
+            {
+                clearHistory(); // Clear everything
+                return 0;
+            }
+            else if ( actions.empty() ) // Nothing to trim
+                return 0;
+            
+            std::size_t totalActions = actions.size();
+            std::uint64_t totalSize = 0;
+            for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(actions.size()) - 1; i > 0; )
+            {
+                if ( (actions[static_cast<std::size_t>(i)].firstEventIndex & flagElidedRedos) == flagElidedRedos ) // Elided
+                {
+                    std::uint64_t countElided = (actions[static_cast<std::size_t>(i)].firstEventIndex & maskElidedRedoSize);
+                    std::uint64_t nextSize = totalSize + 8 + 8*countElided;
+                    std::ptrdiff_t nextI = i - static_cast<std::ptrdiff_t>(countElided+1); // Next after elided actions
+                    for ( std::ptrdiff_t j=i; j>nextI; --j )
+                    {
+                        std::size_t actionIndex = static_cast<std::size_t>(j);
+                        std::size_t currActionStart = actions[actionIndex].firstEventIndex;
+                        if ( (currActionStart & flagElidedRedos) == flagElidedRedos )
+                            continue; // No events to count for this action
+                        
+                        std::size_t nextActionStart = flagElidedRedos;
+                        for ( std::size_t k=1; (nextActionStart & flagElidedRedos) == flagElidedRedos; ++k ) // Find the next event that isn't an elision marker
+                            nextActionStart = actionIndex+k<totalActions ? (actions[actionIndex+k].firstEventIndex) : editable.eventOffsets.size();
+
+                        auto [firstEventStart, unusedFirstEventEnd] = editable.getEventOffsetRange(currActionStart);
+                        auto [unusedLastEventStart, lastEventEnd] = editable.getEventOffsetRange(nextActionStart-1);
+                        nextSize += lastEventEnd-firstEventStart;
+                    }
+                    if ( nextSize > maxSize ) // i is the correct target
+                    {
+                        trimHistory(static_cast<std::size_t>(i));
+                        return totalSize;
+                    }
+                    else
+                    {
+                        i = nextI;
+                        totalSize = nextSize;
+                    }
+                }
+                else // Non-elided, haven't yet reached maxSize
+                {
+                    std::size_t actionIndex = static_cast<std::size_t>(i);
+                    std::uint64_t nextSize = totalSize + 8;
+                    std::size_t currActionStart = actions[actionIndex].firstEventIndex;
+                    if ( (currActionStart & flagElidedRedos) == flagElidedRedos )
+                        continue; // No events to count for this action
+                        
+                    std::size_t nextActionStart = flagElidedRedos;
+                    for ( std::size_t j=1; (nextActionStart & flagElidedRedos) == flagElidedRedos; ++j ) // Find the next event that isn't an elision marker
+                        nextActionStart = actionIndex+j<totalActions ? (actions[actionIndex+j].firstEventIndex) : editable.eventOffsets.size();
+
+                    auto [firstEventStart, unusedFirstEventEnd] = editable.getEventOffsetRange(currActionStart);
+                    auto [unusedLastEventStart, lastEventEnd] = editable.getEventOffsetRange(nextActionStart-1);
+                    nextSize += lastEventEnd-firstEventStart;
+
+                    if ( nextSize > maxSize )
+                    {
+                        trimHistory(static_cast<std::size_t>(i));
+                        return totalSize;
+                    }
+                    else
+                    {
+                        totalSize = nextSize;
+                        --i;
+                    }
+                }
+            }
+            return totalSize;
+        }
+
+        // Initializes the stored data with the given input, this initialization is tracked of initTracked is true
+        // If there's an active action or any stored actions a logic_error will be thrown
+        template <bool initTracked = false>
+        void initData(auto && data)
+        {
+            if ( !actions.empty() )
+                throw std::logic_error("Cannot init an object that already has history!");
+            else if ( actionReferenceCount > 0 )
+                throw std::logic_error("Cannot init an object that already has an active action!");
+
+            if constexpr ( initTracked )
+                createAction()->assign(data);
+            else
+            {
+                history.selections.clear();
+                if constexpr ( requires { std::swap((Data&)*this, data); } )
+                    std::swap((Data&)*this, data);
+                else // If say, a const reference was passed to initData, swap is not possible, use assignment
+                    ((Data&)*this) = data;
+                
+                history.initAttachedData();
+            }
+        }
 
         void undoAction()
         {
-            if ( redoSize >= actionFirstEvent.size() )
+            if ( redoSize >= actions.size() )
                 return;
 
-            std::size_t totalActions = actionFirstEvent.size();
+            std::size_t totalActions = actions.size();
             std::uint64_t actionIndex = totalActions-redoSize-1;
 
-            while ( (actionFirstEvent[actionIndex] & flagElidedRedos) == flagElidedRedos ) // Find the next unelided action
-                actionIndex -= ((actionFirstEvent[actionIndex] & maskElidedRedoSize)+1);
+            while ( (actions[actionIndex].firstEventIndex & flagElidedRedos) == flagElidedRedos ) // Find the next unelided action
+            {
+                auto redoGap = ((actions[actionIndex].firstEventIndex & maskElidedRedoSize)+1);
+                if ( redoGap <= actionIndex )
+                    actionIndex -= redoGap;
+                else
+                    return; // Every prior action was elided, nothing to undo
+            }
 
-            std::int64_t actionEventStart = static_cast<std::int64_t>(actionFirstEvent[actionIndex]);
+            std::int64_t actionEventStart = static_cast<std::int64_t>(actions[actionIndex].firstEventIndex);
             std::int64_t nextActionStart = static_cast<std::size_t>(actionIndex)<totalActions-1 ?
-                static_cast<std::int64_t>(actionFirstEvent[actionIndex+1]) :
+                static_cast<std::int64_t>(actions[actionIndex+1].firstEventIndex) :
                 static_cast<std::int64_t>(editable.eventOffsets.size());
             
-            auto & editRoot = (EditRoot<Data, User, edit_type> &)editable;
+            auto & agent = (Agent<Data, User, Editor<Tracked>> &)editable;
             for ( std::int64_t i=nextActionStart-1; i>=actionEventStart; i-- )
-            {
-                editRoot.undoEvent(std::uint64_t(i));
-                //std::cout << '\n';
-            }
+                agent.undoEvent(std::uint64_t(i));
 
             redoCount++;
             redoSize = totalActions-actionIndex;
@@ -6626,15 +8045,25 @@ namespace RareEdit
             if ( redoCount == 0 )
                 return;
 
-            std::size_t totalActions = actionFirstEvent.size();
-            std::uint64_t actionIndex = totalActions-redoCount;
+            std::size_t totalActions = actions.size();
+            std::uint64_t actionIndex = totalActions-redoSize;
             
-            std::uint64_t actionEventStart = actionFirstEvent[actionIndex];
-            std::uint64_t nextActionStart = actionIndex<totalActions-1 ? actionFirstEvent[actionIndex+1] : editable.eventOffsets.size();
+            std::uint64_t actionEventStart = actions[actionIndex].firstEventIndex;
+            std::uint64_t nextActionStart = flagElidedRedos;
+            for ( std::size_t i=1; actionIndex+i<totalActions; ++i )
+            {
+                if ( (actions[actionIndex+i].firstEventIndex & flagElidedRedos) != flagElidedRedos )
+                {
+                    nextActionStart = actions[actionIndex+i].firstEventIndex;
+                    break;
+                }
+            }
+            if ( nextActionStart == flagElidedRedos )
+                nextActionStart = editable.eventOffsets.size();
             
-            auto & editRoot = (EditRoot<Data, User, edit_type> &)editable;
+            auto & agent = (Agent<Data, User, Editor<Tracked>> &)editable;
             for ( auto i=actionEventStart; i<nextActionStart; i++ )
-                editRoot.redoEvent(i);
+                agent.redoEvent(i);
 
             redoCount--;
             if ( redoCount == 0 )
@@ -6645,16 +8074,33 @@ namespace RareEdit
                 std::size_t unelidedCount = 0;
                 while ( unelidedCount < redoCount )
                 {
-                    if ( (actionFirstEvent[actionIndex] & flagElidedRedos) == flagElidedRedos )
-                        actionIndex -= ((actionFirstEvent[actionIndex] & maskElidedRedoSize)+1);
+                    if ( (actions[actionIndex].firstEventIndex & flagElidedRedos) == flagElidedRedos )
+                        actionIndex -= ((actions[actionIndex].firstEventIndex & maskElidedRedoSize)+1);
                     else
                     {
                         ++unelidedCount;
                         --actionIndex;
                     }
                 }
-                redoSize = totalActions-actionIndex;
+                redoSize = totalActions-actionIndex-1;
             }
+        }
+
+        std::size_t getCursorIndex() // One after the index of the last action which hasn't been undone
+        {
+            return actions.size()-redoSize;
+        }
+
+        std::size_t previousCursorIndex() // One after the index of the most recent un-elided action before the current cursor
+        {
+            for ( auto i = static_cast<std::ptrdiff_t>(getCursorIndex())-2; i>=0; --i )
+            {
+                if ( (actions[static_cast<std::size_t>(i)].firstEventIndex & flagElidedRedos) == flagElidedRedos )
+                    i -= static_cast<std::ptrdiff_t>(actions[static_cast<std::size_t>(i)].firstEventIndex & maskElidedRedoSize);
+                else
+                    return static_cast<std::size_t>(i)+1;
+            }
+            return 0;
         }
 
         auto & put(std::ostream & os, auto && value) const
@@ -6666,7 +8112,15 @@ namespace RareEdit
         template <class type, class member_type>
         auto & putValue(std::ostream & os, std::size_t & offset) const
         {
-            os << Json::out(editable.template readValue<type, member_type>(offset));
+            if constexpr ( std::is_array_v<type> )
+            {
+                type t {};
+                editable.template readValue<type, member_type>(offset, t);
+                os << Json::out<Json::Statics::Excluded, RareTs::NoNote, 0, Json::Output::twoSpaces, type>(t);
+            }
+            else
+                os << Json::out(editable.template readValue<type, member_type>(offset));
+
             return *this;
         }
 
@@ -6674,9 +8128,20 @@ namespace RareEdit
         auto & putValues(std::ostream & os, std::size_t & offset, std::size_t size) const
         {
             os << "{";
-            for ( std::size_t i=0; i<size; ++i )
-                os << (i>0 ? ", " : "") << Json::out(editable.template readValue<type, member_type>(offset));
-
+            if constexpr ( std::is_array_v<type> )
+            {
+                for ( std::size_t i=0; i<size; ++i )
+                {
+                    type t {};
+                    editable.template readValue<type, member_type>(offset, t);
+                    os << (i>0 ? ", " : "") << Json::out(t);
+                }
+            }
+            else
+            {
+                for ( std::size_t i=0; i<size; ++i )
+                    os << (i>0 ? ", " : "") << Json::out(editable.template readValue<type, member_type>(offset));
+            }
             os << "}";
             return *this;
         }
@@ -6691,21 +8156,22 @@ namespace RareEdit
         template <class index_type>
         auto & putIndexes(std::ostream & os, std::size_t & offset, std::size_t size) const
         {
-            auto indexes = editable.template readIndexes<index_type>(offset, size);
             os << "{";
-            for ( std::size_t i=0; i<size; ++i )
-                os << (i>0 ? ", " : "") << (RareTs::promote_char_t<index_type>)indexes[i];
-
+            if ( size > 0 )
+            {
+                auto indexes = editable.template readIndexes<index_type>(offset, size);
+                for ( std::size_t i=0; i<size; ++i )
+                    os << (i>0 ? ", " : "") << (RareTs::promote_char_t<index_type>)indexes[i];
+            }
             os << "}";
             return *this;
         }
 
         template <class type, class member_type>
-        void printEventOp(std::size_t & offset, Op op) const
+        void printEventOp(std::ostream & os, std::size_t & offset, Op op) const
         {
-            auto & os = std::cout; // TODO: Lift
             using element = RareTs::element_type_t<std::remove_cvref_t<type>>;
-            using index_type = index_type_t<typename edit_type::default_index_type, member_type>;
+            using index_type = index_type_t<typename edit_root::default_index_type, member_type>;
             switch ( op )
             {
                 case Op::Reset: // .reset() // prevValue
@@ -6719,15 +8185,15 @@ namespace RareEdit
                     break;
                 case Op::Assign: // .assign(size, value) // prevValue
                     if constexpr ( !std::is_void_v<element> )
-                        put(os, ".assign(").template putIndex<index_type>(os, offset).template putValue<type, member_type>(os, offset).put(os, ") // ").template putValue<type, member_type>(os, offset);
+                        put(os, ".assign(").template putIndex<index_type>(os, offset).template putValue<element, member_type>(os, offset).put(os, ") // ").template putValue<type, member_type>(os, offset);
                     break;
                 case Op::AssignDefault: // .assign(size, {}) // prevValue
-                    put(os, ".assign(").template putIndex<index_type>(os, offset).template putValue<type, member_type>(os, offset).put(os, ", {}) // ").template putValue<type, member_type>(os, offset);
+                    put(os, ".assign(").template putIndex<index_type>(os, offset).put(os, ", {}) // ").template putValue<type, member_type>(os, offset);
                     break;
                 case Op::ClearSelections: // .clearSelections() // size, selIndexes
                 {
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, "clearSelections() // ").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size);
+                    put(os, ".clearSelections() // ").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size);
                 }
                 break;
                 case Op::SelectAll: // .selectAll() // size, selIndexes
@@ -6746,33 +8212,33 @@ namespace RareEdit
                 }
                 break;
                 case Op::Deselect: // .deselect(index)
-                    put(os, "deselect(").template putIndex<index_type>(os, offset);
+                    put(os, ".deselect(").template putIndex<index_type>(os, offset).put(os, ")");
                     break;
                 case Op::DeselectN:
                 {
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, "deselectN(").template putIndex<index_type>(os, offset).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
+                    put(os, ".deselectN(").template putIndex<index_type>(os, offset).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::ToggleSelection:
-                    put(os, "toggelSel(").template putIndex<index_type>(os, offset).put(os, ")");
+                    put(os, ".toggelSel(").template putIndex<index_type>(os, offset).put(os, ")");
                     break;
                 case Op::ToggleSelectionN:
                 {
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, "toggleSelN(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
+                    put(os, ".toggleSelN(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::SortSelections:
                 {
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, "sortSel(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
+                    put(os, ".sortSel(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::SortSelectionsDesc:
                 {
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, "sortSelDesc(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
+                    put(os, ".sortSelDesc(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::Set:
@@ -6782,7 +8248,7 @@ namespace RareEdit
                 if constexpr ( !std::is_void_v<element> )
                 {
                     std::size_t size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, "setN(").template putIndex<index_type>(os, offset).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, " = ").template putValue<type, member_type>(os, offset)
+                    put(os, ".setN(").template putIndex<index_type>(os, offset).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")").put(os, " = ").template putValue<type, member_type>(os, offset)
                         .put(os, ") // ").template putValues<type, member_type>(os, offset, size);
                 }
                 break;
@@ -6841,6 +8307,9 @@ namespace RareEdit
                     put(os, ".sortDesc() // ").put(os, count).template putIndexes<index_type>(os, offset, count);
                 }
                 break;
+                case Op::Swap:
+                    put(os, ".swap(").template putIndex<index_type>(os, offset).put(os, ", ").template putIndex<index_type>(os, offset).put(os, ")");
+                    break;
                 case Op::MoveUp:
                     put(os, ".moveUp(").template putIndex<index_type>(os, offset).put(os, ")");
                     break;
@@ -6900,15 +8369,15 @@ namespace RareEdit
                 }
                 break;
                 case Op::MoveToL:
-                    put(os, ".moveSelectionsTo(").template putIndex<index_type>(os, offset);
+                    put(os, ".moveSelectionsTo(").template putIndex<index_type>(os, offset).put(os, ")");
                     break;
             }
         }
 
         template <class U, class Member = void, std::size_t ... Is>
-        void printEvent(std::size_t & offset, std::uint8_t op, std::index_sequence<Is...>) const
+        void printEvent(std::ostream & os, std::size_t & offset, std::uint8_t op, std::index_sequence<Is...>) const
         {
-            using base_index_type = index_type_t<typename edit_type::default_index_type, Member>;
+            using base_index_type = index_type_t<typename edit_root::default_index_type, Member>;
             std::uint8_t value = editable.events[offset];
             ++offset;
             
@@ -6917,21 +8386,23 @@ namespace RareEdit
                 case PathOp::SelBranch:
                     if constexpr ( RareTs::is_static_array_v<U> || RareTs::is_specialization_v<U, std::vector> )
                     {
-                        std::cout << "[{sel}]";
+                        os << "[{sel}]";
                         using element_type = RareTs::element_type_t<std::remove_cvref_t<U>>;
                         constexpr bool isLeaf = !RareTs::is_reflected_v<element_type> && std::is_void_v<RareTs::element_type_t<element_type>>;
                         if constexpr ( isLeaf )
-                            printEventOp<element_type, Member>(offset, Op(op));
+                            printEventOp<element_type, Member>(os, offset, Op(op));
                         else
-                            printEvent<std::remove_cvref_t<decltype(std::declval<U>()[0])>, Member>(offset, op, std::make_index_sequence<reflectedMemberCount<std::remove_cvref_t<decltype(std::declval<U>()[0])>>()>());
+                            printEvent<std::remove_cvref_t<decltype(std::declval<U>()[0])>, Member>(os, offset, op, std::make_index_sequence<reflectedMemberCount<std::remove_cvref_t<decltype(std::declval<U>()[0])>>()>());
                     }
                     break;
                 case PathOp::LeafSelBranch:
-                    if constexpr ( RareTs::is_static_array_v<U> || RareTs::is_specialization_v<U, std::vector> )
+                    if constexpr ( std::is_same_v<std::remove_cvref_t<Data>, std::remove_cvref_t<U>> ) // Root
+                        printEventOp<U, Member>(os, offset, Op(op));
+                    else if constexpr ( RareTs::is_static_array_v<U> || RareTs::is_specialization_v<U, std::vector> )
                     {
-                        std::cout << "[{sel}]";
+                        os << "[{sel}]";
                         using element_type = RareTs::element_type_t<std::remove_cvref_t<U>>;
-                        printEventOp<element_type, Member>(offset, Op(op));
+                        printEventOp<element_type, Member>(os, offset, Op(op));
                     }
                     break;
                 case PathOp::Branch:
@@ -6944,22 +8415,26 @@ namespace RareEdit
                         else
                             index = editable.template readIndex<base_index_type>(offset);
 
-                        std::cout << '[' << static_cast<std::size_t>(index) << ']';
-                        printEvent<std::remove_cvref_t<decltype(std::declval<U>()[0])>, Member>(offset, op, std::make_index_sequence<reflectedMemberCount<std::remove_cvref_t<decltype(std::declval<U>()[0])>>()>());
+                        os << '[' << static_cast<std::size_t>(index) << ']';
+                        printEvent<std::remove_cvref_t<decltype(std::declval<U>()[0])>, Member>(os, offset, op, std::make_index_sequence<reflectedMemberCount<std::remove_cvref_t<decltype(std::declval<U>()[0])>>()>());
+                    }
+                    else if constexpr ( RareTs::is_optional_v<U> ) // Deref into optional
+                    {
+                        printEvent<typename U::value_type, Member>(os, offset, op, std::make_index_sequence<reflectedMemberCount<std::remove_cvref_t<typename U::value_type>>()>());
                     }
                     else if constexpr ( RareTs::is_macro_reflected_v<U> ) // Branch to field
                     {
                         std::size_t memberIndex = std::size_t(value & std::uint8_t(PathOp::LowBits));
                         (void)(
                             (Is == memberIndex ? (
-                                std::cout << "." << RareTs::Member<U, Is>::name,
-                                printEvent<std::remove_cvref_t<typename RareTs::Member<U, Is>::type>, RareTs::Member<U, Is>>(offset, op, std::make_index_sequence<reflectedMemberCount<std::remove_cvref_t<typename RareTs::Member<U, Is>::type>>()>()),
+                                os << "." << RareTs::Member<U, Is>::name,
+                                printEvent<std::remove_cvref_t<typename RareTs::Member<U, Is>::type>, RareTs::Member<U, Is>>(os, offset, op, std::make_index_sequence<reflectedMemberCount<std::remove_cvref_t<typename RareTs::Member<U, Is>::type>>()>()),
                                 true) : true) && ...
                         );
 
                         //RareTs::Members<U>::at(std::size_t(value & std::uint8_t(PathOp::LowBits)), [&](auto member) {
-                        //    std::cout << "." << member.name;
-                        //    printEvent<std::remove_cvref_t<typename decltype(member)::type>, decltype(member)>(offset, op, std::make_index_sequence<reflectedMemberCount<U>()>());
+                        //    os << "." << member.name;
+                        //    printEvent<std::remove_cvref_t<typename decltype(member)::type>, decltype(member)>(os, offset, op, std::make_index_sequence<reflectedMemberCount<U>()>());
                         //});
                     }
                 }
@@ -6974,21 +8449,25 @@ namespace RareEdit
                         else
                             index = editable.template readIndex<base_index_type>(offset);
 
-                        std::cout << "[" << static_cast<std::size_t>(index) << "]";
-                        printEventOp<RareTs::element_type_t<std::remove_cvref_t<U>>, Member>(offset, Op(op));
+                        os << "[" << static_cast<std::size_t>(index) << "]";
+                        printEventOp<RareTs::element_type_t<std::remove_cvref_t<U>>, Member>(os, offset, Op(op));
+                    }
+                    else if constexpr ( RareTs::is_optional_v<U> ) // Operate on optional
+                    {
+                        printEventOp<typename U::value_type, Member>(os, offset, Op(op));
                     }
                     else if constexpr ( RareTs::is_reflected_v<U> ) // Op on field
                     {
                         std::size_t memberIndex = std::size_t(value & std::uint8_t(PathOp::LowBits));
                         (void)(
                             (Is == memberIndex ? (
-                                std::cout << "." << RareTs::Member<U, Is>::name,
-                                printEventOp<typename RareTs::Member<U, Is>::type, RareTs::Member<U, Is>>(offset, Op(op)),
+                                os << "." << RareTs::Member<U, Is>::name,
+                                printEventOp<typename RareTs::Member<U, Is>::type, RareTs::Member<U, Is>>(os, offset, Op(op)),
                                 true) : true) && ...
                         );
                         //RareTs::Members<U>::at(memberIndex, [&](auto member) {
-                        //    std::cout << "." << member.name;
-                        //    printEventOp<typename decltype(member)::type, decltype(member)>(offset, Op(value));
+                        //    os << "." << member.name;
+                        //    printEventOp<typename decltype(member)::type, decltype(member)>(os, offset, Op(value));
                         //});
                     }
                 }
@@ -6998,57 +8477,156 @@ namespace RareEdit
         }
 
         template <class U, class Member = void>
-        void printEvent(std::size_t & offset) const
+        void printEvent(std::ostream & os, std::size_t & offset) const
         {
             std::uint8_t op = editable.events[offset];
             ++offset;
-            printEvent<U, Member>(offset, op, std::make_index_sequence<reflectedMemberCount<U>()>());
+            printEvent<U, Member>(os, offset, op, std::make_index_sequence<reflectedMemberCount<U>()>());
         }
 
-        void printChangeHistory() const
+        void printChangeHistory(std::ostream & os) const
         {
-            std::size_t totalActions = actionFirstEvent.size();
+            std::size_t totalActions = actions.size();
             for ( std::size_t actionIndex=0; actionIndex<totalActions; ++actionIndex )
             {
-                std::size_t currActionStart = actionFirstEvent[actionIndex];
+                std::size_t currActionStart = actions[actionIndex].firstEventIndex;
                 if ( (currActionStart & flagElidedRedos) == flagElidedRedos )
                 {
                     auto elisionCount = currActionStart & maskElidedRedoSize;
-                    std::cout << "Action[" << actionIndex << "] marks the previous " << elisionCount << " action(s) as elided redos\n";
+                    os << "Action[" << actionIndex << "] marks the previous " << elisionCount << " action(s) as elided redos\n";
                     continue;
                 }
 
                 std::size_t nextActionStart = flagElidedRedos;
                 for ( std::size_t i=1; (nextActionStart & flagElidedRedos) == flagElidedRedos; ++i ) // Find the next event that isn't an elision marker
-                    nextActionStart = actionIndex+i<totalActions ? (actionFirstEvent[actionIndex+i]) : editable.eventOffsets.size();
+                    nextActionStart = actionIndex+i<totalActions ? (actions[actionIndex+i].firstEventIndex) : editable.eventOffsets.size();
 
                 if ( currActionStart == nextActionStart )
                 {
-                    std::cout << "Action[" << actionIndex << "] is blank\n";
+                    os << "Action[" << actionIndex << "] is blank\n";
                     continue;
                 }
 
-                std::cout << "Action[" << actionIndex << "] contains events [" << currActionStart << ", " << nextActionStart << ")\n";
+                os << "Action[" << actionIndex << "] contains events [" << currActionStart << ", " << nextActionStart << ")\n";
                 for ( std::size_t eventIndex = currActionStart; eventIndex < nextActionStart; ++eventIndex )
                 {
                     auto [eventOffset, byteEnd] = editable.getEventOffsetRange(eventIndex);
 
-                    std::cout << "  [" << std::setw(2) << eventIndex << ','
+                    os << "  [" << std::setw(2) << eventIndex << ','
                         << std::setw(3) << eventOffset << ','
                         << std::setw(2) << (byteEnd-editable.eventOffsets[eventIndex]) << "] " << std::hex << std::uppercase;
                     for ( std::size_t i=eventOffset; i<byteEnd; ++i )
-                        std::cout << (editable.events[i] <= 0xF ? "0" : "") << int(editable.events[i]) << ' ';
-                    std::cout << std::nouppercase << std::dec;
+                        os << (editable.events[i] <= 0xF ? "0" : "") << int(editable.events[i]) << ' ';
+                    os << std::nouppercase << std::dec;
 
-                    std::cout << " // edit";
-                    printEvent<Data>(eventOffset);
-                    std::cout << '\n';
+                    os << " // edit";
+                    printEvent<Data>(os, eventOffset);
+                    os << '\n';
                 }
-                std::cout << '\n';
+                os << '\n';
             }
         }
 
-        REFLECT(Tracked, flagElidedRedos, maskElidedRedoSize, editable, actionFirstEvent, actionReferenceCount, redoCount, redoSize)
+        template <class U, class Member = void>
+        void renderEvent(DataChangeEvent & dataChangeEvent, std::size_t & offset) const
+        {
+            std::uint8_t op = editable.events[offset];
+            ++offset;
+            std::stringstream ss {};
+            printEvent<U, Member>(ss, offset, op, std::make_index_sequence<reflectedMemberCount<U>()>());
+            dataChangeEvent.op = Op(op);
+            dataChangeEvent.summary += ss.str();
+        }
+
+        void renderAction(std::size_t actionIndex, RenderAction<UserData> & action, bool includeEvents = false) const
+        {
+            action.userData = (UserData &)(actions[actionIndex]);
+            action.byteCount = 8;
+            action.changeEvents = {};
+            std::size_t totalActions = actions.size();
+            std::size_t currActionStart = actions[actionIndex].firstEventIndex;
+            if ( (currActionStart & flagElidedRedos) == flagElidedRedos )
+            {
+                auto elisionCount = currActionStart & maskElidedRedoSize;
+                action.actionStatus = ActionStatus::ElidedRedo;
+                action.elisionCount = elisionCount;
+                return;
+            }
+
+            std::size_t nextActionStart = flagElidedRedos;
+            for ( std::size_t i=1; (nextActionStart & flagElidedRedos) == flagElidedRedos; ++i ) // Find the next event that isn't an elision marker
+                nextActionStart = actionIndex+i<totalActions ? (actions[actionIndex+i].firstEventIndex) : editable.eventOffsets.size();
+            
+            auto [firstEventStart, unusedFirstEventEnd] = editable.getEventOffsetRange(currActionStart);
+            auto [unusedLastEventStart, lastEventEnd] = editable.getEventOffsetRange(nextActionStart-1);
+            action.byteCount += (nextActionStart-currActionStart)*8+(lastEventEnd-firstEventStart);
+            action.actionStatus = actionIndex < totalActions-redoSize ? ActionStatus::Undoable : ActionStatus::Redoable;
+            if ( includeEvents )
+            {
+                for ( std::size_t eventIndex = currActionStart; eventIndex < nextActionStart; ++eventIndex )
+                {
+                    for ( std::size_t i=1; (nextActionStart & flagElidedRedos) == flagElidedRedos; ++i ) // Find the next event that isn't an elision marker
+                        nextActionStart = actionIndex+i<totalActions ? (actions[actionIndex+i].firstEventIndex) : editable.eventOffsets.size();
+
+                    if ( currActionStart == nextActionStart )
+                        return;
+
+                    auto [eventOffset, byteEnd] = editable.getEventOffsetRange(eventIndex);
+                    DataChangeEvent & dataChangeEvent = action.changeEvents.emplace_back();
+
+                    dataChangeEvent.summary += "edit";
+                    renderEvent<Data>(dataChangeEvent, eventOffset);
+                }
+            }
+        }
+
+        std::vector<RenderAction<UserData>> renderChangeHistory(bool includeEvents = false) const
+        {
+            std::vector<RenderAction<UserData>> rendering {};
+            std::size_t totalActions = actions.size();
+            for ( std::size_t actionIndex=0; actionIndex<totalActions; ++actionIndex )
+            {
+                RenderAction<UserData> & action = rendering.emplace_back();
+
+                renderAction(actionIndex, action, includeEvents);
+                if ( action.actionStatus == ActionStatus::ElidedRedo && action.elisionCount > 0 )
+                {
+                    std::size_t first = static_cast<std::size_t>(static_cast<std::ptrdiff_t>(actionIndex)-static_cast<std::ptrdiff_t>(action.elisionCount));
+                    for ( std::size_t i=first; i<actionIndex; ++i )
+                        rendering[i].actionStatus = ActionStatus::ElidedRedo;
+                }
+            }
+            return rendering;
+        }
+
+        REFLECT(Tracked, flagElidedRedos, maskElidedRedoSize, editable, pendingActionUserData, pendingActionStart,
+            actions, actionReferenceCount, redoCount, redoSize, history)
+    };
+
+    template <typename T, typename PathToElem, typename EditorType, typename ReadEditPair>
+    class TrackedElement : public ReadEditPair
+    {
+        using keys_type = typename PathToElem::keys;
+        using tracked_type = typename EditorType::tracked_type;
+
+        TrackedElement(EditorType action, keys_type keys)
+            : ReadEditPair{action.editFromPath(PathToElem{keys})}, action(std::move(action)), view(ReadEditPair::edit) {}
+
+    public:
+
+        EditorType action;
+        const ReadEditPair::edit_type & view;
+
+        TrackedElement(tracked_type* tracked, keys_type keys) : TrackedElement(tracked->operator()(), keys) {}
+
+        template <class ... Ts> TrackedElement(TrackedElement<Ts...>* parentElement, keys_type keys)
+            : TrackedElement(parentElement->action.parent->operator()(), keys) {}
+    
+        TrackedElement(TrackedElement && other)
+            : ReadEditPair{std::move((ReadEditPair &)other)}, action(std::move(other.action)) {}
+
+        constexpr const T* operator->() const { return &(ReadEditPair::read); }
+        constexpr auto operator()() { return &(ReadEditPair::edit); }
     };
 }
 

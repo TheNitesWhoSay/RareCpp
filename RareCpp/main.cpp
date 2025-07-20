@@ -110,6 +110,8 @@ int main()
     auto specificCall = &none;
 
     specificCall();
+    //std::cin.clear();
+    //std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     openMenu();
     return 0;
 }
