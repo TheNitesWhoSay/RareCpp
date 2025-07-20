@@ -5196,6 +5196,218 @@ namespace EditorCumulative
         EXPECT_EQ(expectedVec, myObj->b);
     }
 
+    struct Code_
+    {
+        enum uint8_t_ : std::uint8_t
+        {
+            _U = 5, // Undo
+            _R = 6, // Redo
+            _1 = 1,
+            _2 = (1 << 1),
+            _3 = (1 << 2),
+            _4 = (1 << 3),
+            _5 = (1 << 4),
+            _6 = (1 << 5)
+        };
+    };
+    using Code = Code_::uint8_t_;
+    struct Case
+    {
+        std::vector<Code> codes {};
+        std::uint8_t result = 0;
+        std::vector<std::uint8_t> priorStates {}; // Records the value just prior to running code [i]
+        std::vector<std::uint8_t> states {}; // Records the current value after running codes up to [i]
+        std::vector<std::uint64_t> netSize {}; // Records the netSize after running codes up to [i]
+        std::vector<std::size_t> actionIndex {}; // Records the actionIndex at which code [i] starts
+        std::size_t maxActions {}; // Records the totalActions after running all codes
+    };
+    struct TrimCaseData
+    {
+        std::uint8_t value = 0;
+
+        REFLECT(TrimCaseData, value)
+    };
+    struct TrimCaseEditor : Tracked<TrimCaseData, TrimCaseEditor>
+    {
+        TrimCaseEditor() : Tracked(this) {}
+    };
+
+    TEST(MiscEdits, TrimHistory)
+    {
+        constexpr auto _U = Code::_U; // Undo
+        constexpr auto _1 = Code::_1; // Bit 1
+        constexpr auto _2 = Code::_2; // Bit 2
+        constexpr auto _3 = Code::_3; // Bit 3
+        constexpr auto _4 = Code::_4; // Bit 4
+        constexpr auto _5 = Code::_5; // Bit 5
+        constexpr auto _6 = Code::_6; // Bit 6
+        std::vector<Case> testCases {
+            Case { .codes = {}, .result = 0 },
+            Case { .codes = {_1}, .result = _1 }, // A
+            Case { .codes = {_1, _U, _2}, .result = _2 }, // AUA
+            Case { .codes = {_1, _2}, .result = _1|_2 }, // AA
+            Case { .codes = {_1, _2, _U, _3}, .result = _1|_3 }, // AAUA
+            Case { .codes = {_1, _2, _U, _3, _U, _U, _4}, .result = _4 }, // AAUAUUA
+            Case { .codes = {_1, _2, _U, _3, _U, _4}, .result = _1|_4 }, // AAUAUA
+            Case { .codes = {_1, _2, _U, _3, _U, _4, _U, _U, _5 }, .result = _5 }, // AAUAUAUUA
+            Case { .codes = {_1, _2, _U, _4, _5}, .result = _1|_4|_5 }, // AAUAA
+            Case { .codes = {_1, _2, _U, _3, _4, _U, _5}, .result = _1|_3|_5 }, // AAUAAUA
+            Case { .codes = {_1, _2, _U, _3, _4, _U, _5, _U, _U, _U, _6}, .result = _6 } // AAUAAUAUUUA
+        };
+        auto runCode = [](auto & obj, auto code) {
+            switch ( code )
+            {
+                case Code::_U: obj.undoAction(); break;
+                case Code::_1: obj()->value |= Code::_1; break;
+                case Code::_2: obj()->value |= Code::_2; break;
+                case Code::_3: obj()->value |= Code::_3; break;
+                case Code::_4: obj()->value |= Code::_4; break;
+                case Code::_5: obj()->value |= Code::_5; break;
+                case Code::_6: obj()->value |= Code::_6; break;
+                default: throw std::logic_error("Unrecognized code!"); break;
+            }
+        };
+        auto getHistSize = [](auto & obj) -> std::uint64_t {
+            auto changeHistory = obj.renderChangeHistory(false);
+            std::uint64_t netSize = 0;
+            for ( auto & action : changeHistory )
+                netSize += static_cast<std::uint64_t>(action.byteCount);
+
+            return netSize;
+        };
+        
+        for ( auto & testCase : testCases )
+        {
+            TrimCaseEditor myObj {};
+            for ( auto & code : testCase.codes )
+            {
+                testCase.priorStates.push_back(myObj->value);
+                runCode(myObj, code);
+                testCase.actionIndex.push_back(code == Code::_U ? std::numeric_limits<std::size_t>::max() : myObj.getCursorIndex()-1);
+                testCase.states.push_back(myObj->value);
+                testCase.netSize.push_back(getHistSize(myObj));
+            }
+            testCase.maxActions = myObj.getCursorIndex();
+            EXPECT_EQ(std::size(testCase.codes), std::size(testCase.netSize));
+            EXPECT_EQ(myObj->value, testCase.result);
+        }
+
+        std::size_t countValidSims = 0;
+        for ( auto & testCase : testCases )
+        {
+            auto maxActions = testCase.maxActions;
+            for ( std::size_t trimTo=0; trimTo<=maxActions; ++trimTo )
+            {
+                TrimCaseEditor applyTrim {};
+                TrimCaseEditor simulateTrim {};
+                auto checkApplyTrim = RareTs::whitebox((Tracked<Simple, SimpleEditor> &)applyTrim);
+                auto checkSimulateTrim = RareTs::whitebox((Tracked<Simple, SimpleEditor> &)simulateTrim);
+
+                for ( auto & code : testCase.codes )
+                    runCode(applyTrim, code);
+
+                std::size_t prevActionCount = checkApplyTrim.actions.size();
+                auto trueTrimTo = applyTrim.trimHistory(trimTo);
+                if ( prevActionCount == checkApplyTrim.actions.size() )
+                    continue; // No change, could maybe test against prev hist state of apply trim
+
+                std::size_t firstCodeIndex = trueTrimTo == 0 ? testCase.codes.size() : 0;
+                while ( firstCodeIndex < std::size(testCase.codes) )
+                {
+                    while ( testCase.actionIndex[firstCodeIndex] == std::numeric_limits<std::size_t>::max() )
+                        ++firstCodeIndex;
+
+                    if ( testCase.actionIndex[firstCodeIndex] >= trueTrimTo )
+                        break;
+                    else
+                        ++firstCodeIndex;
+                }
+
+                if ( firstCodeIndex < testCase.codes.size() )
+                    simulateTrim.initData(TrimCaseData{testCase.priorStates[firstCodeIndex]});
+                else if ( !testCase.codes.empty() )
+                    simulateTrim.initData(TrimCaseData{testCase.states[testCase.codes.size()-1]});
+
+                // Run first code index and onwards
+                bool validSim = true;
+                for ( std::size_t i=firstCodeIndex; i<std::size(testCase.codes); ++i )
+                {
+                    auto prevCursor = simulateTrim.getCursorIndex();
+                    runCode(simulateTrim, testCase.codes[i]);
+                    if ( simulateTrim.getCursorIndex() == prevCursor ) // Invalid sim: required undoing past sim hist start
+                    {
+                        validSim = false;
+                        break;
+                    }
+                }
+
+                // Compare applyTrim and simulateTrim values and history states
+                if ( validSim )
+                {
+                    ++countValidSims;
+                    EXPECT_EQ(applyTrim->value, simulateTrim->value);
+                    EXPECT_EQ(checkApplyTrim.pendingActionStart, checkSimulateTrim.pendingActionStart);
+                    EXPECT_EQ(checkApplyTrim.actions.size(), checkSimulateTrim.actions.size());
+                    if ( checkApplyTrim.actions.size() == checkSimulateTrim.actions.size() )
+                    {
+                        for ( std::size_t i=0; i<checkApplyTrim.actions.size(); ++i )
+                            EXPECT_EQ(checkApplyTrim.actions[i].firstEventIndex, checkSimulateTrim.actions[i].firstEventIndex);
+                    }
+                    EXPECT_EQ(checkApplyTrim.actionReferenceCount, checkSimulateTrim.actionReferenceCount);
+                    EXPECT_EQ(checkApplyTrim.redoCount, checkSimulateTrim.redoCount);
+                    EXPECT_EQ(checkApplyTrim.redoSize, checkSimulateTrim.redoSize);
+                    EXPECT_EQ(checkApplyTrim.history.eventOffsets.size(), checkSimulateTrim.history.eventOffsets.size());
+                    if ( checkApplyTrim.history.eventOffsets.size() == checkSimulateTrim.history.eventOffsets.size() )
+                    {
+                        for ( std::size_t i=0; i<checkApplyTrim.history.eventOffsets.size(); ++i )
+                            EXPECT_EQ(checkApplyTrim.history.eventOffsets[i], checkSimulateTrim.history.eventOffsets[i]);
+                    }
+                    EXPECT_EQ(checkApplyTrim.history.events.size(), checkSimulateTrim.history.events.size());
+                    if ( checkApplyTrim.history.events.size() == checkSimulateTrim.history.events.size() )
+                    {
+                        for ( std::size_t i=0; i<checkApplyTrim.history.events.size(); ++i )
+                            EXPECT_EQ(checkApplyTrim.history.events[i], checkSimulateTrim.history.events[i]);
+                    }
+                }
+            }
+        }
+        EXPECT_EQ(countValidSims, 23);
+
+        for ( auto & testCase : testCases )
+        {
+            auto numCodes = testCase.codes.size();
+            auto maxActions = testCase.maxActions;
+            for ( std::size_t codeIndex=0; codeIndex<numCodes; ++codeIndex )
+            {
+                TrimCaseEditor applyTrim {};
+                
+                for ( auto & code : testCase.codes )
+                    runCode(applyTrim, code);
+
+                auto maxSize = testCase.netSize.size() > 0 ? testCase.netSize[testCase.netSize.size()-1] : 0;
+                auto sizeTrimTo = codeIndex == 0 ? maxSize : maxSize - testCase.netSize[codeIndex-1];
+                applyTrim.trimHistoryToSize(sizeTrimTo);
+                auto newHistSize = getHistSize(applyTrim);
+
+                EXPECT_TRUE(newHistSize <= maxSize);
+
+                // Ensure there's no possible size between newHistSize and sizeTrimTo
+                for ( std::size_t trimTo=0; trimTo<=maxActions; ++trimTo )
+                {
+                    TrimCaseEditor simulateTrim {};
+                    
+                    for ( auto & code : testCase.codes )
+                        runCode(simulateTrim, code);
+
+                    simulateTrim.trimHistory(trimTo);
+                    auto simHistSize = getHistSize(simulateTrim);
+
+                    EXPECT_FALSE(simHistSize > newHistSize && simHistSize < sizeTrimTo);
+                }
+            }
+        }
+    }
+
     TEST(MiscEdits, RootAssign)
     {
         EditInitDataTest myObj {};

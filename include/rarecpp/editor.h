@@ -1336,7 +1336,7 @@ namespace RareEdit
         }
 
         template <class ... Pathway, class Sizer>
-        constexpr void initAttachedData(Sizer sizer)
+        constexpr void initAttachedData([[maybe_unused]] Sizer sizer)
         {
             (initAttachedDatum<Is, Pathway...>(sizer), ...);
         }
@@ -1409,7 +1409,7 @@ namespace RareEdit
         {
             selections.clear();
             eventOffsets.clear();
-            events.clear();
+            events = {std::uint8_t(0)};
         }
 
         std::size_t trim(std::size_t newFirstEvent) // Returns the count of trimmed events
@@ -1418,16 +1418,16 @@ namespace RareEdit
             {
                 newFirstEvent = eventOffsets.size();
                 eventOffsets.clear();
-                events.clear();
+                events = {std::uint8_t(0)};
                 return newFirstEvent;
             }
             else if ( newFirstEvent > 0 )
             {
                 std::uint64_t newFirstEventOffset = eventOffsets[newFirstEvent];
-                eventOffsets.erase(eventOffsets.begin(), std::next(eventOffsets.begin(), newFirstEvent));
-                events.erase(events.begin(), std::next(events.begin(), newFirstEventOffset));
+                eventOffsets.erase(eventOffsets.begin(), std::next(eventOffsets.begin(), static_cast<std::ptrdiff_t>(newFirstEvent)));
+                events.erase(std::next(events.begin(), 1), std::next(events.begin(), static_cast<std::ptrdiff_t>(newFirstEventOffset)));
                 for ( auto & eventOffset : eventOffsets )
-                    eventOffset -= newFirstEventOffset;
+                    eventOffset -= (newFirstEventOffset-1);
 
                 return newFirstEvent;
             }
@@ -7859,7 +7859,7 @@ namespace RareEdit
             actions.clear();
         }
 
-        void trimHistory(std::size_t newFirstAction) // Trims history so it starts at newFirstAction
+        std::size_t trimHistory(std::size_t newFirstAction) // Trims history so it starts at newFirstAction, returns corrected newFirstAction
         {
             if ( actionReferenceCount != 0 || redoCount > 0 )
                 throw std::logic_error("Cannot trim history while an action is active or redos are present");
@@ -7867,21 +7867,25 @@ namespace RareEdit
             if ( newFirstAction >= actions.size() )
             {
                 clearHistory(); // Clear everything
-                return;
+                return 0;
             }
             else if ( newFirstAction == 0 || actions.empty() )
-                return; // Nothing to clear
+                return 0; // Nothing to clear
 
             for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(actions.size()) - 1; i > 0; )
             {
-                if ( (actions[i].firstEventIndex & flagElidedRedos) == flagElidedRedos ) // Elided
-                    i -= static_cast<std::ptrdiff_t>((actions[i].firstEventIndex & maskElidedRedoSize)+1); // Skip over elided actions
+                if ( (actions[static_cast<std::size_t>(i)].firstEventIndex & flagElidedRedos) == flagElidedRedos ) // Elided
+                {
+                    i -= static_cast<std::ptrdiff_t>((actions[static_cast<std::size_t>(i)].firstEventIndex & maskElidedRedoSize)+1); // Skip over elided actions
+                    if ( i <= 0 )
+                        return 0; // Nothing to clear before the given "newFirstAction" that wasn't elided
+                }
                 else if ( i > static_cast<std::ptrdiff_t>(newFirstAction) ) // Non-elided, haven't yet reached newFirstAction
                     --i; // Keep moving towards newFirstAction
                 else // Reached or passed newFirstAction
                 {
                     if ( i <= 0 )
-                        return; // Nothing to clear before the given "newFirstAction" that wasn't elided
+                        return 0; // Nothing to clear before the given "newFirstAction" that wasn't elided
                     else
                     {
                         newFirstAction = static_cast<std::size_t>(i); // Fix newFirstAction to the last action that wasn't elided
@@ -7892,11 +7896,15 @@ namespace RareEdit
 
             std::size_t firstEventIndex = actions[newFirstAction].firstEventIndex;
             std::size_t countEventIndexesTrimmed = history.trim(firstEventIndex);
-            actions.erase(actions.begin(), std::next(actions.begin(), newFirstAction));
+            actions.erase(actions.begin(), std::next(actions.begin(), static_cast<std::ptrdiff_t>(newFirstAction)));
             for ( auto & action : actions )
-                action.firstEventIndex -= countEventIndexesTrimmed;
+            {
+                if ( (action.firstEventIndex & flagElidedRedos) != flagElidedRedos )
+                    action.firstEventIndex -= countEventIndexesTrimmed;
+            }
 
             pendingActionStart = editable.eventOffsets.size();
+            return newFirstAction;
         }
 
         std::uint64_t trimHistoryToSize(std::uint64_t maxSize) // Returns the new size
@@ -7916,11 +7924,11 @@ namespace RareEdit
             std::uint64_t totalSize = 0;
             for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(actions.size()) - 1; i > 0; )
             {
-                if ( (actions[i].firstEventIndex & flagElidedRedos) == flagElidedRedos ) // Elided
+                if ( (actions[static_cast<std::size_t>(i)].firstEventIndex & flagElidedRedos) == flagElidedRedos ) // Elided
                 {
-                    std::uint64_t countElided = (actions[i].firstEventIndex & maskElidedRedoSize)+1;
-                    std::uint64_t nextSize = totalSize + 8*countElided;
-                    std::ptrdiff_t nextI = i -= static_cast<std::ptrdiff_t>(countElided); // Next after elided actions
+                    std::uint64_t countElided = (actions[static_cast<std::size_t>(i)].firstEventIndex & maskElidedRedoSize);
+                    std::uint64_t nextSize = totalSize + 8 + 8*countElided;
+                    std::ptrdiff_t nextI = i - static_cast<std::ptrdiff_t>(countElided+1); // Next after elided actions
                     for ( std::ptrdiff_t j=i; j>nextI; --j )
                     {
                         std::size_t actionIndex = static_cast<std::size_t>(j);
@@ -7929,8 +7937,8 @@ namespace RareEdit
                             continue; // No events to count for this action
                         
                         std::size_t nextActionStart = flagElidedRedos;
-                        for ( std::size_t i=1; (nextActionStart & flagElidedRedos) == flagElidedRedos; ++i ) // Find the next event that isn't an elision marker
-                            nextActionStart = actionIndex+i<totalActions ? (actions[actionIndex+i].firstEventIndex) : editable.eventOffsets.size();
+                        for ( std::size_t k=1; (nextActionStart & flagElidedRedos) == flagElidedRedos; ++k ) // Find the next event that isn't an elision marker
+                            nextActionStart = actionIndex+k<totalActions ? (actions[actionIndex+k].firstEventIndex) : editable.eventOffsets.size();
 
                         auto [firstEventStart, unusedFirstEventEnd] = editable.getEventOffsetRange(currActionStart);
                         auto [unusedLastEventStart, lastEventEnd] = editable.getEventOffsetRange(nextActionStart-1);
@@ -7956,8 +7964,8 @@ namespace RareEdit
                         continue; // No events to count for this action
                         
                     std::size_t nextActionStart = flagElidedRedos;
-                    for ( std::size_t i=1; (nextActionStart & flagElidedRedos) == flagElidedRedos; ++i ) // Find the next event that isn't an elision marker
-                        nextActionStart = actionIndex+i<totalActions ? (actions[actionIndex+i].firstEventIndex) : editable.eventOffsets.size();
+                    for ( std::size_t j=1; (nextActionStart & flagElidedRedos) == flagElidedRedos; ++j ) // Find the next event that isn't an elision marker
+                        nextActionStart = actionIndex+j<totalActions ? (actions[actionIndex+j].firstEventIndex) : editable.eventOffsets.size();
 
                     auto [firstEventStart, unusedFirstEventEnd] = editable.getEventOffsetRange(currActionStart);
                     auto [unusedLastEventStart, lastEventEnd] = editable.getEventOffsetRange(nextActionStart-1);
@@ -7993,7 +8001,11 @@ namespace RareEdit
             else
             {
                 history.selections.clear();
-                std::swap((Data&)*this, data);
+                if constexpr ( requires { std::swap((Data&)*this, data); } )
+                    std::swap((Data&)*this, data);
+                else // If say, a const reference was passed to initData, swap is not possible, use assignment
+                    ((Data&)*this) = data;
+                
                 history.initAttachedData();
             }
         }
@@ -8587,7 +8599,8 @@ namespace RareEdit
             return rendering;
         }
 
-        REFLECT(Tracked, flagElidedRedos, maskElidedRedoSize, editable, actions, actionReferenceCount, redoCount, redoSize)
+        REFLECT(Tracked, flagElidedRedos, maskElidedRedoSize, editable, pendingActionUserData, pendingActionStart,
+            actions, actionReferenceCount, redoCount, redoSize, history)
     };
 
     template <typename T, typename PathToElem, typename EditorType, typename ReadEditPair>
