@@ -107,11 +107,11 @@ void openMenu()
 int main()
 {
     // Set to whatever function you want called on startup (reset to &none when finished)
-    auto specificCall = &experimental::dataHistory;
+    auto specificCall = &none;
 
     specificCall();
-    std::cin.clear();
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    //openMenu();
+    //std::cin.clear();
+    //std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    openMenu();
     return 0;
 }
