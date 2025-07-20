@@ -22,7 +22,7 @@ namespace EditorCumulative
 
         void act()
         {
-            createAction();
+            createAction()->a = 0;
         }
     };
 
@@ -33,7 +33,7 @@ namespace EditorCumulative
 
         EXPECT_EQ(check.redoCount, 0);
         EXPECT_EQ(check.redoSize, 0);
-        EXPECT_TRUE(check.actionFirstEvent.empty());
+        EXPECT_TRUE(check.actions.empty());
     }
 
     TEST(UndoRedoElision, A)
@@ -44,8 +44,8 @@ namespace EditorCumulative
 
         EXPECT_EQ(check.redoCount, 0);
         EXPECT_EQ(check.redoSize, 0);
-        EXPECT_EQ(check.actionFirstEvent.size(), 1);
-        EXPECT_EQ(check.actionFirstEvent[0], 0);
+        EXPECT_EQ(check.actions.size(), 1);
+        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
     }
 
     TEST(UndoRedoElision, AU)
@@ -57,8 +57,8 @@ namespace EditorCumulative
 
         EXPECT_EQ(check.redoCount, 1);
         EXPECT_EQ(check.redoSize, 1);
-        EXPECT_EQ(check.actionFirstEvent.size(), 1);
-        EXPECT_EQ(check.actionFirstEvent[0], 0);
+        EXPECT_EQ(check.actions.size(), 1);
+        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
     }
 
     TEST(UndoRedoElision, AUA)
@@ -71,10 +71,10 @@ namespace EditorCumulative
 
         EXPECT_EQ(check.redoCount, 0);
         EXPECT_EQ(check.redoSize, 0);
-        EXPECT_EQ(check.actionFirstEvent.size(), 3);
-        EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[2], 0);
+        EXPECT_EQ(check.actions.size(), 3);
+        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
+        EXPECT_EQ(check.actions[1].firstEventIndex, check.flagElidedRedos | 1);
+        EXPECT_EQ(check.actions[2].firstEventIndex, 1);
     }
 
     TEST(UndoRedoElision, AUR)
@@ -87,8 +87,8 @@ namespace EditorCumulative
 
         EXPECT_EQ(check.redoCount, 0);
         EXPECT_EQ(check.redoSize, 0);
-        EXPECT_EQ(check.actionFirstEvent.size(), 1);
-        EXPECT_EQ(check.actionFirstEvent[0], 0);
+        EXPECT_EQ(check.actions.size(), 1);
+        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
     }
 
     TEST(UndoRedoElision, AA)
@@ -100,9 +100,9 @@ namespace EditorCumulative
 
         EXPECT_EQ(check.redoCount, 0);
         EXPECT_EQ(check.redoSize, 0);
-        EXPECT_EQ(check.actionFirstEvent.size(), 2);
-        EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
+        EXPECT_EQ(check.actions.size(), 2);
+        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
+        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
     }
 
     TEST(UndoRedoElision, AAU)
@@ -115,9 +115,9 @@ namespace EditorCumulative
 
         EXPECT_EQ(check.redoCount, 1);
         EXPECT_EQ(check.redoSize, 1);
-        EXPECT_EQ(check.actionFirstEvent.size(), 2);
-        EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
+        EXPECT_EQ(check.actions.size(), 2);
+        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
+        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
     }
 
     TEST(UndoRedoElision, AAUA)
@@ -131,11 +131,11 @@ namespace EditorCumulative
 
         EXPECT_EQ(check.redoCount, 0);
         EXPECT_EQ(check.redoSize, 0);
-        EXPECT_EQ(check.actionFirstEvent.size(), 4);
-        EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
-        EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
+        EXPECT_EQ(check.actions.size(), 4);
+        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
+        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
+        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
+        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
     }
 
     TEST(UndoRedoElision, AAUAU)
@@ -150,11 +150,11 @@ namespace EditorCumulative
 
         EXPECT_EQ(check.redoCount, 1);
         EXPECT_EQ(check.redoSize, 1);
-        EXPECT_EQ(check.actionFirstEvent.size(), 4);
-        EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
-        EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
+        EXPECT_EQ(check.actions.size(), 4);
+        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
+        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
+        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
+        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
     }
 
     TEST(UndoRedoElision, AAUAUU)
@@ -170,11 +170,11 @@ namespace EditorCumulative
 
         EXPECT_EQ(check.redoCount, 2);
         EXPECT_EQ(check.redoSize, 4);
-        EXPECT_EQ(check.actionFirstEvent.size(), 4);
-        EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
-        EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
+        EXPECT_EQ(check.actions.size(), 4);
+        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
+        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
+        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
+        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
     }
 
     TEST(UndoRedoElision, AAUAUUA)
@@ -191,13 +191,13 @@ namespace EditorCumulative
 
         EXPECT_EQ(check.redoCount, 0);
         EXPECT_EQ(check.redoSize, 0);
-        EXPECT_EQ(check.actionFirstEvent.size(), 6);
-        EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
-        EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
-        EXPECT_EQ(check.actionFirstEvent[4], check.flagElidedRedos | 4);
-        EXPECT_EQ(check.actionFirstEvent[5], 0);
+        EXPECT_EQ(check.actions.size(), 6);
+        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
+        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
+        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
+        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
+        EXPECT_EQ(check.actions[4].firstEventIndex, check.flagElidedRedos | 4);
+        EXPECT_EQ(check.actions[5].firstEventIndex, 3);
     }
 
     TEST(UndoRedoElision, AAUAUA)
@@ -213,13 +213,13 @@ namespace EditorCumulative
 
         EXPECT_EQ(check.redoCount, 0);
         EXPECT_EQ(check.redoSize, 0);
-        EXPECT_EQ(check.actionFirstEvent.size(), 6);
-        EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
-        EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
-        EXPECT_EQ(check.actionFirstEvent[4], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[5], 0);
+        EXPECT_EQ(check.actions.size(), 6);
+        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
+        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
+        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
+        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
+        EXPECT_EQ(check.actions[4].firstEventIndex, check.flagElidedRedos | 1);
+        EXPECT_EQ(check.actions[5].firstEventIndex, 3);
     }
 
     TEST(UndoRedoElision, AAUAUAU)
@@ -236,13 +236,13 @@ namespace EditorCumulative
 
         EXPECT_EQ(check.redoCount, 1);
         EXPECT_EQ(check.redoSize, 1);
-        EXPECT_EQ(check.actionFirstEvent.size(), 6);
-        EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
-        EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
-        EXPECT_EQ(check.actionFirstEvent[4], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[5], 0);
+        EXPECT_EQ(check.actions.size(), 6);
+        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
+        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
+        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
+        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
+        EXPECT_EQ(check.actions[4].firstEventIndex, check.flagElidedRedos | 1);
+        EXPECT_EQ(check.actions[5].firstEventIndex, 3);
     }
 
     TEST(UndoRedoElision, AAUAUAUU)
@@ -260,13 +260,13 @@ namespace EditorCumulative
 
         EXPECT_EQ(check.redoCount, 2);
         EXPECT_EQ(check.redoSize, 6);
-        EXPECT_EQ(check.actionFirstEvent.size(), 6);
-        EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
-        EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
-        EXPECT_EQ(check.actionFirstEvent[4], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[5], 0);
+        EXPECT_EQ(check.actions.size(), 6);
+        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
+        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
+        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
+        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
+        EXPECT_EQ(check.actions[4].firstEventIndex, check.flagElidedRedos | 1);
+        EXPECT_EQ(check.actions[5].firstEventIndex, 3);
     }
 
     TEST(UndoRedoElision, AAUAUAUUA)
@@ -285,15 +285,15 @@ namespace EditorCumulative
 
         EXPECT_EQ(check.redoCount, 0);
         EXPECT_EQ(check.redoSize, 0);
-        EXPECT_EQ(check.actionFirstEvent.size(), 8);
-        EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
-        EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
-        EXPECT_EQ(check.actionFirstEvent[4], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[5], 0);
-        EXPECT_EQ(check.actionFirstEvent[6], check.flagElidedRedos | 6);
-        EXPECT_EQ(check.actionFirstEvent[7], 0);
+        EXPECT_EQ(check.actions.size(), 8);
+        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
+        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
+        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
+        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
+        EXPECT_EQ(check.actions[4].firstEventIndex, check.flagElidedRedos | 1);
+        EXPECT_EQ(check.actions[5].firstEventIndex, 3);
+        EXPECT_EQ(check.actions[6].firstEventIndex, check.flagElidedRedos | 6);
+        EXPECT_EQ(check.actions[7].firstEventIndex, 4);
     }
 
     TEST(UndoRedoElision, AAUAA)
@@ -308,12 +308,12 @@ namespace EditorCumulative
 
         EXPECT_EQ(check.redoCount, 0);
         EXPECT_EQ(check.redoSize, 0);
-        EXPECT_EQ(check.actionFirstEvent.size(), 5);
-        EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
-        EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
-        EXPECT_EQ(check.actionFirstEvent[4], 0);
+        EXPECT_EQ(check.actions.size(), 5);
+        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
+        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
+        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
+        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
+        EXPECT_EQ(check.actions[4].firstEventIndex, 3);
     }
 
     TEST(UndoRedoElision, AAUAAU)
@@ -329,12 +329,12 @@ namespace EditorCumulative
 
         EXPECT_EQ(check.redoCount, 1);
         EXPECT_EQ(check.redoSize, 1);
-        EXPECT_EQ(check.actionFirstEvent.size(), 5);
-        EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
-        EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
-        EXPECT_EQ(check.actionFirstEvent[4], 0);
+        EXPECT_EQ(check.actions.size(), 5);
+        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
+        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
+        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
+        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
+        EXPECT_EQ(check.actions[4].firstEventIndex, 3);
     }
 
     TEST(UndoRedoElision, AAUAAUA)
@@ -351,14 +351,14 @@ namespace EditorCumulative
 
         EXPECT_EQ(check.redoCount, 0);
         EXPECT_EQ(check.redoSize, 0);
-        EXPECT_EQ(check.actionFirstEvent.size(), 7);
-        EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
-        EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
-        EXPECT_EQ(check.actionFirstEvent[4], 0);
-        EXPECT_EQ(check.actionFirstEvent[5], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[6], 0);
+        EXPECT_EQ(check.actions.size(), 7);
+        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
+        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
+        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
+        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
+        EXPECT_EQ(check.actions[4].firstEventIndex, 3);
+        EXPECT_EQ(check.actions[5].firstEventIndex, check.flagElidedRedos | 1);
+        EXPECT_EQ(check.actions[6].firstEventIndex, 4);
     }
 
     TEST(UndoRedoElision, AAUAAUAU)
@@ -376,14 +376,14 @@ namespace EditorCumulative
 
         EXPECT_EQ(check.redoCount, 1);
         EXPECT_EQ(check.redoSize, 1);
-        EXPECT_EQ(check.actionFirstEvent.size(), 7);
-        EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
-        EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
-        EXPECT_EQ(check.actionFirstEvent[4], 0);
-        EXPECT_EQ(check.actionFirstEvent[5], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[6], 0);
+        EXPECT_EQ(check.actions.size(), 7);
+        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
+        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
+        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
+        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
+        EXPECT_EQ(check.actions[4].firstEventIndex, 3);
+        EXPECT_EQ(check.actions[5].firstEventIndex, check.flagElidedRedos | 1);
+        EXPECT_EQ(check.actions[6].firstEventIndex, 4);
     }
 
     TEST(UndoRedoElision, AAUAAUAUU)
@@ -402,14 +402,14 @@ namespace EditorCumulative
 
         EXPECT_EQ(check.redoCount, 2);
         EXPECT_EQ(check.redoSize, 4);
-        EXPECT_EQ(check.actionFirstEvent.size(), 7);
-        EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
-        EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
-        EXPECT_EQ(check.actionFirstEvent[4], 0);
-        EXPECT_EQ(check.actionFirstEvent[5], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[6], 0);
+        EXPECT_EQ(check.actions.size(), 7);
+        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
+        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
+        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
+        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
+        EXPECT_EQ(check.actions[4].firstEventIndex, 3);
+        EXPECT_EQ(check.actions[5].firstEventIndex, check.flagElidedRedos | 1);
+        EXPECT_EQ(check.actions[6].firstEventIndex, 4);
     }
 
     TEST(UndoRedoElision, AAUAAUAUUU)
@@ -429,14 +429,14 @@ namespace EditorCumulative
 
         EXPECT_EQ(check.redoCount, 3);
         EXPECT_EQ(check.redoSize, 7);
-        EXPECT_EQ(check.actionFirstEvent.size(), 7);
-        EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
-        EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
-        EXPECT_EQ(check.actionFirstEvent[4], 0);
-        EXPECT_EQ(check.actionFirstEvent[5], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[6], 0);
+        EXPECT_EQ(check.actions.size(), 7);
+        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
+        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
+        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
+        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
+        EXPECT_EQ(check.actions[4].firstEventIndex, 3);
+        EXPECT_EQ(check.actions[5].firstEventIndex, check.flagElidedRedos | 1);
+        EXPECT_EQ(check.actions[6].firstEventIndex, 4);
     }
 
     TEST(UndoRedoElision, AAUAAUAUUUA)
@@ -457,19 +457,19 @@ namespace EditorCumulative
 
         EXPECT_EQ(check.redoCount, 0);
         EXPECT_EQ(check.redoSize, 0);
-        EXPECT_EQ(check.actionFirstEvent.size(), 9);
-        EXPECT_EQ(check.actionFirstEvent[0], 0);
-        EXPECT_EQ(check.actionFirstEvent[1], 0);
-        EXPECT_EQ(check.actionFirstEvent[2], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[3], 0);
-        EXPECT_EQ(check.actionFirstEvent[4], 0);
-        EXPECT_EQ(check.actionFirstEvent[5], check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actionFirstEvent[6], 0);
-        EXPECT_EQ(check.actionFirstEvent[7], check.flagElidedRedos | 7);
-        EXPECT_EQ(check.actionFirstEvent[8], 0);
+        EXPECT_EQ(check.actions.size(), 9);
+        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
+        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
+        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
+        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
+        EXPECT_EQ(check.actions[4].firstEventIndex, 3);
+        EXPECT_EQ(check.actions[5].firstEventIndex, check.flagElidedRedos | 1);
+        EXPECT_EQ(check.actions[6].firstEventIndex, 4);
+        EXPECT_EQ(check.actions[7].firstEventIndex, check.flagElidedRedos | 7);
+        EXPECT_EQ(check.actions[8].firstEventIndex, 5);
     }
 
-    NOTE(CumulativeTest, IndexSize<std::uint32_t>{})
+    NOTE(CumulativeTest, IndexSize<std::uint32_t>)
     struct CumulativeTest
     {
         struct Bar
@@ -499,10 +499,10 @@ namespace EditorCumulative
         std::string b = "asdf";
         std::vector<int> c {};
         Bar bar;
-        std::vector<Bar> barVec {}; NOTE(barVec, IndexSize<std::uint16_t>{})
+        std::vector<Bar> barVec {}; NOTE(barVec, IndexSize<std::uint16_t>)
         int intRay[5] {};
         int mdIntRay[2][3] {};
-        std::vector<Trig> trigs {}; NOTE(trigs, IndexSize<std::uint16_t>{})
+        std::vector<Trig> trigs {}; NOTE(trigs, IndexSize<std::uint16_t>)
 
         REFLECT_NOTED(CumulativeTest, a, b, c, bar, barVec, intRay, mdIntRay, trigs)
     };
@@ -796,6 +796,78 @@ namespace EditorCumulative
         EXPECT_EQ(expected, obj->ints);
     }
 
+    TEST(OpDo, PlusEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(2);
+        EXPECT_EQ(obj->ints, std::vector{2});
+        obj()->ints[0] += 3;
+        EXPECT_EQ(obj->ints, std::vector{5});
+    }
+
+    TEST(OpDo, MinusEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(7);
+        EXPECT_EQ(obj->ints, std::vector{7});
+        obj()->ints[0] -= 2;
+        EXPECT_EQ(obj->ints, std::vector{5});
+    }
+
+    TEST(OpDo, MultEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(2);
+        EXPECT_EQ(obj->ints, std::vector{2});
+        obj()->ints[0] *= 2;
+        EXPECT_EQ(obj->ints, std::vector{4});
+    }
+
+    TEST(OpDo, DivEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(4);
+        EXPECT_EQ(obj->ints, std::vector{4});
+        obj()->ints[0] /= 2;
+        EXPECT_EQ(obj->ints, std::vector{2});
+    }
+
+    TEST(OpDo, ModEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(5);
+        EXPECT_EQ(obj->ints, std::vector{5});
+        obj()->ints[0] %= 2;
+        EXPECT_EQ(obj->ints, std::vector{1});
+    }
+
+    TEST(OpDo, XorEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(0b01);
+        EXPECT_EQ(obj->ints, std::vector{0b01});
+        obj()->ints[0] ^= 0b11;
+        EXPECT_EQ(obj->ints, std::vector{0b10});
+    }
+
+    TEST(OpDo, AndEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(0b101);
+        EXPECT_EQ(obj->ints, std::vector{0b101});
+        obj()->ints[0] &= 0b011;
+        EXPECT_EQ(obj->ints, std::vector{0b001});
+    }
+
+    TEST(OpDo, OrEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(0b00);
+        EXPECT_EQ(obj->ints, std::vector{0b00});
+        obj()->ints[0] |= 0b11;
+        EXPECT_EQ(obj->ints, std::vector{0b11});
+    }
+
     TEST(OpDo, Append)
     {
         TrackDoOp obj {};
@@ -897,6 +969,15 @@ namespace EditorCumulative
         EXPECT_EQ(values, obj->ints);
         obj()->ints.sortDesc();
         const auto expected = std::vector{22, 11, 9, 8, 7, 6, 5, 4, 3, 2, 1};
+        EXPECT_EQ(expected, obj->ints);
+    }
+
+    TEST(OpDo, Swap)
+    {
+        TrackDoOp obj {};
+        obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
+        obj()->ints.swap(0, 8);
+        auto expected = std::vector{88, 11, 22, 33, 44, 55, 66, 77, 0};
         EXPECT_EQ(expected, obj->ints);
     }
 
@@ -1804,6 +1885,118 @@ namespace EditorCumulative
         obj.redoAction();
         EXPECT_EQ(expected, obj->ints);
     }
+    
+    TEST(OpUndoRedo, PlusEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(2);
+        EXPECT_EQ(obj->ints, std::vector{2});
+        obj()->ints[0] += 3;
+        EXPECT_EQ(obj->ints, std::vector{5});
+
+        obj.undoAction();
+        EXPECT_EQ(obj->ints, std::vector{2});
+        obj.redoAction();
+        EXPECT_EQ(obj->ints, std::vector{5});
+    }
+
+    TEST(OpUndoRedo, MinusEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(7);
+        EXPECT_EQ(obj->ints, std::vector{7});
+        obj()->ints[0] -= 2;
+        EXPECT_EQ(obj->ints, std::vector{5});
+
+        obj.undoAction();
+        EXPECT_EQ(obj->ints, std::vector{7});
+        obj.redoAction();
+        EXPECT_EQ(obj->ints, std::vector{5});
+    }
+
+    TEST(OpUndoRedo, MultEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(2);
+        EXPECT_EQ(obj->ints, std::vector{2});
+        obj()->ints[0] *= 2;
+        EXPECT_EQ(obj->ints, std::vector{4});
+
+        obj.undoAction();
+        EXPECT_EQ(obj->ints, std::vector{2});
+        obj.redoAction();
+        EXPECT_EQ(obj->ints, std::vector{4});
+    }
+
+    TEST(OpUndoRedo, DivEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(4);
+        EXPECT_EQ(obj->ints, std::vector{4});
+        obj()->ints[0] /= 2;
+        EXPECT_EQ(obj->ints, std::vector{2});
+
+        obj.undoAction();
+        EXPECT_EQ(obj->ints, std::vector{4});
+        obj.redoAction();
+        EXPECT_EQ(obj->ints, std::vector{2});
+    }
+
+    TEST(OpUndoRedo, ModEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(5);
+        EXPECT_EQ(obj->ints, std::vector{5});
+        obj()->ints[0] %= 2;
+        EXPECT_EQ(obj->ints, std::vector{1});
+
+        obj.undoAction();
+        EXPECT_EQ(obj->ints, std::vector{5});
+        obj.redoAction();
+        EXPECT_EQ(obj->ints, std::vector{1});
+    }
+
+    TEST(OpUndoRedo, XorEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(0b01);
+        EXPECT_EQ(obj->ints, std::vector{0b01});
+        obj()->ints[0] ^= 0b11;
+        EXPECT_EQ(obj->ints, std::vector{0b10});
+
+        obj.undoAction();
+        EXPECT_EQ(obj->ints, std::vector{0b01});
+        obj.redoAction();
+        EXPECT_EQ(obj->ints, std::vector{0b10});
+    }
+
+    TEST(OpUndoRedo, AndEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(0b101);
+        EXPECT_EQ(obj->ints, std::vector{0b101});
+        obj()->ints[0] &= 0b011;
+        EXPECT_EQ(obj->ints, std::vector{0b001});
+
+        obj.undoAction();
+        EXPECT_EQ(obj->ints, std::vector{0b101});
+        obj.redoAction();
+        EXPECT_EQ(obj->ints, std::vector{0b001});
+    }
+
+    TEST(OpUndoRedo, OrEq)
+    {
+        TrackDoOp obj {};
+        obj()->ints.append(0b00);
+        EXPECT_EQ(obj->ints, std::vector{0b00});
+        obj()->ints[0] |= 0b11;
+        EXPECT_EQ(obj->ints, std::vector{0b11});
+
+        obj.undoAction();
+        EXPECT_EQ(obj->ints, std::vector{0b00});
+        obj.redoAction();
+        EXPECT_EQ(obj->ints, std::vector{0b11});
+    }
 
     TEST(OpUndoRedo, Append)
     {
@@ -1964,6 +2157,23 @@ namespace EditorCumulative
         EXPECT_EQ(values, obj->ints);
         obj.redoAction();
         EXPECT_EQ(expected, obj->ints);
+    }
+
+    TEST(OpUndoRedo, Swap)
+    {
+        TrackDoOp obj {};
+        const auto first = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
+        obj()->ints = first;
+        EXPECT_EQ(first, obj->ints);
+
+        obj()->ints.swap(0, 8);
+        const auto second = std::vector{88, 11, 22, 33, 44, 55, 66, 77, 0};
+        EXPECT_EQ(second, obj->ints);
+
+        obj.undoAction();
+        EXPECT_EQ(first, obj->ints);
+        obj.redoAction();
+        EXPECT_EQ(second, obj->ints);
     }
 
     TEST(OpUndoRedo, MoveUp)
@@ -3208,6 +3418,30 @@ namespace EditorCumulative
         obj.redoAction();
         EXPECT_EQ(expected, obj->ints);
         EXPECT_EQ(expectedSel, obj.view.ints.sel());
+    }
+
+    TEST(OpSelSync, Swap)
+    {
+        TrackDoOp obj {};
+        const auto first = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
+        const auto firstSel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
+        obj()->ints = first;
+        obj()->ints.select(firstSel);
+        EXPECT_EQ(first, obj->ints);
+        EXPECT_EQ(firstSel, obj.view.ints.sel());
+
+        obj()->ints.swap(0, 8);
+        const auto second = std::vector{88, 11, 22, 33, 44, 55, 66, 77, 0};
+        const auto secondSel = std::vector<std::size_t>{8, 1, 3, 4, 7, 0};
+        EXPECT_EQ(second, obj->ints);
+        EXPECT_EQ(secondSel, obj.view.ints.sel());
+
+        obj.undoAction();
+        EXPECT_EQ(first, obj->ints);
+        EXPECT_EQ(firstSel, obj.view.ints.sel());
+        obj.redoAction();
+        EXPECT_EQ(second, obj->ints);
+        EXPECT_EQ(secondSel, obj.view.ints.sel());
     }
 
     TEST(OpSelSync, MoveUp)
@@ -4674,5 +4908,673 @@ namespace EditorCumulative
         EXPECT_EQ(expectedSel, obj.view.ints.sel());
     }
 
-}
+    struct MdArrayTest
+    {
+        int twoD[3][2] {{11, 22}, {33, 44}, {55, 66}};
+        int threeD[4][3][2] {
+            {{11, 22}, {33, 44}, {55, 66}},
+            {{111, 222}, {333, 444}, {555, 666}},
+            {{1111, 2222}, {3333, 4444}, {5555, 6666}},
+            {{11111, 22222}, {33333, 44444}, {55555, 66666}}
+        };
 
+        REFLECT(MdArrayTest, twoD, threeD)
+    };
+
+    struct EditMdArrayTest : Tracked<MdArrayTest, EditMdArrayTest>
+    {
+        EditMdArrayTest() : Tracked{this} {}
+    };
+    
+    TEST(MdArray, Reset)
+    {
+        EditMdArrayTest myObj {};
+        EXPECT_EQ(myObj->twoD[0][0], 11);
+        EXPECT_EQ(myObj->twoD[0][1], 22);
+        EXPECT_EQ(myObj->twoD[1][0], 33);
+        EXPECT_EQ(myObj->twoD[1][1], 44);
+        EXPECT_EQ(myObj->twoD[2][0], 55);
+        EXPECT_EQ(myObj->twoD[2][1], 66);
+        EXPECT_EQ(myObj->threeD[0][0][0], 11);
+        EXPECT_EQ(myObj->threeD[0][0][1], 22);
+        EXPECT_EQ(myObj->threeD[0][1][0], 33);
+        EXPECT_EQ(myObj->threeD[0][1][1], 44);
+        EXPECT_EQ(myObj->threeD[0][2][0], 55);
+        EXPECT_EQ(myObj->threeD[0][2][1], 66);
+        EXPECT_EQ(myObj->threeD[1][0][0], 111);
+        EXPECT_EQ(myObj->threeD[1][0][1], 222);
+        EXPECT_EQ(myObj->threeD[1][1][0], 333);
+        EXPECT_EQ(myObj->threeD[1][1][1], 444);
+        EXPECT_EQ(myObj->threeD[1][2][0], 555);
+        EXPECT_EQ(myObj->threeD[1][2][1], 666);
+        EXPECT_EQ(myObj->threeD[2][0][0], 1111);
+        EXPECT_EQ(myObj->threeD[2][0][1], 2222);
+        EXPECT_EQ(myObj->threeD[2][1][0], 3333);
+        EXPECT_EQ(myObj->threeD[2][1][1], 4444);
+        EXPECT_EQ(myObj->threeD[2][2][0], 5555);
+        EXPECT_EQ(myObj->threeD[2][2][1], 6666);
+        EXPECT_EQ(myObj->threeD[3][0][0], 11111);
+        EXPECT_EQ(myObj->threeD[3][0][1], 22222);
+        EXPECT_EQ(myObj->threeD[3][1][0], 33333);
+        EXPECT_EQ(myObj->threeD[3][1][1], 44444);
+        EXPECT_EQ(myObj->threeD[3][2][0], 55555);
+        EXPECT_EQ(myObj->threeD[3][2][1], 66666);
+        
+        myObj()->twoD.reset();
+        myObj()->threeD.reset();
+        EXPECT_EQ(myObj->twoD[0][0], 0);
+        EXPECT_EQ(myObj->twoD[0][1], 0);
+        EXPECT_EQ(myObj->twoD[1][0], 0);
+        EXPECT_EQ(myObj->twoD[1][1], 0);
+        EXPECT_EQ(myObj->twoD[2][0], 0);
+        EXPECT_EQ(myObj->twoD[2][1], 0);
+        EXPECT_EQ(myObj->threeD[0][0][0], 0);
+        EXPECT_EQ(myObj->threeD[0][0][1], 0);
+        EXPECT_EQ(myObj->threeD[0][1][0], 0);
+        EXPECT_EQ(myObj->threeD[0][1][1], 0);
+        EXPECT_EQ(myObj->threeD[0][2][0], 0);
+        EXPECT_EQ(myObj->threeD[0][2][1], 0);
+        EXPECT_EQ(myObj->threeD[1][0][0], 0);
+        EXPECT_EQ(myObj->threeD[1][0][1], 0);
+        EXPECT_EQ(myObj->threeD[1][1][0], 0);
+        EXPECT_EQ(myObj->threeD[1][1][1], 0);
+        EXPECT_EQ(myObj->threeD[1][2][0], 0);
+        EXPECT_EQ(myObj->threeD[1][2][1], 0);
+        EXPECT_EQ(myObj->threeD[2][0][0], 0);
+        EXPECT_EQ(myObj->threeD[2][0][1], 0);
+        EXPECT_EQ(myObj->threeD[2][1][0], 0);
+        EXPECT_EQ(myObj->threeD[2][1][1], 0);
+        EXPECT_EQ(myObj->threeD[2][2][0], 0);
+        EXPECT_EQ(myObj->threeD[2][2][1], 0);
+        EXPECT_EQ(myObj->threeD[3][0][0], 0);
+        EXPECT_EQ(myObj->threeD[3][0][1], 0);
+        EXPECT_EQ(myObj->threeD[3][1][0], 0);
+        EXPECT_EQ(myObj->threeD[3][1][1], 0);
+        EXPECT_EQ(myObj->threeD[3][2][0], 0);
+        EXPECT_EQ(myObj->threeD[3][2][1], 0);
+
+        myObj.undoAction();
+        myObj.undoAction();
+        EXPECT_EQ(myObj->twoD[0][0], 11);
+        EXPECT_EQ(myObj->twoD[0][1], 22);
+        EXPECT_EQ(myObj->twoD[1][0], 33);
+        EXPECT_EQ(myObj->twoD[1][1], 44);
+        EXPECT_EQ(myObj->twoD[2][0], 55);
+        EXPECT_EQ(myObj->twoD[2][1], 66);
+        EXPECT_EQ(myObj->threeD[0][0][0], 11);
+        EXPECT_EQ(myObj->threeD[0][0][1], 22);
+        EXPECT_EQ(myObj->threeD[0][1][0], 33);
+        EXPECT_EQ(myObj->threeD[0][1][1], 44);
+        EXPECT_EQ(myObj->threeD[0][2][0], 55);
+        EXPECT_EQ(myObj->threeD[0][2][1], 66);
+        EXPECT_EQ(myObj->threeD[1][0][0], 111);
+        EXPECT_EQ(myObj->threeD[1][0][1], 222);
+        EXPECT_EQ(myObj->threeD[1][1][0], 333);
+        EXPECT_EQ(myObj->threeD[1][1][1], 444);
+        EXPECT_EQ(myObj->threeD[1][2][0], 555);
+        EXPECT_EQ(myObj->threeD[1][2][1], 666);
+        EXPECT_EQ(myObj->threeD[2][0][0], 1111);
+        EXPECT_EQ(myObj->threeD[2][0][1], 2222);
+        EXPECT_EQ(myObj->threeD[2][1][0], 3333);
+        EXPECT_EQ(myObj->threeD[2][1][1], 4444);
+        EXPECT_EQ(myObj->threeD[2][2][0], 5555);
+        EXPECT_EQ(myObj->threeD[2][2][1], 6666);
+        EXPECT_EQ(myObj->threeD[3][0][0], 11111);
+        EXPECT_EQ(myObj->threeD[3][0][1], 22222);
+        EXPECT_EQ(myObj->threeD[3][1][0], 33333);
+        EXPECT_EQ(myObj->threeD[3][1][1], 44444);
+        EXPECT_EQ(myObj->threeD[3][2][0], 55555);
+        EXPECT_EQ(myObj->threeD[3][2][1], 66666);
+
+        myObj.redoAction();
+        myObj.redoAction();
+        EXPECT_EQ(myObj->twoD[0][0], 0);
+        EXPECT_EQ(myObj->twoD[0][1], 0);
+        EXPECT_EQ(myObj->twoD[1][0], 0);
+        EXPECT_EQ(myObj->twoD[1][1], 0);
+        EXPECT_EQ(myObj->twoD[2][0], 0);
+        EXPECT_EQ(myObj->twoD[2][1], 0);
+        EXPECT_EQ(myObj->threeD[0][0][0], 0);
+        EXPECT_EQ(myObj->threeD[0][0][1], 0);
+        EXPECT_EQ(myObj->threeD[0][1][0], 0);
+        EXPECT_EQ(myObj->threeD[0][1][1], 0);
+        EXPECT_EQ(myObj->threeD[0][2][0], 0);
+        EXPECT_EQ(myObj->threeD[0][2][1], 0);
+        EXPECT_EQ(myObj->threeD[1][0][0], 0);
+        EXPECT_EQ(myObj->threeD[1][0][1], 0);
+        EXPECT_EQ(myObj->threeD[1][1][0], 0);
+        EXPECT_EQ(myObj->threeD[1][1][1], 0);
+        EXPECT_EQ(myObj->threeD[1][2][0], 0);
+        EXPECT_EQ(myObj->threeD[1][2][1], 0);
+        EXPECT_EQ(myObj->threeD[2][0][0], 0);
+        EXPECT_EQ(myObj->threeD[2][0][1], 0);
+        EXPECT_EQ(myObj->threeD[2][1][0], 0);
+        EXPECT_EQ(myObj->threeD[2][1][1], 0);
+        EXPECT_EQ(myObj->threeD[2][2][0], 0);
+        EXPECT_EQ(myObj->threeD[2][2][1], 0);
+        EXPECT_EQ(myObj->threeD[3][0][0], 0);
+        EXPECT_EQ(myObj->threeD[3][0][1], 0);
+        EXPECT_EQ(myObj->threeD[3][1][0], 0);
+        EXPECT_EQ(myObj->threeD[3][1][1], 0);
+        EXPECT_EQ(myObj->threeD[3][2][0], 0);
+        EXPECT_EQ(myObj->threeD[3][2][1], 0);
+    }
+
+    TEST(MdArray, Set)
+    {
+        EditMdArrayTest myObj {};
+        EXPECT_EQ(myObj->twoD[0][0], 11);
+        EXPECT_EQ(myObj->twoD[0][1], 22);
+        EXPECT_EQ(myObj->twoD[1][0], 33);
+        EXPECT_EQ(myObj->twoD[1][1], 44);
+        EXPECT_EQ(myObj->twoD[2][0], 55);
+        EXPECT_EQ(myObj->twoD[2][1], 66);
+        EXPECT_EQ(myObj->threeD[0][0][0], 11);
+        EXPECT_EQ(myObj->threeD[0][0][1], 22);
+        EXPECT_EQ(myObj->threeD[0][1][0], 33);
+        EXPECT_EQ(myObj->threeD[0][1][1], 44);
+        EXPECT_EQ(myObj->threeD[0][2][0], 55);
+        EXPECT_EQ(myObj->threeD[0][2][1], 66);
+        EXPECT_EQ(myObj->threeD[1][0][0], 111);
+        EXPECT_EQ(myObj->threeD[1][0][1], 222);
+        EXPECT_EQ(myObj->threeD[1][1][0], 333);
+        EXPECT_EQ(myObj->threeD[1][1][1], 444);
+        EXPECT_EQ(myObj->threeD[1][2][0], 555);
+        EXPECT_EQ(myObj->threeD[1][2][1], 666);
+        EXPECT_EQ(myObj->threeD[2][0][0], 1111);
+        EXPECT_EQ(myObj->threeD[2][0][1], 2222);
+        EXPECT_EQ(myObj->threeD[2][1][0], 3333);
+        EXPECT_EQ(myObj->threeD[2][1][1], 4444);
+        EXPECT_EQ(myObj->threeD[2][2][0], 5555);
+        EXPECT_EQ(myObj->threeD[2][2][1], 6666);
+        EXPECT_EQ(myObj->threeD[3][0][0], 11111);
+        EXPECT_EQ(myObj->threeD[3][0][1], 22222);
+        EXPECT_EQ(myObj->threeD[3][1][0], 33333);
+        EXPECT_EQ(myObj->threeD[3][1][1], 44444);
+        EXPECT_EQ(myObj->threeD[3][2][0], 55555);
+        EXPECT_EQ(myObj->threeD[3][2][1], 66666);
+        
+        myObj()->twoD[2][1] = 77;
+        myObj()->threeD[3][2][1] = 77777;
+        EXPECT_EQ(myObj->twoD[2][1], 77);
+        EXPECT_EQ(myObj->threeD[3][2][1], 77777);
+
+        myObj.undoAction();
+        myObj.undoAction();
+        EXPECT_EQ(myObj->twoD[2][1], 66);
+        EXPECT_EQ(myObj->threeD[3][2][1], 66666);
+
+        myObj.redoAction();
+        myObj.redoAction();
+        EXPECT_EQ(myObj->twoD[2][1], 77);
+        EXPECT_EQ(myObj->threeD[3][2][1], 77777);
+    }
+
+    struct InitDataTest
+    {
+        int a = 1;
+        std::vector<int> b = {2, 3};
+
+        REFLECT(InitDataTest, a, b)
+    };
+
+    struct EditInitDataTest : Tracked<InitDataTest, EditInitDataTest>
+    {
+        EditInitDataTest() : Tracked{this} {}
+    };
+
+    TEST(MiscEdits, InitData)
+    {
+        EditInitDataTest myObj {};
+        EXPECT_EQ(1, myObj->a);
+        std::vector<int> expectedVec {2, 3};
+        EXPECT_EQ(expectedVec, myObj->b);
+
+        myObj.initData<false>(InitDataTest {
+            .a = 4,
+            .b = {5, 6}
+        });
+        EXPECT_EQ(0, myObj.getCursorIndex());
+        EXPECT_EQ(4, myObj->a);
+        expectedVec = {5, 6};
+        EXPECT_EQ(expectedVec, myObj->b);
+
+        myObj.initData<true>(InitDataTest {
+            .a = 7,
+            .b = {8, 9}
+        });
+        EXPECT_EQ(1, myObj.getCursorIndex());
+        EXPECT_EQ(7, myObj->a);
+        expectedVec = {8, 9};
+        EXPECT_EQ(expectedVec, myObj->b);
+
+        myObj.undoAction();
+        EXPECT_EQ(0, myObj.getCursorIndex());
+        EXPECT_EQ(4, myObj->a);
+        expectedVec = {5, 6};
+        EXPECT_EQ(expectedVec, myObj->b);
+
+        myObj.redoAction();
+        EXPECT_EQ(1, myObj.getCursorIndex());
+        EXPECT_EQ(7, myObj->a);
+        expectedVec = {8, 9};
+        EXPECT_EQ(expectedVec, myObj->b);
+        
+        EXPECT_ANY_THROW(myObj.initData<false>(InitDataTest{}));
+        EXPECT_ANY_THROW(myObj.initData<true>(InitDataTest{}));
+
+        myObj.clearHistory();
+        myObj.initData<true>(InitDataTest{
+            .a = 10,
+            .b = {11, 12}
+        });
+        EXPECT_EQ(1, myObj.getCursorIndex());
+        EXPECT_EQ(10, myObj->a);
+        expectedVec = {11, 12};
+        EXPECT_EQ(expectedVec, myObj->b);
+
+        myObj.undoAction();
+        EXPECT_EQ(0, myObj.getCursorIndex());
+        EXPECT_EQ(7, myObj->a);
+        expectedVec = {8, 9};
+        EXPECT_EQ(expectedVec, myObj->b);
+
+        myObj.redoAction();
+        EXPECT_EQ(1, myObj.getCursorIndex());
+        EXPECT_EQ(10, myObj->a);
+        expectedVec = {11, 12};
+        EXPECT_EQ(expectedVec, myObj->b);
+
+        myObj.clearHistory();
+        myObj.initData<false>(InitDataTest{
+            .a = 13,
+            .b = {14, 15}
+        });
+        EXPECT_EQ(0, myObj.getCursorIndex());
+        EXPECT_EQ(13, myObj->a);
+        expectedVec = {14, 15};
+        EXPECT_EQ(expectedVec, myObj->b);
+    }
+
+    struct Code_
+    {
+        enum uint8_t_ : std::uint8_t
+        {
+            _U = 5, // Undo
+            _R = 6, // Redo
+            _1 = 1,
+            _2 = (1 << 1),
+            _3 = (1 << 2),
+            _4 = (1 << 3),
+            _5 = (1 << 4),
+            _6 = (1 << 5)
+        };
+    };
+    using Code = Code_::uint8_t_;
+    struct Case
+    {
+        std::vector<Code> codes {};
+        std::uint8_t result = 0;
+        std::vector<std::uint8_t> priorStates {}; // Records the value just prior to running code [i]
+        std::vector<std::uint8_t> states {}; // Records the current value after running codes up to [i]
+        std::vector<std::uint64_t> netSize {}; // Records the netSize after running codes up to [i]
+        std::vector<std::size_t> actionIndex {}; // Records the actionIndex at which code [i] starts
+        std::size_t maxActions {}; // Records the totalActions after running all codes
+    };
+    struct TrimCaseData
+    {
+        std::uint8_t value = 0;
+
+        REFLECT(TrimCaseData, value)
+    };
+    struct TrimCaseEditor : Tracked<TrimCaseData, TrimCaseEditor>
+    {
+        TrimCaseEditor() : Tracked(this) {}
+    };
+
+    TEST(MiscEdits, TrimHistory)
+    {
+        constexpr auto _U = Code::_U; // Undo
+        constexpr auto _1 = Code::_1; // Bit 1
+        constexpr auto _2 = Code::_2; // Bit 2
+        constexpr auto _3 = Code::_3; // Bit 3
+        constexpr auto _4 = Code::_4; // Bit 4
+        constexpr auto _5 = Code::_5; // Bit 5
+        constexpr auto _6 = Code::_6; // Bit 6
+        std::vector<Case> testCases {
+            Case { .codes = {}, .result = 0 },
+            Case { .codes = {_1}, .result = _1 }, // A
+            Case { .codes = {_1, _U, _2}, .result = _2 }, // AUA
+            Case { .codes = {_1, _2}, .result = _1|_2 }, // AA
+            Case { .codes = {_1, _2, _U, _3}, .result = _1|_3 }, // AAUA
+            Case { .codes = {_1, _2, _U, _3, _U, _U, _4}, .result = _4 }, // AAUAUUA
+            Case { .codes = {_1, _2, _U, _3, _U, _4}, .result = _1|_4 }, // AAUAUA
+            Case { .codes = {_1, _2, _U, _3, _U, _4, _U, _U, _5 }, .result = _5 }, // AAUAUAUUA
+            Case { .codes = {_1, _2, _U, _4, _5}, .result = _1|_4|_5 }, // AAUAA
+            Case { .codes = {_1, _2, _U, _3, _4, _U, _5}, .result = _1|_3|_5 }, // AAUAAUA
+            Case { .codes = {_1, _2, _U, _3, _4, _U, _5, _U, _U, _U, _6}, .result = _6 } // AAUAAUAUUUA
+        };
+        auto runCode = [](auto & obj, auto code) {
+            switch ( code )
+            {
+                case Code::_U: obj.undoAction(); break;
+                case Code::_1: obj()->value |= Code::_1; break;
+                case Code::_2: obj()->value |= Code::_2; break;
+                case Code::_3: obj()->value |= Code::_3; break;
+                case Code::_4: obj()->value |= Code::_4; break;
+                case Code::_5: obj()->value |= Code::_5; break;
+                case Code::_6: obj()->value |= Code::_6; break;
+                default: throw std::logic_error("Unrecognized code!"); break;
+            }
+        };
+        auto getHistSize = [](auto & obj) -> std::uint64_t {
+            auto changeHistory = obj.renderChangeHistory(false);
+            std::uint64_t netSize = 0;
+            for ( auto & action : changeHistory )
+                netSize += static_cast<std::uint64_t>(action.byteCount);
+
+            return netSize;
+        };
+        
+        for ( auto & testCase : testCases )
+        {
+            TrimCaseEditor myObj {};
+            for ( auto & code : testCase.codes )
+            {
+                testCase.priorStates.push_back(myObj->value);
+                runCode(myObj, code);
+                testCase.actionIndex.push_back(code == Code::_U ? std::numeric_limits<std::size_t>::max() : myObj.getCursorIndex()-1);
+                testCase.states.push_back(myObj->value);
+                testCase.netSize.push_back(getHistSize(myObj));
+            }
+            testCase.maxActions = myObj.getCursorIndex();
+            EXPECT_EQ(std::size(testCase.codes), std::size(testCase.netSize));
+            EXPECT_EQ(myObj->value, testCase.result);
+        }
+
+        std::size_t countValidSims = 0;
+        for ( auto & testCase : testCases )
+        {
+            auto maxActions = testCase.maxActions;
+            for ( std::size_t trimTo=0; trimTo<=maxActions; ++trimTo )
+            {
+                TrimCaseEditor applyTrim {};
+                TrimCaseEditor simulateTrim {};
+                auto checkApplyTrim = RareTs::whitebox((Tracked<Simple, SimpleEditor> &)applyTrim);
+                auto checkSimulateTrim = RareTs::whitebox((Tracked<Simple, SimpleEditor> &)simulateTrim);
+
+                for ( auto & code : testCase.codes )
+                    runCode(applyTrim, code);
+
+                std::size_t prevActionCount = checkApplyTrim.actions.size();
+                auto trueTrimTo = applyTrim.trimHistory(trimTo);
+                if ( prevActionCount == checkApplyTrim.actions.size() )
+                    continue; // No change, could maybe test against prev hist state of apply trim
+
+                std::size_t firstCodeIndex = trueTrimTo == 0 ? testCase.codes.size() : 0;
+                while ( firstCodeIndex < std::size(testCase.codes) )
+                {
+                    while ( testCase.actionIndex[firstCodeIndex] == std::numeric_limits<std::size_t>::max() )
+                        ++firstCodeIndex;
+
+                    if ( testCase.actionIndex[firstCodeIndex] >= trueTrimTo )
+                        break;
+                    else
+                        ++firstCodeIndex;
+                }
+
+                if ( firstCodeIndex < testCase.codes.size() )
+                    simulateTrim.initData(TrimCaseData{testCase.priorStates[firstCodeIndex]});
+                else if ( !testCase.codes.empty() )
+                    simulateTrim.initData(TrimCaseData{testCase.states[testCase.codes.size()-1]});
+
+                // Run first code index and onwards
+                bool validSim = true;
+                for ( std::size_t i=firstCodeIndex; i<std::size(testCase.codes); ++i )
+                {
+                    auto prevCursor = simulateTrim.getCursorIndex();
+                    runCode(simulateTrim, testCase.codes[i]);
+                    if ( simulateTrim.getCursorIndex() == prevCursor ) // Invalid sim: required undoing past sim hist start
+                    {
+                        validSim = false;
+                        break;
+                    }
+                }
+
+                // Compare applyTrim and simulateTrim values and history states
+                if ( validSim )
+                {
+                    ++countValidSims;
+                    EXPECT_EQ(applyTrim->value, simulateTrim->value);
+                    EXPECT_EQ(checkApplyTrim.pendingActionStart, checkSimulateTrim.pendingActionStart);
+                    EXPECT_EQ(checkApplyTrim.actions.size(), checkSimulateTrim.actions.size());
+                    if ( checkApplyTrim.actions.size() == checkSimulateTrim.actions.size() )
+                    {
+                        for ( std::size_t i=0; i<checkApplyTrim.actions.size(); ++i )
+                            EXPECT_EQ(checkApplyTrim.actions[i].firstEventIndex, checkSimulateTrim.actions[i].firstEventIndex);
+                    }
+                    EXPECT_EQ(checkApplyTrim.actionReferenceCount, checkSimulateTrim.actionReferenceCount);
+                    EXPECT_EQ(checkApplyTrim.redoCount, checkSimulateTrim.redoCount);
+                    EXPECT_EQ(checkApplyTrim.redoSize, checkSimulateTrim.redoSize);
+                    EXPECT_EQ(checkApplyTrim.history.eventOffsets.size(), checkSimulateTrim.history.eventOffsets.size());
+                    if ( checkApplyTrim.history.eventOffsets.size() == checkSimulateTrim.history.eventOffsets.size() )
+                    {
+                        for ( std::size_t i=0; i<checkApplyTrim.history.eventOffsets.size(); ++i )
+                            EXPECT_EQ(checkApplyTrim.history.eventOffsets[i], checkSimulateTrim.history.eventOffsets[i]);
+                    }
+                    EXPECT_EQ(checkApplyTrim.history.events.size(), checkSimulateTrim.history.events.size());
+                    if ( checkApplyTrim.history.events.size() == checkSimulateTrim.history.events.size() )
+                    {
+                        for ( std::size_t i=0; i<checkApplyTrim.history.events.size(); ++i )
+                            EXPECT_EQ(checkApplyTrim.history.events[i], checkSimulateTrim.history.events[i]);
+                    }
+                }
+            }
+        }
+        EXPECT_EQ(countValidSims, 23);
+
+        for ( auto & testCase : testCases )
+        {
+            auto numCodes = testCase.codes.size();
+            auto maxActions = testCase.maxActions;
+            for ( std::size_t codeIndex=0; codeIndex<numCodes; ++codeIndex )
+            {
+                TrimCaseEditor applyTrim {};
+                
+                for ( auto & code : testCase.codes )
+                    runCode(applyTrim, code);
+
+                auto maxSize = testCase.netSize.size() > 0 ? testCase.netSize[testCase.netSize.size()-1] : 0;
+                auto sizeTrimTo = codeIndex == 0 ? maxSize : maxSize - testCase.netSize[codeIndex-1];
+                applyTrim.trimHistoryToSize(sizeTrimTo);
+                auto newHistSize = getHistSize(applyTrim);
+
+                EXPECT_TRUE(newHistSize <= maxSize);
+
+                // Ensure there's no possible size between newHistSize and sizeTrimTo
+                for ( std::size_t trimTo=0; trimTo<=maxActions; ++trimTo )
+                {
+                    TrimCaseEditor simulateTrim {};
+                    
+                    for ( auto & code : testCase.codes )
+                        runCode(simulateTrim, code);
+
+                    simulateTrim.trimHistory(trimTo);
+                    auto simHistSize = getHistSize(simulateTrim);
+
+                    EXPECT_FALSE(simHistSize > newHistSize && simHistSize < sizeTrimTo);
+                }
+            }
+        }
+    }
+
+    TEST(MiscEdits, RootAssign)
+    {
+        EditInitDataTest myObj {};
+        EXPECT_EQ(1, myObj->a);
+        std::vector<int> expectedVec {2, 3};
+        EXPECT_EQ(expectedVec, myObj->b);
+
+        myObj()->assign(InitDataTest{
+            .a = 4,
+            .b = {5, 6}
+        });
+        EXPECT_EQ(4, myObj->a);
+        expectedVec = {5, 6};
+        EXPECT_EQ(expectedVec, myObj->b);
+
+        myObj.undoAction();
+        EXPECT_EQ(1, myObj->a);
+        expectedVec = {2, 3};
+        EXPECT_EQ(expectedVec, myObj->b);
+
+        myObj.redoAction();
+        EXPECT_EQ(4, myObj->a);
+        expectedVec = {5, 6};
+        EXPECT_EQ(expectedVec, myObj->b);
+    }
+
+    struct OptionalTest
+    {
+        std::optional<int> a = 1;
+
+        REFLECT(OptionalTest, a)
+    };
+
+    struct EditOptionalTest : Tracked<OptionalTest, EditOptionalTest>
+    {
+        EditOptionalTest() : Tracked{this} {}
+    };
+
+    TEST(MiscEdits, OptionalTest)
+    {
+        EditOptionalTest myObj {};
+        EXPECT_EQ(myObj->a.value(), 1);
+        myObj()->a = std::nullopt;
+        EXPECT_EQ(myObj->a, std::nullopt);
+        myObj()->a = 2;
+        EXPECT_EQ(myObj->a.value(), 2);
+
+        myObj.undoAction();
+        EXPECT_EQ(myObj->a, std::nullopt);
+        myObj.undoAction();
+        EXPECT_EQ(myObj->a, 1);
+
+        myObj.redoAction();
+        EXPECT_EQ(myObj->a, std::nullopt);
+        myObj.redoAction();
+        EXPECT_EQ(myObj->a, 2);
+    }
+
+    struct Item
+    {
+        int hitCount;
+
+        REFLECT(Item, hitCount)
+    };
+
+    struct Actor
+    {
+        int xc = 0;
+        int yc = 0;
+        std::vector<Item> items {Item{}};
+
+        REFLECT(Actor, xc, yc, items)
+    };
+
+    struct MyObj
+    {
+        std::vector<Actor> actors {};
+
+        REFLECT(MyObj, actors)
+    };
+
+    struct TracedObj : Tracked<MyObj, TracedObj>
+    {
+        struct ItemElem : TrackedElement<Item, PATH(root->actors[0].items[0])>
+        {
+            using TrackedElement::TrackedElement;
+            void hit() { edit.hitCount = read.hitCount+1; }
+        };
+
+        struct ActorElem : TrackedElement<Actor, PATH(root->actors[0])>
+        {
+            using TrackedElement::TrackedElement;
+            void act() { edit.xc = read.xc+2; }
+            auto getItemElem(std::size_t i) { return ItemElem(this, view.items[i]); }
+        };
+
+        TracedObj() : Tracked{this} {}
+
+        ActorElem getActorElem(std::size_t i) {
+            return ActorElem(this, view.actors[i]);
+        }
+    };
+
+    TEST(MiscEdits, SubElemTest)
+    {
+        TracedObj myObj {};
+        myObj.initData<false>(MyObj{
+            .actors = {
+                Actor{.xc = 11, .yc = 33, .items = {{0}, {0}}},
+                Actor{.xc = 22, .yc = 44, .items = {{0}, {0}, {0}}}
+            }
+        });
+        {
+            auto editActor = myObj.getActorElem(1);
+            EXPECT_EQ(myObj->actors[1].xc, 22);
+            editActor.act();
+            EXPECT_EQ(myObj->actors[1].xc, 24);
+
+            auto editItem = editActor.getItemElem(2);
+            EXPECT_EQ(myObj->actors[1].items[2].hitCount, 0);
+            editItem.hit();
+            EXPECT_EQ(myObj->actors[1].items[2].hitCount, 1);
+        }
+        myObj.undoAction();
+        EXPECT_EQ(myObj->actors[1].xc, 22);
+        EXPECT_EQ(myObj->actors[1].items[2].hitCount, 0);
+        
+        myObj.redoAction();
+        EXPECT_EQ(myObj->actors[1].xc, 24);
+        EXPECT_EQ(myObj->actors[1].items[2].hitCount, 1);
+    }
+
+    struct UserDefinedData
+    {
+        std::string descr = "";
+
+        inline bool operator==(const UserDefinedData & other) const { return descr == other.descr; }
+    };
+
+    struct UserDefinedTest
+    {
+        int a = 0;
+
+        REFLECT(UserDefinedTest, a)
+    };
+
+    struct EditUserDefinedTest : Tracked<UserDefinedTest, EditUserDefinedTest, UserDefinedData>
+    {
+        EditUserDefinedTest() : Tracked{this} {}
+    };
+
+    TEST(MiscEdits, UserDefinedActionData)
+    {
+        EditUserDefinedTest myObj {};
+        {
+            auto edit = myObj.operator()({"labeled action"});
+            edit->a = 1;
+        }
+        RareEdit::RenderAction<UserDefinedData> renderAction {};
+        myObj.renderAction(0, renderAction, false);
+        EXPECT_STREQ(renderAction.userData.descr.c_str(), "labeled action");
+        {
+            auto edit = myObj.operator()({"another action"});
+            edit->a = 2;
+        }
+        myObj.renderAction(1, renderAction, false);
+        EXPECT_STREQ(renderAction.userData.descr.c_str(), "another action");
+    }
+
+}

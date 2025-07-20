@@ -11,27 +11,59 @@ namespace experimental
 
 using namespace RareEdit;
 
+struct Item
+{
+    int hitCount;
+
+    REFLECT(Item, hitCount)
+};
+
 struct Actor
 {
     int xc = 0;
     int yc = 0;
     std::string name = "";
+    std::vector<Item> items {Item{}};
 
-    REFLECT(Actor, xc, yc, name)
+    REFLECT(Actor, xc, yc, name, items)
 };
 
-NOTE(MyObj, IndexSize<std::uint32_t>{})
+NOTE(MyObj, IndexSize<std::uint32_t>)
 struct MyObj
 {
-    int intRay[5] {};
     std::vector<int> ints {};
+    Actor actor {};
     std::vector<Actor> actors {};
 
-    REFLECT_NOTED(MyObj, ints, intRay, actors)
+    REFLECT_NOTED(MyObj, ints, actor, actors)
 };
 
 struct TracedObj : Tracked<MyObj, TracedObj>
 {
+    struct ItemElem : TrackedElement<Item, PATH(root->actors[0].items[0])>
+    {
+        using TrackedElement::TrackedElement;
+
+        void hit()
+        {
+            edit.hitCount = read.hitCount+1;
+        }
+    };
+
+    struct ActorElem : TrackedElement<Actor, PATH(root->actors[0])>
+    {
+        using TrackedElement::TrackedElement;
+
+        void act()
+        {
+            edit.xc = read.xc+2;
+        }
+
+        auto getItemElem(std::size_t i) {
+            return ItemElem(this, view.items[i]);
+        }
+    };
+
     TracedObj() : Tracked(this) {}
 
     void setup()
@@ -43,15 +75,41 @@ struct TracedObj : Tracked<MyObj, TracedObj>
     void doSomething()
     {
         auto edit = createAction();
-        edit->intRay[2] = 5;
         edit->ints = std::vector{2, 3, 4};
+        edit->actor = Actor{.xc = 77, .yc = 88, .name = "jj"};
         edit->actors.append(Actor{});
         edit->actors.append(Actor{});
         edit->actors[1].xc = 12;
         edit->actors[1].yc = 13;
         edit->actors.select(0);
         edit->actors.moveSelectionsDown();
-        edit->actors.removeSelection();
+        //edit->actors.removeSelection();
+    }
+
+    void afterAction(std::size_t actionIndex)
+    {
+        auto hist = Tracked::renderChangeHistory();
+        auto & action = hist[actionIndex];
+        std::cout << "New Action[" << actionIndex << "](";
+        switch ( action.actionStatus )
+        {
+        case RareEdit::ActionStatus::Unknown: std::cout << "Unknown"; break;
+        case RareEdit::ActionStatus::Undoable: std::cout << "Undoable"; break;
+        case RareEdit::ActionStatus::ElidedRedo: if ( action.elisionCount > 0 ) std::cout << "ElideLast:" << action.elisionCount; else std::cout << "ElidedRedo"; break;
+        case RareEdit::ActionStatus::Redoable: std::cout << "Redoable"; break;
+        }
+        std::cout << ")\n";
+
+        auto & changeEvents = hist[actionIndex].changeEvents;
+        for ( std::size_t j=0; j<changeEvents.size(); ++j )
+        {
+            auto & changeEvent = changeEvents[j];
+            std::cout << "  " << changeEvent.summary << '\n';
+        }
+    }
+
+    ActorElem getActorElem(std::size_t i) {
+        return ActorElem(this, view.actors[i]);
     }
     
     using actor_path = PATH(root->actors);
@@ -108,15 +166,31 @@ void dataHistory()
     myObj.doSomething();
     std::cout << Json::out(*myObj);
     
+    std::cout << "\n\ntestElemOp:\n";
+    {
+        auto actor = myObj.getActorElem(1);
+        actor.act();
+        auto item = actor.getItemElem(0);
+        item.hit();
+        actor.act();
+        item.hit();
+    }
+    std::cout << Json::out(*myObj);
+
     std::cout << "\n\ntestUndo:\n";
     myObj.undoAction();
     std::cout << Json::out(*myObj);
 
+    std::cout << "\n\ntestDo:\n";
+    myObj.doSomething();
+    std::cout << Json::out(*myObj);
+
     std::cout << "\n\ntestRedo:\n";
     myObj.redoAction();
-    std::cout << Json::out(*myObj) << "\n\n";
+    std::cout << Json::out(*myObj);
 
-    myObj.printChangeHistory();
+    std::cout << "\n\n";
+    myObj.printChangeHistory(std::cout);
 }
 
 }

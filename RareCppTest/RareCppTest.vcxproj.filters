@@ -21,6 +21,9 @@
     <Filter Include="Source Files\JsonTest\definition">
       <UniqueIdentifier>{e908698b-aa91-4fe9-b3a5-b79599f34b2e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\EditorTest">
+      <UniqueIdentifier>{6771ea9a-f8b3-43a4-8bb7-3514430588f1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="json_input_test_buffered.cpp">
@@ -84,10 +87,16 @@
       <Filter>Source Files\ReflectTest</Filter>
     </ClCompile>
     <ClCompile Include="edit_test.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\EditorTest</Filter>
     </ClCompile>
     <ClCompile Include="editor_notifications_test.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>Source Files\EditorTest</Filter>
+    </ClCompile>
+    <ClCompile Include="flat_mdspan_test.cpp">
+      <Filter>Source Files\EditorTest</Filter>
+    </ClCompile>
+    <ClCompile Include="editor_attach_test.cpp">
+      <Filter>Source Files\EditorTest</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
