@@ -8025,10 +8025,12 @@ namespace RareEdit
             }
         }
 
-        void undoAction()
+        static constexpr std::size_t noAction = std::numeric_limits<std::size_t>::max();
+
+        std::size_t undoAction()
         {
             if ( redoSize >= actions.size() )
-                return;
+                return noAction;
 
             std::size_t totalActions = actions.size();
             std::uint64_t actionIndex = totalActions-redoSize-1;
@@ -8039,7 +8041,7 @@ namespace RareEdit
                 if ( redoGap <= actionIndex )
                     actionIndex -= redoGap;
                 else
-                    return; // Every prior action was elided, nothing to undo
+                    return noAction; // Every prior action was elided, nothing to undo
             }
 
             std::int64_t actionEventStart = static_cast<std::int64_t>(actions[actionIndex].firstEventIndex);
@@ -8053,12 +8055,13 @@ namespace RareEdit
 
             redoCount++;
             redoSize = totalActions-actionIndex;
+            return actionIndex;
         }
 
-        void redoAction()
+        std::size_t redoAction()
         {
             if ( redoCount == 0 )
-                return;
+                return noAction;
 
             std::size_t totalActions = actions.size();
             std::uint64_t actionIndex = totalActions-redoSize;
@@ -8085,20 +8088,26 @@ namespace RareEdit
                 redoSize = 0;
             else
             {
-                actionIndex = totalActions-1;
+                auto checkActionIndex = totalActions-1;
                 std::size_t unelidedCount = 0;
                 while ( unelidedCount < redoCount )
                 {
-                    if ( (actions[actionIndex].firstEventIndex & flagElidedRedos) == flagElidedRedos )
-                        actionIndex -= ((actions[actionIndex].firstEventIndex & maskElidedRedoSize)+1);
+                    if ( (actions[checkActionIndex].firstEventIndex & flagElidedRedos) == flagElidedRedos )
+                        checkActionIndex -= ((actions[checkActionIndex].firstEventIndex & maskElidedRedoSize)+1);
                     else
                     {
                         ++unelidedCount;
-                        --actionIndex;
+                        --checkActionIndex;
                     }
                 }
-                redoSize = totalActions-actionIndex-1;
+                redoSize = totalActions-checkActionIndex-1;
             }
+            return actionIndex;
+        }
+
+        std::size_t getPendingActionIndex() // The index the current action will be if it's submitted
+        {
+            return redoCount > 0 ? actions.size()+1 : actions.size();
         }
 
         std::size_t getCursorIndex() // One after the index of the last action which hasn't been undone
@@ -8116,6 +8125,11 @@ namespace RareEdit
                     return static_cast<std::size_t>(i)+1;
             }
             return 0;
+        }
+
+        const UserData & getActionUserData(std::size_t actionIndex) const
+        {
+            return (UserData &)(actions[actionIndex]);
         }
 
         auto & put(std::ostream & os, auto && value) const
