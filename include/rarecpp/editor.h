@@ -735,6 +735,20 @@ namespace RareEdit
     template <class Agent, class default_index_type, class RootData, class T, class Keys = std::tuple<>, class ... Pathway>
     using edit_members = decltype(editMembers<Agent, default_index_type, RootData, T, Keys, Pathway...>(std::make_index_sequence<RareTs::Members<T>::total>()));
 
+    template <typename T, std::size_t ... Is>
+    constexpr std::size_t getMaxExtent(std::index_sequence<Is...> = {})
+    {
+        if constexpr ( std::is_array_v<T> )
+        {
+            if constexpr ( sizeof...(Is) != std::rank_v<T> )
+                return getMaxExtent<T>(std::make_index_sequence<std::rank_v<T>>());
+            else
+                return std::max({std::extent_v<T, Is>...});
+        }
+        else
+            return RareTs::static_array_size_v<T>;
+    }
+
     template <class DefaultIndexType, class Member>
     inline constexpr auto index_typer()
     {
@@ -742,7 +756,8 @@ namespace RareEdit
         {
             if constexpr ( RareTs::is_static_array_v<typename Member::type> )
             {
-                constexpr std::size_t size = RareTs::static_array_size_v<typename Member::type>;
+                // TODO: individual multi-dimensional array dimensions could use smaller indexes if dimensions was passed to index_typer
+                constexpr std::size_t size = getMaxExtent<std::remove_cvref_t<typename Member::type>>();
                 if constexpr ( size < 64 ) // 6-bit int
                     return std::type_identity<uint6_t>{};
                 else if constexpr ( size <= 0xFF )
@@ -770,34 +785,34 @@ namespace RareEdit
     class Editable
     {
         template <class U, class LastMember, class PathElement, class ... PathElements>
-        static constexpr auto getMemberImpl()
+        static constexpr auto indexImpl()
         {
             if constexpr ( is_path_selections_v<PathElement> )
             {
                 if constexpr ( sizeof...(PathElements) == 0 )
-                    return std::type_identity<LastMember> {};
+                    return std::type_identity<index_type_t<default_index_type, LastMember>> {};
                 else
-                    return getMemberImpl<std::remove_cvref_t<decltype(std::declval<U>()[0])>, LastMember, PathElements...>();
+                    return indexImpl<std::remove_cvref_t<decltype(std::declval<U>()[0])>, LastMember, PathElements...>();
             }
             else if constexpr ( is_path_member_v<PathElement> )
             {
                 if constexpr ( sizeof...(PathElements) == 0 )
-                    return std::type_identity<RareTs::Member<U, PathElement::index>> {};
+                    return std::type_identity<index_type_t<default_index_type, RareTs::Member<U, PathElement::index>>> {};
                 else
-                    return getMemberImpl<typename RareTs::Member<U, PathElement::index>::type, RareTs::Member<U, PathElement::index>, PathElements...>();
+                    return indexImpl<typename RareTs::Member<U, PathElement::index>::type, RareTs::Member<U, PathElement::index>, PathElements...>();
             }
             else if constexpr ( is_path_index_v<PathElement> )
             {
                 if constexpr ( sizeof...(PathElements) == 0 )
-                    return std::type_identity<LastMember> {};
+                    return std::type_identity<index_type_t<default_index_type, LastMember>> {};
                 else
-                    return getMemberImpl<std::remove_cvref_t<decltype(std::declval<U>()[0])>, LastMember, PathElements...>();
+                    return indexImpl<std::remove_cvref_t<decltype(std::declval<U>()[0])>, LastMember, PathElements...>();
             }
         }
 
         class RandomAccess : public Keys
         {
-            using index_type = index_type_t<default_index_type, typename std::remove_cvref_t<decltype(getMemberImpl<RootData, void, Pathway...>())>::type>;
+            using index_type = typename decltype(indexImpl<RootData, void, Pathway...>())::type;
 
             template <std::size_t... Is> static constexpr auto arrayOpType(std::index_sequence<Is...>) -> SubElement<
                 Agent, default_index_type, RootData, T, std::tuple<std::tuple_element_t<Is, Keys>..., index_type>, Pathway..., PathIndex<sizeof...(Is)>>;
@@ -3625,7 +3640,7 @@ namespace RareEdit
                         std::size_t maxValidIndex = 0;
                         for ( std::size_t i=0; i<std::size(movedIndexes); ++i )
                         {
-                            if ( movedIndexes[i] >= 0 )
+                            if ( static_cast<std::ptrdiff_t>(movedIndexes[i]) >= 0 )
                             {
                                 minValidIndex = static_cast<std::size_t>(movedIndexes[i]);
                                 break;
@@ -8010,10 +8025,12 @@ namespace RareEdit
             }
         }
 
-        void undoAction()
+        static constexpr std::size_t noAction = std::numeric_limits<std::size_t>::max();
+
+        std::size_t undoAction()
         {
             if ( redoSize >= actions.size() )
-                return;
+                return noAction;
 
             std::size_t totalActions = actions.size();
             std::uint64_t actionIndex = totalActions-redoSize-1;
@@ -8024,7 +8041,7 @@ namespace RareEdit
                 if ( redoGap <= actionIndex )
                     actionIndex -= redoGap;
                 else
-                    return; // Every prior action was elided, nothing to undo
+                    return noAction; // Every prior action was elided, nothing to undo
             }
 
             std::int64_t actionEventStart = static_cast<std::int64_t>(actions[actionIndex].firstEventIndex);
@@ -8038,12 +8055,13 @@ namespace RareEdit
 
             redoCount++;
             redoSize = totalActions-actionIndex;
+            return actionIndex;
         }
 
-        void redoAction()
+        std::size_t redoAction()
         {
             if ( redoCount == 0 )
-                return;
+                return noAction;
 
             std::size_t totalActions = actions.size();
             std::uint64_t actionIndex = totalActions-redoSize;
@@ -8070,20 +8088,26 @@ namespace RareEdit
                 redoSize = 0;
             else
             {
-                actionIndex = totalActions-1;
+                auto checkActionIndex = totalActions-1;
                 std::size_t unelidedCount = 0;
                 while ( unelidedCount < redoCount )
                 {
-                    if ( (actions[actionIndex].firstEventIndex & flagElidedRedos) == flagElidedRedos )
-                        actionIndex -= ((actions[actionIndex].firstEventIndex & maskElidedRedoSize)+1);
+                    if ( (actions[checkActionIndex].firstEventIndex & flagElidedRedos) == flagElidedRedos )
+                        checkActionIndex -= ((actions[checkActionIndex].firstEventIndex & maskElidedRedoSize)+1);
                     else
                     {
                         ++unelidedCount;
-                        --actionIndex;
+                        --checkActionIndex;
                     }
                 }
-                redoSize = totalActions-actionIndex-1;
+                redoSize = totalActions-checkActionIndex-1;
             }
+            return actionIndex;
+        }
+
+        std::size_t getPendingActionIndex() // The index the current action will be if it's submitted
+        {
+            return redoCount > 0 ? actions.size()+1 : actions.size();
         }
 
         std::size_t getCursorIndex() // One after the index of the last action which hasn't been undone
@@ -8101,6 +8125,11 @@ namespace RareEdit
                     return static_cast<std::size_t>(i)+1;
             }
             return 0;
+        }
+
+        const UserData & getActionUserData(std::size_t actionIndex) const
+        {
+            return (UserData &)(actions[actionIndex]);
         }
 
         auto & put(std::ostream & os, auto && value) const
