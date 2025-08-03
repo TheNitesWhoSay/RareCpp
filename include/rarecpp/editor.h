@@ -3640,7 +3640,7 @@ namespace RareEdit
                         std::size_t maxValidIndex = 0;
                         for ( std::size_t i=0; i<std::size(movedIndexes); ++i )
                         {
-                            if ( movedIndexes[i] >= 0 )
+                            if ( static_cast<std::ptrdiff_t>(movedIndexes[i]) >= 0 )
                             {
                                 minValidIndex = static_cast<std::size_t>(movedIndexes[i]);
                                 break;
