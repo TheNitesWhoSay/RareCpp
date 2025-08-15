@@ -280,13 +280,13 @@ namespace RareEdit
     template <typename T>
     bool readSelectionVector(const std::vector<std::uint8_t> & data, std::size_t & offset, std::vector<T> & integralVector)
     {
-        T size = (const T &)data[offset];
+        T size = *(reinterpret_cast<const T*>(&data[offset]));
         offset += sizeof(size);
         integralVector.clear();
         integralVector.reserve(size);
         for ( T i=0; i<size; ++i )
         {
-            integralVector.insert(integralVector.end(), T((const T &)data[offset]));
+            integralVector.insert(integralVector.end(), T(*(reinterpret_cast<const T*>(&data[offset]))));
             offset += sizeof(T);
         }
         return size > 0;
@@ -3953,7 +3953,7 @@ namespace RareEdit
             using index_type = index_type_t<default_index_type, Member>;
             if constexpr ( std::is_same_v<U, std::string> )
             {
-                auto stringSize = (const index_type &)events[offset];
+                auto stringSize = *(reinterpret_cast<const index_type*>(&events[offset]));
                 offset += sizeof(stringSize);
                 if ( stringSize > 0 )
                 {
@@ -3993,7 +3993,7 @@ namespace RareEdit
             }
             else if constexpr ( RareTs::is_iterable_v<U> && requires{value.resize(std::size_t{0});} )
             {
-                auto size = static_cast<std::size_t>((const index_type &)events[offset]);
+                auto size = static_cast<std::size_t>(*(reinterpret_cast<const index_type*>(&events[offset])));
                 value.resize(std::size_t{size});
                 offset += sizeof(index_type);
                 for ( decltype(size) i=0; i<size; ++i )
@@ -4054,14 +4054,14 @@ namespace RareEdit
 
         template <class index_type>
         auto readIndex(std::size_t & offset) const {
-            auto index = (const index_type &)events[offset];
+            auto index = *(reinterpret_cast<const index_type*>(&events[offset]));
             offset += sizeof(index);
             return index;
         }
 
         template <class index_type>
         auto readIndex(std::ptrdiff_t & offset) const {
-            auto index = (const index_type &)events[static_cast<std::size_t>(offset)];
+            auto index = *(reinterpret_cast<const index_type*>(&events[static_cast<std::size_t>(offset)]));
             offset += sizeof(index);
             return index;
         }
