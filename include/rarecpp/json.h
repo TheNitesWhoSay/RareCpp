@@ -355,7 +355,22 @@ namespace Json
                         if ( allocatedValue == nullptr ) // !is_pointable<T>::value
                             throw NullUnassignable();
                         else if ( value.type() != allocatedValue->type() ) // !is_pointable<T>::value && allocatedValue != nullptr
-                            throw TypeMismatch(value.type(), allocatedValue->type());
+                        {
+                            if ( allocatedValue->type() == Value::Type::NullArray && allocatedValue->arraySize() == 0 ) // 0-sized null arrays may be assigned to any array
+                            {
+                                switch ( value.type() )
+                                {
+                                    case Value::Type::BoolArray: value = T{}; break;
+                                    case Value::Type::NumberArray: value = T{}; break;
+                                    case Value::Type::StringArray: value = T{}; break;
+                                    case Value::Type::ObjectArray: value = T{}; break;
+                                    case Value::Type::MixedArray: value = T{}; break;
+                                    default: throw TypeMismatch(value.type(), allocatedValue->type()); break;
+                                }
+                            }
+                            else
+                                throw TypeMismatch(value.type(), allocatedValue->type());
+                        }
                         else // !is_pointable_v<T> && allocatedValue != nullptr && value.type() == allocatedValue->type()
                         {
                             value = *allocatedValue;
@@ -1449,7 +1464,6 @@ namespace Json
                     {
                     case '\"': os << "\\\""; break;
                     case '\\': os << "\\\\"; break;
-                    case '/': os << "\\/"; break;
                     case '\b': os << "\\b"; break;
                     case '\f': os << "\\f"; break;
                     case '\n': os << "\\n"; break;
