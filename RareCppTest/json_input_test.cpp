@@ -1335,7 +1335,7 @@ struct VariousValues
         constIntPointerNull(nullptr), constIntPointerToBecomeNull(&integer), constIntPointerValue(&integer),
         intConstPointerNull(nullptr), intConstPointerToBecomeNull(&integer), intConstPointerValue(&integer),
         constIntConstPointerNull(nullptr), constIntConstPointerToBecomeNull(&integer), constIntConstPointerValue(&integer),
-        genericValue(), intVector(), composedObj({}), integerString(0), enumInt(EnumIntEnum::none), replaceableInt(0), boolean(false),
+        genericValue(), genericObjectArray(), intVector(), composedObj({}), integerString(0), enumInt(EnumIntEnum::none), replaceableInt(0), boolean(false),
         str(), mappedTo({}), emptyTuple({}), singleTuple({}), doubleTuple({}), tripleTuple({}), pair({}),
         primitiveKey(), complexKey(), intIntArrayTuple({}), intIntKeyableTuple({}), intIntTupleTuple({}) {}
         
@@ -1365,6 +1365,7 @@ struct VariousValues
     const int* const constIntConstPointerValue;
 
     Json::Object genericValue;
+    Json::ObjectArray genericObjectArray;
     std::vector<int> intVector;
     ComposedObj composedObj;
     NOTE(integerString, Json::Stringify)
@@ -1394,7 +1395,7 @@ struct VariousValues
         constIntPointerNull, constIntPointerToBecomeNull, constIntPointerValue,
         intConstPointerNull, intConstPointerToBecomeNull, intConstPointerValue,
         constIntConstPointerNull, constIntConstPointerToBecomeNull, constIntConstPointerValue,
-        genericValue, intVector, composedObj, integerString, enumInt, replaceableInt, boolean, constant, str, mappedTo,
+        genericValue, genericObjectArray, intVector, composedObj, integerString, enumInt, replaceableInt, boolean, constant, str, mappedTo,
         emptyTuple, singleTuple, doubleTuple, tripleTuple, pair, primitiveKey, complexKey, intIntArrayTuple,
         intIntKeyableTuple, intIntTupleTuple)
 };
@@ -1416,6 +1417,8 @@ TEST_HEADER(JsonInputRead, Value)
     v.constIntPointerNull = nullptr;
     v.constIntPointerToBecomeNull = &anInt;
     v.constIntPointerValue = &anInt;
+
+    v.genericObjectArray.objectArray().assign(2, Json::ObjectValue{});
 
     v.composedObj.a = 0;
     v.integerString = 0;
@@ -1499,6 +1502,10 @@ TEST_HEADER(JsonInputRead, Value)
     Json::Read::value<NoNote, true, Reflect<VariousValues>::MemberType::constIntPointerValue, const int*, VariousValues>(
         constIntPtrValue, Json::defaultContext, c, v, v.constIntPointerValue);
     EXPECT_EQ(999, anInt); // Value should not change
+
+    std::stringstream emptyArrayValue("[],");
+    Json::Read::value<NoNote, true, Reflect<VariousValues>::MemberType::genericObjectArray, Json::ObjectArray, VariousValues>(
+        emptyArrayValue, Json::defaultContext, c, v, v.genericObjectArray);
 
 
     std::stringstream intConstPtrNullptr("null,");

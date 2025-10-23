@@ -2581,7 +2581,7 @@ TEST_HEADER(JsonOutputPut, String)
     Json::Output::Put::string(three, "\\");
     EXPECT_STREQ("\"\\\\\"", three.str().c_str());
     Json::Output::Put::string(four, "/");
-    EXPECT_STREQ("\"\\/\"", four.str().c_str());
+    EXPECT_STREQ("\"/\"", four.str().c_str());
     Json::Output::Put::string(five, "\b");
     EXPECT_STREQ("\"\\b\"", five.str().c_str());
     Json::Output::Put::string(six, "\f");
@@ -2597,7 +2597,7 @@ TEST_HEADER(JsonOutputPut, String)
     EXPECT_STREQ("\"\"", ten.str().c_str());
 
     Json::Output::Put::string(eleven, "asdf\"\\/\b\f\n\r\tjkl;");
-    EXPECT_STREQ("\"asdf\\\"\\\\\\/\\b\\f\\n\\r\\tjkl;\"", eleven.str().c_str());
+    EXPECT_STREQ("\"asdf\\\"\\\\/\\b\\f\\n\\r\\tjkl;\"", eleven.str().c_str());
 }
 
 struct OstreamOverloaded {};
