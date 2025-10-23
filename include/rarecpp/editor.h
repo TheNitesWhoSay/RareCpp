@@ -8246,7 +8246,7 @@ namespace RareEdit
                 case Op::DeselectN:
                 {
                     auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".deselectN(").template putIndex<index_type>(os, offset).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
+                    put(os, ".deselectN(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
                 case Op::ToggleSelection:
