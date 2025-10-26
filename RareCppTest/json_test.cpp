@@ -418,11 +418,13 @@ TEST_HEADER(JsonGenericTest, TypeMismatch)
     EXPECT_FALSE(Json::Value::TypeMismatch::getTypeStr(Json::Value::Type::Number).empty());
     EXPECT_FALSE(Json::Value::TypeMismatch::getTypeStr(Json::Value::Type::String).empty());
     EXPECT_FALSE(Json::Value::TypeMismatch::getTypeStr(Json::Value::Type::Object).empty());
+    EXPECT_FALSE(Json::Value::TypeMismatch::getTypeStr(Json::Value::Type::OrderedObject).empty());
     EXPECT_FALSE(Json::Value::TypeMismatch::getTypeStr(Json::Value::Type::Array).empty());
     EXPECT_FALSE(Json::Value::TypeMismatch::getTypeStr(Json::Value::Type::BoolArray).empty());
     EXPECT_FALSE(Json::Value::TypeMismatch::getTypeStr(Json::Value::Type::NumberArray).empty());
     EXPECT_FALSE(Json::Value::TypeMismatch::getTypeStr(Json::Value::Type::StringArray).empty());
     EXPECT_FALSE(Json::Value::TypeMismatch::getTypeStr(Json::Value::Type::ObjectArray).empty());
+    EXPECT_FALSE(Json::Value::TypeMismatch::getTypeStr(Json::Value::Type::OrderedObjectArray).empty());
     EXPECT_FALSE(Json::Value::TypeMismatch::getTypeStr(Json::Value::Type::MixedArray).empty());
 
     Json::Value::TypeMismatch functionTypeMismatch(Json::Value::Type::NullArray, Json::Value::Type::Number, "nullArray");
@@ -465,6 +467,7 @@ TEST_HEADER(JsonGenericTest, Bool)
     EXPECT_THROW(ctor.number(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.string(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.object(), Json::Value::TypeMismatch);
+    EXPECT_THROW(ctor.orderedObject(), Json::Value::TypeMismatch);
 
     const Json::Bool & constCtor = ctor;
 
@@ -472,6 +475,7 @@ TEST_HEADER(JsonGenericTest, Bool)
     EXPECT_THROW(constCtor.number(), Json::Value::TypeMismatch);
     EXPECT_THROW(constCtor.string(), Json::Value::TypeMismatch);
     EXPECT_THROW(constCtor.object(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constCtor.orderedObject(), Json::Value::TypeMismatch);
 
     EXPECT_THROW(ctor.arraySize(), Json::Value::TypeMismatch);
 
@@ -480,6 +484,7 @@ TEST_HEADER(JsonGenericTest, Bool)
     EXPECT_THROW(ctor.numberArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.stringArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.objectArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(ctor.orderedObjectArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.mixedArray(), Json::Value::TypeMismatch);
 
     EXPECT_THROW(constCtor.nullArray(), Json::Value::TypeMismatch);
@@ -487,6 +492,7 @@ TEST_HEADER(JsonGenericTest, Bool)
     EXPECT_THROW(constCtor.numberArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constCtor.stringArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constCtor.objectArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constCtor.orderedObjectArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constCtor.mixedArray(), Json::Value::TypeMismatch);
 }
 
@@ -539,6 +545,7 @@ TEST_HEADER(JsonGenericTest, Number)
     EXPECT_STREQ("0", ctor.number().c_str());
     EXPECT_THROW(ctor.string(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.object(), Json::Value::TypeMismatch);
+    EXPECT_THROW(ctor.orderedObject(), Json::Value::TypeMismatch);
 
     const Json::Number & constCtor = ctor;
     
@@ -546,6 +553,7 @@ TEST_HEADER(JsonGenericTest, Number)
     EXPECT_STREQ("0", constCtor.number().c_str());
     EXPECT_THROW(constCtor.string(), Json::Value::TypeMismatch);
     EXPECT_THROW(constCtor.object(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constCtor.orderedObject(), Json::Value::TypeMismatch);
 
     EXPECT_THROW(ctor.arraySize(), Json::Value::TypeMismatch);
 
@@ -554,6 +562,7 @@ TEST_HEADER(JsonGenericTest, Number)
     EXPECT_THROW(ctor.numberArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.stringArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.objectArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(ctor.orderedObjectArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.mixedArray(), Json::Value::TypeMismatch);
 
     EXPECT_THROW(constCtor.nullArray(), Json::Value::TypeMismatch);
@@ -561,6 +570,7 @@ TEST_HEADER(JsonGenericTest, Number)
     EXPECT_THROW(constCtor.numberArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constCtor.stringArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constCtor.objectArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constCtor.orderedObjectArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constCtor.mixedArray(), Json::Value::TypeMismatch);
 }
 
@@ -594,6 +604,7 @@ TEST_HEADER(JsonGenericTest, String)
     EXPECT_THROW(ctor.number(), Json::Value::TypeMismatch);
     EXPECT_STREQ("", ctor.string().c_str());
     EXPECT_THROW(ctor.object(), Json::Value::TypeMismatch);
+    EXPECT_THROW(ctor.orderedObject(), Json::Value::TypeMismatch);
 
     const Json::String & constCtor = ctor;
     
@@ -601,6 +612,7 @@ TEST_HEADER(JsonGenericTest, String)
     EXPECT_THROW(constCtor.number(), Json::Value::TypeMismatch);
     EXPECT_STREQ("", constCtor.string().c_str());
     EXPECT_THROW(constCtor.object(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constCtor.orderedObject(), Json::Value::TypeMismatch);
 
     EXPECT_THROW(ctor.arraySize(), Json::Value::TypeMismatch);
 
@@ -609,6 +621,7 @@ TEST_HEADER(JsonGenericTest, String)
     EXPECT_THROW(ctor.numberArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.stringArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.objectArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(ctor.orderedObjectArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.mixedArray(), Json::Value::TypeMismatch);
 
     EXPECT_THROW(constCtor.nullArray(), Json::Value::TypeMismatch);
@@ -616,6 +629,7 @@ TEST_HEADER(JsonGenericTest, String)
     EXPECT_THROW(constCtor.numberArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constCtor.stringArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constCtor.objectArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constCtor.orderedObjectArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constCtor.mixedArray(), Json::Value::TypeMismatch);
 }
 
@@ -673,6 +687,74 @@ TEST_HEADER(JsonGenericTest, Object)
     EXPECT_THROW(obj.numberArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(obj.stringArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(obj.objectArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(obj.orderedObjectArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(obj.mixedArray(), Json::Value::TypeMismatch);
+
+    EXPECT_THROW(constObj.nullArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constObj.boolArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constObj.numberArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constObj.stringArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constObj.orderedObjectArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constObj.mixedArray(), Json::Value::TypeMismatch);
+}
+
+TEST_HEADER(JsonGenericTest, OrderedObject)
+{
+    Json::OrderedObject obj;
+    EXPECT_TRUE(obj.orderedObject().empty());
+
+    std::vector<std::pair<std::string, std::shared_ptr<Json::Value>>> value;
+    value.push_back(std::pair("first", std::make_shared<Json::Bool>(false)));
+    value.push_back(std::pair("second", std::make_shared<Json::String>("asdf")));
+    Json::OrderedObject objectValue(value);
+    auto* first = &objectValue.orderedObject()[0];
+    auto* second = &objectValue.orderedObject()[1];
+    EXPECT_STREQ("first", first->first.c_str());
+    EXPECT_STREQ("second", second->first.c_str());
+    EXPECT_FALSE(first->second->boolean());
+    EXPECT_STREQ("asdf", second->second->string().c_str());
+
+    auto ctorMake = std::make_shared<Json::OrderedObject>();
+    EXPECT_TRUE(ctorMake->orderedObject().empty());
+
+    auto valueMake = std::make_shared<Json::OrderedObject>(value);
+    first = &valueMake->orderedObject()[0];
+    second = &valueMake->orderedObject()[1];
+    EXPECT_STREQ("first", first->first.c_str());
+    EXPECT_STREQ("second", second->first.c_str());
+    EXPECT_FALSE(first->second->boolean());
+    EXPECT_STREQ("asdf", second->second->string().c_str());
+
+    obj = value;
+    first = &obj.orderedObject()[0];
+    second = &obj.orderedObject()[1];
+    EXPECT_STREQ("first", first->first.c_str());
+    EXPECT_STREQ("second", second->first.c_str());
+    EXPECT_FALSE(first->second->boolean());
+    EXPECT_STREQ("asdf", second->second->string().c_str());
+
+    EXPECT_EQ(Json::Value::Type::OrderedObject, obj.type());
+    
+    EXPECT_THROW(obj.boolean(), Json::Value::TypeMismatch);
+    EXPECT_THROW(obj.number(), Json::Value::TypeMismatch);
+    EXPECT_THROW(obj.string(), Json::Value::TypeMismatch);
+    EXPECT_THROW(obj.object(), Json::Value::TypeMismatch);
+
+    const Json::OrderedObject & constObj = obj;
+    
+    EXPECT_THROW(constObj.boolean(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constObj.number(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constObj.string(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constObj.object(), Json::Value::TypeMismatch);
+
+    EXPECT_THROW(obj.arraySize(), Json::Value::TypeMismatch);
+
+    EXPECT_THROW(obj.nullArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(obj.boolArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(obj.numberArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(obj.stringArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(obj.objectArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(obj.orderedObjectArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(obj.mixedArray(), Json::Value::TypeMismatch);
 
     EXPECT_THROW(constObj.nullArray(), Json::Value::TypeMismatch);
@@ -680,6 +762,7 @@ TEST_HEADER(JsonGenericTest, Object)
     EXPECT_THROW(constObj.numberArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constObj.stringArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constObj.objectArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constObj.orderedObjectArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constObj.mixedArray(), Json::Value::TypeMismatch);
 }
 
@@ -726,6 +809,7 @@ TEST_HEADER(JsonGenericTest, NullArray)
     EXPECT_THROW(nullArray.number(), Json::Value::TypeMismatch);
     EXPECT_THROW(nullArray.string(), Json::Value::TypeMismatch);
     EXPECT_THROW(nullArray.object(), Json::Value::TypeMismatch);
+    EXPECT_THROW(nullArray.orderedObject(), Json::Value::TypeMismatch);
 
     const Json::NullArray & constNullArray = nullArray;
     
@@ -733,17 +817,20 @@ TEST_HEADER(JsonGenericTest, NullArray)
     EXPECT_THROW(constNullArray.number(), Json::Value::TypeMismatch);
     EXPECT_THROW(constNullArray.string(), Json::Value::TypeMismatch);
     EXPECT_THROW(constNullArray.object(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constNullArray.orderedObject(), Json::Value::TypeMismatch);
 
     EXPECT_THROW(nullArray.boolArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(nullArray.numberArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(nullArray.stringArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(nullArray.objectArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(nullArray.orderedObjectArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(nullArray.mixedArray(), Json::Value::TypeMismatch);
 
     EXPECT_THROW(constNullArray.boolArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constNullArray.numberArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constNullArray.stringArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constNullArray.objectArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constNullArray.orderedObjectArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constNullArray.mixedArray(), Json::Value::TypeMismatch);
 }
 
@@ -798,6 +885,7 @@ TEST_HEADER(JsonGenericTest, BoolArray)
     EXPECT_THROW(ctor.number(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.string(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.object(), Json::Value::TypeMismatch);
+    EXPECT_THROW(ctor.orderedObject(), Json::Value::TypeMismatch);
 
     const Json::BoolArray & constBoolArray = ctor;
     
@@ -805,17 +893,20 @@ TEST_HEADER(JsonGenericTest, BoolArray)
     EXPECT_THROW(constBoolArray.number(), Json::Value::TypeMismatch);
     EXPECT_THROW(constBoolArray.string(), Json::Value::TypeMismatch);
     EXPECT_THROW(constBoolArray.object(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constBoolArray.orderedObject(), Json::Value::TypeMismatch);
 
     EXPECT_THROW(ctor.nullArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.numberArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.stringArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.objectArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(ctor.orderedObjectArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.mixedArray(), Json::Value::TypeMismatch);
 
     EXPECT_THROW(constBoolArray.nullArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constBoolArray.numberArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constBoolArray.stringArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constBoolArray.objectArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constBoolArray.orderedObjectArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constBoolArray.mixedArray(), Json::Value::TypeMismatch);
 }
 
@@ -869,6 +960,7 @@ TEST_HEADER(JsonGenericTest, NumberArray)
     EXPECT_THROW(ctor.number(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.string(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.object(), Json::Value::TypeMismatch);
+    EXPECT_THROW(ctor.orderedObject(), Json::Value::TypeMismatch);
 
     const Json::NumberArray & constBoolArray = ctor;
     
@@ -876,17 +968,20 @@ TEST_HEADER(JsonGenericTest, NumberArray)
     EXPECT_THROW(constBoolArray.number(), Json::Value::TypeMismatch);
     EXPECT_THROW(constBoolArray.string(), Json::Value::TypeMismatch);
     EXPECT_THROW(constBoolArray.object(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constBoolArray.orderedObject(), Json::Value::TypeMismatch);
 
     EXPECT_THROW(ctor.nullArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.boolArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.stringArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.objectArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(ctor.orderedObjectArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.mixedArray(), Json::Value::TypeMismatch);
 
     EXPECT_THROW(constBoolArray.nullArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constBoolArray.boolArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constBoolArray.stringArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constBoolArray.objectArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constBoolArray.orderedObjectArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constBoolArray.mixedArray(), Json::Value::TypeMismatch);
 }
 
@@ -935,6 +1030,7 @@ TEST_HEADER(JsonGenericTest, StringArray)
     EXPECT_THROW(ctor.number(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.string(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.object(), Json::Value::TypeMismatch);
+    EXPECT_THROW(ctor.orderedObject(), Json::Value::TypeMismatch);
 
     const Json::StringArray & constStringArray = ctor;
     
@@ -942,17 +1038,20 @@ TEST_HEADER(JsonGenericTest, StringArray)
     EXPECT_THROW(constStringArray.number(), Json::Value::TypeMismatch);
     EXPECT_THROW(constStringArray.string(), Json::Value::TypeMismatch);
     EXPECT_THROW(constStringArray.object(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constStringArray.orderedObject(), Json::Value::TypeMismatch);
 
     EXPECT_THROW(ctor.nullArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.boolArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.numberArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.objectArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(ctor.orderedObjectArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.mixedArray(), Json::Value::TypeMismatch);
 
     EXPECT_THROW(constStringArray.nullArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constStringArray.boolArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constStringArray.numberArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constStringArray.objectArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constStringArray.orderedObjectArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constStringArray.mixedArray(), Json::Value::TypeMismatch);
 }
 
@@ -1059,6 +1158,7 @@ TEST_HEADER(JsonGenericTest, ObjectArray)
     EXPECT_THROW(ctor.number(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.string(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.object(), Json::Value::TypeMismatch);
+    EXPECT_THROW(ctor.orderedObject(), Json::Value::TypeMismatch);
 
     const Json::ObjectArray & constObjectArray = ctor;
     
@@ -1066,17 +1166,148 @@ TEST_HEADER(JsonGenericTest, ObjectArray)
     EXPECT_THROW(constObjectArray.number(), Json::Value::TypeMismatch);
     EXPECT_THROW(constObjectArray.string(), Json::Value::TypeMismatch);
     EXPECT_THROW(constObjectArray.object(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constObjectArray.orderedObject(), Json::Value::TypeMismatch);
 
     EXPECT_THROW(ctor.nullArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.boolArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.numberArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.stringArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(ctor.orderedObjectArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.mixedArray(), Json::Value::TypeMismatch);
 
     EXPECT_THROW(constObjectArray.nullArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constObjectArray.boolArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constObjectArray.numberArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constObjectArray.stringArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constObjectArray.orderedObjectArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constObjectArray.mixedArray(), Json::Value::TypeMismatch);
+}
+
+TEST_HEADER(JsonGenericTest, OrderedObjectArray)
+{
+    Json::OrderedObjectArray ctor;
+    EXPECT_EQ(size_t(0), ctor.arraySize());
+    EXPECT_TRUE(ctor.orderedObjectArray().empty());
+
+    std::vector<std::vector<std::pair<std::string, std::shared_ptr<Json::Value>>>> objects;
+    std::vector<std::pair<std::string, std::shared_ptr<Json::Value>>> firstObj;
+    std::vector<std::pair<std::string, std::shared_ptr<Json::Value>>> secondObj;
+    std::vector<std::pair<std::string, std::shared_ptr<Json::Value>>> thirdObj;
+    firstObj.push_back(std::pair("firstOne", std::make_shared<Json::Bool>(false)));
+    firstObj.push_back(std::pair("firstTwo", std::make_shared<Json::Number>("1234")));
+    firstObj.push_back(std::pair("firstThree", std::make_shared<Json::String>("asdf")));
+    thirdObj.push_back(std::pair("thirdThree", std::make_shared<Json::OrderedObject>()));
+    objects.push_back(firstObj);
+    objects.push_back(secondObj);
+    objects.push_back(thirdObj);
+    
+    Json::OrderedObjectArray valueConstruct(objects);
+    EXPECT_EQ(size_t(3), valueConstruct.arraySize());
+    EXPECT_EQ(size_t(3), valueConstruct.orderedObjectArray().size());
+    auto first = valueConstruct.orderedObjectArray()[0];
+    EXPECT_STREQ("firstOne", first[0].first.c_str());
+    EXPECT_STREQ("firstTwo", first[1].first.c_str());
+    EXPECT_STREQ("firstThree", first[2].first.c_str());
+    EXPECT_EQ(false, first[0].second->boolean());
+    EXPECT_STREQ("1234", first[1].second->number().c_str());
+    EXPECT_STREQ("asdf", first[2].second->string().c_str());
+    auto second = valueConstruct.orderedObjectArray()[1];
+    EXPECT_TRUE(second.empty());
+    auto third = valueConstruct.orderedObjectArray()[2];
+    EXPECT_EQ(Json::Value::Type::OrderedObject, third[0].second->type());
+
+    Json::OrderedObjectArray copyConstruct(valueConstruct);
+    EXPECT_EQ(size_t(3), copyConstruct.arraySize());
+    EXPECT_EQ(size_t(3), copyConstruct.orderedObjectArray().size());
+    first = copyConstruct.orderedObjectArray()[0];
+    EXPECT_STREQ("firstOne", first[0].first.c_str());
+    EXPECT_STREQ("firstTwo", first[1].first.c_str());
+    EXPECT_STREQ("firstThree", first[2].first.c_str());
+    EXPECT_EQ(false, first[0].second->boolean());
+    EXPECT_STREQ("1234", first[1].second->number().c_str());
+    EXPECT_STREQ("asdf", first[2].second->string().c_str());
+    second = copyConstruct.orderedObjectArray()[1];
+    EXPECT_TRUE(second.empty());
+    third = copyConstruct.orderedObjectArray()[2];
+    EXPECT_EQ(Json::Value::Type::OrderedObject, third[0].second->type());
+
+    auto ctorMake = std::make_shared<Json::OrderedObjectArray>();
+    EXPECT_EQ(size_t(0), ctorMake->arraySize());
+    EXPECT_TRUE(ctorMake->orderedObjectArray().empty());
+
+    auto valueMake = std::make_shared<Json::OrderedObjectArray>(objects);
+    EXPECT_EQ(size_t(3), valueMake->arraySize());
+    EXPECT_EQ(size_t(3), valueMake->orderedObjectArray().size());
+    first = valueMake->orderedObjectArray()[0];
+    EXPECT_STREQ("firstOne", first[0].first.c_str());
+    EXPECT_STREQ("firstTwo", first[1].first.c_str());
+    EXPECT_STREQ("firstThree", first[2].first.c_str());
+    EXPECT_EQ(false, first[0].second->boolean());
+    EXPECT_STREQ("1234", first[1].second->number().c_str());
+    EXPECT_STREQ("asdf", first[2].second->string().c_str());
+    second = valueMake->orderedObjectArray()[1];
+    EXPECT_TRUE(second.empty());
+    third = valueMake->orderedObjectArray()[2];
+    EXPECT_EQ(Json::Value::Type::OrderedObject, third[0].second->type());
+
+    auto copyMake = std::make_shared<Json::OrderedObjectArray>(valueConstruct);
+    EXPECT_EQ(size_t(3), copyMake->arraySize());
+    EXPECT_EQ(size_t(3), copyMake->orderedObjectArray().size());
+    first = copyMake->orderedObjectArray()[0];
+    EXPECT_STREQ("firstOne", first[0].first.c_str());
+    EXPECT_STREQ("firstTwo", first[1].first.c_str());
+    EXPECT_STREQ("firstThree", first[2].first.c_str());
+    EXPECT_EQ(false, first[0].second->boolean());
+    EXPECT_STREQ("1234", first[1].second->number().c_str());
+    EXPECT_STREQ("asdf", first[2].second->string().c_str());
+    second = copyMake->orderedObjectArray()[1];
+    EXPECT_TRUE(second.empty());
+    third = copyMake->orderedObjectArray()[2];
+    EXPECT_EQ(Json::Value::Type::OrderedObject, third[0].second->type());
+
+    Json::OrderedObjectArray other = valueConstruct;
+    EXPECT_EQ(size_t(3), other.arraySize());
+    EXPECT_EQ(size_t(3), other.orderedObjectArray().size());
+    first = other.orderedObjectArray()[0];
+    EXPECT_STREQ("firstOne", first[0].first.c_str());
+    EXPECT_STREQ("firstTwo", first[1].first.c_str());
+    EXPECT_STREQ("firstThree", first[2].first.c_str());
+    EXPECT_EQ(false, first[0].second->boolean());
+    EXPECT_STREQ("1234", first[1].second->number().c_str());
+    EXPECT_STREQ("asdf", first[2].second->string().c_str());
+    second = other.orderedObjectArray()[1];
+    EXPECT_TRUE(second.empty());
+    third = other.orderedObjectArray()[2];
+    EXPECT_EQ(Json::Value::Type::OrderedObject, third[0].second->type());
+
+    EXPECT_EQ(Json::Value::Type::OrderedObjectArray, ctor.type());
+
+    EXPECT_THROW(ctor.boolean(), Json::Value::TypeMismatch);
+    EXPECT_THROW(ctor.number(), Json::Value::TypeMismatch);
+    EXPECT_THROW(ctor.string(), Json::Value::TypeMismatch);
+    EXPECT_THROW(ctor.object(), Json::Value::TypeMismatch);
+    EXPECT_THROW(ctor.orderedObject(), Json::Value::TypeMismatch);
+
+    const Json::OrderedObjectArray & constObjectArray = ctor;
+    
+    EXPECT_THROW(constObjectArray.boolean(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constObjectArray.number(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constObjectArray.string(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constObjectArray.object(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constObjectArray.orderedObject(), Json::Value::TypeMismatch);
+
+    EXPECT_THROW(ctor.nullArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(ctor.boolArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(ctor.numberArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(ctor.stringArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(ctor.objectArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(ctor.mixedArray(), Json::Value::TypeMismatch);
+
+    EXPECT_THROW(constObjectArray.nullArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constObjectArray.boolArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constObjectArray.numberArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constObjectArray.stringArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constObjectArray.objectArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constObjectArray.mixedArray(), Json::Value::TypeMismatch);
 }
 
@@ -1212,6 +1443,7 @@ TEST_HEADER(JsonGenericTest, MixedArray)
     EXPECT_THROW(ctor.number(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.string(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.object(), Json::Value::TypeMismatch);
+    EXPECT_THROW(ctor.orderedObject(), Json::Value::TypeMismatch);
 
     const Json::MixedArray & constMixedArray = ctor;
     
@@ -1219,18 +1451,21 @@ TEST_HEADER(JsonGenericTest, MixedArray)
     EXPECT_THROW(constMixedArray.number(), Json::Value::TypeMismatch);
     EXPECT_THROW(constMixedArray.string(), Json::Value::TypeMismatch);
     EXPECT_THROW(constMixedArray.object(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constMixedArray.orderedObject(), Json::Value::TypeMismatch);
 
     EXPECT_THROW(ctor.nullArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.boolArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.numberArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.stringArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.objectArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(ctor.orderedObjectArray(), Json::Value::TypeMismatch);
 
     EXPECT_THROW(constMixedArray.nullArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constMixedArray.boolArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constMixedArray.numberArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constMixedArray.stringArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constMixedArray.objectArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constMixedArray.orderedObjectArray(), Json::Value::TypeMismatch);
 }
 
 TEST_HEADER(JsonGenericTest, FieldCluster)
@@ -1285,6 +1520,7 @@ TEST_HEADER(JsonGenericTest, FieldCluster)
     EXPECT_THROW(ctor.numberArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.stringArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.objectArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(ctor.orderedObjectArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(ctor.mixedArray(), Json::Value::TypeMismatch);
 
     EXPECT_THROW(constFieldCluster.nullArray(), Json::Value::TypeMismatch);
@@ -1292,6 +1528,7 @@ TEST_HEADER(JsonGenericTest, FieldCluster)
     EXPECT_THROW(constFieldCluster.numberArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constFieldCluster.stringArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constFieldCluster.objectArray(), Json::Value::TypeMismatch);
+    EXPECT_THROW(constFieldCluster.orderedObjectArray(), Json::Value::TypeMismatch);
     EXPECT_THROW(constFieldCluster.mixedArray(), Json::Value::TypeMismatch);
 }
 
@@ -1430,11 +1667,13 @@ TEST_HEADER(JsonIdentifiersTest, IsNonPrimitive)
     EXPECT_TRUE(Json::is_non_primitive_v<UnorderedMap>);
     EXPECT_TRUE(Json::is_non_primitive_v<UnorderedMultiMap>);
     EXPECT_TRUE(Json::is_non_primitive_v<Json::Generic::Object>);
+    EXPECT_TRUE(Json::is_non_primitive_v<Json::Generic::OrderedObject>);
     EXPECT_TRUE(Json::is_non_primitive_v<Json::Generic::NullArray>);
     EXPECT_TRUE(Json::is_non_primitive_v<Json::Generic::BoolArray>);
     EXPECT_TRUE(Json::is_non_primitive_v<Json::Generic::NumberArray>);
     EXPECT_TRUE(Json::is_non_primitive_v<Json::Generic::StringArray>);
     EXPECT_TRUE(Json::is_non_primitive_v<Json::Generic::ObjectArray>);
+    EXPECT_TRUE(Json::is_non_primitive_v<Json::Generic::OrderedObjectArray>);
     EXPECT_TRUE(Json::is_non_primitive_v<Json::Generic::MixedArray>);
     EXPECT_TRUE(Json::is_non_primitive_v<Json::Generic::FieldCluster>);
     EXPECT_TRUE(Json::is_non_primitive_v<std::vector<int>** &>);
@@ -1481,11 +1720,13 @@ TEST_HEADER(JsonIdentifiersTest, IsNonPrimitive)
     EXPECT_TRUE(Json::is_non_primitive_v<const UnorderedMap>);
     EXPECT_TRUE(Json::is_non_primitive_v<const UnorderedMultiMap>);
     EXPECT_TRUE(Json::is_non_primitive_v<const Json::Generic::Object>);
+    EXPECT_TRUE(Json::is_non_primitive_v<const Json::Generic::OrderedObject>);
     EXPECT_TRUE(Json::is_non_primitive_v<const Json::Generic::NullArray>);
     EXPECT_TRUE(Json::is_non_primitive_v<const Json::Generic::BoolArray>);
     EXPECT_TRUE(Json::is_non_primitive_v<const Json::Generic::NumberArray>);
     EXPECT_TRUE(Json::is_non_primitive_v<const Json::Generic::StringArray>);
     EXPECT_TRUE(Json::is_non_primitive_v<const Json::Generic::ObjectArray>);
+    EXPECT_TRUE(Json::is_non_primitive_v<const Json::Generic::OrderedObjectArray>);
     EXPECT_TRUE(Json::is_non_primitive_v<const Json::Generic::MixedArray>);
     EXPECT_TRUE(Json::is_non_primitive_v<const Json::Generic::FieldCluster>);
     EXPECT_TRUE(Json::is_non_primitive_v<const std::vector<int>** &>);
@@ -2628,11 +2869,13 @@ TEST_HEADER(JsonOutputPut, GenericValue)
         numberStream,
         strStream,
         objStream,
+        orderedObjStream,
         nullArrayStream,
         boolArrayStream,
         numberArrayStream,
         strArrayStream,
         objArrayStream,
+        orderedObjArrayStream,
         mixedArrayStream,
         fieldClusterStream;
 
@@ -2654,6 +2897,13 @@ TEST_HEADER(JsonOutputPut, GenericValue)
     obj.put("number", std::make_shared<Json::Number>("1234"));
     Json::Put::genericValue<NoNote, false, Json::twoSpaces, true>(objStream, Json::defaultContext, 0, obj);
     EXPECT_STREQ("{\"astr\":\"asdf\",\"null\":null,\"number\":1234}", objStream.str().c_str());
+
+    Json::OrderedObject orderedObj;
+    orderedObj.put("zstr", std::make_shared<Json::String>("asdf"));
+    orderedObj.put("null", nullptr);
+    orderedObj.put("number", std::make_shared<Json::Number>("1234"));
+    Json::Put::genericValue<NoNote, false, Json::twoSpaces, true>(orderedObjStream, Json::defaultContext, 0, orderedObj);
+    EXPECT_STREQ("{\"zstr\":\"asdf\",\"null\":null,\"number\":1234}", orderedObjStream.str().c_str());
 
     Json::NullArray nullArray(3);
     Json::Put::genericValue<NoNote, false, Json::twoSpaces, true>(nullArrayStream, Json::defaultContext, 0, nullArray);
@@ -2688,6 +2938,15 @@ TEST_HEADER(JsonOutputPut, GenericValue)
     Json::Put::genericValue<NoNote, false, Json::twoSpaces, true>(objArrayStream, Json::defaultContext, 0, objArray);
     EXPECT_STREQ("[{\"astr\":\"asdf\",\"null\":null,\"number\":1234}]", objArrayStream.str().c_str());
 
+    Json::OrderedObjectArray orderedObjArray;
+    std::vector<std::pair<std::string, std::shared_ptr<Json::Value>>> orderedObjElement;
+    orderedObjElement.push_back(std::pair("zstr", std::make_shared<Json::String>("asdf")));
+    orderedObjElement.push_back(std::pair("null", nullptr));
+    orderedObjElement.push_back(std::pair("number", std::make_shared<Json::Number>("1234")));
+    orderedObjArray.orderedObjectArray().push_back(orderedObjElement);
+    Json::Put::genericValue<NoNote, false, Json::twoSpaces, true>(orderedObjArrayStream, Json::defaultContext, 0, orderedObjArray);
+    EXPECT_STREQ("[{\"zstr\":\"asdf\",\"null\":null,\"number\":1234}]", orderedObjArrayStream.str().c_str());
+
     Json::MixedArray mixedArray;
     mixedArray.mixedArray().push_back(std::make_shared<Json::Bool>(true));
     mixedArray.mixedArray().push_back(nullptr);
@@ -2709,6 +2968,7 @@ TEST_HEADER(JsonOutputPut, GenericIterable)
         numberArrayStream,
         strArrayStream,
         objArrayStream,
+        orderedObjArrayStream,
         mixedArrayStream;
 
     Json::Object obj;
@@ -2748,6 +3008,14 @@ TEST_HEADER(JsonOutputPut, GenericIterable)
     objArray.objectArray().push_back(objElement);
     Json::Put::genericIterable<NoNote, false, Json::twoSpaces>(objArrayStream, Json::defaultContext, 3, objArray);
     EXPECT_STREQ("[{\"astr\":\"asdf\",\"number\":1234}]", objArrayStream.str().c_str());
+
+    Json::OrderedObjectArray orderedObjArray;
+    std::vector<std::pair<std::string, std::shared_ptr<Json::Value>>> orderedObjElement;
+    orderedObjElement.push_back(std::pair("astr", std::make_shared<Json::String>("asdf")));
+    orderedObjElement.push_back(std::pair("number", std::make_shared<Json::Number>("1234")));
+    orderedObjArray.orderedObjectArray().push_back(orderedObjElement);
+    Json::Put::genericIterable<NoNote, false, Json::twoSpaces>(orderedObjArrayStream, Json::defaultContext, 3, orderedObjArray);
+    EXPECT_STREQ("[{\"astr\":\"asdf\",\"number\":1234}]", orderedObjArrayStream.str().c_str());
 
     Json::MixedArray mixedArray;
     mixedArray.mixedArray().push_back(std::make_shared<Json::Bool>(true));
