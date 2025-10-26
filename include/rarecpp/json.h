@@ -475,7 +475,7 @@ namespace Json
             std::string & number() final { throw TypeMismatch(Value::Type::Boolean, Value::Type::Number, "number"); }
             std::string & string() final { throw TypeMismatch(Value::Type::Boolean, Value::Type::String, "string"); }
             std::map<std::string, std::shared_ptr<Value>> & object() final { throw TypeMismatch(Value::Type::Boolean, Value::Type::Object, "object"); }
-            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() {
+            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() final {
                 throw TypeMismatch(Value::Type::Boolean, Value::Type::OrderedObject, "orderedObject");
             }
 
@@ -538,7 +538,7 @@ namespace Json
             std::string & number() final { return value; }
             std::string & string() final { throw TypeMismatch(Value::Type::Number, Value::Type::String, "string"); }
             std::map<std::string, std::shared_ptr<Value>> & object() final { throw TypeMismatch(Value::Type::Number, Value::Type::Object, "object"); }
-            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() {
+            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() final {
                 throw TypeMismatch(Value::Type::Number, Value::Type::OrderedObject, "orderedObject");
             }
 
@@ -598,7 +598,7 @@ namespace Json
             std::string & number() final { throw TypeMismatch(Value::Type::String, Value::Type::Number, "number"); }
             std::string & string() final { return value; }
             std::map<std::string, std::shared_ptr<Value>> & object() final { throw TypeMismatch(Value::Type::String, Value::Type::Object, "object"); }
-            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() {
+            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() final {
                 throw TypeMismatch(Value::Type::String, Value::Type::OrderedObject, "orderedObject");
             }
 
@@ -659,7 +659,7 @@ namespace Json
             std::string & number() final { throw TypeMismatch(Value::Type::Object, Value::Type::Number, "number"); }
             std::string & string() final { throw TypeMismatch(Value::Type::Object, Value::Type::String, "string"); }
             std::map<std::string, std::shared_ptr<Value>> & object() final { return value; }
-            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() {
+            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() final {
                 throw TypeMismatch(Value::Type::Object, Value::Type::OrderedObject, "orderedObject");
             }
             
@@ -788,7 +788,7 @@ namespace Json
             std::string & number() final { throw TypeMismatch(Value::Type::NullArray, Value::Type::Number, "number"); }
             std::string & string() final { throw TypeMismatch(Value::Type::NullArray, Value::Type::String, "string"); }
             std::map<std::string, std::shared_ptr<Value>> & object() final { throw TypeMismatch(Value::Type::NullArray, Value::Type::Object, "object"); }
-            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() {
+            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() final {
                 throw TypeMismatch(Value::Type::NullArray, Value::Type::OrderedObject, "orderedObject");
             }
 
@@ -852,7 +852,7 @@ namespace Json
             std::string & number() final { throw TypeMismatch(Value::Type::BoolArray, Value::Type::Number, "number"); }
             std::string & string() final { throw TypeMismatch(Value::Type::BoolArray, Value::Type::String, "string"); }
             std::map<std::string, std::shared_ptr<Value>> & object() final { throw TypeMismatch(Value::Type::BoolArray, Value::Type::Object, "object"); }
-            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() {
+            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() final {
                 throw TypeMismatch(Value::Type::BoolArray, Value::Type::OrderedObject, "orderedObject");
             }
             
@@ -916,7 +916,7 @@ namespace Json
             std::string & number() final { throw TypeMismatch(Value::Type::NumberArray, Value::Type::Number, "number"); }
             std::string & string() final { throw TypeMismatch(Value::Type::NumberArray, Value::Type::String, "string"); }
             std::map<std::string, std::shared_ptr<Value>> & object() final { throw TypeMismatch(Value::Type::NumberArray, Value::Type::Object, "object"); }
-            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() {
+            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() final {
                 throw TypeMismatch(Value::Type::NumberArray, Value::Type::OrderedObject, "orderedObject");
             }
             
@@ -978,7 +978,7 @@ namespace Json
             std::string & number() final { throw TypeMismatch(Value::Type::StringArray, Value::Type::Number, "number"); }
             std::string & string() final { throw TypeMismatch(Value::Type::StringArray, Value::Type::String, "string"); }
             std::map<std::string, std::shared_ptr<Value>> & object() final { throw TypeMismatch(Value::Type::StringArray, Value::Type::Object, "object"); }
-            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() {
+            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() final {
                 throw TypeMismatch(Value::Type::StringArray, Value::Type::OrderedObject, "orderedObject");
             }
             
@@ -1040,7 +1040,7 @@ namespace Json
             std::string & number() final { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Number, "number"); }
             std::string & string() final { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::String, "string"); }
             std::map<std::string, std::shared_ptr<Value>> & object() final { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Object, "object"); }
-            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() {
+            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() final {
                 throw TypeMismatch(Value::Type::ObjectArray, Value::Type::OrderedObject, "orderedObject");
             }
             
@@ -1103,7 +1103,7 @@ namespace Json
             std::map<std::string, std::shared_ptr<Value>> & object() final {
                 throw TypeMismatch(Value::Type::OrderedObjectArray, Value::Type::Object, "object");
             }
-            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() {
+            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() final {
                 throw TypeMismatch(Value::Type::OrderedObjectArray, Value::Type::OrderedObject, "orderedObject");
             }
             
@@ -1165,7 +1165,7 @@ namespace Json
             std::string & number() final { throw TypeMismatch(Value::Type::MixedArray, Value::Type::Number, "number"); }
             std::string & string() final { throw TypeMismatch(Value::Type::MixedArray, Value::Type::String, "string"); }
             std::map<std::string, std::shared_ptr<Value>> & object() final { throw TypeMismatch(Value::Type::MixedArray, Value::Type::Object, "object"); }
-            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() {
+            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() final {
                 throw TypeMismatch(Value::Type::MixedArray, Value::Type::OrderedObject, "orderedObject");
             }
             
