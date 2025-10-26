@@ -1159,7 +1159,7 @@ TEST_HEADER(JsonInputRead, GenericValue)
     bool throwedAsExpected = false;
     try {
         Json::Read::genericValue<true, false>(invalidStream, Json::defaultContext, c);
-    } catch ( Json::InvalidUnknownFieldValue ) {
+    } catch ( Json::InvalidUnknownFieldValue & ) {
         throwedAsExpected = true;
     }
     EXPECT_TRUE(throwedAsExpected);
