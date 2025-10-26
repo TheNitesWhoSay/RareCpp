@@ -3729,9 +3729,18 @@ namespace Json
             template <bool OrderedObject>
             inline std::shared_ptr<Generic::Value::Assigner> genericObject(std::istream & is, Context & context, char & c)
             {
-                std::shared_ptr<Generic::Value::Assigner> result = std::make_shared<Generic::Value::Assigner>(std::make_unique<Generic::Object>());
-                auto & obj = result->get()->object();
+                std::shared_ptr<Generic::Value::Assigner> result = nullptr;
+                if constexpr ( OrderedObject )
+                    result = std::make_shared<Generic::Value::Assigner>(std::make_unique<Generic::OrderedObject>());
+                else
+                    result = std::make_shared<Generic::Value::Assigner>(std::make_unique<Generic::Object>());
 
+                auto & obj = [&]() -> auto & {
+                    if constexpr ( OrderedObject )
+                        return result->get()->orderedObject();
+                    else
+                        return result->get()->object();
+                }();
                 Read::objectPrefix(is, c);
                 if ( !Read::tryObjectSuffix(is) )
                 {
@@ -3740,7 +3749,10 @@ namespace Json
                         std::string fieldName = Read::fieldName(is, c);
                         Read::fieldNameValueSeparator(is, c);
                         std::shared_ptr<Generic::Value> value = Read::genericValue<false, OrderedObject>(is, context, c)->out();
-                        obj.insert(std::pair<std::string, std::shared_ptr<Generic::Value>>(fieldName, value));
+                        if constexpr ( OrderedObject )
+                            obj.push_back(std::pair<std::string, std::shared_ptr<Generic::Value>>(fieldName, value));
+                        else
+                            obj.insert(std::pair<std::string, std::shared_ptr<Generic::Value>>(fieldName, value));
                     }
                     while ( Read::fieldSeparator(is) );
                 }
