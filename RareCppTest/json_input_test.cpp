@@ -1143,66 +1143,72 @@ TEST_HEADER(JsonInputRead, GenericValue)
     std::stringstream nullStream("null,");
     std::stringstream invalidStream("qqq,");
     
-    assigner = Json::Read::genericValue<true>(stringStream, Json::defaultContext, c);
+    assigner = Json::Read::genericValue<true, false>(stringStream, Json::defaultContext, c);
     EXPECT_EQ(Json::Value::Type::String, assigner->get()->type());
-    assigner = Json::Read::genericValue<true>(objectStream, Json::defaultContext, c);
+    assigner = Json::Read::genericValue<true, false>(objectStream, Json::defaultContext, c);
     EXPECT_EQ(Json::Value::Type::Object, assigner->get()->type());
-    assigner = Json::Read::genericValue<true>(arrayStream, Json::defaultContext, c);
+    assigner = Json::Read::genericValue<true, false>(arrayStream, Json::defaultContext, c);
     EXPECT_EQ(Json::Value::Type::NullArray, assigner->get()->type());
-    assigner = Json::Read::genericValue<true>(boolStream, Json::defaultContext, c);
+    assigner = Json::Read::genericValue<true, false>(boolStream, Json::defaultContext, c);
     EXPECT_EQ(Json::Value::Type::Boolean, assigner->get()->type());
-    assigner = Json::Read::genericValue<true>(numberStream, Json::defaultContext, c);
+    assigner = Json::Read::genericValue<true, false>(numberStream, Json::defaultContext, c);
     EXPECT_EQ(Json::Value::Type::Number, assigner->get()->type());
-    assigner = Json::Read::genericValue<true>(nullStream, Json::defaultContext, c);
+    assigner = Json::Read::genericValue<true, false>(nullStream, Json::defaultContext, c);
     EXPECT_TRUE(assigner->get() == nullptr);
 
-    EXPECT_THROW(Json::Read::genericValue<true>(invalidStream, Json::defaultContext, c), Json::InvalidUnknownFieldValue);
+    bool throwedAsExpected = false;
+    try {
+        Json::Read::genericValue<true, false>(invalidStream, Json::defaultContext, c);
+    } catch ( Json::InvalidUnknownFieldValue ) {
+        throwedAsExpected = true;
+    }
+    EXPECT_TRUE(throwedAsExpected);
 }
 
 TEST_HEADER(JsonInputRead, ValueType)
 {
     char c = '\"';
-    EXPECT_EQ(Json::Value::Type::String, Json::Read::valueType(c));
+    EXPECT_EQ(Json::Value::Type::String, Json::Read::valueType<false>(c));
 
     c = '{';
-    EXPECT_EQ(Json::Value::Type::Object, Json::Read::valueType(c));
+    EXPECT_EQ(Json::Value::Type::Object, Json::Read::valueType<false>(c));
 
     c = '[';
-    EXPECT_EQ(Json::Value::Type::Array, Json::Read::valueType(c));
+    EXPECT_EQ(Json::Value::Type::Array, Json::Read::valueType<false>(c));
 
     c = 't';
-    EXPECT_EQ(Json::Value::Type::Boolean, Json::Read::valueType(c));
+    EXPECT_EQ(Json::Value::Type::Boolean, Json::Read::valueType<false>(c));
     c = 'f';
-    EXPECT_EQ(Json::Value::Type::Boolean, Json::Read::valueType(c));
+    EXPECT_EQ(Json::Value::Type::Boolean, Json::Read::valueType<false>(c));
 
     c = '-';
-    EXPECT_EQ(Json::Value::Type::Number, Json::Read::valueType(c));
+    EXPECT_EQ(Json::Value::Type::Number, Json::Read::valueType<false>(c));
     c = '0';
-    EXPECT_EQ(Json::Value::Type::Number, Json::Read::valueType(c));
+    EXPECT_EQ(Json::Value::Type::Number, Json::Read::valueType<false>(c));
     c = '1';
-    EXPECT_EQ(Json::Value::Type::Number, Json::Read::valueType(c));
+    EXPECT_EQ(Json::Value::Type::Number, Json::Read::valueType<false>(c));
     c = '2';
-    EXPECT_EQ(Json::Value::Type::Number, Json::Read::valueType(c));
+    EXPECT_EQ(Json::Value::Type::Number, Json::Read::valueType<false>(c));
     c = '3';
-    EXPECT_EQ(Json::Value::Type::Number, Json::Read::valueType(c));
+    EXPECT_EQ(Json::Value::Type::Number, Json::Read::valueType<false>(c));
     c = '4';
-    EXPECT_EQ(Json::Value::Type::Number, Json::Read::valueType(c));
+    EXPECT_EQ(Json::Value::Type::Number, Json::Read::valueType<false>(c));
     c = '5';
-    EXPECT_EQ(Json::Value::Type::Number, Json::Read::valueType(c));
+    EXPECT_EQ(Json::Value::Type::Number, Json::Read::valueType<false>(c));
     c = '6';
-    EXPECT_EQ(Json::Value::Type::Number, Json::Read::valueType(c));
+    EXPECT_EQ(Json::Value::Type::Number, Json::Read::valueType<false>(c));
     c = '7';
-    EXPECT_EQ(Json::Value::Type::Number, Json::Read::valueType(c));
+    EXPECT_EQ(Json::Value::Type::Number, Json::Read::valueType<false>(c));
     c = '8';
-    EXPECT_EQ(Json::Value::Type::Number, Json::Read::valueType(c));
+    EXPECT_EQ(Json::Value::Type::Number, Json::Read::valueType<false>(c));
     c = '9';
-    EXPECT_EQ(Json::Value::Type::Number, Json::Read::valueType(c));
+    EXPECT_EQ(Json::Value::Type::Number, Json::Read::valueType<false>(c));
 
     c = 'n';
-    EXPECT_EQ(Json::Value::Type::Null, Json::Read::valueType(c));
+    EXPECT_EQ(Json::Value::Type::Null, Json::Read::valueType<false>(c));
 
     c = 'q';
-    EXPECT_THROW(Json::Read::valueType(c), Json::InvalidUnknownFieldValue);
+    EXPECT_THROW(Json::Read::valueType<false>(c), Json::InvalidUnknownFieldValue);
 }
 
 TEST_HEADER(JsonInputRead, GenericArray)
@@ -1219,21 +1225,21 @@ TEST_HEADER(JsonInputRead, GenericArray)
 
     std::shared_ptr<Json::Value::Assigner> assigner = nullptr;
 
-    assigner = Json::Read::genericArray<true>(emptyArray, Json::defaultContext, c);
+    assigner = Json::Read::genericArray<true, false>(emptyArray, Json::defaultContext, c);
     EXPECT_EQ(Json::Value::Type::NullArray, assigner->get()->type());
 
-    assigner = Json::Read::genericArray<true>(nullArray, Json::defaultContext, c);
+    assigner = Json::Read::genericArray<true, false>(nullArray, Json::defaultContext, c);
     EXPECT_EQ(Json::Value::Type::NullArray, assigner->get()->type());
     EXPECT_EQ(size_t(3), assigner->get()->nullArray());
 
-    assigner = Json::Read::genericArray<true>(boolArray, Json::defaultContext, c);
+    assigner = Json::Read::genericArray<true, false>(boolArray, Json::defaultContext, c);
     EXPECT_EQ(Json::Value::Type::BoolArray, assigner->get()->type());
     EXPECT_TRUE(assigner->get()->boolArray()[0]);
     EXPECT_FALSE(assigner->get()->boolArray()[1]);
     EXPECT_FALSE(assigner->get()->boolArray()[2]);
     EXPECT_TRUE(assigner->get()->boolArray()[3]);
     
-    assigner = Json::Read::genericArray<true>(numberArray, Json::defaultContext, c);
+    assigner = Json::Read::genericArray<true, false>(numberArray, Json::defaultContext, c);
     EXPECT_EQ(Json::Value::Type::NumberArray, assigner->get()->type());
     EXPECT_EQ(size_t(7), assigner->get()->arraySize());
     EXPECT_STREQ("12", assigner->get()->numberArray()[0].c_str());
@@ -1244,13 +1250,13 @@ TEST_HEADER(JsonInputRead, GenericArray)
     EXPECT_STREQ("-5", assigner->get()->numberArray()[5].c_str());
     EXPECT_STREQ("6", assigner->get()->numberArray()[6].c_str());
 
-    assigner = Json::Read::genericArray<true>(stringArray, Json::defaultContext, c);
+    assigner = Json::Read::genericArray<true, false>(stringArray, Json::defaultContext, c);
     EXPECT_EQ(Json::Value::Type::StringArray, assigner->get()->type());
     EXPECT_EQ(size_t(2), assigner->get()->arraySize());
     EXPECT_STREQ("asdf", assigner->get()->stringArray()[0].c_str());
     EXPECT_STREQ("qwerty", assigner->get()->stringArray()[1].c_str());
 
-    assigner = Json::Read::genericArray<true>(objectArray, Json::defaultContext, c);
+    assigner = Json::Read::genericArray<true, false>(objectArray, Json::defaultContext, c);
     EXPECT_EQ(Json::Value::Type::ObjectArray, assigner->get()->type());
     EXPECT_EQ(size_t(3), assigner->get()->arraySize());
     EXPECT_TRUE(assigner->get()->objectArray()[0].empty());
@@ -1259,13 +1265,13 @@ TEST_HEADER(JsonInputRead, GenericArray)
     EXPECT_TRUE(assigner->get()->objectArray()[2].find("null")->second == nullptr);
     EXPECT_STREQ("42", assigner->get()->objectArray()[2].find("num")->second->number().c_str());
 
-    assigner = Json::Read::genericArray<true>(mixedArray, Json::defaultContext, c);
+    assigner = Json::Read::genericArray<true, false>(mixedArray, Json::defaultContext, c);
     EXPECT_EQ(Json::Value::Type::MixedArray, assigner->get()->type());
     EXPECT_EQ(size_t(2), assigner->get()->arraySize());
     EXPECT_TRUE(assigner->get()->mixedArray()[0] == nullptr);
     EXPECT_TRUE(assigner->get()->mixedArray()[1]->boolean() == false);
 
-    assigner = Json::Read::genericArray<true>(nestedArrays, Json::defaultContext, c);
+    assigner = Json::Read::genericArray<true, false>(nestedArrays, Json::defaultContext, c);
     EXPECT_EQ(Json::Value::Type::MixedArray, assigner->get()->type());
     EXPECT_EQ(size_t(2), assigner->get()->arraySize());
     EXPECT_TRUE(assigner->get()->mixedArray()[0]->mixedArray()[0]->boolArray()[0]);
@@ -1283,10 +1289,10 @@ TEST_HEADER(JsonInputRead, GenericObject)
     std::stringstream emptyObject("{}");
     std::stringstream basicObject("{\"null\":null,\"one\":1,\"two\":2}");
     
-    assigner = Json::Read::genericObject(emptyObject, Json::defaultContext, c);
+    assigner = Json::Read::genericObject<false>(emptyObject, Json::defaultContext, c);
     EXPECT_TRUE(assigner->get()->object().empty());
 
-    assigner = Json::Read::genericObject(basicObject, Json::defaultContext, c);
+    assigner = Json::Read::genericObject<false>(basicObject, Json::defaultContext, c);
     EXPECT_TRUE(assigner->get()->object().find("null")->second == nullptr);
     EXPECT_STREQ("1", assigner->get()->object().find("one")->second->number().c_str());
     EXPECT_STREQ("2", assigner->get()->object().find("two")->second->number().c_str());
