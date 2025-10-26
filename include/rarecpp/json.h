@@ -71,7 +71,26 @@ namespace Json
              std::string_view value;
         };
 
+        // Member or operation annotation specifying that any generic JSONs inputted should use types which maintain JSON object field ordering
+        struct OrderObjectsType {};
+        inline constexpr OrderObjectsType OrderObjects{};
+
         template <typename ...Ts> using OpNotes = std::tuple<Ts...>;
+
+        template <typename Annotations>
+        class OpAnnotations
+        {
+            template <typename Note, std::size_t ... Is>
+            static constexpr bool hasNoteImpl(std::index_sequence<Is...>) {
+                return (std::is_same_v<Note, std::tuple_element_t<Is, Annotations>> || ...);
+            }
+
+        public:
+            template <typename Note>
+            static constexpr bool hasNote() {
+                return hasNoteImpl<Note>(std::make_index_sequence<std::tuple_size_v<Annotations>>());
+            }
+        };
     }
     
     inline namespace Shared
@@ -245,12 +264,14 @@ namespace Json
                 Number,
                 String,
                 Object,
+                OrderedObject,
                 Array,
                 NullArray,
                 BoolArray,
                 NumberArray,
                 StringArray,
                 ObjectArray,
+                OrderedObjectArray,
                 MixedArray,
                 FieldCluster
             };
@@ -268,12 +289,14 @@ namespace Json
                         case Value::Type::Number: return "Number";
                         case Value::Type::String: return "String";
                         case Value::Type::Object: return "Object";
+                        case Value::Type::OrderedObject: return "OrderedObject";
                         case Value::Type::Array: return "Array";
                         case Value::Type::NullArray: return "NullArray";
                         case Value::Type::BoolArray: return "BoolArray";
                         case Value::Type::NumberArray: return "NumberArray";
                         case Value::Type::StringArray: return "StringArray";
                         case Value::Type::ObjectArray: return "ObjectArray";
+                        case Value::Type::OrderedObjectArray: return "OrderedObjectArray";
                         case Value::Type::MixedArray: return "MixedArray";
                         case Value::Type::FieldCluster: return "FieldCluster";
                         default: return "Unknown";
@@ -364,6 +387,7 @@ namespace Json
                                     case Value::Type::NumberArray: value = T{}; break;
                                     case Value::Type::StringArray: value = T{}; break;
                                     case Value::Type::ObjectArray: value = T{}; break;
+                                    case Value::Type::OrderedObjectArray: value = T{}; break;
                                     case Value::Type::MixedArray: value = T{}; break;
                                     default: throw TypeMismatch(value.type(), allocatedValue->type()); break;
                                 }
@@ -395,11 +419,13 @@ namespace Json
             virtual std::string & number() = 0;
             virtual std::string & string() = 0;
             virtual std::map<std::string, std::shared_ptr<Value>> & object() = 0;
+            virtual std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() = 0;
 
             virtual const bool & boolean() const = 0;
             virtual const std::string & number() const = 0;
             virtual const std::string & string() const = 0;
             virtual const std::map<std::string, std::shared_ptr<Value>> & object() const = 0;
+            virtual const std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() const = 0;
 
             virtual size_t arraySize() const = 0;
             
@@ -408,6 +434,7 @@ namespace Json
             virtual std::vector<std::string> & numberArray() = 0;
             virtual std::vector<std::string> & stringArray() = 0;
             virtual std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() = 0;
+            virtual std::vector<std::vector<std::pair<std::string, std::shared_ptr<Value>>>> & orderedObjectArray() = 0;
             virtual std::vector<std::shared_ptr<Value>> & mixedArray() = 0;
             
             virtual const size_t & nullArray() const = 0;
@@ -415,6 +442,7 @@ namespace Json
             virtual const std::vector<std::string> & numberArray() const = 0;
             virtual const std::vector<std::string> & stringArray() const = 0;
             virtual const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const = 0;
+            virtual const std::vector<std::vector<std::pair<std::string, std::shared_ptr<Value>>>> & orderedObjectArray() const = 0;
             virtual const std::vector<std::shared_ptr<Value>> & mixedArray() const = 0;
 
             template <typename T>
@@ -447,12 +475,18 @@ namespace Json
             std::string & number() final { throw TypeMismatch(Value::Type::Boolean, Value::Type::Number, "number"); }
             std::string & string() final { throw TypeMismatch(Value::Type::Boolean, Value::Type::String, "string"); }
             std::map<std::string, std::shared_ptr<Value>> & object() final { throw TypeMismatch(Value::Type::Boolean, Value::Type::Object, "object"); }
+            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() {
+                throw TypeMismatch(Value::Type::Boolean, Value::Type::OrderedObject, "orderedObject");
+            }
 
             const bool & boolean() const final { return value; }
             const std::string & number() const final { throw TypeMismatch(Value::Type::Boolean, Value::Type::Number, "number"); }
             const std::string & string() const final { throw TypeMismatch(Value::Type::Boolean, Value::Type::String, "string"); }
             const std::map<std::string, std::shared_ptr<Value>> & object() const final {
                 throw TypeMismatch(Value::Type::Boolean, Value::Type::Object, "object");
+            }
+            const std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() const final {
+                throw TypeMismatch(Value::Type::Boolean, Value::Type::OrderedObject, "orderedObject");
             }
 
             size_t arraySize() const final { throw TypeMismatch(Value::Type::Boolean, Value::Type::Array, "arraySize"); }
@@ -464,6 +498,9 @@ namespace Json
             std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final {
                 throw TypeMismatch(Value::Type::Boolean, Value::Type::ObjectArray, "objectArray");
             }
+            std::vector<std::vector<std::pair<std::string, std::shared_ptr<Value>>>> & orderedObjectArray() final {
+                throw TypeMismatch(Value::Type::Boolean, Value::Type::OrderedObjectArray, "orderedObjectArray");
+            }
             std::vector<std::shared_ptr<Value>> & mixedArray() final { throw TypeMismatch(Value::Type::Boolean, Value::Type::MixedArray, "mixedArray"); }
             
             const size_t & nullArray() const final { throw TypeMismatch(Value::Type::Boolean, Value::Type::NullArray, "nullArray"); }
@@ -472,6 +509,9 @@ namespace Json
             const std::vector<std::string> & stringArray() const final { throw TypeMismatch(Value::Type::Boolean, Value::Type::StringArray, "stringArray"); }
             const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final {
                 throw TypeMismatch(Value::Type::Boolean, Value::Type::ObjectArray, "objectArray");
+            }
+            const std::vector<std::vector<std::pair<std::string, std::shared_ptr<Value>>>> & orderedObjectArray() const final {
+                throw TypeMismatch(Value::Type::Boolean, Value::Type::OrderedObjectArray, "orderedObjectArray");
             }
             const std::vector<std::shared_ptr<Value>> & mixedArray() const final {
                 throw TypeMismatch(Value::Type::Boolean, Value::Type::MixedArray, "mixedArray");
@@ -498,12 +538,18 @@ namespace Json
             std::string & number() final { return value; }
             std::string & string() final { throw TypeMismatch(Value::Type::Number, Value::Type::String, "string"); }
             std::map<std::string, std::shared_ptr<Value>> & object() final { throw TypeMismatch(Value::Type::Number, Value::Type::Object, "object"); }
+            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() {
+                throw TypeMismatch(Value::Type::Number, Value::Type::OrderedObject, "orderedObject");
+            }
 
             const bool & boolean() const final { throw TypeMismatch(Value::Type::Number, Value::Type::Boolean, "bool"); }
             const std::string & number() const final { return value; }
             const std::string & string() const final { throw TypeMismatch(Value::Type::Number, Value::Type::String, "string"); }
             const std::map<std::string, std::shared_ptr<Value>> & object() const final {
                 throw TypeMismatch(Value::Type::Number, Value::Type::Object, "object");
+            }
+            const std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() const final {
+                throw TypeMismatch(Value::Type::Number, Value::Type::OrderedObject, "orderedObject");
             }
 
             size_t arraySize() const final { throw TypeMismatch(Value::Type::Number, Value::Type::Array, "arraySize"); }
@@ -515,6 +561,9 @@ namespace Json
             std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final {
                 throw TypeMismatch(Value::Type::Number, Value::Type::ObjectArray, "objectArray");
             }
+            std::vector<std::vector<std::pair<std::string, std::shared_ptr<Value>>>> & orderedObjectArray() final {
+                throw TypeMismatch(Value::Type::Number, Value::Type::OrderedObjectArray, "orderedObjectArray");
+            }
             std::vector<std::shared_ptr<Value>> & mixedArray() final { throw TypeMismatch(Value::Type::Number, Value::Type::MixedArray, "mixedArray"); }
             
             const size_t & nullArray() const final { throw TypeMismatch(Value::Type::Number, Value::Type::NullArray, "nullArray"); }
@@ -523,6 +572,9 @@ namespace Json
             const std::vector<std::string> & stringArray() const final { throw TypeMismatch(Value::Type::Number, Value::Type::StringArray, "stringArray"); }
             const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final {
                 throw TypeMismatch(Value::Type::Number, Value::Type::ObjectArray, "objectArray");
+            }
+            const std::vector<std::vector<std::pair<std::string, std::shared_ptr<Value>>>> & orderedObjectArray() const final {
+                throw TypeMismatch(Value::Type::Number, Value::Type::OrderedObjectArray, "orderedObjectArray");
             }
             const std::vector<std::shared_ptr<Value>> & mixedArray() const final {
                 throw TypeMismatch(Value::Type::Number, Value::Type::MixedArray, "mixedArray");
@@ -546,12 +598,18 @@ namespace Json
             std::string & number() final { throw TypeMismatch(Value::Type::String, Value::Type::Number, "number"); }
             std::string & string() final { return value; }
             std::map<std::string, std::shared_ptr<Value>> & object() final { throw TypeMismatch(Value::Type::String, Value::Type::Object, "object"); }
+            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() {
+                throw TypeMismatch(Value::Type::String, Value::Type::OrderedObject, "orderedObject");
+            }
 
             const bool & boolean() const final { throw TypeMismatch(Value::Type::String, Value::Type::Boolean, "bool"); }
             const std::string & number() const final { throw TypeMismatch(Value::Type::String, Value::Type::Number, "number"); }
             const std::string & string() const final { return value; }
             const std::map<std::string, std::shared_ptr<Value>> & object() const final {
                 throw TypeMismatch(Value::Type::String, Value::Type::Object, "object");
+            }
+            const std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() const final {
+                throw TypeMismatch(Value::Type::String, Value::Type::OrderedObject, "orderedObject");
             }
 
             size_t arraySize() const final { throw TypeMismatch(Value::Type::String, Value::Type::Array, "arraySize"); }
@@ -563,6 +621,9 @@ namespace Json
             std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final {
                 throw TypeMismatch(Value::Type::String, Value::Type::ObjectArray, "objectArray");
             }
+            std::vector<std::vector<std::pair<std::string, std::shared_ptr<Value>>>> & orderedObjectArray() final {
+                throw TypeMismatch(Value::Type::String, Value::Type::OrderedObjectArray, "orderedObjectArray");
+            }
             std::vector<std::shared_ptr<Value>> & mixedArray() final { throw TypeMismatch(Value::Type::String, Value::Type::MixedArray, "mixedArray"); }
             
             const size_t & nullArray() const final { throw TypeMismatch(Value::Type::String, Value::Type::NullArray, "nullArray"); }
@@ -571,6 +632,9 @@ namespace Json
             const std::vector<std::string> & stringArray() const final { throw TypeMismatch(Value::Type::String, Value::Type::StringArray, "stringArray"); }
             const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final {
                 throw TypeMismatch(Value::Type::String, Value::Type::ObjectArray, "objectArray");
+            }
+            const std::vector<std::vector<std::pair<std::string, std::shared_ptr<Value>>>> & orderedObjectArray() const final {
+                throw TypeMismatch(Value::Type::String, Value::Type::OrderedObjectArray, "orderedObjectArray");
             }
             const std::vector<std::shared_ptr<Value>> & mixedArray() const final {
                 throw TypeMismatch(Value::Type::String, Value::Type::MixedArray, "mixedArray");
@@ -595,11 +659,17 @@ namespace Json
             std::string & number() final { throw TypeMismatch(Value::Type::Object, Value::Type::Number, "number"); }
             std::string & string() final { throw TypeMismatch(Value::Type::Object, Value::Type::String, "string"); }
             std::map<std::string, std::shared_ptr<Value>> & object() final { return value; }
+            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() {
+                throw TypeMismatch(Value::Type::Object, Value::Type::OrderedObject, "orderedObject");
+            }
             
             const bool & boolean() const final { throw TypeMismatch(Value::Type::Object, Value::Type::Boolean, "bool"); }
             const std::string & number() const final { throw TypeMismatch(Value::Type::Object, Value::Type::Number, "number"); }
             const std::string & string() const final { throw TypeMismatch(Value::Type::Object, Value::Type::String, "string"); }
             const std::map<std::string, std::shared_ptr<Value>> & object() const final { return value; }
+            const std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() const final {
+                throw TypeMismatch(Value::Type::Object, Value::Type::OrderedObject, "orderedObject");
+            }
 
             size_t arraySize() const final { throw TypeMismatch(Value::Type::Object, Value::Type::Array, "arraySize"); }
             
@@ -610,6 +680,9 @@ namespace Json
             std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final {
                 throw TypeMismatch(Value::Type::Object, Value::Type::ObjectArray, "objectArray");
             }
+            std::vector<std::vector<std::pair<std::string, std::shared_ptr<Value>>>> & orderedObjectArray() final {
+                throw TypeMismatch(Value::Type::Object, Value::Type::OrderedObjectArray, "orderedObjectArray");
+            }
             std::vector<std::shared_ptr<Value>> & mixedArray() final { throw TypeMismatch(Value::Type::Object, Value::Type::MixedArray, "mixedArray"); }
             
             const size_t & nullArray() const final { throw TypeMismatch(Value::Type::Object, Value::Type::NullArray, "nullArray"); }
@@ -618,6 +691,9 @@ namespace Json
             const std::vector<std::string> & stringArray() const final { throw TypeMismatch(Value::Type::Object, Value::Type::StringArray, "stringArray"); }
             const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final {
                 throw TypeMismatch(Value::Type::Object, Value::Type::ObjectArray, "objectArray");
+            }
+            const std::vector<std::vector<std::pair<std::string, std::shared_ptr<Value>>>> & orderedObjectArray() const final {
+                throw TypeMismatch(Value::Type::Object, Value::Type::OrderedObjectArray, "orderedObjectArray");
             }
             const std::vector<std::shared_ptr<Value>> & mixedArray() const final {
                 throw TypeMismatch(Value::Type::Object, Value::Type::MixedArray, "mixedArray");
@@ -630,6 +706,71 @@ namespace Json
             
         private:
             std::map<std::string, std::shared_ptr<Value>> value;
+        };
+        class OrderedObject final : public Value {
+        public:
+            OrderedObject() : value() {}
+            OrderedObject(const std::vector<std::pair<std::string, std::shared_ptr<Value>>> & value) : value(value) {}
+            OrderedObject(const OrderedObject & other) : value(other.value) {}
+            ~OrderedObject() override {}
+            
+            OrderedObject & operator=(const Value & other) { value = other.orderedObject(); return *this; }
+            OrderedObject & operator=(const OrderedObject & other) { value = other.orderedObject(); return *this; }
+            
+            Type type() const override { return Value::Type::OrderedObject; }
+            
+            bool & boolean() final { throw TypeMismatch(Value::Type::OrderedObject, Value::Type::Boolean, "bool"); }
+            std::string & number() final { throw TypeMismatch(Value::Type::OrderedObject, Value::Type::Number, "number"); }
+            std::string & string() final { throw TypeMismatch(Value::Type::OrderedObject, Value::Type::String, "string"); }
+            std::map<std::string, std::shared_ptr<Value>> & object() final { throw TypeMismatch(Value::Type::OrderedObject, Value::Type::Object, "object"); }
+            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() final { return value; }
+
+            const bool & boolean() const final { throw TypeMismatch(Value::Type::OrderedObject, Value::Type::Boolean, "bool"); }
+            const std::string & number() const final { throw TypeMismatch(Value::Type::OrderedObject, Value::Type::Number, "number"); }
+            const std::string & string() const final { throw TypeMismatch(Value::Type::OrderedObject, Value::Type::String, "string"); }
+            const std::map<std::string, std::shared_ptr<Value>> & object() const final {
+                throw TypeMismatch(Value::Type::OrderedObject, Value::Type::Object, "object");
+            }
+            const std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() const final { return value; }
+
+            size_t arraySize() const final { throw TypeMismatch(Value::Type::OrderedObject, Value::Type::Array, "arraySize"); }
+            
+            size_t & nullArray() final { throw TypeMismatch(Value::Type::OrderedObject, Value::Type::NullArray, "nullArray"); }
+            std::vector<bool> & boolArray() final { throw TypeMismatch(Value::Type::OrderedObject, Value::Type::BoolArray, "boolArray"); }
+            std::vector<std::string> & numberArray() final { throw TypeMismatch(Value::Type::OrderedObject, Value::Type::NumberArray, "numberArray"); }
+            std::vector<std::string> & stringArray() final { throw TypeMismatch(Value::Type::OrderedObject, Value::Type::StringArray, "stringArray"); }
+            std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final {
+                throw TypeMismatch(Value::Type::OrderedObject, Value::Type::ObjectArray, "objectArray");
+            }
+            std::vector<std::vector<std::pair<std::string, std::shared_ptr<Value>>>> & orderedObjectArray() final {
+                throw TypeMismatch(Value::Type::OrderedObject, Value::Type::OrderedObjectArray, "orderedObjectArray");
+            }
+            std::vector<std::shared_ptr<Value>> & mixedArray() final { throw TypeMismatch(Value::Type::OrderedObject, Value::Type::MixedArray, "mixedArray"); }
+            
+            const size_t & nullArray() const final { throw TypeMismatch(Value::Type::OrderedObject, Value::Type::NullArray, "nullArray"); }
+            const std::vector<bool> & boolArray() const final { throw TypeMismatch(Value::Type::OrderedObject, Value::Type::BoolArray, "boolArray"); }
+            const std::vector<std::string> & numberArray() const final {
+                throw TypeMismatch(Value::Type::OrderedObject, Value::Type::NumberArray, "numberArray");
+            }
+            const std::vector<std::string> & stringArray() const final {
+                throw TypeMismatch(Value::Type::OrderedObject, Value::Type::StringArray, "stringArray");
+            }
+            const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final {
+                throw TypeMismatch(Value::Type::OrderedObject, Value::Type::ObjectArray, "objectArray");
+            }
+            const std::vector<std::vector<std::pair<std::string, std::shared_ptr<Value>>>> & orderedObjectArray() const final {
+                throw TypeMismatch(Value::Type::OrderedObject, Value::Type::OrderedObjectArray, "orderedObjectArray");
+            }
+            const std::vector<std::shared_ptr<Value>> & mixedArray() const final {
+                throw TypeMismatch(Value::Type::OrderedObject, Value::Type::MixedArray, "mixedArray");
+            }
+            
+            void put(std::string fieldName, std::shared_ptr<Value> val)
+            {
+                this->value.push_back(std::make_pair(fieldName, val));
+            }
+        private:
+            std::vector<std::pair<std::string, std::shared_ptr<Value>>> value;
         };
         
         class NullArray final : public Value {
@@ -647,12 +788,18 @@ namespace Json
             std::string & number() final { throw TypeMismatch(Value::Type::NullArray, Value::Type::Number, "number"); }
             std::string & string() final { throw TypeMismatch(Value::Type::NullArray, Value::Type::String, "string"); }
             std::map<std::string, std::shared_ptr<Value>> & object() final { throw TypeMismatch(Value::Type::NullArray, Value::Type::Object, "object"); }
+            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() {
+                throw TypeMismatch(Value::Type::NullArray, Value::Type::OrderedObject, "orderedObject");
+            }
 
             const bool & boolean() const final { throw TypeMismatch(Value::Type::NullArray, Value::Type::Boolean, "bool"); }
             const std::string & number() const final { throw TypeMismatch(Value::Type::NullArray, Value::Type::Number, "number"); }
             const std::string & string() const final { throw TypeMismatch(Value::Type::NullArray, Value::Type::String, "string"); }
             const std::map<std::string, std::shared_ptr<Value>> & object() const final {
                 throw TypeMismatch(Value::Type::NullArray, Value::Type::Object, "object");
+            }
+            const std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() const final {
+                throw TypeMismatch(Value::Type::NullArray, Value::Type::OrderedObject, "orderedObject");
             }
 
             size_t arraySize() const final { return nullCount; }
@@ -663,6 +810,9 @@ namespace Json
             std::vector<std::string> & stringArray() final { throw TypeMismatch(Value::Type::NullArray, Value::Type::StringArray, "stringArray"); }
             std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final {
                 throw TypeMismatch(Value::Type::NullArray, Value::Type::ObjectArray, "objectArray");
+            }
+            std::vector<std::vector<std::pair<std::string, std::shared_ptr<Value>>>> & orderedObjectArray() final {
+                throw TypeMismatch(Value::Type::NullArray, Value::Type::OrderedObjectArray, "orderedObjectArray");
             }
             std::vector<std::shared_ptr<Value>> & mixedArray() final { throw TypeMismatch(Value::Type::NullArray, Value::Type::MixedArray, "mixedArray"); }
             
@@ -676,6 +826,9 @@ namespace Json
             }
             const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final {
                 throw TypeMismatch(Value::Type::NullArray, Value::Type::ObjectArray, "objectArray");
+            }
+            const std::vector<std::vector<std::pair<std::string, std::shared_ptr<Value>>>> & orderedObjectArray() const final {
+                throw TypeMismatch(Value::Type::NullArray, Value::Type::OrderedObjectArray, "orderedObjectArray");
             }
             const std::vector<std::shared_ptr<Value>> & mixedArray() const final {
                 throw TypeMismatch(Value::Type::NullArray, Value::Type::MixedArray, "mixedArray");
@@ -699,12 +852,18 @@ namespace Json
             std::string & number() final { throw TypeMismatch(Value::Type::BoolArray, Value::Type::Number, "number"); }
             std::string & string() final { throw TypeMismatch(Value::Type::BoolArray, Value::Type::String, "string"); }
             std::map<std::string, std::shared_ptr<Value>> & object() final { throw TypeMismatch(Value::Type::BoolArray, Value::Type::Object, "object"); }
+            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() {
+                throw TypeMismatch(Value::Type::BoolArray, Value::Type::OrderedObject, "orderedObject");
+            }
             
             const bool & boolean() const final { throw TypeMismatch(Value::Type::BoolArray, Value::Type::Boolean, "bool"); }
             const std::string & number() const final { throw TypeMismatch(Value::Type::BoolArray, Value::Type::Number, "number"); }
             const std::string & string() const final { throw TypeMismatch(Value::Type::BoolArray, Value::Type::String, "string"); }
             const std::map<std::string, std::shared_ptr<Value>> & object() const final {
                 throw TypeMismatch(Value::Type::BoolArray, Value::Type::Object, "object");
+            }
+            const std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() const final {
+                throw TypeMismatch(Value::Type::BoolArray, Value::Type::OrderedObject, "orderedObject");
             }
 
             size_t arraySize() const final { return values.size(); }
@@ -715,6 +874,9 @@ namespace Json
             std::vector<std::string> & stringArray() final { throw TypeMismatch(Value::Type::BoolArray, Value::Type::StringArray, "stringArray"); }
             std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final {
                 throw TypeMismatch(Value::Type::BoolArray, Value::Type::ObjectArray, "objectArray");
+            }
+            std::vector<std::vector<std::pair<std::string, std::shared_ptr<Value>>>> & orderedObjectArray() final {
+                throw TypeMismatch(Value::Type::BoolArray, Value::Type::OrderedObjectArray, "orderedObjectArray");
             }
             std::vector<std::shared_ptr<Value>> & mixedArray() final { throw TypeMismatch(Value::Type::BoolArray, Value::Type::MixedArray, "mixedArray"); }
             
@@ -728,6 +890,9 @@ namespace Json
             }
             const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final {
                 throw TypeMismatch(Value::Type::BoolArray, Value::Type::ObjectArray, "objectArray");
+            }
+            const std::vector<std::vector<std::pair<std::string, std::shared_ptr<Value>>>> & orderedObjectArray() const final {
+                throw TypeMismatch(Value::Type::BoolArray, Value::Type::OrderedObjectArray, "orderedObjectArray");
             }
             const std::vector<std::shared_ptr<Value>> & mixedArray() const final {
                 throw TypeMismatch(Value::Type::BoolArray, Value::Type::MixedArray, "mixedArray");
@@ -751,12 +916,18 @@ namespace Json
             std::string & number() final { throw TypeMismatch(Value::Type::NumberArray, Value::Type::Number, "number"); }
             std::string & string() final { throw TypeMismatch(Value::Type::NumberArray, Value::Type::String, "string"); }
             std::map<std::string, std::shared_ptr<Value>> & object() final { throw TypeMismatch(Value::Type::NumberArray, Value::Type::Object, "object"); }
+            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() {
+                throw TypeMismatch(Value::Type::NumberArray, Value::Type::OrderedObject, "orderedObject");
+            }
             
             const bool & boolean() const final { throw TypeMismatch(Value::Type::NumberArray, Value::Type::Boolean, "bool"); }
             const std::string & number() const final { throw TypeMismatch(Value::Type::NumberArray, Value::Type::Number, "number"); }
             const std::string & string() const final { throw TypeMismatch(Value::Type::NumberArray, Value::Type::String, "string"); }
             const std::map<std::string, std::shared_ptr<Value>> & object() const final {
                 throw TypeMismatch(Value::Type::NumberArray, Value::Type::Object, "object");
+            }
+            const std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() const final {
+                throw TypeMismatch(Value::Type::NumberArray, Value::Type::OrderedObject, "orderedObject");
             }
 
             size_t arraySize() const final { return values.size(); }
@@ -768,6 +939,9 @@ namespace Json
             std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final {
                 throw TypeMismatch(Value::Type::NumberArray, Value::Type::ObjectArray, "objectArray");
             }
+            std::vector<std::vector<std::pair<std::string, std::shared_ptr<Value>>>> & orderedObjectArray() final {
+                throw TypeMismatch(Value::Type::NumberArray, Value::Type::OrderedObjectArray, "orderedObjectArray");
+            }
             std::vector<std::shared_ptr<Value>> & mixedArray() final { throw TypeMismatch(Value::Type::NumberArray, Value::Type::MixedArray, "mixedArray"); }
             
             const size_t & nullArray() const final { throw TypeMismatch(Value::Type::NumberArray, Value::Type::NullArray, "nullArray"); }
@@ -778,6 +952,9 @@ namespace Json
             }
             const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final {
                 throw TypeMismatch(Value::Type::NumberArray, Value::Type::ObjectArray, "objectArray");
+            }
+            const std::vector<std::vector<std::pair<std::string, std::shared_ptr<Value>>>> & orderedObjectArray() const final {
+                throw TypeMismatch(Value::Type::NumberArray, Value::Type::OrderedObjectArray, "orderedObjectArray");
             }
             const std::vector<std::shared_ptr<Value>> & mixedArray() const final {
                 throw TypeMismatch(Value::Type::NumberArray, Value::Type::MixedArray, "mixedArray");
@@ -801,12 +978,18 @@ namespace Json
             std::string & number() final { throw TypeMismatch(Value::Type::StringArray, Value::Type::Number, "number"); }
             std::string & string() final { throw TypeMismatch(Value::Type::StringArray, Value::Type::String, "string"); }
             std::map<std::string, std::shared_ptr<Value>> & object() final { throw TypeMismatch(Value::Type::StringArray, Value::Type::Object, "object"); }
+            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() {
+                throw TypeMismatch(Value::Type::StringArray, Value::Type::OrderedObject, "orderedObject");
+            }
             
             const bool & boolean() const final { throw TypeMismatch(Value::Type::StringArray, Value::Type::Boolean, "bool"); }
             const std::string & number() const final { throw TypeMismatch(Value::Type::StringArray, Value::Type::Number, "number"); }
             const std::string & string() const final { throw TypeMismatch(Value::Type::StringArray, Value::Type::String, "string"); }
             const std::map<std::string, std::shared_ptr<Value>> & object() const final {
                 throw TypeMismatch(Value::Type::StringArray, Value::Type::Object, "object");
+            }
+            const std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() const final {
+                throw TypeMismatch(Value::Type::StringArray, Value::Type::OrderedObject, "orderedObject");
             }
 
             size_t arraySize() const final { return values.size(); }
@@ -818,6 +1001,9 @@ namespace Json
             std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final {
                 throw TypeMismatch(Value::Type::StringArray, Value::Type::ObjectArray, "objectArray");
             }
+            std::vector<std::vector<std::pair<std::string, std::shared_ptr<Value>>>> & orderedObjectArray() final {
+                throw TypeMismatch(Value::Type::StringArray, Value::Type::OrderedObjectArray, "orderedObjectArray");
+            }
             std::vector<std::shared_ptr<Value>> & mixedArray() final { throw TypeMismatch(Value::Type::StringArray, Value::Type::MixedArray, "mixedArray"); }
             
             const size_t & nullArray() const final { throw TypeMismatch(Value::Type::StringArray, Value::Type::NullArray, "nullArray"); }
@@ -828,6 +1014,9 @@ namespace Json
             const std::vector<std::string> & stringArray() const final { return values; }
             const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final {
                 throw TypeMismatch(Value::Type::StringArray, Value::Type::ObjectArray, "objectArray");
+            }
+            const std::vector<std::vector<std::pair<std::string, std::shared_ptr<Value>>>> & orderedObjectArray() const final {
+                throw TypeMismatch(Value::Type::StringArray, Value::Type::OrderedObjectArray, "orderedObjectArray");
             }
             const std::vector<std::shared_ptr<Value>> & mixedArray() const final {
                 throw TypeMismatch(Value::Type::StringArray, Value::Type::MixedArray, "mixedArray");
@@ -851,12 +1040,18 @@ namespace Json
             std::string & number() final { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Number, "number"); }
             std::string & string() final { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::String, "string"); }
             std::map<std::string, std::shared_ptr<Value>> & object() final { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Object, "object"); }
+            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() {
+                throw TypeMismatch(Value::Type::ObjectArray, Value::Type::OrderedObject, "orderedObject");
+            }
             
             const bool & boolean() const final { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Boolean, "bool"); }
             const std::string & number() const final { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Number, "number"); }
             const std::string & string() const final { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::String, "string"); }
             const std::map<std::string, std::shared_ptr<Value>> & object() const final {
                 throw TypeMismatch(Value::Type::ObjectArray, Value::Type::Object, "object");
+            }
+            const std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() const final {
+                throw TypeMismatch(Value::Type::ObjectArray, Value::Type::OrderedObject, "orderedObject");
             }
 
             size_t arraySize() const final { return values.size(); }
@@ -866,6 +1061,9 @@ namespace Json
             std::vector<std::string> & numberArray() final { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::NumberArray, "numberArray"); }
             std::vector<std::string> & stringArray() final { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::StringArray, "stringArray"); }
             std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final { return values; }
+            std::vector<std::vector<std::pair<std::string, std::shared_ptr<Value>>>> & orderedObjectArray() final {
+                throw TypeMismatch(Value::Type::ObjectArray, Value::Type::OrderedObjectArray, "orderedObjectArray");
+            }
             std::vector<std::shared_ptr<Value>> & mixedArray() final { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::MixedArray, "mixedArray"); }
             
             const size_t & nullArray() const final { throw TypeMismatch(Value::Type::ObjectArray, Value::Type::NullArray, "nullArray"); }
@@ -877,12 +1075,80 @@ namespace Json
                 throw TypeMismatch(Value::Type::ObjectArray, Value::Type::StringArray, "stringArray");
             }
             const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final { return values; }
+            const std::vector<std::vector<std::pair<std::string, std::shared_ptr<Value>>>> & orderedObjectArray() const final {
+                throw TypeMismatch(Value::Type::ObjectArray, Value::Type::OrderedObjectArray, "orderedObjectArray");
+            }
             const std::vector<std::shared_ptr<Value>> & mixedArray() const final {
                 throw TypeMismatch(Value::Type::ObjectArray, Value::Type::MixedArray, "mixedArray");
             }
             
         private:
             std::vector<std::map<std::string, std::shared_ptr<Value>>> values;
+        };
+        class OrderedObjectArray final : public Value
+        {
+        public:
+            OrderedObjectArray() : values() {}
+            OrderedObjectArray(const std::vector<std::vector<std::pair<std::string, std::shared_ptr<Value>>>> & values) : values(values) {}
+            OrderedObjectArray(const OrderedObjectArray & other) : values(other.values) {}
+
+            OrderedObjectArray & operator=(const Value & other) { values = other.orderedObjectArray(); return *this; }
+            OrderedObjectArray & operator=(const OrderedObjectArray & other) { values = other.orderedObjectArray(); return *this; }
+            
+            Type type() const final { return Value::Type::OrderedObjectArray; }
+            
+            bool & boolean() final { throw TypeMismatch(Value::Type::OrderedObjectArray, Value::Type::Boolean, "bool"); }
+            std::string & number() final { throw TypeMismatch(Value::Type::OrderedObjectArray, Value::Type::Number, "number"); }
+            std::string & string() final { throw TypeMismatch(Value::Type::OrderedObjectArray, Value::Type::String, "string"); }
+            std::map<std::string, std::shared_ptr<Value>> & object() final {
+                throw TypeMismatch(Value::Type::OrderedObjectArray, Value::Type::Object, "object");
+            }
+            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() {
+                throw TypeMismatch(Value::Type::OrderedObjectArray, Value::Type::OrderedObject, "orderedObject");
+            }
+            
+            const bool & boolean() const final { throw TypeMismatch(Value::Type::OrderedObjectArray, Value::Type::Boolean, "bool"); }
+            const std::string & number() const final { throw TypeMismatch(Value::Type::OrderedObjectArray, Value::Type::Number, "number"); }
+            const std::string & string() const final { throw TypeMismatch(Value::Type::OrderedObjectArray, Value::Type::String, "string"); }
+            const std::map<std::string, std::shared_ptr<Value>> & object() const final {
+                throw TypeMismatch(Value::Type::OrderedObjectArray, Value::Type::Object, "object");
+            }
+            const std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() const final {
+                throw TypeMismatch(Value::Type::OrderedObjectArray, Value::Type::OrderedObject, "orderedObject");
+            }
+
+            size_t arraySize() const final { return values.size(); }
+            
+            size_t & nullArray() final { throw TypeMismatch(Value::Type::OrderedObjectArray, Value::Type::NullArray, "nullArray"); }
+            std::vector<bool> & boolArray() final { throw TypeMismatch(Value::Type::OrderedObjectArray, Value::Type::BoolArray, "boolArray"); }
+            std::vector<std::string> & numberArray() final { throw TypeMismatch(Value::Type::OrderedObjectArray, Value::Type::NumberArray, "numberArray"); }
+            std::vector<std::string> & stringArray() final { throw TypeMismatch(Value::Type::OrderedObjectArray, Value::Type::StringArray, "stringArray"); }
+            std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final {
+                throw TypeMismatch(Value::Type::OrderedObjectArray, Value::Type::ObjectArray, "objectArray");
+            }
+            std::vector<std::vector<std::pair<std::string, std::shared_ptr<Value>>>> & orderedObjectArray() final { return values; }
+            std::vector<std::shared_ptr<Value>> & mixedArray() final {
+                throw TypeMismatch(Value::Type::OrderedObjectArray, Value::Type::MixedArray, "mixedArray");
+            }
+
+            const size_t & nullArray() const final { throw TypeMismatch(Value::Type::OrderedObjectArray, Value::Type::NullArray, "nullArray"); }
+            const std::vector<bool> & boolArray() const final { throw TypeMismatch(Value::Type::OrderedObjectArray, Value::Type::BoolArray, "boolArray"); }
+            const std::vector<std::string> & numberArray() const final {
+                throw TypeMismatch(Value::Type::OrderedObjectArray, Value::Type::NumberArray, "numberArray");
+            }
+            const std::vector<std::string> & stringArray() const final {
+                throw TypeMismatch(Value::Type::OrderedObjectArray, Value::Type::StringArray, "stringArray");
+            }
+            const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final {
+                throw TypeMismatch(Value::Type::OrderedObjectArray, Value::Type::ObjectArray, "objectArray");
+            }
+            const std::vector<std::vector<std::pair<std::string, std::shared_ptr<Value>>>> & orderedObjectArray() const final { return values; }
+            const std::vector<std::shared_ptr<Value>> & mixedArray() const final {
+                throw TypeMismatch(Value::Type::OrderedObjectArray, Value::Type::MixedArray, "mixedArray");
+            }
+
+        private:
+            std::vector<std::vector<std::pair<std::string, std::shared_ptr<Value>>>> values;
         };
         class MixedArray final : public Value {
         public:
@@ -899,12 +1165,18 @@ namespace Json
             std::string & number() final { throw TypeMismatch(Value::Type::MixedArray, Value::Type::Number, "number"); }
             std::string & string() final { throw TypeMismatch(Value::Type::MixedArray, Value::Type::String, "string"); }
             std::map<std::string, std::shared_ptr<Value>> & object() final { throw TypeMismatch(Value::Type::MixedArray, Value::Type::Object, "object"); }
+            std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() {
+                throw TypeMismatch(Value::Type::MixedArray, Value::Type::OrderedObject, "orderedObject");
+            }
             
             const bool & boolean() const final { throw TypeMismatch(Value::Type::MixedArray, Value::Type::Boolean, "bool"); }
             const std::string & number() const final { throw TypeMismatch(Value::Type::MixedArray, Value::Type::Number, "number"); }
             const std::string & string() const final { throw TypeMismatch(Value::Type::MixedArray, Value::Type::String, "string"); }
             const std::map<std::string, std::shared_ptr<Value>> & object() const final {
                 throw TypeMismatch(Value::Type::MixedArray, Value::Type::Object, "object");
+            }
+            const std::vector<std::pair<std::string, std::shared_ptr<Value>>> & orderedObject() const final {
+                throw TypeMismatch(Value::Type::MixedArray, Value::Type::OrderedObject, "orderedObject");
             }
 
             size_t arraySize() const final { return values.size(); }
@@ -915,6 +1187,9 @@ namespace Json
             std::vector<std::string> & stringArray() final { throw TypeMismatch(Value::Type::MixedArray, Value::Type::StringArray, "stringArray"); }
             std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() final {
                 throw TypeMismatch(Value::Type::MixedArray, Value::Type::ObjectArray, "objectArray");
+            }
+            std::vector<std::vector<std::pair<std::string, std::shared_ptr<Value>>>> & orderedObjectArray() final {
+                throw TypeMismatch(Value::Type::MixedArray, Value::Type::OrderedObjectArray, "orderedObjectArray");
             }
             std::vector<std::shared_ptr<Value>> & mixedArray() final { return values; }
             
@@ -928,6 +1203,9 @@ namespace Json
             }
             const std::vector<std::map<std::string, std::shared_ptr<Value>>> & objectArray() const final {
                 throw TypeMismatch(Value::Type::MixedArray, Value::Type::ObjectArray, "objectArray");
+            }
+            const std::vector<std::vector<std::pair<std::string, std::shared_ptr<Value>>>> & orderedObjectArray() const final {
+                throw TypeMismatch(Value::Type::MixedArray, Value::Type::OrderedObjectArray, "orderedObjectArray");
             }
             const std::vector<std::shared_ptr<Value>> & mixedArray() const final { return values; }
 
@@ -962,11 +1240,13 @@ namespace Json
         template <typename T> struct is_non_primitive<std::shared_ptr<T>> { static constexpr bool value = is_non_primitive<T>::value; };
         template <> struct is_non_primitive<std::string> { static constexpr bool value = false; };
         template <> struct is_non_primitive<Json::Generic::Object> { static constexpr bool value = true; };
+        template <> struct is_non_primitive<Json::Generic::OrderedObject> { static constexpr bool value = true; };
         template <> struct is_non_primitive<Json::Generic::NullArray> { static constexpr bool value = true; };
         template <> struct is_non_primitive<Json::Generic::BoolArray> { static constexpr bool value = true; };
         template <> struct is_non_primitive<Json::Generic::NumberArray> { static constexpr bool value = true; };
         template <> struct is_non_primitive<Json::Generic::StringArray> { static constexpr bool value = true; };
         template <> struct is_non_primitive<Json::Generic::ObjectArray> { static constexpr bool value = true; };
+        template <> struct is_non_primitive<Json::Generic::OrderedObjectArray> { static constexpr bool value = true; };
         template <> struct is_non_primitive<Json::Generic::MixedArray> { static constexpr bool value = true; };
         template <> struct is_non_primitive<Json::Generic::FieldCluster> { static constexpr bool value = true; };
         template <typename T> inline constexpr bool is_non_primitive_v = is_non_primitive<T>::value;
@@ -1521,11 +1801,13 @@ namespace Json
                         Put::string(os, value.string());
                         break;
                     case Generic::Value::Type::Object:
+                    case Generic::Value::Type::OrderedObject:
                     case Generic::Value::Type::NullArray:
                     case Generic::Value::Type::BoolArray:
                     case Generic::Value::Type::NumberArray:
                     case Generic::Value::Type::StringArray:
                     case Generic::Value::Type::ObjectArray:
+                    case Generic::Value::Type::OrderedObjectArray:
                     case Generic::Value::Type::MixedArray:
                         Put::genericIterable<Annotations, PrettyPrint, Indent>(os, context, indentLevel, value);
                         break;
@@ -1558,9 +1840,12 @@ namespace Json
             inline void genericIterable(OutStreamType & os, Context & context, size_t indentLevel, const Generic::Value & iterable)
             {
                 bool isObject = iterable.type() == Generic::Value::Type::Object;
+                bool isOrderedObject = iterable.type() == Generic::Value::Type::OrderedObject;
                 bool containsPrimitives = iterable.type() == Generic::Value::Type::BoolArray ||
                     iterable.type() == Generic::Value::Type::NumberArray || iterable.type() == Generic::Value::Type::StringArray;
-                bool isEmpty = (isObject && iterable.object().empty()) || (!isObject && iterable.arraySize() == 0);
+                bool isEmpty = ((isObject && iterable.object().empty()) || (isOrderedObject && iterable.orderedObject().empty())) ||
+                    (!isObject && !isOrderedObject && iterable.arraySize() == 0);
+                isObject = isObject || isOrderedObject;
 
                 size_t i=0;
                 Put::nestedPrefix<PrettyPrint, Indent>(os, !isObject, containsPrimitives, isEmpty, indentLevel);
@@ -1569,6 +1854,26 @@ namespace Json
                     case Generic::Value::Type::Object:
                     {
                         const std::map<std::string, std::shared_ptr<Generic::Value>> & obj = iterable.object();
+                        bool isFirst = true;
+                        for ( const auto & field : obj )
+                        {
+                            Put::fieldPrefix<PrettyPrint, Indent>(os, isFirst, indentLevel+1);
+                            Put::string(os, field.first);
+                            os << fieldNameValueSeparator<PrettyPrint>;
+                            if ( field.second == nullptr )
+                                os << "null";
+                            else
+                            {
+                                Put::genericValue<Annotations, PrettyPrint, Indent, false>(
+                                    os, context, indentLevel+1, (Generic::Value &)*field.second);
+                            }
+                            isFirst = false;
+                        }
+                    }
+                    break;
+                    case Generic::Value::Type::OrderedObject:
+                    {
+                        const std::vector<std::pair<std::string, std::shared_ptr<Generic::Value>>> & obj = iterable.orderedObject();
                         bool isFirst = true;
                         for ( const auto & field : obj )
                         {
@@ -1629,6 +1934,32 @@ namespace Json
                     {
                         const std::vector<std::map<std::string, std::shared_ptr<Generic::Value>>> & array = iterable.objectArray();
                         for ( const std::map<std::string, std::shared_ptr<Generic::Value>> & obj : array )
+                        {
+                            Put::separator<PrettyPrint, false, true, Indent>(os, 0 == i++, indentLevel+1);
+                            bool isFirst = true;
+                            Put::objectPrefix<PrettyPrint, Indent>(os);
+                            for ( const auto & field : obj )
+                            {
+                                Put::fieldPrefix<PrettyPrint, Indent>(os, isFirst, indentLevel+2);
+                                Put::string(os, field.first);
+                                os << fieldNameValueSeparator<PrettyPrint>;
+                                if ( field.second == nullptr )
+                                    os << "null";
+                                else
+                                {
+                                    Put::genericValue<Annotations, PrettyPrint, Indent, false>(
+                                        os, context, indentLevel+2, (Generic::Value &)*field.second);
+                                }
+                                isFirst = false;
+                            }
+                            Put::objectSuffix<PrettyPrint, Indent>(os, obj.empty(), indentLevel+1);
+                        }
+                    }
+                    break;
+                    case Generic::Value::Type::OrderedObjectArray:
+                    {
+                        const std::vector<std::vector<std::pair<std::string, std::shared_ptr<Generic::Value>>>> & array = iterable.orderedObjectArray();
+                        for ( const std::vector<std::pair<std::string, std::shared_ptr<Generic::Value>>> & obj : array )
                         {
                             Put::separator<PrettyPrint, false, true, Indent>(os, 0 == i++, indentLevel+1);
                             bool isFirst = true;
@@ -3210,12 +3541,13 @@ namespace Json
                 return fieldName;
             }
 
+            template <bool OrderedObject>
             inline std::shared_ptr<Generic::Value::Assigner> genericObject(std::istream & is, Context & context, char & c);
 
-            template <bool InArray>
+            template <bool InArray, bool MaintainFieldOrder>
             inline std::shared_ptr<Generic::Value::Assigner> genericArray(std::istream & is, Context & context, char & c);
 
-            template <bool InArray>
+            template <bool InArray, bool MaintainFieldOrder>
             inline std::shared_ptr<Generic::Value::Assigner> genericValue(std::istream & is, Context & context, char & c)
             {
                 Checked::consumeWhitespace(is, "completion of field value");
@@ -3223,8 +3555,8 @@ namespace Json
                 switch ( c )
                 {
                     case '\"': return Generic::Value::Assigner::make<Generic::String>(Read::string<>(is, c)); // String or error
-                    case '{': return Read::genericObject(is, context, c); // JSON object or error
-                    case '[': return Read::genericArray<InArray>(is, context, c); // JSON array or error
+                    case '{': return Read::genericObject<MaintainFieldOrder>(is, context, c); // JSON object or error
+                    case '[': return Read::genericArray<InArray, MaintainFieldOrder>(is, context, c); // JSON array or error
                     case 't': return Generic::Value::Assigner::make<Generic::Bool>(Read::boolTrue<InArray>(is, c)); // "true" or error
                     case 'f': return Generic::Value::Assigner::make<Generic::Bool>(Read::boolFalse<InArray>(is, c)); // "false" or error
                     case '-': case '0': case '1': case '2': case '3': case '4': case '5':
@@ -3237,13 +3569,18 @@ namespace Json
                         throw InvalidUnknownFieldValue();
                 }
             }
-
+            
+            template <bool MaintainFieldOrder>
             constexpr Generic::Value::Type valueType(const char & c)
             {
                 switch ( c )
                 {
                     case '\"': return Generic::Value::Type::String;
-                    case '{': return Generic::Value::Type::Object;
+                    case '{':
+                        if constexpr ( MaintainFieldOrder )
+                            return Generic::Value::Type::OrderedObject;
+                        else
+                            return Generic::Value::Type::Object;
                     case '[': return Generic::Value::Type::Array;
                     case 't': case 'f': return Generic::Value::Type::Boolean;
                     case '-': case '0': case '1': case '2': case '3': case '4': case '5':
@@ -3254,7 +3591,7 @@ namespace Json
                 }
             }
 
-            template <bool InArray>
+            template <bool InArray, bool MaintainFieldOrder>
             inline std::shared_ptr<Generic::Value::Assigner> genericArray(std::istream & is, Context & context, char & c)
             {
                 Read::arrayPrefix(is, c);
@@ -3264,7 +3601,7 @@ namespace Json
                 Checked::consumeWhitespace(is, "completion of field value");
                 Checked::peek(is, c, "completion of field value");
                 
-                Generic::Value::Type arrayElementType = Read::valueType(c);
+                Generic::Value::Type arrayElementType = Read::valueType<MaintainFieldOrder>(c);
 
                 std::shared_ptr<Generic::Value::Assigner> result = nullptr;
                 switch ( arrayElementType )
@@ -3274,10 +3611,12 @@ namespace Json
                     case Generic::Value::Type::Number: result = Generic::Value::Assigner::make<Generic::NumberArray>(); break;
                     case Generic::Value::Type::String: result = Generic::Value::Assigner::make<Generic::StringArray>(); break;
                     case Generic::Value::Type::Object: result = Generic::Value::Assigner::make<Generic::ObjectArray>(); break;
+                    case Generic::Value::Type::OrderedObject: result = Generic::Value::Assigner::make<Generic::OrderedObjectArray>(); break;
                     case Generic::Value::Type::Array: result = Generic::Value::Assigner::make<Generic::MixedArray>(); break;
+                    // Unused cases
                     case Generic::Value::Type::None: case Generic::Value::Type::NullArray: case Generic::Value::Type::BoolArray:
                     case Generic::Value::Type::NumberArray: case Generic::Value::Type::StringArray: case Generic::Value::Type::ObjectArray:
-                    case Generic::Value::Type::MixedArray: case Generic::Value::Type::FieldCluster: break; // Unused cases
+                    case Generic::Value::Type::OrderedObjectArray: case Generic::Value::Type::MixedArray: case Generic::Value::Type::FieldCluster: break;
                 }
 
                 Generic::Value::Type elementType = Generic::Value::Type::None;
@@ -3285,7 +3624,7 @@ namespace Json
                 {
                     Checked::consumeWhitespace(is, "completion of field value");
                     Checked::peek(is, c, "completion of field value");
-                    elementType = Read::valueType(c);
+                    elementType = Read::valueType<MaintainFieldOrder>(c);
 
                     if ( elementType != arrayElementType && arrayElementType != Generic::Value::Type::Array ) // Promote to mixed array
                     {
@@ -3327,9 +3666,17 @@ namespace Json
                                     mixedArray.push_back(std::make_shared<Generic::Object>(objectArray[i]));
                             }
                             break;
+                            case Generic::Value::Type::OrderedObject:
+                            {
+                                const std::vector<std::vector<std::pair<std::string, std::shared_ptr<Generic::Value>>>> & objectArray = result->get()->orderedObjectArray();
+                                for ( size_t i=0; i<objectArray.size(); i++ )
+                                    mixedArray.push_back(std::make_shared<Generic::OrderedObject>(objectArray[i]));
+                            }
+                            break;
                             case Generic::Value::Type::None: case Generic::Value::Type::Array: case Generic::Value::Type::NullArray: // Unused cases
                             case Generic::Value::Type::BoolArray: case Generic::Value::Type::NumberArray: case Generic::Value::Type::StringArray:
-                            case Generic::Value::Type::ObjectArray: case Generic::Value::Type::MixedArray: case Generic::Value::Type::FieldCluster: break;
+                            case Generic::Value::Type::ObjectArray: case Generic::Value::Type::OrderedObjectArray:
+                            case Generic::Value::Type::MixedArray: case Generic::Value::Type::FieldCluster: break;
                         }
                         arrayElementType = Generic::Value::Type::Array;
                         result = newResult;
@@ -3346,11 +3693,13 @@ namespace Json
                                 result->get()->mixedArray().push_back(std::make_shared<Generic::Number>(Read::number<true>(is, c))); break;
                             case Generic::Value::Type::String:
                                 result->get()->mixedArray().push_back(std::make_shared<Generic::String>(Read::string<>(is, c))); break;
-                            case Generic::Value::Type::Object: result->get()->mixedArray().push_back(Read::genericObject(is, context, c)->out()); break;
-                            case Generic::Value::Type::Array: result->get()->mixedArray().push_back(Read::genericArray<true>(is, context, c)->out()); break;
+                            case Generic::Value::Type::Object: case Generic::Value::Type::OrderedObject:
+                                result->get()->mixedArray().push_back(Read::genericObject<MaintainFieldOrder>(is, context, c)->out()); break;
+                            case Generic::Value::Type::Array: result->get()->mixedArray().push_back(Read::genericArray<true, MaintainFieldOrder>(is, context, c)->out()); break;
                             case Generic::Value::Type::None: case Generic::Value::Type::NullArray: // Unused cases
                             case Generic::Value::Type::BoolArray: case Generic::Value::Type::NumberArray: case Generic::Value::Type::StringArray:
-                            case Generic::Value::Type::ObjectArray: case Generic::Value::Type::MixedArray: case Generic::Value::Type::FieldCluster: break;
+                            case Generic::Value::Type::ObjectArray: case Generic::Value::Type::OrderedObjectArray:
+                            case Generic::Value::Type::MixedArray: case Generic::Value::Type::FieldCluster: break;
                         }
                     }
                     else
@@ -3361,12 +3710,14 @@ namespace Json
                             case Generic::Value::Type::Boolean: result->get()->boolArray().push_back(Read::boolean<true>(is, c)); break;
                             case Generic::Value::Type::Number: result->get()->numberArray().push_back(Read::number<true>(is, c)); break;
                             case Generic::Value::Type::String: result->get()->stringArray().push_back(Read::string<>(is, c)); break;
-                            case Generic::Value::Type::Object: result->get()->objectArray().push_back(Read::genericObject(is, context, c)->out()->object());
+                            case Generic::Value::Type::Object: case Generic::Value::Type::OrderedObject:
+                                result->get()->objectArray().push_back(Read::genericObject<MaintainFieldOrder>(is, context, c)->out()->object());
                                 break;
-                            case Generic::Value::Type::Array: result->get()->mixedArray().push_back(Read::genericArray<true>(is, context, c)->out()); break;
+                            case Generic::Value::Type::Array: result->get()->mixedArray().push_back(Read::genericArray<true, MaintainFieldOrder>(is, context, c)->out()); break;
                             case Generic::Value::Type::None: case Generic::Value::Type::NullArray: // Unused cases
                             case Generic::Value::Type::BoolArray: case Generic::Value::Type::NumberArray: case Generic::Value::Type::StringArray:
-                            case Generic::Value::Type::ObjectArray: case Generic::Value::Type::MixedArray: case Generic::Value::Type::FieldCluster: break;
+                            case Generic::Value::Type::ObjectArray: case Generic::Value::Type::OrderedObjectArray:
+                            case Generic::Value::Type::MixedArray: case Generic::Value::Type::FieldCluster: break;
                         }
                     }
                 }
@@ -3375,11 +3726,21 @@ namespace Json
                 return result;
             }
             
+            template <bool OrderedObject>
             inline std::shared_ptr<Generic::Value::Assigner> genericObject(std::istream & is, Context & context, char & c)
             {
-                std::shared_ptr<Generic::Value::Assigner> result = std::make_shared<Generic::Value::Assigner>(std::make_unique<Generic::Object>());
-                auto & obj = result->get()->object();
+                std::shared_ptr<Generic::Value::Assigner> result = nullptr;
+                if constexpr ( OrderedObject )
+                    result = std::make_shared<Generic::Value::Assigner>(std::make_unique<Generic::OrderedObject>());
+                else
+                    result = std::make_shared<Generic::Value::Assigner>(std::make_unique<Generic::Object>());
 
+                auto & obj = [&]() -> auto & {
+                    if constexpr ( OrderedObject )
+                        return result->get()->orderedObject();
+                    else
+                        return result->get()->object();
+                }();
                 Read::objectPrefix(is, c);
                 if ( !Read::tryObjectSuffix(is) )
                 {
@@ -3387,8 +3748,11 @@ namespace Json
                     {
                         std::string fieldName = Read::fieldName(is, c);
                         Read::fieldNameValueSeparator(is, c);
-                        std::shared_ptr<Generic::Value> value = Read::genericValue<false>(is, context, c)->out();
-                        obj.insert(std::pair<std::string, std::shared_ptr<Generic::Value>>(fieldName, value));
+                        std::shared_ptr<Generic::Value> value = Read::genericValue<false, OrderedObject>(is, context, c)->out();
+                        if constexpr ( OrderedObject )
+                            obj.push_back(std::pair<std::string, std::shared_ptr<Generic::Value>>(fieldName, value));
+                        else
+                            obj.insert(std::pair<std::string, std::shared_ptr<Generic::Value>>(fieldName, value));
                     }
                     while ( Read::fieldSeparator(is) );
                 }
@@ -3461,7 +3825,11 @@ namespace Json
                         else if constexpr ( std::is_const_v<T> )
                             Consume::value<InArray>(is, c);
                         else
-                            Read::genericValue<InArray>(is, context, c)->into(value);
+                        {
+                            constexpr bool MaintainFieldOrder = OpAnnotations<Annotations>::template hasNote<OrderObjectsType>() ||
+                                Member::template hasNote<Json::OrderObjectsType>();
+                            Read::genericValue<InArray, MaintainFieldOrder>(is, context, c)->into(value);
+                        }
                     }
                     else if ( !value ) // Value is a nullptr and not a Json::Generic
                     {
@@ -3505,7 +3873,11 @@ namespace Json
                     if constexpr ( std::is_const_v<T> )
                         Consume::value<InArray>(is, c);
                     else
-                        Read::genericValue<InArray>(is, context, c)->into(value);
+                    {
+                        constexpr bool MaintainFieldOrder = OpAnnotations<Annotations>::template hasNote<OrderObjectsType>() ||
+                            Member::template hasNote<Json::OrderObjectsType>();
+                        Read::genericValue<InArray, MaintainFieldOrder>(is, context, c)->into(value);
+                    }
                 }
                 else if constexpr ( RareTs::is_tuple_v<T> )
                 {
@@ -3746,10 +4118,10 @@ namespace Json
                                             "Cannot assign a non-null value to a null pointer unless the type is std::shared_ptr or std::unique_ptr");
                                     }
 
-                                    value->put(fieldName, Read::genericValue<false>(is, context, c)->out());
+                                    value->put(fieldName, Read::genericValue<false, OpAnnotations<OpNotes>::template hasNote<OrderObjectsType>()>(is, context, c)->out());
                                 }
                                 else
-                                    value.put(fieldName, Read::genericValue<false>(is, context, c)->out());
+                                    value.put(fieldName, Read::genericValue<false, OpAnnotations<OpNotes>::template hasNote<OrderObjectsType>()>(is, context, c)->out());
                             }
                             else
                                 throw Exception(std::string(RareTs::toStr<ValueType>()).c_str());
