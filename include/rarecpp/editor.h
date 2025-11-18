@@ -749,6 +749,41 @@ namespace RareEdit
             return RareTs::static_array_size_v<T>;
     }
 
+    template <typename T, std::size_t ... Is>
+    constexpr std::size_t getCollapsedExtent(std::index_sequence<Is...> = {})
+    {
+        if constexpr ( std::is_array_v<T> )
+        {
+            if constexpr ( sizeof...(Is) != std::rank_v<T> )
+                return getCollapsedExtent<T>(std::make_index_sequence<std::rank_v<T>>());
+            else
+                return (std::extent_v<T, Is> * ...);
+        }
+        else
+            return RareTs::static_array_size_v<T>;
+    }
+
+    template <class Member>
+    inline constexpr auto collapsed_index_typer() // Needed specifically when an equivilant 1d index type needs to be determined for an md array
+    {
+        static_assert(!std::is_void_v<Member>, "Collapsed index typer requires a non-void member");
+        static_assert(RareTs::is_static_array_v<typename Member::type>, "Collapsed index typer requires a static array");
+        constexpr std::size_t size = getCollapsedExtent<std::remove_cvref_t<typename Member::type>>();
+        if constexpr ( size < 64 ) // 6-bit int
+            return std::type_identity<uint6_t>{};
+        else if constexpr ( size <= 0xFF )
+            return std::type_identity<std::uint8_t>{};
+        else if constexpr ( size <= 0xFFFF && sizeof(std::size_t) > sizeof(std::uint32_t) )
+            return std::type_identity<std::uint16_t>{};
+        else if constexpr ( size <= 0xFFFFFFFF && sizeof(std::size_t) > sizeof(std::uint32_t) )
+            return std::type_identity<std::uint32_t>{};
+        else
+            return std::type_identity<std::size_t>{};
+    }
+
+    template <class Member>
+    using collapsed_index_type_t = typename decltype(RareEdit::collapsed_index_typer<Member>())::type;
+
     template <class DefaultIndexType, class Member>
     inline constexpr auto index_typer()
     {
@@ -1685,7 +1720,8 @@ namespace RareEdit
             }
             else if constexpr ( is_flat_mdspan_v<value_type> )
             {
-                constexpr auto size = static_cast<index_type>(value_type::size);
+                using collapsed_index_type = collapsed_index_type_t<Member>;
+                constexpr auto size = static_cast<collapsed_index_type>(value_type::size);
                 events.insert(events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
                 for ( auto it = value.flatBegin(); it != value.flatEnd(); ++it )
                     serializeValue<Member>(*it);
@@ -1693,7 +1729,8 @@ namespace RareEdit
             else if constexpr ( std::is_array_v<value_type> )
             {
                 auto span = as_1d<const value_type>(value);
-                constexpr auto size = static_cast<index_type>(decltype(span)::size);
+                using collapsed_index_type = collapsed_index_type_t<Member>;
+                constexpr auto size = static_cast<collapsed_index_type>(decltype(span)::size);
                 events.insert(events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
                 for ( auto it = span.flatBegin(); it != span.flatEnd(); ++it )
                     serializeValue<Member>(*it);
@@ -1726,16 +1763,6 @@ namespace RareEdit
         {
             auto val = static_cast<index_type_t<default_index_type, Member>>(index);
             events.insert(events.end(), reinterpret_cast<const std::uint8_t*>(&val), reinterpret_cast<const std::uint8_t*>(&val)+sizeof(val));
-        }
-
-        template <class Member>
-        void serializeValueIfFirst(auto & value, bool & first)
-        {
-            if ( first )
-            {
-                first = false;
-                serializeValue<Member>(value);
-            }
         }
 
         template <bool AfterSel, class Keys, class U, class F, class LastMember, class PathElement, class ... Pathway, class ... PathTraversed>
@@ -3973,14 +4000,16 @@ namespace RareEdit
             }
             else if constexpr ( is_flat_mdspan_v<U> )
             {
-                offset += sizeof(index_type); // Skip over array size
+                using collapsed_index_type = collapsed_index_type_t<Member>;
+                offset += sizeof(collapsed_index_type); // Skip over array size
                 for ( auto it = value.flatBegin(); it != value.flatEnd(); ++it )
                     readValue<typename U::element_type, Member>(offset, *it);
             }
             else if constexpr ( std::is_array_v<U> )
             {
                 auto span = as_1d<Value>(value);
-                offset += sizeof(index_type); // Skip over array size
+                using collapsed_index_type = collapsed_index_type_t<Member>;
+                offset += sizeof(collapsed_index_type); // Skip over array size
                 for ( auto it = span.flatBegin(); it != span.flatEnd(); ++it )
                     readValue<typename decltype(span)::element_type, Member>(offset, *it);
             }
