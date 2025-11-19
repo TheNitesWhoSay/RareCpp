@@ -791,7 +791,8 @@ namespace RareEdit
         {
             if constexpr ( RareTs::is_static_array_v<typename Member::type> )
             {
-                // TODO: individual multi-dimensional array dimensions could use smaller indexes if dimensions was passed to index_typer
+                // TODO: revisit in C++26, individual multi-dimensional array dimensions could use smaller indexes if the dimension index was passed
+                // Presently, passing that everywhere required to do so is hard on BigObj limitations & compile-times
                 constexpr std::size_t size = getMaxExtent<std::remove_cvref_t<typename Member::type>>();
                 if constexpr ( size < 64 ) // 6-bit int
                     return std::type_identity<uint6_t>{};
