@@ -5,6 +5,8 @@
 #include <bitset>
 #include <cstddef>
 #include <cstdint>
+#include <iomanip>
+#include <iosfwd>
 #include <numeric>
 #include <optional>
 #include <span>
@@ -14,10 +16,6 @@
 #include <unordered_set>
 #include <vector>
 #include "reflect.h"
-
-#include <iosfwd>
-#include <iostream> // TODO: Temporary includes
-#include <iomanip>
 #include "json.h"
 
 namespace RareEdit
