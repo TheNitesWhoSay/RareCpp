@@ -18,24 +18,26 @@
 #include "reflect.h"
 #include "json.h"
 
-namespace RareEdit
+// Nascent Form C++: data history library
+namespace nf_hist
 {
     using RareTs::type_tags;
-    template <typename SizeType> struct IndexSizeType { using type = SizeType; };
 
-    template <typename SizeType> inline constexpr IndexSizeType<SizeType> IndexSize;
+    template <typename Size_type> struct index_size_type { using type = Size_type; };
 
-    template <typename AttachedType> struct AttachDataType { using type = AttachedType; };
+    template <typename Size_type> inline constexpr index_size_type<Size_type> index_size;
 
-    template <typename AttachedType> inline constexpr AttachDataType<AttachedType> AttachData;
+    template <typename Attached_type> struct attach_data_type { using type = Attached_type; };
 
-    inline constexpr std::nullopt_t refNullOpt = std::nullopt;
+    template <typename Attached_type> inline constexpr attach_data_type<Attached_type> attach_data;
+
+    inline constexpr std::nullopt_t ref_null_opt = std::nullopt;
 
     template <typename T>
-    constexpr auto defaultIndexType()
+    constexpr auto def_index_type()
     {
-        if constexpr ( RareTs::Notes<T>::template hasNote<RareEdit::IndexSizeType>() )
-            return RareTs::Notes<T>::template getNote<RareEdit::IndexSizeType>();
+        if constexpr ( RareTs::Notes<T>::template hasNote<nf_hist::index_size_type>() )
+            return RareTs::Notes<T>::template getNote<nf_hist::index_size_type>();
         else
             return std::type_identity<std::size_t>{};
     }
@@ -46,7 +48,7 @@ namespace RareEdit
     template <typename T> inline constexpr bool is_array_member_v = is_array_member<T>::value;
 
     template <typename T>
-    inline constexpr std::size_t reflectedMemberCount() {
+    inline constexpr std::size_t reflected_member_count() {
         if constexpr ( RareTs::is_macro_reflected_v<T> )
             return RareTs::Members<T>::total;
         else
@@ -90,16 +92,16 @@ namespace RareEdit
         constexpr auto begin() const { return It{this, 0}; }
         constexpr auto end() const { return It{this, Extent}; }
 
-        constexpr T* flatBegin() { return data; }
-        constexpr T* flatEnd() { return data+size; }
-        constexpr const T* flatBegin() const { return data; }
-        constexpr const T* flatEnd() const { return data+size; }
+        constexpr T* flat_begin() { return data; }
+        constexpr T* flat_end() { return data+size; }
+        constexpr const T* flat_begin() const { return data; }
+        constexpr const T* flat_end() const { return data+size; }
 
         constexpr void operator=(const flat_mdspan & other) {
-            std::copy(other.flatBegin(), other.flatEnd(), flatBegin());
+            std::copy(other.flat_begin(), other.flat_end(), flat_begin());
         }
-        constexpr void clear() { std::fill(flatBegin(), flatEnd(), T{}); }
-        constexpr void fill(const T & value) { std::fill(flatBegin(), flatEnd(), value); }
+        constexpr void clear() { std::fill(flat_begin(), flat_end(), T{}); }
+        constexpr void fill(const T & value) { std::fill(flat_begin(), flat_end(), value); }
         constexpr void swap(flat_mdspan && other) {
             for ( std::size_t i=0; i<size; ++i )
                 std::swap(data[i], other.data[i]);
@@ -121,54 +123,54 @@ namespace RareEdit
     template <typename T>
     constexpr auto as_1d(T & array) requires (std::is_array_v<std::remove_reference_t<T>>)
     {
-        using U = std::remove_reference_t<T>;
-        using Element = std::remove_all_extents_t<U>;
-        constexpr auto rank = std::rank_v<U>;
+        using deref = std::remove_reference_t<T>;
+        using elem = std::remove_all_extents_t<deref>;
+        constexpr auto rank = std::rank_v<deref>;
         return [&]<std::size_t ... Is>(std::index_sequence<Is...>) {
-            static_assert(sizeof(U) == sizeof(Element)*(std::extent_v<U, Is> * ... * 1), "array passed to as_1d was not contiguous!");
-            return flat_mdspan<Element, std::extent_v<U, Is>...>(array_header(array));
+            static_assert(sizeof(deref) == sizeof(elem)*(std::extent_v<deref, Is> * ... * 1), "array passed to as_1d was not contiguous!");
+            return flat_mdspan<elem, std::extent_v<deref, Is>...>(array_header(array));
         }(std::make_index_sequence<rank>());
     }
 
-    inline void writeVecBoolData(std::vector<std::uint8_t> & data, const std::vector<bool> & vecBool) // Does not include the size
+    inline void write_vec_bool_data(std::vector<std::uint8_t> & data, const std::vector<bool> & vec_bool) // Does not include the size
     {
         constexpr std::uint8_t zero = 0;
-        std::size_t size = vecBool.size();
-        std::size_t unpaddedByteCount = size/8;
-        std::size_t byteCount = (size+7)/8;
+        std::size_t size = vec_bool.size();
+        std::size_t unpadded_byte_count = size/8;
+        std::size_t byte_count = (size+7)/8;
 
-        std::size_t byteStart = data.size();
-        data.insert(data.end(), byteCount, zero);
-        for ( std::size_t i=0; i<unpaddedByteCount; ++i )
+        std::size_t byte_start = data.size();
+        data.insert(data.end(), byte_count, zero);
+        for ( std::size_t i=0; i<unpadded_byte_count; ++i )
         {
-            data[byteStart + i] = static_cast<std::uint8_t>(
-                int(vecBool[i*8]) +
-                (int(vecBool[i*8+1]) << 1) +
-                (int(vecBool[i*8+2]) << 2) +
-                (int(vecBool[i*8+3]) << 3) +
-                (int(vecBool[i*8+4]) << 4) +
-                (int(vecBool[i*8+5]) << 5) +
-                (int(vecBool[i*8+6]) << 6) +
-                (int(vecBool[i*8+7]) << 7));
+            data[byte_start + i] = static_cast<std::uint8_t>(
+                int(vec_bool[i*8]) +
+                (int(vec_bool[i*8+1]) << 1) +
+                (int(vec_bool[i*8+2]) << 2) +
+                (int(vec_bool[i*8+3]) << 3) +
+                (int(vec_bool[i*8+4]) << 4) +
+                (int(vec_bool[i*8+5]) << 5) +
+                (int(vec_bool[i*8+6]) << 6) +
+                (int(vec_bool[i*8+7]) << 7));
         }
-        if ( unpaddedByteCount < byteCount )
+        if ( unpadded_byte_count < byte_count )
         {
-            std::size_t bitStart = unpaddedByteCount*8; 
-            std::size_t bitCount = size%8;
-            int lastByte = 0;
-            for ( std::size_t i=0; i<bitCount; ++i )
-                lastByte += (int(vecBool[bitStart+i]) << i);
+            std::size_t bit_start = unpadded_byte_count*8; 
+            std::size_t bit_count = size%8;
+            int last_byte = 0;
+            for ( std::size_t i=0; i<bit_count; ++i )
+                last_byte += (int(vec_bool[bit_start+i]) << i);
         
-            data[byteStart+unpaddedByteCount] = static_cast<std::uint8_t>(lastByte);
+            data[byte_start+unpadded_byte_count] = static_cast<std::uint8_t>(last_byte);
         }
     }
 
-    inline void readVecBoolData(const std::vector<std::uint8_t> & data, std::size_t & offset, std::size_t bitSize, std::vector<bool> & bitset) // Does not include the size
+    inline void read_vec_bool_data(const std::vector<std::uint8_t> & data, std::size_t & offset, std::size_t bit_size, std::vector<bool> & bitset) // Does not include the size
     {
-        bitset = std::vector<bool>(bitSize, false);
-        std::size_t unpaddedReadableByteCount = bitSize/8;
-        std::size_t readableByteCount = (bitSize+7)/8;
-        for ( std::size_t i=0; i<unpaddedReadableByteCount; ++i )
+        bitset = std::vector<bool>(bit_size, false);
+        std::size_t unpadded_readable_byte_count = bit_size/8;
+        std::size_t readable_byte_count = (bit_size+7)/8;
+        for ( std::size_t i=0; i<unpadded_readable_byte_count; ++i )
         {
             std::uint8_t byte = data[offset+i];
             bitset[i*8] = (byte & 0x1) > 0;
@@ -180,34 +182,34 @@ namespace RareEdit
             bitset[i*8+6] = (byte & 0x40) > 0;
             bitset[i*8+7] = (byte & 0x80) > 0;
         }
-        if ( readableByteCount > unpaddedReadableByteCount )
+        if ( readable_byte_count > unpadded_readable_byte_count )
         {
-            std::uint8_t lastByte = data[offset+unpaddedReadableByteCount];
+            std::uint8_t last_byte = data[offset+unpadded_readable_byte_count];
             std::uint8_t mask = 0x1;
-            for ( std::size_t bit = unpaddedReadableByteCount*8; bit<bitSize; ++bit )
+            for ( std::size_t bit = unpadded_readable_byte_count*8; bit<bit_size; ++bit )
             {
-                bitset[bit] = (lastByte & mask) > 0;
+                bitset[bit] = (last_byte & mask) > 0;
                 mask <<= 1;
             }
         }
-        offset += (bitSize+7)/8;
+        offset += (bit_size+7)/8;
     }
 
-    template <std::size_t N, typename Size = std::uint32_t, bool IncludeSize = true>
-    void writeBitset(std::vector<std::uint8_t> & data, const std::bitset<N> & bitset)
+    template <std::size_t N, typename Size = std::uint32_t, bool Include_size = true>
+    void write_bitset(std::vector<std::uint8_t> & data, const std::bitset<N> & bitset)
     {
         constexpr std::uint8_t zero = 0;
-        constexpr std::size_t unpaddedByteCount = N/8;
-        constexpr std::size_t byteCount = (N+7)/8;
+        constexpr std::size_t unpadded_byte_count = N/8;
+        constexpr std::size_t byte_count = (N+7)/8;
         constexpr Size size = static_cast<Size>(N);
-        if constexpr ( IncludeSize )
+        if constexpr ( Include_size )
             data.insert(data.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
 
-        std::size_t byteStart = data.size();
-        data.insert(data.end(), byteCount, zero);
-        for ( std::size_t i=0; i<unpaddedByteCount; ++i )
+        std::size_t byte_start = data.size();
+        data.insert(data.end(), byte_count, zero);
+        for ( std::size_t i=0; i<unpadded_byte_count; ++i )
         {
-            data[byteStart + i] = static_cast<std::uint8_t>(
+            data[byte_start + i] = static_cast<std::uint8_t>(
                 int(bitset[i*8]) +
                 (int(bitset[i*8+1]) << 1) +
                 (int(bitset[i*8+2]) << 2) +
@@ -217,28 +219,28 @@ namespace RareEdit
                 (int(bitset[i*8+6]) << 6) +
                 (int(bitset[i*8+7]) << 7));
         }
-        if constexpr ( unpaddedByteCount < byteCount )
+        if constexpr ( unpadded_byte_count < byte_count )
         {
-            constexpr std::size_t bitStart = unpaddedByteCount*8; 
-            constexpr std::size_t bitCount = N%8;
-            int lastByte = 0;
-            for ( std::size_t i=0; i<bitCount; ++i )
-                lastByte += (int(bitset[bitStart+i]) << i);
+            constexpr std::size_t bit_start = unpadded_byte_count*8; 
+            constexpr std::size_t bit_count = N%8;
+            int last_byte = 0;
+            for ( std::size_t i=0; i<bit_count; ++i )
+                last_byte += (int(bitset[bit_start+i]) << i);
         
-            data[byteStart+unpaddedByteCount] = static_cast<std::uint8_t>(lastByte);
+            data[byte_start+unpadded_byte_count] = static_cast<std::uint8_t>(last_byte);
         }
     }
 
     template <std::size_t N, typename Size = std::uint32_t>
-    void readBitset(const std::vector<std::uint8_t> & data, std::size_t & offset, std::bitset<N> & bitset)
+    void read_bitset(const std::vector<std::uint8_t> & data, std::size_t & offset, std::bitset<N> & bitset)
     {
         bitset.reset();
         std::size_t size = static_cast<std::size_t>((Size &)data[offset]);
         offset += sizeof(Size);
-        std::size_t readableBitCount = std::min(N, size);
-        std::size_t unpaddedReadableByteCount = readableBitCount/8;
-        std::size_t readableByteCount = (readableBitCount+7)/8;
-        for ( std::size_t i=0; i<unpaddedReadableByteCount; ++i )
+        std::size_t readable_bit_count = std::min(N, size);
+        std::size_t unpadded_readable_byte_count = readable_bit_count/8;
+        std::size_t readable_byte_count = (readable_bit_count+7)/8;
+        for ( std::size_t i=0; i<unpadded_readable_byte_count; ++i )
         {
             std::uint8_t byte = data[offset+i];
             bitset[i*8] = (byte & 0x1) > 0;
@@ -250,13 +252,13 @@ namespace RareEdit
             bitset[i*8+6] = (byte & 0x40) > 0;
             bitset[i*8+7] = (byte & 0x80) > 0;
         }
-        if ( readableByteCount > unpaddedReadableByteCount )
+        if ( readable_byte_count > unpadded_readable_byte_count )
         {
-            std::uint8_t lastByte = data[offset+unpaddedReadableByteCount];
+            std::uint8_t last_byte = data[offset+unpadded_readable_byte_count];
             std::uint8_t mask = 0x1;
-            for ( std::size_t bit = unpaddedReadableByteCount*8; bit<readableBitCount; ++bit )
+            for ( std::size_t bit = unpadded_readable_byte_count*8; bit<readable_bit_count; ++bit )
             {
-                bitset[bit] = (lastByte & mask) > 0;
+                bitset[bit] = (last_byte & mask) > 0;
                 mask <<= 1;
             }
         }
@@ -264,11 +266,11 @@ namespace RareEdit
     }
 
     template <typename T>
-    void writeSelectionVector(std::vector<std::uint8_t> & data, const std::vector<T> & integralVector)
+    void write_selection_vector(std::vector<std::uint8_t> & data, const std::vector<T> & integral_vec)
     {
-        T size = (T)integralVector.size();
+        T size = (T)integral_vec.size();
         data.insert(data.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
-        for ( auto & ref : integralVector )
+        for ( auto & ref : integral_vec )
         {
             T val = (T)ref;
             data.insert(data.end(), reinterpret_cast<const std::uint8_t*>(&val), reinterpret_cast<const std::uint8_t*>(&val)+sizeof(val));
@@ -276,40 +278,40 @@ namespace RareEdit
     }
 
     template <typename T>
-    bool readSelectionVector(const std::vector<std::uint8_t> & data, std::size_t & offset, std::vector<T> & integralVector)
+    bool read_selection_vector(const std::vector<std::uint8_t> & data, std::size_t & offset, std::vector<T> & integral_vec)
     {
         T size = *(reinterpret_cast<const T*>(&data[offset]));
         offset += sizeof(size);
-        integralVector.clear();
-        integralVector.reserve(size);
+        integral_vec.clear();
+        integral_vec.reserve(size);
         for ( T i=0; i<size; ++i )
         {
-            integralVector.insert(integralVector.end(), T(*(reinterpret_cast<const T*>(&data[offset]))));
+            integral_vec.insert(integral_vec.end(), T(*(reinterpret_cast<const T*>(&data[offset]))));
             offset += sizeof(T);
         }
         return size > 0;
     }
 
     template <typename T>
-    void writeSelections(std::vector<std::uint8_t> & data, const T & t)
+    void write_selections(std::vector<std::uint8_t> & data, const T & t)
     {
         if constexpr ( !RareTs::is_static_array_v<std::remove_cvref_t<T>> && RareTs::is_specialization_v<T, std::vector> )
-            writeSelectionVector(data, t);
+            write_selection_vector(data, t);
     }
 
     template <typename T>
-    bool readSelections(const std::vector<std::uint8_t> & data, std::size_t & offset, T & t)
+    bool read_selections(const std::vector<std::uint8_t> & data, std::size_t & offset, T & t)
     {
-        if constexpr ( requires{readSelectionVector(data, offset, t);} )
-            return readSelectionVector(data, offset, t);
+        if constexpr ( requires{read_selection_vector(data, offset, t);} )
+            return read_selection_vector(data, offset, t);
         else
             return false;
     }
 
     namespace u8bool
     {
-        inline constexpr std::uint8_t False = 0;
-        inline constexpr std::uint8_t True = 1;
+        inline constexpr std::uint8_t false_ = 0;
+        inline constexpr std::uint8_t true_ = 1;
 
         inline bool read(const std::vector<std::uint8_t> & data, std::size_t & offset)
         {
@@ -322,14 +324,14 @@ namespace RareEdit
             data.insert(data.end(), reinterpret_cast<const std::uint8_t*>(&write), reinterpret_cast<const std::uint8_t*>(&write)+sizeof(write));
         }
 
-        inline void writeTrue(std::vector<std::uint8_t> & data)
+        inline void write_true(std::vector<std::uint8_t> & data)
         {
-            data.insert(data.end(), &True, &True+sizeof(True));
+            data.insert(data.end(), &true_, &true_+sizeof(true_));
         }
 
-        inline void writeFalse(std::vector<std::uint8_t> & data)
+        inline void write_false(std::vector<std::uint8_t> & data)
         {
-            data.insert(data.end(), &False, &False+sizeof(False));
+            data.insert(data.end(), &false_, &false_+sizeof(false_));
         }
     };
 
@@ -356,7 +358,7 @@ namespace RareEdit
     };
     static_assert(sizeof(uint6_t) == sizeof(uint8_t), "Unexpected uint6_t size");
 
-    inline void readBoolByte(const std::vector<std::uint8_t> & data, std::size_t & offset, bool & value)
+    inline void read_bool_byte(const std::vector<std::uint8_t> & data, std::size_t & offset, bool & value)
     {
         std::uint8_t val = (std::uint8_t &)data[offset];
         offset += sizeof(val);
@@ -364,46 +366,46 @@ namespace RareEdit
     }
 
     template <typename T>
-    void clearSel(T & t)
+    void clear_sel(T & t)
     {
         RareTs::clear(t);
     }
 
     template <bool Desc = false, typename Primary, typename Secondary>
-    constexpr void parallelQuickSort(Primary & primary, Secondary & secondary, std::ptrdiff_t l, std::ptrdiff_t r) noexcept {
-        auto parallelSwap = [&](auto i1, auto i2) {
+    constexpr void parallel_quick_sort(Primary & primary, Secondary & secondary, std::ptrdiff_t l, std::ptrdiff_t r) noexcept {
+        auto parallel_swap = [&](auto i1, auto i2) {
             std::swap(primary[static_cast<std::size_t>(i1)], primary[static_cast<std::size_t>(i2)]);
             std::swap(secondary[static_cast<std::size_t>(i1)], secondary[static_cast<std::size_t>(i2)]);
         };
         if ( l < r ) {
             std::ptrdiff_t i = l+(r-l)/2; // Take median index as the pivot, swap pivot with last element
-            parallelSwap(i, r);
-            auto pivotValue = primary[static_cast<std::size_t>(r)];
+            parallel_swap(i, r);
+            auto pivot_value = primary[static_cast<std::size_t>(r)];
             i = l;
             for ( std::ptrdiff_t j=l; j<r; ++j ) {
                 if constexpr ( Desc )
                 {
-                    if ( pivotValue < primary[static_cast<std::size_t>(j)] ) { // Swap elements greater than pivot to the earliest indexes
-                        parallelSwap(i, j);
+                    if ( pivot_value < primary[static_cast<std::size_t>(j)] ) { // Swap elements greater than pivot to the earliest indexes
+                        parallel_swap(i, j);
                         ++i;
                     }
                 }
                 else
                 {
-                    if ( primary[static_cast<std::size_t>(j)] < pivotValue ) { // Swap elements less than pivot to the earliest indexes
-                        parallelSwap(i, j);
+                    if ( primary[static_cast<std::size_t>(j)] < pivot_value ) { // Swap elements less than pivot to the earliest indexes
+                        parallel_swap(i, j);
                         ++i;
                     }
                 }
             }
-            parallelSwap(i, r);
-            parallelQuickSort<Desc>(primary, secondary, l, i-1); // Sort left sub-array (elements < pivotValue)
-            parallelQuickSort<Desc>(primary, secondary, i+1, r); // Sort right sub-array (elements > pivotValue)
+            parallel_swap(i, r);
+            parallel_quick_sort<Desc>(primary, secondary, l, i-1); // Sort left sub-array (elements < pivot_value)
+            parallel_quick_sort<Desc>(primary, secondary, i+1, r); // Sort right sub-array (elements > pivot_value)
         }
     }
 
     template <bool Desc = false, typename I = std::size_t, typename T>
-    [[nodiscard]] std::vector<I> trackedSort(T & items) // sort items, return vector of source indexes
+    [[nodiscard]] std::vector<I> tracked_sort(T & items) // sort items, return vector of source indexes
     {
         if ( std::size(items) == 0 )
             return std::vector<I> {};
@@ -411,115 +413,113 @@ namespace RareEdit
         {
             std::vector<I> indexes(std::size(items), I{0});
             std::iota(indexes.begin(), indexes.end(), static_cast<I>(0));
-            parallelQuickSort<Desc>(items, indexes, 0, std::ptrdiff_t(std::size(items))-1);
+            parallel_quick_sort<Desc>(items, indexes, 0, std::ptrdiff_t(std::size(items))-1);
             return indexes;
         }
     }
 
     template <typename I = std::size_t, typename T>
     requires ( requires{std::declval<T>()[0] = std::declval<T>()[0];} )
-    void undoSort(T & items, const std::span<I> & sourceIndexes)
+    void undo_sort(T & items, const std::span<I> & source_indexes)
     {
         std::size_t total = std::size(items);
         if ( total > 0 )
         {
-            if ( total != sourceIndexes.size() )
+            if ( total != source_indexes.size() )
             {
                 throw std::invalid_argument("items.size(" + std::to_string(total) +
-                    "!= sourceIndexes.size(" + std::to_string(sourceIndexes.size()) + ")");
+                    "!= source_indexes.size(" + std::to_string(source_indexes.size()) + ")");
             }
-            std::remove_cvref_t<T> oldItems(total);
+            std::remove_cvref_t<T> old_items(total);
             for ( std::size_t i=0; i<total; ++i )
-                oldItems[sourceIndexes[i]] = items[i];
+                old_items[source_indexes[i]] = items[i];
 
-            std::swap(items, oldItems);
+            std::swap(items, old_items);
         }
     }
 
     template <typename I = std::size_t, typename T>
     requires ( requires{std::declval<T>()[0] = std::declval<T>()[0];} )
-    void redoSort(T & items, const std::span<I> & sourceIndexes)
+    void redo_sort(T & items, const std::span<I> & source_indexes)
     {
         std::size_t total = std::size(items);
         if ( total > 0 )
         {
-            if ( total != sourceIndexes.size() )
+            if ( total != source_indexes.size() )
             {
                 throw std::invalid_argument("items.size(" + std::to_string(total) +
-                    "!= sourceIndexes.size(" + std::to_string(sourceIndexes.size()) + ")");
+                    "!= source_indexes.size(" + std::to_string(source_indexes.size()) + ")");
             }
-            std::remove_cvref_t<T> newItems(total);
+            std::remove_cvref_t<T> new_items(total);
             for ( std::size_t i=0; i<total; ++i )
-                newItems[i] = items[sourceIndexes[i]];
+                new_items[i] = items[source_indexes[i]];
 
-            std::swap(items, newItems);
+            std::swap(items, new_items);
         }
     }
 
-    template <class Keys, class Pathway, class EditorType>
-    struct PathTaggedKeys : Keys // (aka: route) this combines the path to a particular (sub/)member and any map keys/array indexes
+    template <class Keys, class Pathway, class Editor_type>
+    struct path_tagged_keys : Keys // (aka: route) this combines the path to a particular (sub/)member and any map keys/array indexes
     {
         using pathway = Pathway;
         using keys = Keys;
-        using editor_type = EditorType;
+        using editor_type = Editor_type;
 
         template <std::size_t I> constexpr const auto & index() { return std::get<I>((Keys &)(*this));}
     };
 
     template <class Input>
-    using MakePath = PathTaggedKeys<typename Input::keys, typename Input::path, typename Input::editor_type>;
+    using make_path = path_tagged_keys<typename Input::keys, typename Input::path, typename Input::editor_type>;
 
-    #define PATH(...) RareEdit::MakePath<decltype(__VA_ARGS__)>
-
-    struct Rotation
+    struct rotation
     {
-        std::size_t startIndex;
-        std::size_t middleIndex;
-        std::size_t endIndex;
+        std::size_t start_index;
+        std::size_t middle_index;
+        std::size_t end_index;
 
-        static Rotation makeReverse(std::size_t startIndex, std::size_t middleIndex, std::size_t endIndex)
+        static rotation make_reverse(std::size_t start_index, std::size_t middle_index, std::size_t end_index)
         {
-            if ( startIndex+endIndex-middleIndex > endIndex )
+            if ( start_index+end_index-middle_index > end_index )
                 throw std::exception();
-            return Rotation{.startIndex = startIndex, .middleIndex = startIndex+endIndex-middleIndex, .endIndex = endIndex};
+            return rotation{.start_index = start_index, .middle_index = start_index+end_index-middle_index, .end_index = end_index};
         }
 
         void perform(auto && container)
         {
             auto begin = std::begin(container);
             std::rotate(
-                std::next(begin, static_cast<std::ptrdiff_t>(startIndex)),
-                std::next(begin, static_cast<std::ptrdiff_t>(middleIndex)),
-                std::next(begin, static_cast<std::ptrdiff_t>(endIndex))
+                std::next(begin, static_cast<std::ptrdiff_t>(start_index)),
+                std::next(begin, static_cast<std::ptrdiff_t>(middle_index)),
+                std::next(begin, static_cast<std::ptrdiff_t>(end_index))
             );
         }
     };
 
     template <class Selection>
-    void mirrorSwapToSelection(Selection & selection, std::size_t leftIndex, std::size_t rightIndex)
+    void mirror_swap_to_selection(Selection & selection, std::size_t left_index, std::size_t right_index)
     {
         if constexpr ( !std::is_null_pointer_v<Selection> )
         {
             using index_type = RareTs::element_type_t<std::remove_cvref_t<Selection>>;
             for ( auto & i : selection )
             {
-                if ( static_cast<std::size_t>(i) == leftIndex )
-                    i = static_cast<index_type>(rightIndex);
-                else if ( static_cast<std::size_t>(i) == rightIndex )
-                    i = static_cast<index_type>(leftIndex);
+                if ( static_cast<std::size_t>(i) == left_index )
+                    i = static_cast<index_type>(right_index);
+                else if ( static_cast<std::size_t>(i) == right_index )
+                    i = static_cast<index_type>(left_index);
             }
         }
     }
 
     template <class T>
-    void mirrorSwapTo(T & collection, std::size_t leftIndex, std::size_t rightIndex)
+    void mirror_swap_to(T & collection, std::size_t left_index, std::size_t right_index)
     {
         if constexpr ( !std::is_null_pointer_v<T> )
-            std::swap(collection[leftIndex], collection[rightIndex]);
+            std::swap(collection[left_index], collection[right_index]);
     }
 
     template <class Selection>
-    void mirrorRotationToSelection(Selection & selection, std::size_t first, std::size_t middle, std::size_t last)
+    void mirror_rotation_to_selection(Selection & selection, std::size_t first, std::size_t middle, std::size_t last)
     {
         if constexpr ( !std::is_null_pointer_v<Selection> )
         {
@@ -541,7 +541,7 @@ namespace RareEdit
     }
 
     template <class Collection>
-    void mirrorRotationTo(Collection & collection, auto first, auto middle, auto last)
+    void mirror_rotation_to(Collection & collection, auto first, auto middle, auto last)
     {
         if constexpr ( !std::is_null_pointer_v<Collection> )
         {
@@ -552,82 +552,84 @@ namespace RareEdit
         }
     }
 
-    enum class PathOp : std::uint8_t {
+    enum class path_op : std::uint8_t {
         
         // The meaning of the lower 6-bits depends on the selection bit (second highest bit)...
-        //   Branch: identifies a field or array index (for array sizes <= 64) which you'll be branching from
+        //   branch: identifies a field or array index (for array sizes <= 64) which you'll be branching from
         //           if array/container requires an index larger than 6 bits, then the next sizeof(containerIndex) bytes are the container index
-        //   SelBranch: lower 6-bits unused, SelBranch indicates the operation applies over the selection for this container (may branch further down from here)
-        //   LeafBranch: same as Branch except this also indicates it's the last branch in the sequence
-        //   LeafSelBranch: same as SelBranch except this also indicates it's the last branch in the sequence
-        //                  special case: if this is the first element, it means use the root element
-        HighBits      = 0b11000000,
-        LowBits       = 0b00111111,
+        //   sel_branch: lower 6-bits unused, sel_branch indicates the operation applies over the selection for this container (may branch further down from here)
+        //   leaf_branch: same as branch except this also indicates it's the last branch in the sequence
+        //   leaf_branch: same as branch except this also indicates it's the last branch in the sequence
+        //   leaf_sel_branch: same as sel_branch except this also indicates it's the last branch in the sequence
+        //                    special case: if this is the first element, it means use the root element
+        high_bits       = 0b11000000,
+        low_bits        = 0b00111111,
 
-        SelMask       = 0b01000000,
-        LeafMask      = 0b10000000,
+        sel_mask        = 0b01000000,
+        leaf_mask       = 0b10000000,
 
-        Branch        = 0b00000000,
-        SelBranch     = 0b01000000,
-        LeafBranch    = 0b10000000,
-        LeafSelBranch = 0b11000000,
-        RootPath      = LeafSelBranch
+        branch          = 0b00000000,
+        sel_branch      = 0b01000000,
+        leaf_branch     = 0b10000000,
+        leaf_sel_branch = 0b11000000,
+        root_path       = leaf_sel_branch
     };
 
-    enum class Op : std::uint8_t {
+    enum class op : std::uint8_t {
         // The first {} is the data required to perform the operation, the --{} is additional data required for fast undos
-        Reset, // {} ("value = {};") --{n, value0, ..., valueN, m, selections}
-        Reserve, // {newSize}
-        Trim,
-        Assign, // {newSize, value} --{n, value0, ..., valueN, m, selections}
-        AssignDefault, // {newSize} --{n, value0, ..., valueN, m, selections}
-        ClearSelections, // --{n, index0, ..., indexN}
-        SelectAll, // {} --{n, index0, ..., indexN}
-        Select, // {index}
-        SelectN, // {n, index0, ..., indexN}
-        Deselect, // {index} --{selIndex}
-        DeselectN,  // {n, index0, ..., indexN} --{selIndex0, ..., selIndexN}
-        ToggleSelection, // {index} --{u8boolSelected, selIndex}
-        ToggleSelectionN, // {n, index0, ..., indexN} --{bitsetIndexWasSelected, selIndex0, ..., selIndexN}
-        SortSelections, // {n, index0SourceIndex, ..., indexNSourceIndex}
-        SortSelectionsDesc, // {n, index0SourceIndex, ..., indexNSourceIndex}
-        Set, // {value} --{prevValue}
-        SetN, // {n, index0, ..., indexN, value} --{value0, ..., valueN}
-        SetL, // {value} --{value0, ..., valueN} // Same as setN, except the selections make up the indexes
-        Append, // {value}
-        AppendN, // {n, value0, ..., valueN}
-        Insert, // {index, value}
-        InsertN, // {n, index, value0, ..., valueN}
-        Remove, // {index} --{value, u8boolWasSelected, selIndex}
-        RemoveN, // {n, index0, ..., indexN} --{value0, ..., valueN, bitsetIndexSelected, m, selIndex0, ..., selIndexM} where index0 > ... > indexN
-        RemoveL, // {} --{n, index0, ..., indexN, value0, ..., valueN, selections} // Same as removeN, except the selections make up the indexes
-        Sort, // {n, index0SourceIndex, ..., indexNSourceIndex}
-        SortDesc, // {n, index0SourceIndex, ..., indexNSourceIndex}
-        Swap, // {index0, index1}
-        MoveUp, // {index}
-        MoveUpN, // {n, index0, ..., indexN}
-        MoveUpL, // {} --{selections} // Same as moveUpN, except the selections make up the indexes
-        MoveTop, // {index}
-        MoveTopN, // {n, index0, ... indexN} --{selections}
-        MoveTopL, // {} --{selections} // Same as moveTopN, except the selections make up the indexes
-        MoveDown, // {index}
-        MoveDownN, // {n, index0, ... indexN}
-        MoveDownL, // {} --{selections} // Same as moveDownN, except the selections make up the indexes
-        MoveBottom, // {index}
-        MoveBottomN, // {n, index0, ... indexN} --{selections}
-        MoveBottomL, // {} --{selections} // Same as moveDownN, except the selections make up the indexes
-        MoveTo, // {index, targetIndex}
-        MoveToN, // {n, targetIndex, index0, ..., indexN} --{selections}
-        MoveToL // {targetIndex} --{selections} // Same as moveToN, except the selections make up the indexes
+        init, // {value}
+        reset, // {} ("value = {};") --{n, value_0, ..., value_n, m, selections}
+        reserve, // {new_size}
+        trim,
+        assign, // {new_size, value} --{n, value_0, ..., value_n, m, selections}
+        assign_default, // {new_size} --{n, value_0, ..., value_n, m, selections}
+        clear_selections, // --{n, index_0, ..., index_n}
+        select_all, // {} --{n, index_0, ..., index_n}
+        select, // {index}
+        select_n, // {n, index_0, ..., index_n}
+        deselect, // {index} --{sel_index}
+        deselect_n,  // {n, index_0, ..., index_n} --{sel_index_0, ..., sel_index_n}
+        toggle_selection, // {index} --{u8_bool_selected, sel_index}
+        toggle_selection_n, // {n, index_0, ..., index_n} --{bitset_index_was_selected, sel_index_0, ..., sel_index_n}
+        sort_selections, // {n, index_0_source_index, ..., index_n_source_index}
+        sort_selections_desc, // {n, index_0_source_index, ..., index_n_source_index}
+        set, // {value} --{prev_value}
+        set_n, // {n, index_0, ..., index_n, value} --{value_0, ..., value_n}
+        set_l, // {value} --{value_0, ..., value_n} // Same as set_n, except the selections make up the indexes
+        append, // {value}
+        append_n, // {n, value_0, ..., value_n}
+        insert, // {index, value}
+        insert_n, // {n, index, value_0, ..., value_n}
+        remove, // {index} --{value, u8_bool_was_selected, sel_index}
+        remove_n, // {n, index_0, ..., index_n} --{value_0, ..., value_n, bitset_index_selected, m, sel_index_0, ..., sel_index_m} where index_0 > ... > index_n
+        remove_l, // {} --{n, index_0, ..., index_n, value_0, ..., value_n, selections} // Same as remove_n, except the selections make up the indexes
+        sort, // {n, index_0_source_index, ..., index_n_source_index}
+        sort_desc, // {n, index_0_source_index, ..., index_n_source_index}
+        swap, // {index_0, index_1}
+        move_up, // {index}
+        move_up_n, // {n, index_0, ..., index_n}
+        move_up_l, // {} --{selections} // Same as move_up_n, except the selections make up the indexes
+        move_top, // {index}
+        move_top_n, // {n, index_0, ... index_n} --{selections}
+        move_top_l, // {} --{selections} // Same as move_top_n, except the selections make up the indexes
+        move_down, // {index}
+        move_down_n, // {n, index_0, ... index_n}
+        move_down_l, // {} --{selections} // Same as move_down_n, except the selections make up the indexes
+        move_bottom, // {index}
+        move_bottom_n, // {n, index_0, ... index_n} --{selections}
+        move_bottom_l, // {} --{selections} // Same as move_down_n, except the selections make up the indexes
+        move_to, // {index, target_index}
+        move_to_n, // {n, target_index, index_0, ..., index_n} --{selections}
+        move_to_l // {target_index} --{selections} // Same as move_to_n, except the selections make up the indexes
     };
 
-    constexpr bool isSelChangeOp(Op op)
+    constexpr bool is_sel_change_op(op operation)
     {
-        switch ( op )
+        switch ( operation )
         {
-            case Op::ClearSelections: case Op::SelectAll: case Op::Select: case Op::SelectN:
-            case Op::Deselect: case Op::DeselectN: case Op::ToggleSelection: case Op::ToggleSelectionN:
-            case Op::SortSelections: case Op::SortSelectionsDesc:
+            case op::clear_selections: case op::select_all: case op::select: case op::select_n:
+            case op::deselect: case op::deselect_n: case op::toggle_selection: case op::toggle_selection_n:
+            case op::sort_selections: case op::sort_selections_desc:
                 return true;
             default:
                 return false;
@@ -635,30 +637,30 @@ namespace RareEdit
     }
 
     // Go to the Ith member of the current object
-    template <std::size_t I> struct PathMember {
+    template <std::size_t I> struct path_member {
         static constexpr std::size_t index = I;
     };
     template <class T> struct is_path_member { static constexpr bool value = false; };
-    template <std::size_t I> struct is_path_member<PathMember<I>> { static constexpr bool value = true; };
+    template <std::size_t I> struct is_path_member<path_member<I>> { static constexpr bool value = true; };
     template <class T> inline constexpr bool is_path_member_v = is_path_member<T>::value;
 
     // Use the Ith tuple-index to perform an array access on the current object
-    template <std::size_t I> struct PathIndex {
+    template <std::size_t I> struct path_index {
         static constexpr std::size_t index = I;
     };
     template <class T> struct is_path_index { static constexpr bool value = false; };
-    template <std::size_t I> struct is_path_index<PathIndex<I>> { static constexpr bool value = true; };
+    template <std::size_t I> struct is_path_index<path_index<I>> { static constexpr bool value = true; };
     template <class T> inline constexpr bool is_path_index_v = is_path_index<T>::value;
 
-    struct PathSelections {}; // The subsequent operation applies to all selected objects in the collection
+    struct path_selections {}; // The subsequent operation applies to all selected objects in the collection
     template <class T> struct is_path_selections { static constexpr bool value = false; };
-    template <> struct is_path_selections<PathSelections> { static constexpr bool value = true; };
+    template <> struct is_path_selections<path_selections> { static constexpr bool value = true; };
     template <class T> inline constexpr bool is_path_selections_v = is_path_selections<T>::value;
 
-    template <class ... Ts> concept has_path_selections = (std::same_as<PathSelections, Ts> || ...);
+    template <class ... Ts> concept has_path_selections = (std::same_as<path_selections, Ts> || ...);
 
-    template <class Agent, class default_index_type, class RootData, class T, class Keys, class ... Pathway>
-    class EditPrimitive : public Keys
+    template <class Agent, class Default_index_type, class Root_data, class T, class Keys, class ... Pathway>
+    class edit_primitive : public Keys
     {
         Agent & agent;
 
@@ -668,56 +670,56 @@ namespace RareEdit
         using editor_type = typename Agent::editor_type;
         using type = T;
 
-        EditPrimitive(Agent & agent, Keys keys) :
+        edit_primitive(Agent & agent, Keys keys) :
             Keys {std::move(keys)}, agent(agent) {}
         template <class U> void operator=(U && value) {
             if constexpr ( has_path_selections<Pathway...> )
-                agent.template setL<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+                agent.template set_l<Pathway...>(std::forward<U>(value), (Keys &)(*this));
             else
                 agent.template set<Pathway...>(std::forward<U>(value), (Keys &)(*this));
         }
-        template <class U> void operator +=(U && value) { agent.template plusEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
-        template <class U> void operator -=(U && value) { agent.template minusEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
-        template <class U> void operator *=(U && value) { agent.template multEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
-        template <class U> void operator /=(U && value) { agent.template divEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
-        template <class U> void operator %=(U && value) { agent.template modEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
-        template <class U> void operator ^=(U && value) { agent.template xorEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
-        template <class U> void operator &=(U && value) { agent.template andEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
-        template <class U> void operator |=(U && value) { agent.template orEq<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+        template <class U> void operator +=(U && value) { agent.template plus_eq_<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+        template <class U> void operator -=(U && value) { agent.template minus_eq_<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+        template <class U> void operator *=(U && value) { agent.template mult_eq_<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+        template <class U> void operator /=(U && value) { agent.template div_eq_<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+        template <class U> void operator %=(U && value) { agent.template mod_eq_<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+        template <class U> void operator ^=(U && value) { agent.template xor_eq_<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+        template <class U> void operator &=(U && value) { agent.template and_eq_<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
+        template <class U> void operator |=(U && value) { agent.template or_eq_<Pathway...>(std::forward<U>(value), (Keys &)(*this)); }
     };
 
-    template <class Agent, class default_index_type, class RootData, class T, class Keys, std::size_t I, class ... Pathway>
-    static constexpr auto editMember();
+    template <class Agent, class Default_index_type, class Root_data, class T, class Keys, std::size_t I, class ... Pathway>
+    static constexpr auto get_edit_member();
 
-    template <class Agent, class default_index_type, class RootData, class T, class Keys, class ... Pathway> struct edit_member
+    template <class Agent, class Default_index_type, class Root_data, class T, class Keys, class ... Pathway> struct edit_member
     {
-        template <std::size_t I> using type = typename decltype(editMember<Agent, default_index_type, RootData, T, Keys, I, Pathway...>())::type;
+        template <std::size_t I> using type = typename decltype(get_edit_member<Agent, Default_index_type, Root_data, T, Keys, I, Pathway...>())::type;
     };
 
     template <class ... Pathway>
-    struct EditMembers
+    struct edit_members
     {
-        template <class Agent, class default_index_type, class RootData, class T, class Keys, std::size_t ... Is>
-        struct Membs : Keys, RareTs::Class::adapt_member<edit_member<Agent, default_index_type, RootData, T, Keys, Pathway...>::template type, T, Is>...
+        template <class Agent, class Default_index_type, class Root_data, class T, class Keys, std::size_t ... Is>
+        struct membs : Keys, RareTs::Class::adapt_member<edit_member<Agent, Default_index_type, Root_data, T, Keys, Pathway...>::template type, T, Is>...
         {
             using keys = Keys;
             using path = type_tags<Pathway...>;
             using editor_type = typename Agent::editor_type;
 
-            Membs(Agent & agent, Keys keys) :
+            membs(Agent & agent, Keys keys) :
                 Keys {keys},
-                RareTs::Class::template adapt_member<edit_member<Agent, default_index_type, RootData, T, Keys, Pathway...>::template type, T, Is> {{ agent, keys }}...,
+                RareTs::Class::template adapt_member<edit_member<Agent, Default_index_type, Root_data, T, Keys, Pathway...>::template type, T, Is> {{ agent, keys }}...,
                 agent(agent) {}
 
-            template <std::size_t I> constexpr auto & fromMember()
+            template <std::size_t I> constexpr auto & from_member()
             {
-                auto & [editMember] = static_cast<RareTs::Class::adapt_member<edit_member<Agent, default_index_type, RootData, T, Keys, Pathway...>::template type, T, I> &>(*this);
-                return editMember;
+                auto & [edit_memb] = static_cast<RareTs::Class::adapt_member<edit_member<Agent, Default_index_type, Root_data, T, Keys, Pathway...>::template type, T, I> &>(*this);
+                return edit_memb;
             }
 
             template <class U> constexpr void operator=(U && value) {
                 if constexpr ( has_path_selections<Pathway...> )
-                    agent.template setL<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+                    agent.template set_l<Pathway...>(std::forward<U>(value), (Keys &)(*this));
                 else
                     agent.template set<Pathway...>(std::forward<U>(value), (Keys &)(*this));
             }
@@ -727,19 +729,19 @@ namespace RareEdit
         };
     };
 
-    template <class Agent, class default_index_type, class RootData, class T, class Keys, class ... Pathway, std::size_t... Is>
-    EditMembers<Pathway...>::template Membs<Agent, default_index_type, RootData, T, Keys, Is...> editMembers(std::index_sequence<Is...>);
+    template <class Agent, class Default_index_type, class Root_data, class T, class Keys, class ... Pathway, std::size_t... Is>
+    edit_members<Pathway...>::template membs<Agent, Default_index_type, Root_data, T, Keys, Is...> edit_members_indexer(std::index_sequence<Is...>) { return {}; }
 
-    template <class Agent, class default_index_type, class RootData, class T, class Keys = std::tuple<>, class ... Pathway>
-    using edit_members = decltype(editMembers<Agent, default_index_type, RootData, T, Keys, Pathway...>(std::make_index_sequence<RareTs::Members<T>::total>()));
+    template <class Agent, class Default_index_type, class Root_data, class T, class Keys = std::tuple<>, class ... Pathway>
+    using edit_members_t = decltype(edit_members_indexer<Agent, Default_index_type, Root_data, T, Keys, Pathway...>(std::make_index_sequence<RareTs::Members<T>::total>()));
 
     template <typename T, std::size_t ... Is>
-    constexpr std::size_t getMaxExtent(std::index_sequence<Is...> = {})
+    constexpr std::size_t get_max_extent(std::index_sequence<Is...> = {})
     {
         if constexpr ( std::is_array_v<T> )
         {
             if constexpr ( sizeof...(Is) != std::rank_v<T> )
-                return getMaxExtent<T>(std::make_index_sequence<std::rank_v<T>>());
+                return get_max_extent<T>(std::make_index_sequence<std::rank_v<T>>());
             else
                 return std::max({std::extent_v<T, Is>...});
         }
@@ -748,12 +750,12 @@ namespace RareEdit
     }
 
     template <typename T, std::size_t ... Is>
-    constexpr std::size_t getCollapsedExtent(std::index_sequence<Is...> = {})
+    constexpr std::size_t get_collapsed_extent(std::index_sequence<Is...> = {})
     {
         if constexpr ( std::is_array_v<T> )
         {
             if constexpr ( sizeof...(Is) != std::rank_v<T> )
-                return getCollapsedExtent<T>(std::make_index_sequence<std::rank_v<T>>());
+                return get_collapsed_extent<T>(std::make_index_sequence<std::rank_v<T>>());
             else
                 return (std::extent_v<T, Is> * ...);
         }
@@ -766,7 +768,7 @@ namespace RareEdit
     {
         static_assert(!std::is_void_v<Member>, "Collapsed index typer requires a non-void member");
         static_assert(RareTs::is_static_array_v<typename Member::type>, "Collapsed index typer requires a static array");
-        constexpr std::size_t size = getCollapsedExtent<std::remove_cvref_t<typename Member::type>>();
+        constexpr std::size_t size = get_collapsed_extent<std::remove_cvref_t<typename Member::type>>();
         if constexpr ( size < 64 ) // 6-bit int
             return std::type_identity<uint6_t>{};
         else if constexpr ( size <= 0xFF )
@@ -780,9 +782,9 @@ namespace RareEdit
     }
 
     template <class Member>
-    using collapsed_index_type_t = typename decltype(RareEdit::collapsed_index_typer<Member>())::type;
+    using collapsed_index_type_t = typename decltype(nf_hist::collapsed_index_typer<Member>())::type;
 
-    template <class DefaultIndexType, class Member>
+    template <class Default_index_type, class Member>
     inline constexpr auto index_typer()
     {
         if constexpr ( !std::is_void_v<Member> )
@@ -791,7 +793,7 @@ namespace RareEdit
             {
                 // TODO: revisit in C++26, individual multi-dimensional array dimensions could use smaller indexes if the dimension index was passed
                 // Presently, passing that everywhere required to do so is hard on BigObj limitations & compile-times
-                constexpr std::size_t size = getMaxExtent<std::remove_cvref_t<typename Member::type>>();
+                constexpr std::size_t size = get_max_extent<std::remove_cvref_t<typename Member::type>>();
                 if constexpr ( size < 64 ) // 6-bit int
                     return std::type_identity<uint6_t>{};
                 else if constexpr ( size <= 0xFF )
@@ -803,114 +805,114 @@ namespace RareEdit
                 else
                     return std::type_identity<std::size_t>{};
             }
-            else if constexpr ( Member::template hasNote<RareEdit::IndexSizeType>() )
-                return Member::template getNote<RareEdit::IndexSizeType>();
+            else if constexpr ( Member::template hasNote<nf_hist::index_size_type>() )
+                return Member::template getNote<nf_hist::index_size_type>();
             else
-                return std::type_identity<DefaultIndexType>{};
+                return std::type_identity<Default_index_type>{};
         }
         else
-            return std::type_identity<DefaultIndexType>{};
+            return std::type_identity<Default_index_type>{};
     };
 
-    template <class DefaultIndexType, class Member>
-    using index_type_t = typename decltype(RareEdit::index_typer<DefaultIndexType, Member>())::type;
+    template <class Default_index_type, class Member>
+    using index_type_t = typename decltype(nf_hist::index_typer<Default_index_type, Member>())::type;
 
-    template <class Agent, class default_index_type, class RootData, class T, class Keys, template <class...> class SubElement, class ... Pathway>
-    class Editable
+    template <class Agent, class Default_index_type, class Root_data, class T, class Keys, template <class...> class Sub_element, class ... Pathway>
+    class editable
     {
-        template <class U, class LastMember, class PathElement, class ... PathElements>
-        static constexpr auto indexImpl()
+        template <class U, class Last_member, class Path_element, class ... Path_elements>
+        static constexpr auto index_impl()
         {
-            if constexpr ( is_path_selections_v<PathElement> )
+            if constexpr ( is_path_selections_v<Path_element> )
             {
-                if constexpr ( sizeof...(PathElements) == 0 )
-                    return std::type_identity<index_type_t<default_index_type, LastMember>> {};
+                if constexpr ( sizeof...(Path_elements) == 0 )
+                    return std::type_identity<index_type_t<Default_index_type, Last_member>> {};
                 else
-                    return indexImpl<std::remove_cvref_t<decltype(std::declval<U>()[0])>, LastMember, PathElements...>();
+                    return index_impl<std::remove_cvref_t<decltype(std::declval<U>()[0])>, Last_member, Path_elements...>();
             }
-            else if constexpr ( is_path_member_v<PathElement> )
+            else if constexpr ( is_path_member_v<Path_element> )
             {
-                if constexpr ( sizeof...(PathElements) == 0 )
-                    return std::type_identity<index_type_t<default_index_type, RareTs::Member<U, PathElement::index>>> {};
+                if constexpr ( sizeof...(Path_elements) == 0 )
+                    return std::type_identity<index_type_t<Default_index_type, RareTs::Member<U, Path_element::index>>> {};
                 else
-                    return indexImpl<typename RareTs::Member<U, PathElement::index>::type, RareTs::Member<U, PathElement::index>, PathElements...>();
+                    return index_impl<typename RareTs::Member<U, Path_element::index>::type, RareTs::Member<U, Path_element::index>, Path_elements...>();
             }
-            else if constexpr ( is_path_index_v<PathElement> )
+            else if constexpr ( is_path_index_v<Path_element> )
             {
-                if constexpr ( sizeof...(PathElements) == 0 )
-                    return std::type_identity<index_type_t<default_index_type, LastMember>> {};
+                if constexpr ( sizeof...(Path_elements) == 0 )
+                    return std::type_identity<index_type_t<Default_index_type, Last_member>> {};
                 else
-                    return indexImpl<std::remove_cvref_t<decltype(std::declval<U>()[0])>, LastMember, PathElements...>();
+                    return index_impl<std::remove_cvref_t<decltype(std::declval<U>()[0])>, Last_member, Path_elements...>();
             }
         }
 
-        class RandomAccess : public Keys
+        class random_access : public Keys
         {
-            using index_type = typename decltype(indexImpl<RootData, void, Pathway...>())::type;
+            using index_type = typename decltype(index_impl<Root_data, void, Pathway...>())::type;
 
-            template <std::size_t... Is> static constexpr auto arrayOpType(std::index_sequence<Is...>) -> SubElement<
-                Agent, default_index_type, RootData, T, std::tuple<std::tuple_element_t<Is, Keys>..., index_type>, Pathway..., PathIndex<sizeof...(Is)>>;
-            template <std::size_t... Is> static constexpr auto subArrayOpType(std::index_sequence<Is...>) -> Editable<
-                Agent, default_index_type, RootData, RareTs::element_type_t<T>, std::tuple<std::tuple_element_t<Is, Keys>..., index_type>, SubElement, Pathway..., PathIndex<sizeof...(Is)>>::Array;
+            template <std::size_t... Is> static constexpr auto array_op_typer(std::index_sequence<Is...>) -> Sub_element<
+                Agent, Default_index_type, Root_data, T, std::tuple<std::tuple_element_t<Is, Keys>..., index_type>, Pathway..., path_index<sizeof...(Is)>> { return {}; }
+            template <std::size_t... Is> static constexpr auto sub_array_op_typer(std::index_sequence<Is...>) -> editable<
+                Agent, Default_index_type, Root_data, RareTs::element_type_t<T>, std::tuple<std::tuple_element_t<Is, Keys>..., index_type>, Sub_element, Pathway..., path_index<sizeof...(Is)>>::array { return {}; }
 
         protected:
             Agent & agent;
 
-            constexpr auto & memberRef() { return agent.template getMemberReference<Pathway...>(agent.t, (Keys &)(*this)); }
+            constexpr auto & member_ref() { return agent.template get_member_reference<Pathway...>(agent.t, (Keys &)(*this)); }
 
         public:
             using keys = Keys;
             using path = type_tags<Pathway...>;
             using editor_type = typename Agent::editor_type;
-            using Route = PathTaggedKeys<Keys, path, typename Agent::editor_type>;
+            using route = path_tagged_keys<Keys, path, typename Agent::editor_type>;
 
-            using selection_op_type = SubElement<Agent, default_index_type, RootData, T, Keys, Pathway..., PathSelections>;
-            using array_op_type = decltype(arrayOpType(std::make_index_sequence<std::tuple_size_v<Keys>>()));
-            using sub_array_op_type = decltype(subArrayOpType(std::make_index_sequence<std::tuple_size_v<Keys>>()));
+            using selection_op_type = Sub_element<Agent, Default_index_type, Root_data, T, Keys, Pathway..., path_selections>;
+            using array_op_type = decltype(array_op_typer(std::make_index_sequence<std::tuple_size_v<Keys>>()));
+            using sub_array_op_type = decltype(sub_array_op_typer(std::make_index_sequence<std::tuple_size_v<Keys>>()));
             
-            constexpr const auto & sel() const { return agent.template getSelections<Pathway...>(); }
-            constexpr auto & attachedData(std::size_t i) const { return agent.template getAttachedData<Pathway...>()[i]; }
-            constexpr const auto & readAttachedData() const { return agent.template getAttachedData<Pathway...>(); }
+            constexpr const auto & sel() const { return agent.template get_selections<Pathway...>(); }
+            constexpr auto & attached_data(std::size_t i) const { return agent.template get_attached_data<Pathway...>()[i]; }
+            constexpr const auto & read_attached_data() const { return agent.template get_attached_data<Pathway...>(); }
 
-            inline void clearSelections()
+            inline void clear_selections()
             {
-                auto & sel = agent.template getSelections<Pathway...>();
+                auto & sel = agent.template get_selections<Pathway...>();
                 if ( !sel.empty() )
                 {
-                    agent.eventOffsets.push_back(agent.events.size());
-                    agent.events.push_back(uint8_t(Op::ClearSelections));
-                    agent.template serializePathway<Pathway...>((Keys &)(*this));
+                    agent.event_offsets.push_back(agent.events.size());
+                    agent.events.push_back(uint8_t(op::clear_selections));
+                    agent.template serialize_pathway<Pathway...>((Keys &)(*this));
 
-                    writeSelectionVector(agent.events, sel);
+                    write_selection_vector(agent.events, sel);
                     RareTs::clear(sel);
 
-                    if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
-                        agent.user.selectionsChanged(Route{(Keys &)(*this)});
+                    if constexpr ( Agent::template has_selections_changed_op<route> )
+                        agent.user.selections_changed(route{(Keys &)(*this)});
                 }
             }
 
-            inline void selectAll()
+            inline void select_all()
             {
-                auto & sel = agent.template getSelections<Pathway...>();
-                agent.eventOffsets.push_back(agent.events.size());
-                agent.events.push_back(uint8_t(Op::SelectAll));
-                agent.template serializePathway<Pathway...>((Keys &)(*this));
+                auto & sel = agent.template get_selections<Pathway...>();
+                agent.event_offsets.push_back(agent.events.size());
+                agent.events.push_back(uint8_t(op::select_all));
+                agent.template serialize_pathway<Pathway...>((Keys &)(*this));
 
-                writeSelectionVector(agent.events, sel);
+                write_selection_vector(agent.events, sel);
                 RareTs::clear(sel);
-                sel.assign(memberRef().size(), 0);
+                sel.assign(member_ref().size(), 0);
                 std::iota(sel.begin(), sel.end(), (RareTs::element_type_t<RareTs::remove_cvref_t<decltype(sel)>>)0);
 
-                if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
-                    agent.user.selectionsChanged(Route{(Keys &)(*this)});
+                if constexpr ( Agent::template has_selections_changed_op<route> )
+                    agent.user.selections_changed(route{(Keys &)(*this)});
             }
 
             inline void select(index_type i) // i must not be selected
             {
-                auto & sel = agent.template getSelections<Pathway...>();
-                agent.eventOffsets.push_back(agent.events.size());
-                agent.events.push_back(uint8_t(Op::Select));
-                agent.template serializePathway<Pathway...>((Keys &)(*this));
+                auto & sel = agent.template get_selections<Pathway...>();
+                agent.event_offsets.push_back(agent.events.size());
+                agent.events.push_back(uint8_t(op::select));
+                agent.template serialize_pathway<Pathway...>((Keys &)(*this));
 
                 agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&i), reinterpret_cast<const std::uint8_t*>(&i)+sizeof(i));
                 if ( std::find(sel.begin(), sel.end(), i) == sel.end() )
@@ -918,192 +920,192 @@ namespace RareEdit
                 else
                     throw std::invalid_argument("Cannot select an index that is already selected");
 
-                if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
-                    agent.user.selectionsChanged(Route{(Keys &)(*this)});
+                if constexpr ( Agent::template has_selections_changed_op<route> )
+                    agent.user.selections_changed(route{(Keys &)(*this)});
             }
 
-            inline void select(const std::vector<index_type> & addedSelections) // addedSelections must not be selected
+            inline void select(const std::vector<index_type> & added_selections) // added_selections must not be selected
             {
-                auto & sel = agent.template getSelections<Pathway...>();
-                agent.eventOffsets.push_back(agent.events.size());
-                agent.events.push_back(uint8_t(Op::SelectN));
-                agent.template serializePathway<Pathway...>((Keys &)(*this));
+                auto & sel = agent.template get_selections<Pathway...>();
+                agent.event_offsets.push_back(agent.events.size());
+                agent.events.push_back(uint8_t(op::select_n));
+                agent.template serialize_pathway<Pathway...>((Keys &)(*this));
 
-                index_type size = static_cast<index_type>(addedSelections.size());
+                index_type size = static_cast<index_type>(added_selections.size());
                 agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
-                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&(addedSelections[0])),
-                    reinterpret_cast<const std::uint8_t*>(&(addedSelections[0]))+sizeof(addedSelections[0])*static_cast<std::size_t>(size));
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&(added_selections[0])),
+                    reinterpret_cast<const std::uint8_t*>(&(added_selections[0]))+sizeof(added_selections[0])*static_cast<std::size_t>(size));
 
-                for ( auto i : addedSelections )
+                for ( auto i : added_selections )
                 {
                     if ( std::find(sel.begin(), sel.end(), i) == sel.end() )
                         RareTs::append(sel, i);
                     else
                         throw std::invalid_argument("Cannot select an index that is already selected");
                 }
-                if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
-                    agent.user.selectionsChanged(Route{(Keys &)(*this)});
+                if constexpr ( Agent::template has_selections_changed_op<route> )
+                    agent.user.selections_changed(route{(Keys &)(*this)});
             }
 
             inline void deselect(index_type i) // i must be selected
             {
-                auto & sel = agent.template getSelections<Pathway...>();
-                agent.eventOffsets.push_back(agent.events.size());
-                agent.events.push_back(uint8_t(Op::Deselect));
-                agent.template serializePathway<Pathway...>((Keys &)(*this));
+                auto & sel = agent.template get_selections<Pathway...>();
+                agent.event_offsets.push_back(agent.events.size());
+                agent.events.push_back(uint8_t(op::deselect));
+                agent.template serialize_pathway<Pathway...>((Keys &)(*this));
                 
                 auto found = std::find(sel.begin(), sel.end(), i);
-                index_type foundAt = static_cast<index_type>(std::distance(std::begin(sel), found));
+                index_type found_at = static_cast<index_type>(std::distance(std::begin(sel), found));
                 agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&i), reinterpret_cast<const std::uint8_t*>(&i)+sizeof(i));
-                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&foundAt), reinterpret_cast<const std::uint8_t*>(&foundAt)+sizeof(foundAt));
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&found_at), reinterpret_cast<const std::uint8_t*>(&found_at)+sizeof(found_at));
 
                 if ( found == sel.end() )
                     throw std::invalid_argument("Cannot deselect an index that is not selected");
                 else
                     sel.erase(found);
 
-                if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
-                    agent.user.selectionsChanged(Route{(Keys &)(*this)});
+                if constexpr ( Agent::template has_selections_changed_op<route> )
+                    agent.user.selections_changed(route{(Keys &)(*this)});
             }
 
-            inline void deselect(const std::vector<index_type> & removedSelections) // removeSelections must be selected
+            inline void deselect(const std::vector<index_type> & removed_selections) // removed_selections must be selected
             {
-                auto & sel = agent.template getSelections<Pathway...>();
-                agent.eventOffsets.push_back(agent.events.size());
-                agent.events.push_back(uint8_t(Op::DeselectN));
-                agent.template serializePathway<Pathway...>((Keys &)(*this));
+                auto & sel = agent.template get_selections<Pathway...>();
+                agent.event_offsets.push_back(agent.events.size());
+                agent.events.push_back(uint8_t(op::deselect_n));
+                agent.template serialize_pathway<Pathway...>((Keys &)(*this));
 
-                auto numRemoved = removedSelections.size();
-                index_type size = static_cast<index_type>(numRemoved);
+                auto num_removed = removed_selections.size();
+                index_type size = static_cast<index_type>(num_removed);
                 agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
-                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&removedSelections[0]),
-                    reinterpret_cast<const std::uint8_t*>(&removedSelections[0])+sizeof(removedSelections[0])*size);
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&removed_selections[0]),
+                    reinterpret_cast<const std::uint8_t*>(&removed_selections[0])+sizeof(removed_selections[0])*size);
 
-                for ( auto i : removedSelections )
+                for ( auto i : removed_selections )
                 {
                     auto found = std::find(sel.begin(), sel.end(), i);
                     if ( found != sel.end() )
                     {
-                        index_type foundAt = static_cast<index_type>(std::distance(std::begin(sel), found));
-                        agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&foundAt), reinterpret_cast<const std::uint8_t*>(&foundAt)+sizeof(foundAt));
+                        index_type found_at = static_cast<index_type>(std::distance(std::begin(sel), found));
+                        agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&found_at), reinterpret_cast<const std::uint8_t*>(&found_at)+sizeof(found_at));
                         sel.erase(found);
                     }
                     else
                         throw std::invalid_argument("Cannot deselect an index that is not selected");
                 }
-                if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
-                    agent.user.selectionsChanged(Route{(Keys &)(*this)});
+                if constexpr ( Agent::template has_selections_changed_op<route> )
+                    agent.user.selections_changed(route{(Keys &)(*this)});
             }
 
-            inline void toggleSelected(index_type i)
+            inline void toggle_selected(index_type i)
             {
-                auto & sel = agent.template getSelections<Pathway...>();
-                agent.eventOffsets.push_back(agent.events.size());
-                agent.events.push_back(uint8_t(Op::ToggleSelection));
-                agent.template serializePathway<Pathway...>((Keys &)(*this));
+                auto & sel = agent.template get_selections<Pathway...>();
+                agent.event_offsets.push_back(agent.events.size());
+                agent.events.push_back(uint8_t(op::toggle_selection));
+                agent.template serialize_pathway<Pathway...>((Keys &)(*this));
                 agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&i), reinterpret_cast<const std::uint8_t*>(&i)+sizeof(i));
                 auto found = std::find(sel.begin(), sel.end(), i);
                 u8bool::write(agent.events, found != sel.end());
                 if ( found != sel.end() )
                 {
-                    index_type foundAt = static_cast<index_type>(std::distance(std::begin(sel), found));
-                    agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&foundAt), reinterpret_cast<const std::uint8_t*>(&foundAt)+sizeof(foundAt));
+                    index_type found_at = static_cast<index_type>(std::distance(std::begin(sel), found));
+                    agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&found_at), reinterpret_cast<const std::uint8_t*>(&found_at)+sizeof(found_at));
                     std::erase(sel, i);
                 }
                 else
                     RareTs::append(sel, i);
 
-                if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
-                    agent.user.selectionsChanged(Route{(Keys &)(*this)});
+                if constexpr ( Agent::template has_selections_changed_op<route> )
+                    agent.user.selections_changed(route{(Keys &)(*this)});
             }
 
-            inline void toggleSelected(const std::vector<index_type> & toggledSelections)
+            inline void toggle_selected(const std::vector<index_type> & toggled_selections)
             {
-                auto & sel = agent.template getSelections<Pathway...>();
-                agent.eventOffsets.push_back(agent.events.size());
-                agent.events.push_back(uint8_t(Op::ToggleSelectionN));
-                agent.template serializePathway<Pathway...>((Keys &)(*this));
+                auto & sel = agent.template get_selections<Pathway...>();
+                agent.event_offsets.push_back(agent.events.size());
+                agent.events.push_back(uint8_t(op::toggle_selection_n));
+                agent.template serialize_pathway<Pathway...>((Keys &)(*this));
 
-                auto numToggled = toggledSelections.size();
-                index_type size = static_cast<index_type>(numToggled);
+                auto num_toggled = toggled_selections.size();
+                index_type size = static_cast<index_type>(num_toggled);
                 agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
-                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&toggledSelections[0]),
-                    reinterpret_cast<const std::uint8_t*>(&toggledSelections[0])+sizeof(toggledSelections[0])*static_cast<std::size_t>(size));
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&toggled_selections[0]),
+                    reinterpret_cast<const std::uint8_t*>(&toggled_selections[0])+sizeof(toggled_selections[0])*static_cast<std::size_t>(size));
 
-                std::vector<bool> wasSelected(numToggled, false);
-                std::vector<index_type> prevSelIndexes {};
-                prevSelIndexes.reserve(numToggled);
-                for ( std::size_t i=0; i<toggledSelections.size(); ++i )
+                std::vector<bool> was_selected(num_toggled, false);
+                std::vector<index_type> prev_sel_indexes {};
+                prev_sel_indexes.reserve(num_toggled);
+                for ( std::size_t i=0; i<toggled_selections.size(); ++i )
                 {
-                    auto found = std::find(sel.begin(), sel.end(), toggledSelections[i]);
+                    auto found = std::find(sel.begin(), sel.end(), toggled_selections[i]);
                     if ( found != sel.end() )
                     {
-                        wasSelected[i] = true;
-                        prevSelIndexes.push_back(static_cast<index_type>(std::distance(sel.begin(), found)));
+                        was_selected[i] = true;
+                        prev_sel_indexes.push_back(static_cast<index_type>(std::distance(sel.begin(), found)));
                         sel.erase(found);
                     }
                     else
-                        RareTs::append(sel, toggledSelections[i]);
+                        RareTs::append(sel, toggled_selections[i]);
                 }
-                writeVecBoolData(agent.events, wasSelected);
-                if ( !prevSelIndexes.empty() )
+                write_vec_bool_data(agent.events, was_selected);
+                if ( !prev_sel_indexes.empty() )
                 {
-                    agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&prevSelIndexes[0]),
-                        reinterpret_cast<const std::uint8_t*>(&prevSelIndexes[0])+sizeof(prevSelIndexes[0])*std::size(prevSelIndexes));
+                    agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&prev_sel_indexes[0]),
+                        reinterpret_cast<const std::uint8_t*>(&prev_sel_indexes[0])+sizeof(prev_sel_indexes[0])*std::size(prev_sel_indexes));
                 }
 
-                if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
-                    agent.user.selectionsChanged(Route{(Keys &)(*this)});
+                if constexpr ( Agent::template has_selections_changed_op<route> )
+                    agent.user.selections_changed(route{(Keys &)(*this)});
             }
 
-            inline void sortSelection()
+            inline void sort_selection()
             {
-                auto & sel = agent.template getSelections<Pathway...>();
-                agent.eventOffsets.push_back(agent.events.size());
-                agent.events.push_back(uint8_t(Op::SortSelections));
-                agent.template serializePathway<Pathway...>((Keys &)(*this));
+                auto & sel = agent.template get_selections<Pathway...>();
+                agent.event_offsets.push_back(agent.events.size());
+                agent.events.push_back(uint8_t(op::sort_selections));
+                agent.template serialize_pathway<Pathway...>((Keys &)(*this));
 
-                auto sourceIndexes = trackedSort<false, index_type>(sel);
-                index_type serializedSize = static_cast<index_type>(sourceIndexes.size());
-                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&serializedSize),
-                    reinterpret_cast<const std::uint8_t*>(&serializedSize)+sizeof(serializedSize));
+                auto source_indexes = tracked_sort<false, index_type>(sel);
+                index_type serialized_size = static_cast<index_type>(source_indexes.size());
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&serialized_size),
+                    reinterpret_cast<const std::uint8_t*>(&serialized_size)+sizeof(serialized_size));
 
-                for ( auto index : sourceIndexes )
+                for ( auto index : source_indexes )
                 {
-                    index_type sourceIndex = static_cast<index_type>(index);
-                    agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&sourceIndex),
-                        reinterpret_cast<const std::uint8_t*>(&sourceIndex)+sizeof(sourceIndex));
+                    index_type source_index = static_cast<index_type>(index);
+                    agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&source_index),
+                        reinterpret_cast<const std::uint8_t*>(&source_index)+sizeof(source_index));
                 }
                 
-                if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
-                    agent.user.selectionsChanged(Route{(Keys &)(*this)});
+                if constexpr ( Agent::template has_selections_changed_op<route> )
+                    agent.user.selections_changed(route{(Keys &)(*this)});
             }
 
-            inline void sortSelectionDescending()
+            inline void sort_selection_descending()
             {
-                auto & sel = agent.template getSelections<Pathway...>();
-                agent.eventOffsets.push_back(agent.events.size());
-                agent.events.push_back(uint8_t(Op::SortSelectionsDesc));
-                agent.template serializePathway<Pathway...>((Keys &)(*this));
+                auto & sel = agent.template get_selections<Pathway...>();
+                agent.event_offsets.push_back(agent.events.size());
+                agent.events.push_back(uint8_t(op::sort_selections_desc));
+                agent.template serialize_pathway<Pathway...>((Keys &)(*this));
 
-                auto sourceIndexes = trackedSort<true, index_type>(sel);
-                index_type serializedSize = static_cast<index_type>(sourceIndexes.size());
-                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&serializedSize),
-                    reinterpret_cast<const std::uint8_t*>(&serializedSize)+sizeof(serializedSize));
+                auto source_indexes = tracked_sort<true, index_type>(sel);
+                index_type serialized_size = static_cast<index_type>(source_indexes.size());
+                agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&serialized_size),
+                    reinterpret_cast<const std::uint8_t*>(&serialized_size)+sizeof(serialized_size));
 
-                for ( auto index : sourceIndexes )
+                for ( auto index : source_indexes )
                 {
-                    index_type sourceIndex = static_cast<index_type>(index);
-                    agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&sourceIndex),
-                        reinterpret_cast<const std::uint8_t*>(&sourceIndex)+sizeof(sourceIndex));
+                    index_type source_index = static_cast<index_type>(index);
+                    agent.events.insert(agent.events.end(), reinterpret_cast<const std::uint8_t*>(&source_index),
+                        reinterpret_cast<const std::uint8_t*>(&source_index)+sizeof(source_index));
                 }
-                if constexpr ( Agent::template hasSelectionsChangedOp<Route> )
-                    agent.user.selectionsChanged(Route{(Keys &)(*this)});
+                if constexpr ( Agent::template has_selections_changed_op<route> )
+                    agent.user.selections_changed(route{(Keys &)(*this)});
             }
             
             constexpr auto selection() { return selection_op_type(agent, (std::add_lvalue_reference_t<Keys>)(*this)); }
 
-            RandomAccess(Agent & agent, Keys && keys) : Keys {std::move(keys)}, agent(agent) {}
+            random_access(Agent & agent, Keys && keys) : Keys {std::move(keys)}, agent(agent) {}
 
             auto operator[](std::size_t i) const {
                 if constexpr ( RareTs::is_static_array_v<T> ) // Multi-dimensional array
@@ -1114,100 +1116,100 @@ namespace RareEdit
         };
 
     public:
-        struct Array : RandomAccess
+        struct array : random_access
         {
-            Array(Agent & agent, Keys keys) : RandomAccess { agent, std::move(keys) } {}
-            void reset() { RandomAccess::agent.template reset<Pathway...>((Keys &)(*this)); }
+            array(Agent & agent, Keys keys) : random_access { agent, std::move(keys) } {}
+            void reset() { random_access::agent.template reset<Pathway...>((Keys &)(*this)); }
         };
 
-        struct Vector : RandomAccess
+        struct vector : random_access
         {
-            Vector(Agent & agent, Keys keys) : RandomAccess { agent, std::move(keys) } {}
-            void reset() { RandomAccess::agent.template reset<Pathway...>((Keys &)(*this)); }
-            void reserve(std::size_t size) { RandomAccess::agent.template reserve<Pathway...>(size, (Keys &)(*this)); }
-            void trim() { RandomAccess::agent.template trim<Pathway...>((Keys &)(*this)); }
-            void assignDefault(std::size_t size) { RandomAccess::agent.template assignDefault<Pathway...>(size, (Keys &)(*this)); }
-            template <class U> void assign(std::size_t size, U && value) { RandomAccess::agent.template assign<Pathway...>(size, std::forward<U>(value), (Keys &)(*this)); }
+            vector(Agent & agent, Keys keys) : random_access { agent, std::move(keys) } {}
+            void reset() { random_access::agent.template reset<Pathway...>((Keys &)(*this)); }
+            void reserve(std::size_t size) { random_access::agent.template reserve<Pathway...>(size, (Keys &)(*this)); }
+            void trim() { random_access::agent.template trim<Pathway...>((Keys &)(*this)); }
+            void assign_default(std::size_t size) { random_access::agent.template assign_default<Pathway...>(size, (Keys &)(*this)); }
+            template <class U> void assign(std::size_t size, U && value) { random_access::agent.template assign<Pathway...>(size, std::forward<U>(value), (Keys &)(*this)); }
             template <class U> void operator=(U && value) {
                 if constexpr ( has_path_selections<Pathway...> )
-                    RandomAccess::agent.template setL<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+                    random_access::agent.template set_l<Pathway...>(std::forward<U>(value), (Keys &)(*this));
                 else
-                    RandomAccess::agent.template set<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+                    random_access::agent.template set<Pathway...>(std::forward<U>(value), (Keys &)(*this));
             }
 
-            template <class SetIndexes, class Value> void set(SetIndexes && indexes, Value && value) { RandomAccess::agent.template setN<Pathway...>(indexes, std::forward<Value>(value), (Keys &)(*this)); }
+            template <class Indexes, class Value> void set(Indexes && indexes, Value && value) { random_access::agent.template set_n<Pathway...>(indexes, std::forward<Value>(value), (Keys &)(*this)); }
             template <class U> void append(U && value) {
                 if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> && !RareTs::is_optional_v<std::remove_cvref_t<U>> )
-                    RandomAccess::agent.template appendN<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+                    random_access::agent.template append_n<Pathway...>(std::forward<U>(value), (Keys &)(*this));
                 else
-                    RandomAccess::agent.template append<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+                    random_access::agent.template append<Pathway...>(std::forward<U>(value), (Keys &)(*this));
             }
-            template <class InsertionIndex, class Value> void insert(InsertionIndex insertionIndex, Value && value) {
+            template <class Index, class Value> void insert(Index insertion_index, Value && value) {
                 if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<Value>> && !RareTs::is_optional_v<std::remove_cvref_t<Value>> )
-                    RandomAccess::agent.template insertN<Pathway...>(insertionIndex, std::forward<Value>(value), (Keys &)(*this));
+                    random_access::agent.template insert_n<Pathway...>(insertion_index, std::forward<Value>(value), (Keys &)(*this));
                 else
-                    RandomAccess::agent.template insert<Pathway...>(insertionIndex, std::forward<Value>(value), (Keys &)(*this));
+                    random_access::agent.template insert<Pathway...>(insertion_index, std::forward<Value>(value), (Keys &)(*this));
             }
-            template <class RemovalIndex> void remove(RemovalIndex removalIndex) {
-                if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<RemovalIndex>> )
-                    RandomAccess::agent.template removeN<Pathway...>(removalIndex, (Keys &)(*this));
+            template <class Index> void remove(Index removal_index) {
+                if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<Index>> )
+                    random_access::agent.template remove_n<Pathway...>(removal_index, (Keys &)(*this));
                 else
-                    RandomAccess::agent.template remove<Pathway...>(removalIndex, (Keys &)(*this));
+                    random_access::agent.template remove<Pathway...>(removal_index, (Keys &)(*this));
             }
-            void sort() { RandomAccess::agent.template sort<Pathway...>((Keys &)(*this)); }
-            void sortDesc() { RandomAccess::agent.template sortDesc<Pathway...>((Keys &)(*this)); }
-            void removeSelection() { RandomAccess::agent.template removeL<Pathway...>((Keys &)(*this)); }
+            void sort() { random_access::agent.template sort<Pathway...>((Keys &)(*this)); }
+            void sort_desc() { random_access::agent.template sort_desc<Pathway...>((Keys &)(*this)); }
+            void remove_selection() { random_access::agent.template remove_l<Pathway...>((Keys &)(*this)); }
 
-            template <class U> void swap(U && firstIndex, U && secondIndex) {
-                RandomAccess::agent.template swap<Pathway...>(std::forward<U>(firstIndex), std::forward<U>(secondIndex), (Keys &)(*this));
+            template <class U> void swap(U && first_index, U && second_index) {
+                random_access::agent.template swap<Pathway...>(std::forward<U>(first_index), std::forward<U>(second_index), (Keys &)(*this));
             }
-            template <class U> void moveUp(U && movedIndex) {
+            template <class U> void move_up(U && moved_index) {
                 if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> )
-                    RandomAccess::agent.template moveUpN<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
+                    random_access::agent.template move_up_n<Pathway...>(std::forward<U>(moved_index), (Keys &)(*this));
                 else
-                    RandomAccess::agent.template moveUp<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
+                    random_access::agent.template move_up<Pathway...>(std::forward<U>(moved_index), (Keys &)(*this));
             }
-            template <class U> void moveTop(U && movedIndex) {
+            template <class U> void move_top(U && moved_index) {
                 if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> )
-                    RandomAccess::agent.template moveTopN<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
+                    random_access::agent.template move_top_n<Pathway...>(std::forward<U>(moved_index), (Keys &)(*this));
                 else
-                    RandomAccess::agent.template moveTop<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
+                    random_access::agent.template move_top<Pathway...>(std::forward<U>(moved_index), (Keys &)(*this));
             }
-            template <class U> void moveDown(U && movedIndex) {
+            template <class U> void move_down(U && moved_index) {
                 if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> )
-                    RandomAccess::agent.template moveDownN<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
+                    random_access::agent.template move_down_n<Pathway...>(std::forward<U>(moved_index), (Keys &)(*this));
                 else
-                    RandomAccess::agent.template moveDown<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
+                    random_access::agent.template move_down<Pathway...>(std::forward<U>(moved_index), (Keys &)(*this));
             }
-            template <class U> void moveBottom(U && movedIndex) {
+            template <class U> void move_bottom(U && moved_index) {
                 if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> )
-                    RandomAccess::agent.template moveBottomN<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
+                    random_access::agent.template move_bottom_n<Pathway...>(std::forward<U>(moved_index), (Keys &)(*this));
                 else
-                    RandomAccess::agent.template moveBottom<Pathway...>(std::forward<U>(movedIndex), (Keys &)(*this));
+                    random_access::agent.template move_bottom<Pathway...>(std::forward<U>(moved_index), (Keys &)(*this));
             }
-            template <class I, class U> void moveTo(U && movedIndex, I indexMovedTo) {
+            template <class I, class U> void move_to(U && moved_index, I index_moved_to) {
                 if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> )
-                    RandomAccess::agent.template moveToN<Pathway...>(std::forward<U>(movedIndex), indexMovedTo, (Keys &)(*this));
+                    random_access::agent.template move_to_n<Pathway...>(std::forward<U>(moved_index), index_moved_to, (Keys &)(*this));
                 else
-                    RandomAccess::agent.template moveTo<Pathway...>(std::forward<U>(movedIndex), indexMovedTo, (Keys &)(*this));
+                    random_access::agent.template move_to<Pathway...>(std::forward<U>(moved_index), index_moved_to, (Keys &)(*this));
             }
 
-            void moveSelectionsUp() { RandomAccess::agent.template moveUpL<Pathway...>((Keys &)(*this)); }
-            void moveSelectionsTop() { RandomAccess::agent.template moveTopL<Pathway...>((Keys &)(*this)); }
-            void moveSelectionsDown() { RandomAccess::agent.template moveDownL<Pathway...>((Keys &)(*this)); }
-            void moveSelectionsBottom() { RandomAccess::agent.template moveBottomL<Pathway...>((Keys &)(*this)); }
-            template <class I> void moveSelectionsTo(I indexMovedTo) { RandomAccess::agent.template moveToL<Pathway...>(indexMovedTo, (Keys &)(*this)); }
+            void move_selections_up() { random_access::agent.template move_up_l<Pathway...>((Keys &)(*this)); }
+            void move_selections_top() { random_access::agent.template move_top_l<Pathway...>((Keys &)(*this)); }
+            void move_selections_down() { random_access::agent.template move_down_l<Pathway...>((Keys &)(*this)); }
+            void move_selections_bottom() { random_access::agent.template move_bottom_l<Pathway...>((Keys &)(*this)); }
+            template <class Index> void move_selections_to(Index index_moved_to) { random_access::agent.template move_to_l<Pathway...>(index_moved_to, (Keys &)(*this)); }
         };
     };
     
-    template <class Agent, class default_index_type, class RootData, class T, class Keys, class ... Pathway>
-    static constexpr auto editVector();
+    template <class Agent, class Default_index_type, class Root_data, class T, class Keys, class ... Pathway>
+    static constexpr auto edit_vector();
     
-    template <class Agent, class default_index_type, class RootData, class T, class Keys, class ... Pathway>
-    static constexpr auto editArray();
+    template <class Agent, class Default_index_type, class Root_data, class T, class Keys, class ... Pathway>
+    static constexpr auto edit_array();
 
-    template <class Agent, class default_index_type, class RootData, class T, class Keys, class ... Pathway>
-    struct EditOptional : Keys
+    template <class Agent, class Default_index_type, class Root_data, class T, class Keys, class ... Pathway>
+    struct edit_optional : Keys
     {
         using keys = Keys;
         using path = type_tags<Pathway...>;
@@ -1216,85 +1218,85 @@ namespace RareEdit
         using optional_value_type = typename std::remove_cvref_t<type>::value_type;
 
     private:
-        static constexpr auto derefType()
+        static constexpr auto deref_type()
         {
             if constexpr ( RareTs::is_static_array_v<optional_value_type> )
-                return decltype(editArray<Agent, default_index_type, RootData, optional_value_type, Keys, Pathway..., PathMember<0>>()){};
+                return decltype(edit_array<Agent, Default_index_type, Root_data, optional_value_type, Keys, Pathway..., path_member<0>>()){};
             else if constexpr ( RareTs::is_specialization_v<optional_value_type, std::vector> ) // Vector
-                return decltype(editVector<Agent, default_index_type, RootData, optional_value_type, Keys, Pathway..., PathMember<0>>()){};
+                return decltype(edit_vector<Agent, Default_index_type, Root_data, optional_value_type, Keys, Pathway..., path_member<0>>()){};
             else if constexpr ( RareTs::is_macro_reflected_v<optional_value_type> ) // Reflected object
-                return std::type_identity<edit_members<Agent, default_index_type, RootData, optional_value_type, Keys, Pathway..., PathMember<0>>>{};
+                return std::type_identity<edit_members_t<Agent, Default_index_type, Root_data, optional_value_type, Keys, Pathway..., path_member<0>>>{};
             else if constexpr ( RareTs::is_optional_v<optional_value_type> )
-                return std::type_identity<EditOptional<Agent, default_index_type, RootData, optional_value_type, Keys, Pathway..., PathMember<0>>>{};
+                return std::type_identity<edit_optional<Agent, Default_index_type, Root_data, optional_value_type, Keys, Pathway..., path_member<0>>>{};
             else // Primitive
-                return std::type_identity<EditPrimitive<Agent, default_index_type, RootData, optional_value_type, Keys, Pathway..., PathMember<0>>>{};
+                return std::type_identity<edit_primitive<Agent, Default_index_type, Root_data, optional_value_type, Keys, Pathway..., path_member<0>>>{};
         }
 
         Agent & agent;
-        typename decltype(derefType())::type deref;
+        typename decltype(deref_type())::type deref;
 
     public:
 
-        EditOptional(Agent & agent, Keys keys) :
+        edit_optional(Agent & agent, Keys keys) :
             Keys {std::move(keys)}, agent(agent), deref{agent, (Keys &)(*this)} {}
 
         template <class U> void operator=(U && value) {
             if constexpr ( has_path_selections<Pathway...> )
-                agent.template setL<Pathway...>(std::forward<U>(value), (Keys &)(*this));
+                agent.template set_l<Pathway...>(std::forward<U>(value), (Keys &)(*this));
             else
                 agent.template set<Pathway...>(std::forward<U>(value), (Keys &)(*this));
         }
         constexpr auto operator->() { return &deref; }
     };
 
-    template <class Agent, class default_index_type, class RootData, class T, class Keys, class ... Pathway>
-    static constexpr auto editVector()
+    template <class Agent, class Default_index_type, class Root_data, class T, class Keys, class ... Pathway>
+    static constexpr auto edit_vector()
     {
         using element_type = RareTs::element_type_t<T>;
         if constexpr ( RareTs::is_reflected_v<element_type> )
-            return std::type_identity<typename Editable<Agent, default_index_type, RootData, element_type, Keys, edit_members, Pathway...>::Vector>{};
+            return std::type_identity<typename editable<Agent, Default_index_type, Root_data, element_type, Keys, edit_members_t, Pathway...>::vector>{};
         else if constexpr ( RareTs::is_optional_v<element_type> )
-            return std::type_identity<typename Editable<Agent, default_index_type, RootData, element_type, Keys, EditOptional, Pathway...>::Vector>{};
+            return std::type_identity<typename editable<Agent, Default_index_type, Root_data, element_type, Keys, edit_optional, Pathway...>::vector>{};
         else
-            return std::type_identity<typename Editable<Agent, default_index_type, RootData, element_type, Keys, EditPrimitive, Pathway...>::Vector>{};
+            return std::type_identity<typename editable<Agent, Default_index_type, Root_data, element_type, Keys, edit_primitive, Pathway...>::vector>{};
     }
 
-    template <class Agent, class default_index_type, class RootData, class T, class Keys, class ... Pathway>
-    static constexpr auto editArray()
+    template <class Agent, class Default_index_type, class Root_data, class T, class Keys, class ... Pathway>
+    static constexpr auto edit_array()
     {
         using element_type = RareTs::element_type_t<T>;
         if constexpr ( RareTs::is_static_array_v<element_type> )
         {
             using sub_element_type = RareTs::element_type_t<element_type>;
             if constexpr ( RareTs::is_reflected_v<sub_element_type> )
-                return std::type_identity<typename Editable<Agent, default_index_type, RootData, element_type, Keys, edit_members, Pathway...>::Array>{};
+                return std::type_identity<typename editable<Agent, Default_index_type, Root_data, element_type, Keys, edit_members_t, Pathway...>::array>{};
             else if constexpr ( RareTs::is_optional_v<sub_element_type> )
-                return std::type_identity<typename Editable<Agent, default_index_type, RootData, element_type, Keys, EditOptional, Pathway...>::Array>{};
+                return std::type_identity<typename editable<Agent, Default_index_type, Root_data, element_type, Keys, edit_optional, Pathway...>::array>{};
             else
-                return std::type_identity<typename Editable<Agent, default_index_type, RootData, element_type, Keys, EditPrimitive, Pathway...>::Array>{};
+                return std::type_identity<typename editable<Agent, Default_index_type, Root_data, element_type, Keys, edit_primitive, Pathway...>::array>{};
         }
         else if constexpr ( RareTs::is_reflected_v<element_type> )
-            return std::type_identity<typename Editable<Agent, default_index_type, RootData, element_type, Keys, edit_members, Pathway...>::Array>{};
+            return std::type_identity<typename editable<Agent, Default_index_type, Root_data, element_type, Keys, edit_members_t, Pathway...>::array>{};
         else if constexpr ( RareTs::is_optional_v<element_type> )
-            return std::type_identity<typename Editable<Agent, default_index_type, RootData, element_type, Keys, EditOptional, Pathway...>::Array>{};
+            return std::type_identity<typename editable<Agent, Default_index_type, Root_data, element_type, Keys, edit_optional, Pathway...>::array>{};
         else
-            return std::type_identity<typename Editable<Agent, default_index_type, RootData, element_type, Keys, EditPrimitive, Pathway...>::Array>{};
+            return std::type_identity<typename editable<Agent, Default_index_type, Root_data, element_type, Keys, edit_primitive, Pathway...>::array>{};
     }
 
-    template <class Agent, class default_index_type, class RootData, class T, class Keys, std::size_t I, class ... Pathway>
-    static constexpr auto editMember()
+    template <class Agent, class Default_index_type, class Root_data, class T, class Keys, std::size_t I, class ... Pathway>
+    static constexpr auto get_edit_member()
     {
         using member_type = typename RareTs::Member<T, I>::type;
         if constexpr ( RareTs::is_static_array_v<member_type> )
-            return decltype(editArray<Agent, default_index_type, RootData, member_type, Keys, Pathway..., PathMember<I>>()){};
+            return decltype(edit_array<Agent, Default_index_type, Root_data, member_type, Keys, Pathway..., path_member<I>>()){};
         else if constexpr ( RareTs::is_specialization_v<member_type, std::vector> ) // Vector
-            return decltype(editVector<Agent, default_index_type, RootData, member_type, Keys, Pathway..., PathMember<I>>()){};
+            return decltype(edit_vector<Agent, Default_index_type, Root_data, member_type, Keys, Pathway..., path_member<I>>()){};
         else if constexpr ( RareTs::is_macro_reflected_v<member_type> ) // Reflected object
-            return std::type_identity<edit_members<Agent, default_index_type, RootData, member_type, Keys, Pathway..., PathMember<I>>>{};
+            return std::type_identity<edit_members_t<Agent, Default_index_type, Root_data, member_type, Keys, Pathway..., path_member<I>>>{};
         else if constexpr ( RareTs::is_optional_v<member_type> )
-            return std::type_identity<EditOptional<Agent, default_index_type, RootData, member_type, Keys, Pathway..., PathMember<I>>>{};
+            return std::type_identity<edit_optional<Agent, Default_index_type, Root_data, member_type, Keys, Pathway..., path_member<I>>>{};
         else // Primitive
-            return std::type_identity<EditPrimitive<Agent, default_index_type, RootData, member_type, Keys, Pathway..., PathMember<I>>>{};
+            return std::type_identity<edit_primitive<Agent, Default_index_type, Root_data, member_type, Keys, Pathway..., path_member<I>>>{};
     }
 
     template <typename T> struct is_selection_leaf_member {
@@ -1305,13 +1307,13 @@ namespace RareEdit
 
     template <typename T> inline constexpr bool is_selection_leaf_member_v = is_selection_leaf_member<T>::value;
 
-    template <class T, std::size_t ... Is> static constexpr bool hasSelectionMember(std::index_sequence<Is...>)
+    template <class T, std::size_t ... Is> static constexpr bool has_selection_member(std::index_sequence<Is...>)
     {
         using member_type = typename T::type;
         if constexpr ( RareTs::is_macro_reflected_v<member_type> )
         {
-            return (hasSelectionMember<RareTs::Member<member_type, Is>>(
-                std::make_index_sequence<reflectedMemberCount<typename RareTs::Member<member_type, Is>::type>()>()
+            return (has_selection_member<RareTs::Member<member_type, Is>>(
+                std::make_index_sequence<reflected_member_count<typename RareTs::Member<member_type, Is>::type>()>()
             ) || ...);
         }
         else
@@ -1319,100 +1321,100 @@ namespace RareEdit
     };
 
     template <typename T> struct is_selection_member {
-        static constexpr bool value = hasSelectionMember<T>(std::make_index_sequence<reflectedMemberCount<typename T::type>()>());
+        static constexpr bool value = has_selection_member<T>(std::make_index_sequence<reflected_member_count<typename T::type>()>());
     };
 
-    template <class DefaultIndexType, class Member, class AttachedType>
+    template <class Default_index_type, class Member, class Attached_type>
     struct leaf_data
     {
-        std::vector<AttachedType> attachedData;
-        std::vector<index_type_t<DefaultIndexType, Member>> sel;
+        std::vector<Attached_type> attached_data;
+        std::vector<index_type_t<Default_index_type, Member>> sel;
     };
     
-    template <class DefaultIndexType, class T, std::size_t ... Is>
+    template <class Default_index_type, class T, std::size_t ... Is>
     struct object_selection;
 
-    template <class DefaultIndexType, class T, std::size_t I>
-    static constexpr auto memberSelection()
+    template <class Default_index_type, class T, std::size_t I>
+    static constexpr auto get_member_selection()
     {
         using member = RareTs::Member<T, I>;
         using member_type = typename member::type;
         if constexpr ( !is_selection_leaf_member_v<member> )
         {
             return RareTs::template Members<member_type>::template pack<is_selection_member>([&](auto ... member) {
-                return object_selection<DefaultIndexType, member_type, decltype(member)::index...>{};
+                return object_selection<Default_index_type, member_type, decltype(member)::index...>{};
             });
         }
         else if constexpr ( RareTs::is_static_array_v<member_type> || RareTs::is_specialization_v<member_type, std::vector> )
         {
-            if constexpr ( member::template hasNote<AttachDataType>() )
+            if constexpr ( member::template hasNote<attach_data_type>() )
             {
-                using attached_type = typename std::remove_cvref_t<decltype(member::template getNote<AttachDataType>())>::type;
+                using attached_type = typename std::remove_cvref_t<decltype(member::template getNote<attach_data_type>())>::type;
                 if constexpr ( !std::is_void_v<attached_type> )
-                    return leaf_data<DefaultIndexType, member, attached_type> {};
+                    return leaf_data<Default_index_type, member, attached_type> {};
                 else
-                    return std::vector<index_type_t<DefaultIndexType, member>> {};
+                    return std::vector<index_type_t<Default_index_type, member>> {};
             }
             else
-                return std::vector<index_type_t<DefaultIndexType, member>> {};
+                return std::vector<index_type_t<Default_index_type, member>> {};
         }
         else
             static_assert(std::is_void_v<T>, "Unexpected member selection!");
     }
 
-    template <class DefaultIndexType, class T>
+    template <class Default_index_type, class T>
     struct member_selection {
-        template <std::size_t I> using type = decltype(memberSelection<DefaultIndexType, T, I>());
+        template <std::size_t I> using type = decltype(get_member_selection<Default_index_type, T, I>());
     };
     
-    inline constexpr std::nullptr_t noSelection {};
-    inline constexpr std::nullptr_t noAttachedData {};
+    inline constexpr std::nullptr_t no_selection {};
+    inline constexpr std::nullptr_t no_attached_data {};
 
-    template <class DefaultIndexType, class T, std::size_t ... Is>
-    struct object_selection : RareTs::Class::adapt_member<member_selection<DefaultIndexType, T>::template type, T, Is>...
+    template <class Default_index_type, class T, std::size_t ... Is>
+    struct object_selection : RareTs::Class::adapt_member<member_selection<Default_index_type, T>::template type, T, Is>...
     {
-        template <std::size_t I> constexpr auto & fromMember()
+        template <std::size_t I> constexpr auto & from_member()
         {
-            if constexpr ( std::is_base_of_v<RareTs::Class::adapt_member<member_selection<DefaultIndexType, T>::template type, T, I>, object_selection<DefaultIndexType, T, Is...>> )
+            if constexpr ( std::is_base_of_v<RareTs::Class::adapt_member<member_selection<Default_index_type, T>::template type, T, I>, object_selection<Default_index_type, T, Is...>> )
             {
-                auto & [selection] = static_cast<RareTs::Class::adapt_member<member_selection<DefaultIndexType, T>::template type, T, I> &>(*this);
+                auto & [selection] = static_cast<RareTs::Class::adapt_member<member_selection<Default_index_type, T>::template type, T, I> &>(*this);
                 return selection;
             }
             else
             {
-                return noSelection;
+                return no_selection;
+            }
+        }
+
+        template <std::size_t I, class ... Pathway, class Sizer>
+        constexpr void init_attached_datum(Sizer sizer)
+        {
+            auto & [leaf_data] = static_cast<RareTs::Class::adapt_member<member_selection<Default_index_type, T>::template type, T, I> &>(*this);
+            if constexpr ( requires { leaf_data.template init_attached_data<Pathway..., path_member<I>>(sizer); } )
+            {
+                leaf_data.template init_attached_data<Pathway..., path_member<I>>(sizer);
+            }
+            else if constexpr ( requires { leaf_data.attached_data.clear(); } )
+            {
+                using attached_data_vec = std::remove_cvref_t<decltype(leaf_data.attached_data)>;
+                leaf_data.attached_data = attached_data_vec(sizer(type_tags<Pathway..., path_member<I>>{}));
             }
         }
 
         template <class ... Pathway, class Sizer>
-        constexpr void initAttachedData([[maybe_unused]] Sizer sizer)
+        constexpr void init_attached_data([[maybe_unused]] Sizer sizer)
         {
-            (initAttachedDatum<Is, Pathway...>(sizer), ...);
-        }
-
-        template <std::size_t I, class ... Pathway, class Sizer>
-        constexpr void initAttachedDatum(Sizer sizer)
-        {
-            auto & [leafData] = static_cast<RareTs::Class::adapt_member<member_selection<DefaultIndexType, T>::template type, T, I> &>(*this);
-            if constexpr ( requires { leafData.template initAttachedData<Pathway..., PathMember<I>>(sizer); } )
-            {
-                leafData.template initAttachedData<Pathway..., PathMember<I>>(sizer);
-            }
-            else if constexpr ( requires { leafData.attachedData.clear(); } )
-            {
-                using attached_data_vec = std::remove_cvref_t<decltype(leafData.attachedData)>;
-                leafData.attachedData = attached_data_vec(sizer(type_tags<Pathway..., PathMember<I>>{}));
-            }
+            (init_attached_datum<Is, Pathway...>(sizer), ...);
         }
 
         template <std::size_t I>
         void clear()
         {
-            using U = RareTs::Class::adapt_member<member_selection<DefaultIndexType, T>::template type, T, I>;
-            if constexpr ( requires { static_cast<U &>(*this).clear(); } )
-                static_cast<U &>(*this).clear();
-            else if constexpr ( requires { static_cast<U &>(*this).sel.clear(); } )
-                static_cast<U &>(*this).sel.clear();
+            using sel_member = RareTs::Class::adapt_member<member_selection<Default_index_type, T>::template type, T, I>;
+            if constexpr ( requires { static_cast<sel_member &>(*this).clear(); } )
+                static_cast<sel_member &>(*this).clear();
+            else if constexpr ( requires { static_cast<sel_member &>(*this).sel.clear(); } )
+                static_cast<sel_member &>(*this).sel.clear();
         }
 
         void clear()
@@ -1421,19 +1423,19 @@ namespace RareEdit
         }
     };
 
-    template <class DefaultIndexType, class T, std::size_t ... Is>
+    template <class Default_index_type, class T, std::size_t ... Is>
     constexpr auto selections(std::index_sequence<Is...>) {
-        return object_selection<DefaultIndexType, T, Is...>{};
+        return object_selection<Default_index_type, T, Is...>{};
     }
 
-    template <class DefaultIndexType, class T> auto selections() {
+    template <class Default_index_type, class T> auto selections() {
         return RareTs::template Members<T>::template pack<is_selection_member>([&](auto & ... member) {
-            return selections<DefaultIndexType, T>(std::index_sequence<RareTs::remove_cvref_t<decltype(member)>::index...>{});
+            return selections<Default_index_type, T>(std::index_sequence<RareTs::remove_cvref_t<decltype(member)>::index...>{});
         });
     }
 
     template <class T, class Edit>
-    struct ReadEditPair
+    struct read_edit_pair
     {
         using read_type = T;
         using edit_type = Edit;
@@ -1442,111 +1444,111 @@ namespace RareEdit
         Edit edit;
     };
 
-    template <class T, class User, class EditorType>
-    struct Agent
+    template <class T, class User, class Editor_type>
+    struct agent
     {
         using type = T;
-        using editor_type = EditorType;
-        using default_index_type = typename decltype(defaultIndexType<T>())::type;
-        decltype(RareEdit::selections<default_index_type, T>()) selections {};
+        using editor_type = Editor_type;
+        using default_index_type = typename decltype(def_index_type<T>())::type;
+        decltype(nf_hist::selections<default_index_type, T>()) selections {};
         std::vector<std::uint8_t> events {std::uint8_t(0)}; // First byte is unused
-        std::vector<std::uint64_t> eventOffsets {};
+        std::vector<std::uint64_t> event_offsets {};
         T & t;
         User & user;
 
         void clear()
         {
             selections.clear();
-            eventOffsets.clear();
+            event_offsets.clear();
             events = {std::uint8_t(0)};
         }
 
-        std::size_t trim(std::size_t newFirstEvent) // Returns the count of trimmed events
+        std::size_t trim(std::size_t new_first_event) // Returns the count of trimmed events
         {
-            if ( newFirstEvent >= eventOffsets.size() )
+            if ( new_first_event >= event_offsets.size() )
             {
-                newFirstEvent = eventOffsets.size();
-                eventOffsets.clear();
+                new_first_event = event_offsets.size();
+                event_offsets.clear();
                 events = {std::uint8_t(0)};
-                return newFirstEvent;
+                return new_first_event;
             }
-            else if ( newFirstEvent > 0 )
+            else if ( new_first_event > 0 )
             {
-                std::uint64_t newFirstEventOffset = eventOffsets[newFirstEvent];
-                eventOffsets.erase(eventOffsets.begin(), std::next(eventOffsets.begin(), static_cast<std::ptrdiff_t>(newFirstEvent)));
-                events.erase(std::next(events.begin(), 1), std::next(events.begin(), static_cast<std::ptrdiff_t>(newFirstEventOffset)));
-                for ( auto & eventOffset : eventOffsets )
-                    eventOffset -= (newFirstEventOffset-1);
+                std::uint64_t new_first_event_offset = event_offsets[new_first_event];
+                event_offsets.erase(event_offsets.begin(), std::next(event_offsets.begin(), static_cast<std::ptrdiff_t>(new_first_event)));
+                events.erase(std::next(events.begin(), 1), std::next(events.begin(), static_cast<std::ptrdiff_t>(new_first_event_offset)));
+                for ( auto & event_offset : event_offsets )
+                    event_offset -= (new_first_event_offset-1);
 
-                return newFirstEvent;
+                return new_first_event;
             }
             else
                 return 0;
         }
 
         template <class Usr, class Route, class Value>
-        using ValueChangedOp = decltype(std::declval<Usr>().valueChanged(std::declval<Route>(), std::declval<Value>(), std::declval<Value>()));
+        using value_changed_op = decltype(std::declval<Usr>().value_changed(std::declval<Route>(), std::declval<Value>(), std::declval<Value>()));
 
         template <class Usr, class Route>
-        using ElementAddedOp = decltype(std::declval<Usr>().elementAdded(std::declval<Route>(), std::declval<std::size_t>()));
+        using element_added_op = decltype(std::declval<Usr>().element_added(std::declval<Route>(), std::declval<std::size_t>()));
 
         template <class Usr, class Route>
-        using ElementRemovedOp = decltype(std::declval<Usr>().elementRemoved(std::declval<Route>(), std::declval<std::size_t>()));
+        using element_removed_op = decltype(std::declval<Usr>().element_removed(std::declval<Route>(), std::declval<std::size_t>()));
 
         template <class Usr, class Route>
-        using ElementMovedOp = decltype(std::declval<Usr>().elementMoved(std::declval<Route>(), std::declval<std::size_t>(), std::declval<std::size_t>()));
+        using element_moved_op = decltype(std::declval<Usr>().element_moved(std::declval<Route>(), std::declval<std::size_t>(), std::declval<std::size_t>()));
 
         template <class Usr, class Route>
-        using SelectionsChangedOp = decltype(std::declval<Usr>().selectionsChanged(std::declval<Route>()));
+        using selections_changed_op = decltype(std::declval<Usr>().selections_changed(std::declval<Route>()));
 
         template <class Route, class Value>
-        static constexpr bool hasValueChangedOp = RareTs::op_exists_v<ValueChangedOp, User, Route, Value>;
+        static constexpr bool has_value_changed_op = RareTs::op_exists_v<value_changed_op, User, Route, Value>;
 
         template <class Route>
-        static constexpr bool hasElementAddedOp = RareTs::op_exists_v<ElementAddedOp, User, Route>;
+        static constexpr bool has_element_added_op = RareTs::op_exists_v<element_added_op, User, Route>;
 
         template <class Route>
-        static constexpr bool hasElementRemovedOp = RareTs::op_exists_v<ElementRemovedOp, User, Route>;
+        static constexpr bool has_element_removed_op = RareTs::op_exists_v<element_removed_op, User, Route>;
 
         template <class Route>
-        static constexpr bool hasElementMovedOp = RareTs::op_exists_v<ElementMovedOp, User, Route>;
+        static constexpr bool has_element_moved_op = RareTs::op_exists_v<element_moved_op, User, Route>;
 
         template <class Route>
-        static constexpr bool hasSelectionsChangedOp = RareTs::op_exists_v<SelectionsChangedOp, User, Route>;
+        static constexpr bool has_selections_changed_op = RareTs::op_exists_v<selections_changed_op, User, Route>;
 
-        template <class Usr, class Route, class OldValue, class NewValue>
-        static constexpr void notifyValueChanged(Usr & user, Route route, OldValue && oldValue, NewValue && newValue)
+        template <class Usr, class Route, class Old_value, class New_value>
+        static constexpr void notify_value_changed(Usr & user, Route route, Old_value && old_value, New_value && new_value)
         {
-            user.valueChanged(route, std::forward<OldValue>(oldValue), std::forward<NewValue>(newValue));
+            user.value_changed(route, std::forward<Old_value>(old_value), std::forward<New_value>(new_value));
         }
 
         template <class Usr, class Route>
-        static constexpr void notifyElementAdded(Usr & user, Route route, std::size_t index)
+        static constexpr void notify_element_added(Usr & user, Route route, std::size_t index)
         {
-            user.elementAdded(route, index);
+            user.element_added(route, index);
         }
 
         template <class Usr, class Route>
-        static constexpr void notifyElementRemoved(Usr & user, Route route, std::size_t index)
+        static constexpr void notify_element_removed(Usr & user, Route route, std::size_t index)
         {
-            user.elementRemoved(route, index);
+            user.element_removed(route, index);
         }
 
         template <class Usr, class Route>
-        static constexpr void notifyElementMoved(Usr & user, Route route, std::size_t oldIndex, std::size_t newIndex)
+        static constexpr void notify_element_moved(Usr & user, Route route, std::size_t old_index, std::size_t new_index)
         {
-            user.elementMoved(route, oldIndex, newIndex);
+            user.element_moved(route, old_index, new_index);
         }
 
         template <class Usr, class Route>
-        static constexpr void notifySelectionsChanged(Usr & user, Route route)
+        static constexpr void notify_selections_changed(Usr & user, Route route)
         {
-            user.selectionsChanged(route);
+            user.selections_changed(route);
         }
 
-        Agent(T & t, User & user) : t(t), user(user) {}
+        agent(T & t, User & user) : t(t), user(user) {}
 
-        auto getEventOffsetRange(std::size_t eventIndex) const
+        auto get_event_offset_range(std::size_t event_index) const
         {
             struct OffsetRange
             {
@@ -1554,153 +1556,153 @@ namespace RareEdit
                 std::uint64_t end;
             };
             return OffsetRange {
-                eventOffsets[eventIndex],
-                eventIndex == eventOffsets.size()-1 ? events.size() : eventOffsets[eventIndex+1]
+                event_offsets[event_index],
+                event_index == event_offsets.size()-1 ? events.size() : event_offsets[event_index+1]
             };
         }
         
-        template <class PathElement, class ... Pathway>
-        constexpr auto & getSelectionsData(auto & selections)
+        template <class Path_element, class ... Pathway>
+        constexpr auto & get_selections_data(auto & selections)
         {
-            if constexpr ( is_path_member_v<PathElement> && !std::is_null_pointer_v<std::remove_cvref_t<decltype(selections)>> )
+            if constexpr ( is_path_member_v<Path_element> && !std::is_null_pointer_v<std::remove_cvref_t<decltype(selections)>> )
             {
                 if constexpr ( sizeof...(Pathway) == 0 )
-                    return selections.template fromMember<PathElement::index>();
+                    return selections.template from_member<Path_element::index>();
                 else
-                    return getSelectionsData<Pathway...>(selections.template fromMember<PathElement::index>());
+                    return get_selections_data<Pathway...>(selections.template from_member<Path_element::index>());
             }
             else
             {
-                return noSelection;
+                return no_selection;
             }
         }
 
         template <class ... Pathway>
-        constexpr auto & getSelections() {
+        constexpr auto & get_selections() {
             if constexpr ( sizeof...(Pathway) == 0 )
-                return noSelection;
+                return no_selection;
             else
             {
-                auto & selData = getSelectionsData<Pathway...>(selections);
-                if constexpr ( requires{selData.sel;} )
-                    return selData.sel;
+                auto & sel_data = get_selections_data<Pathway...>(selections);
+                if constexpr ( requires{sel_data.sel;} )
+                    return sel_data.sel;
                 else
-                    return selData;
+                    return sel_data;
             }
         }
 
         template <class ... Pathway>
-        constexpr auto & getAttachedData() {
+        constexpr auto & get_attached_data() {
             if constexpr ( sizeof...(Pathway) == 0 )
-                return noAttachedData;
+                return no_attached_data;
             else
             {
-                auto & selData = getSelectionsData<Pathway...>(selections);
-                if constexpr ( requires{selData.attachedData;} )
-                    return selData.attachedData;
+                auto & sel_data = get_selections_data<Pathway...>(selections);
+                if constexpr ( requires{sel_data.attached_data;} )
+                    return sel_data.attached_data;
                 else
-                    return noAttachedData;
+                    return no_attached_data;
             }
         }
 
         template <class ... Pathway>
-        static constexpr bool hasSelections() {
-            return !std::is_null_pointer_v<std::remove_cvref_t<decltype(std::declval<Agent>().template getSelections<Pathway...>())>>;
+        static constexpr bool has_selections() {
+            return !std::is_null_pointer_v<std::remove_cvref_t<decltype(std::declval<agent>().template get_selections<Pathway...>())>>;
         }
 
         template <class ... Pathway>
-        static constexpr bool hasAttachedData() {
-            return !std::is_null_pointer_v<std::remove_cvref_t<decltype(std::declval<Agent>().template getAttachedData<Pathway...>())>>;
+        static constexpr bool has_attached_data() {
+            return !std::is_null_pointer_v<std::remove_cvref_t<decltype(std::declval<agent>().template get_attached_data<Pathway...>())>>;
         }
 
-        template <class Keys, class U, class PathElement, class ... Pathway>
-        auto & getMemberReferenceImpl(U & t, Keys & keys)
+        template <class Keys, class U, class Path_element, class ... Pathway>
+        auto & get_member_reference_impl(U & t, Keys & keys)
         {
-            if constexpr ( is_path_member_v<PathElement> )
+            if constexpr ( is_path_member_v<Path_element> )
             {
-                using Member = RareTs::Member<U, PathElement::index>;
+                using member = RareTs::Member<U, Path_element::index>;
                 if constexpr ( sizeof...(Pathway) == 0 )
-                    return Member::value(t);
+                    return member::value(t);
                 else
-                    return getMemberReferenceImpl<Keys, typename Member::type, Pathway...>(Member::value(t), keys);
+                    return get_member_reference_impl<Keys, typename member::type, Pathway...>(member::value(t), keys);
             }
-            else if constexpr ( is_path_index_v<PathElement> )
+            else if constexpr ( is_path_index_v<Path_element> )
             {
                 if constexpr ( sizeof...(Pathway) == 0 )
-                    return t[std::get<PathElement::index>(keys)];
+                    return t[std::get<Path_element::index>(keys)];
                 else
                 {
-                    return getMemberReferenceImpl<Keys, std::remove_cvref_t<decltype(t[std::get<PathElement::index>(keys)])>, Pathway...>(
-                        t[std::get<PathElement::index>(keys)], keys);
+                    return get_member_reference_impl<Keys, std::remove_cvref_t<decltype(t[std::get<Path_element::index>(keys)])>, Pathway...>(
+                        t[std::get<Path_element::index>(keys)], keys);
                 }
             }
             else
-                static_assert(std::is_void_v<PathElement>, "Unexpected path element type!");
+                static_assert(std::is_void_v<Path_element>, "Unexpected path element type!");
         }
 
         template <class ... Pathway, class Keys, class U>
-        auto & getMemberReference(U & t, Keys & keys)
+        auto & get_member_reference(U & t, Keys & keys)
         {
-            return getMemberReferenceImpl<Keys, U, Pathway...>(t, keys);
+            return get_member_reference_impl<Keys, U, Pathway...>(t, keys);
         }
 
-        template <class PathElement, class ... Pathway, class Keys>
-        void serializePathway(Keys & keys)
+        template <class Path_element, class ... Pathway, class Keys>
+        void serialize_pathway(Keys & keys)
         {
             if constexpr ( sizeof...(Pathway) == 0 )
             {
-                if constexpr ( is_path_selections_v<PathElement> )
-                    events.push_back(uint8_t(PathOp::LeafSelBranch));
-                else if constexpr ( is_path_member_v<PathElement> )
+                if constexpr ( is_path_selections_v<Path_element> )
+                    events.push_back(uint8_t(path_op::leaf_sel_branch));
+                else if constexpr ( is_path_member_v<Path_element> )
                 {
-                    static_assert(PathElement::index < 64, "Expected a lower member index...");
-                    events.push_back(uint8_t(PathOp::LeafBranch) | uint8_t(PathElement::index));
+                    static_assert(Path_element::index < 64, "Expected a lower member index...");
+                    events.push_back(uint8_t(path_op::leaf_branch) | uint8_t(Path_element::index));
                 }
-                else if constexpr ( is_path_index_v<PathElement> )
+                else if constexpr ( is_path_index_v<Path_element> )
                 {
                     if constexpr ( sizeof...(Pathway) == 0 )
                     {
-                        auto index = std::get<PathElement::index>(keys);
+                        auto index = std::get<Path_element::index>(keys);
                         if constexpr ( std::is_same_v<uint6_t, decltype(index)> )
-                            events.push_back(uint8_t(PathOp::LeafBranch) | uint8_t(index));
+                            events.push_back(uint8_t(path_op::leaf_branch) | uint8_t(index));
                         else
                         {
-                            events.push_back(uint8_t(PathOp::LeafBranch));
+                            events.push_back(uint8_t(path_op::leaf_branch));
                             events.insert(events.end(), reinterpret_cast<const std::uint8_t*>(&index), reinterpret_cast<const std::uint8_t*>(&index)+sizeof(index));
                         }
                     }
                 }
                 else
-                    static_assert(std::is_void_v<PathElement>, "Unrecognized path element!");
+                    static_assert(std::is_void_v<Path_element>, "Unrecognized path element!");
             }
             else // More path remaining
             {
-                if constexpr ( is_path_selections_v<PathElement> )
-                    events.push_back(uint8_t(PathOp::SelBranch));
-                else if constexpr ( is_path_member_v<PathElement> )
+                if constexpr ( is_path_selections_v<Path_element> )
+                    events.push_back(uint8_t(path_op::sel_branch));
+                else if constexpr ( is_path_member_v<Path_element> )
                 {
-                    static_assert(PathElement::index < 64, "Expected a lower member index...");
-                    events.push_back(uint8_t(PathOp::Branch) | uint8_t(PathElement::index));
+                    static_assert(Path_element::index < 64, "Expected a lower member index...");
+                    events.push_back(uint8_t(path_op::branch) | uint8_t(Path_element::index));
                 }
-                else if constexpr ( is_path_index_v<PathElement> )
+                else if constexpr ( is_path_index_v<Path_element> )
                 {
-                    auto index = std::get<PathElement::index>(keys);
+                    auto index = std::get<Path_element::index>(keys);
                     if constexpr ( std::is_same_v<uint6_t, decltype(index)> )
-                        events.push_back(uint8_t(PathOp::Branch) | uint8_t(index));
+                        events.push_back(uint8_t(path_op::branch) | uint8_t(index));
                     else
                     {
-                        events.push_back(uint8_t(PathOp::Branch));
+                        events.push_back(uint8_t(path_op::branch));
                         events.insert(events.end(), reinterpret_cast<const std::uint8_t*>(&index), reinterpret_cast<const std::uint8_t*>(&index)+sizeof(index));
                     }
                 }
                 else
-                    static_assert(std::is_void_v<PathElement>, "Unrecognized path element!");
+                    static_assert(std::is_void_v<Path_element>, "Unrecognized path element!");
 
-                serializePathway<Pathway...>(keys);
+                serialize_pathway<Pathway...>(keys);
             }
         }
 
-        template <class Member> void serializeValue(auto && value)
+        template <class Member> void serialize_value(auto && value)
         {
             using value_type = std::remove_cvref_t<decltype(value)>;
             using index_type = index_type_t<default_index_type, Member>;
@@ -1712,18 +1714,18 @@ namespace RareEdit
             }
             else if constexpr ( RareTs::is_optional_v<value_type> )
             {
-                bool hasValue = value.has_value();
-                u8bool::write(events, hasValue);
-                if ( hasValue )
-                    serializeValue<Member>(*value);
+                bool has_value = value.has_value();
+                u8bool::write(events, has_value);
+                if ( has_value )
+                    serialize_value<Member>(*value);
             }
             else if constexpr ( is_flat_mdspan_v<value_type> )
             {
                 using collapsed_index_type = collapsed_index_type_t<Member>;
                 constexpr auto size = static_cast<collapsed_index_type>(value_type::size);
                 events.insert(events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
-                for ( auto it = value.flatBegin(); it != value.flatEnd(); ++it )
-                    serializeValue<Member>(*it);
+                for ( auto it = value.flat_begin(); it != value.flat_end(); ++it )
+                    serialize_value<Member>(*it);
             }
             else if constexpr ( std::is_array_v<value_type> )
             {
@@ -1731,289 +1733,304 @@ namespace RareEdit
                 using collapsed_index_type = collapsed_index_type_t<Member>;
                 constexpr auto size = static_cast<collapsed_index_type>(decltype(span)::size);
                 events.insert(events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
-                for ( auto it = span.flatBegin(); it != span.flatEnd(); ++it )
-                    serializeValue<Member>(*it);
+                for ( auto it = span.flat_begin(); it != span.flat_end(); ++it )
+                    serialize_value<Member>(*it);
             }
             else if constexpr ( RareTs::is_static_array_v<value_type> )
             {
                 constexpr auto size = static_cast<index_type>(RareTs::static_array_size_v<value_type>);
                 events.insert(events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
                 for ( auto & val : value )
-                    serializeValue<Member>(value);
+                    serialize_value<Member>(value);
             }
             else if constexpr ( RareTs::is_iterable_v<value_type> )
             {
                 auto size = static_cast<index_type>(value.size());
                 events.insert(events.end(), reinterpret_cast<const std::uint8_t*>(&size), reinterpret_cast<const std::uint8_t*>(&size)+sizeof(size));
                 for ( auto & val : value )
-                    serializeValue<Member>(val);
+                    serialize_value<Member>(val);
             }
             else if constexpr ( RareTs::is_reflected_v<value_type> )
             {
                 RareTs::Members<value_type>::forEach([&](auto member) {
-                    serializeValue<decltype(member)>(member.value(value));
+                    serialize_value<decltype(member)>(member.value(value));
                 });
             }
             else
                 events.insert(events.end(), reinterpret_cast<const std::uint8_t*>(&value), reinterpret_cast<const std::uint8_t*>(&value)+sizeof(value));
         }
 
-        template <class Member> void serializeIndex(auto && index)
+        template <class Member> void serialize_index(auto && index)
         {
             auto val = static_cast<index_type_t<default_index_type, Member>>(index);
             events.insert(events.end(), reinterpret_cast<const std::uint8_t*>(&val), reinterpret_cast<const std::uint8_t*>(&val)+sizeof(val));
         }
 
-        template <bool AfterSel, class Keys, class U, class F, class LastMember, class PathElement, class ... Pathway, class ... PathTraversed>
-        void operateThruSelImpl(U & t, Keys & keys, F f, type_tags<PathTraversed...>)
+        template <bool After_sel, class Keys, class U, class F, class Last_member, class Path_element, class ... Pathway, class ... Path_traversed>
+        void operate_thru_sel_impl(U & t, Keys & keys, F f, type_tags<Path_traversed...>)
         {
-            if constexpr ( is_path_selections_v<PathElement> )
+            if constexpr ( is_path_selections_v<Path_element> )
             {
-                // Replace the PathSel element with a PathIndex; at present selections must be a top-level iterable preceding other uses of keys
-                using index_type = index_type_t<default_index_type, LastMember>;
-                auto & selData = getSelections<PathTraversed...>();
-                for ( auto & sel : selData )
+                // Replace the path_sel element with a path_index; at present selections must be a top-level iterable preceding other uses of keys
+                using index_type = index_type_t<default_index_type, Last_member>;
+                auto & sel_data = get_selections<Path_traversed...>();
+                for ( auto & sel : sel_data )
                 {
-                    auto newKeys = std::tuple_cat(std::tuple<index_type>{sel}, keys);
-                    using path_tagged_keys = std::remove_cvref_t<decltype(newKeys)>;
+                    auto new_keys = std::tuple_cat(std::tuple<index_type>{sel}, keys);
+                    using ptk = std::remove_cvref_t<decltype(new_keys)>;
                     if constexpr ( sizeof...(Pathway) == 0 )
-                        f(t[static_cast<std::size_t>(sel)], type_tags<LastMember, PathTaggedKeys<path_tagged_keys, type_tags<PathTraversed..., PathIndex<0>>, EditorType>>{}, newKeys);
+                        f(t[static_cast<std::size_t>(sel)], type_tags<Last_member, path_tagged_keys<ptk, type_tags<Path_traversed..., path_index<0>>, Editor_type>>{}, new_keys);
                     else
-                        operateThruSelImpl<true, path_tagged_keys, std::remove_cvref_t<decltype(t[0])>, F, LastMember, Pathway...>(t[sel], newKeys, f, type_tags<PathTraversed..., PathIndex<0>>{});
+                        operate_thru_sel_impl<true, ptk, std::remove_cvref_t<decltype(t[0])>, F, Last_member, Pathway...>(t[sel], new_keys, f, type_tags<Path_traversed..., path_index<0>>{});
                 }
             }
-            else if constexpr ( is_path_member_v<PathElement> )
+            else if constexpr ( is_path_member_v<Path_element> )
             {
-                using Member = RareTs::Member<U, PathElement::index>;
+                using member = RareTs::Member<U, Path_element::index>;
                 if constexpr ( sizeof...(Pathway) == 0 )
-                    f(Member::value(t), type_tags<Member, PathTaggedKeys<Keys, type_tags<PathTraversed..., PathElement>, EditorType>>{}, keys);
+                    f(member::value(t), type_tags<member, path_tagged_keys<Keys, type_tags<Path_traversed..., Path_element>, Editor_type>>{}, keys);
                 else
-                    operateThruSelImpl<AfterSel, Keys, typename Member::type, F, Member, Pathway...>(Member::value(t), keys, f, type_tags<PathTraversed..., PathElement>{});
+                    operate_thru_sel_impl<After_sel, Keys, typename member::type, F, member, Pathway...>(member::value(t), keys, f, type_tags<Path_traversed..., Path_element>{});
             }
-            else if constexpr ( is_path_index_v<PathElement> )
+            else if constexpr ( is_path_index_v<Path_element> )
             {
-                // If this is after the selection, PathIndex index is incremented so it's now correctly after the inserted sel index
-                using path_elem = std::conditional_t<AfterSel, PathIndex<PathElement::index+1>, PathElement>;
+                // If this is after the selection, path_index index is incremented so it's now correctly after the inserted sel index
+                using path_elem = std::conditional_t<After_sel, path_index<Path_element::index+1>, Path_element>;
                 if constexpr ( sizeof...(Pathway) == 0 )
                 {
                     f(t[static_cast<std::size_t>(std::get<path_elem::index>(keys))],
-                        type_tags<LastMember, PathTaggedKeys<Keys, type_tags<PathTraversed..., path_elem>, EditorType>>{}, keys);
+                        type_tags<Last_member, path_tagged_keys<Keys, type_tags<Path_traversed..., path_elem>, Editor_type>>{}, keys);
                 }
                 else
                 {
-                    operateThruSelImpl<AfterSel, Keys, std::remove_cvref_t<decltype(t[0])>, F, LastMember, Pathway...>(
-                        t[static_cast<std::size_t>(std::get<path_elem::index>(keys))], keys, f, type_tags<PathTraversed..., path_elem>{});
+                    operate_thru_sel_impl<After_sel, Keys, std::remove_cvref_t<decltype(t[0])>, F, Last_member, Pathway...>(
+                        t[static_cast<std::size_t>(std::get<path_elem::index>(keys))], keys, f, type_tags<Path_traversed..., path_elem>{});
                 }
             }
             else
-                static_assert(std::is_void_v<PathElement>, "Unexpected path element type!");
+                static_assert(std::is_void_v<Path_element>, "Unexpected path element type!");
         }
         
         // When operating through selections, a modified keys tuple must be built and passed to f
         template <class ... Pathway, class Keys, class U, class F>
-        void operateThruSel(U & t, Keys & keys, F f)
+        void operate_thru_sel(U & t, Keys & keys, F f)
         {
-            operateThruSelImpl<false, Keys, U, F, void, Pathway...>(t, keys, f, {});
+            operate_thru_sel_impl<false, Keys, U, F, void, Pathway...>(t, keys, f, {});
         }
 
-        template <class Keys, class U, class F, class LastMember, class PathElement, class ... Pathway, class ... PathTraversed>
-        void operateOnImpl(U & t, Keys & keys, F f, type_tags<PathTraversed...>)
+        template <class Keys, class U, class F, class Last_member, class Path_element, class ... Pathway, class ... Path_traversed>
+        void operate_on_impl(U & t, Keys & keys, F f, type_tags<Path_traversed...>)
         {
-            if constexpr ( is_path_selections_v<PathElement> )
+            if constexpr ( is_path_selections_v<Path_element> )
             {
-                auto & selData = getSelections<PathTraversed...>();
-                for ( auto & sel : selData )
+                auto & sel_data = get_selections<Path_traversed...>();
+                for ( auto & sel : sel_data )
                 {
                     if constexpr ( sizeof...(Pathway) == 0 )
-                        f(t[static_cast<std::size_t>(sel)], type_tags<LastMember, PathTaggedKeys<Keys, type_tags<PathTraversed..., PathElement>, EditorType>>{});
+                        f(t[static_cast<std::size_t>(sel)], type_tags<Last_member, path_tagged_keys<Keys, type_tags<Path_traversed..., Path_element>, Editor_type>>{});
                     else
-                        operateOnImpl<Keys, std::remove_cvref_t<decltype(t[0])>, F, LastMember, Pathway...>(t[sel], keys, f, type_tags<PathTraversed..., PathElement>{});
+                        operate_on_impl<Keys, std::remove_cvref_t<decltype(t[0])>, F, Last_member, Pathway...>(t[sel], keys, f, type_tags<Path_traversed..., Path_element>{});
                 }
             }
-            else if constexpr ( is_path_member_v<PathElement> )
+            else if constexpr ( is_path_member_v<Path_element> )
             {
                 if constexpr ( RareTs::is_optional_v<std::remove_cvref_t<U>> )
                 {
                     if constexpr ( sizeof...(Pathway) == 0 )
-                        f(t, type_tags<LastMember, PathTaggedKeys<Keys, type_tags<PathTraversed..., PathElement>, EditorType>>{});
+                        f(t, type_tags<Last_member, path_tagged_keys<Keys, type_tags<Path_traversed..., Path_element>, Editor_type>>{});
                     else if ( t.has_value() )
-                        operateOnImpl<Keys, typename std::remove_cvref_t<U>::value_type, F, LastMember, Pathway...>(*t, keys, f, type_tags<PathTraversed..., PathElement>{});
+                        operate_on_impl<Keys, typename std::remove_cvref_t<U>::value_type, F, Last_member, Pathway...>(*t, keys, f, type_tags<Path_traversed..., Path_element>{});
                 }
                 else
                 {
-                    using Member = RareTs::Member<U, PathElement::index>;
+                    using member = RareTs::Member<U, Path_element::index>;
                     if constexpr ( sizeof...(Pathway) == 0 )
-                        f(Member::value(t), type_tags<Member, PathTaggedKeys<Keys, type_tags<PathTraversed..., PathElement>, EditorType>>{});
+                        f(member::value(t), type_tags<member, path_tagged_keys<Keys, type_tags<Path_traversed..., Path_element>, Editor_type>>{});
                     else
-                        operateOnImpl<Keys, typename Member::type, F, Member, Pathway...>(Member::value(t), keys, f, type_tags<PathTraversed..., PathElement>{});
+                        operate_on_impl<Keys, typename member::type, F, member, Pathway...>(member::value(t), keys, f, type_tags<Path_traversed..., Path_element>{});
                 }
             }
-            else if constexpr ( is_path_index_v<PathElement> )
+            else if constexpr ( is_path_index_v<Path_element> )
             {
                 if constexpr ( sizeof...(Pathway) == 0 )
-                    f(t[static_cast<std::size_t>(std::get<PathElement::index>(keys))], type_tags<LastMember, PathTaggedKeys<Keys, type_tags<PathTraversed..., PathElement>, EditorType>>{});
+                    f(t[static_cast<std::size_t>(std::get<Path_element::index>(keys))], type_tags<Last_member, path_tagged_keys<Keys, type_tags<Path_traversed..., Path_element>, Editor_type>>{});
                 else
                 {
-                    operateOnImpl<Keys, std::remove_cvref_t<decltype(t[static_cast<std::size_t>(std::get<PathElement::index>(keys))])>,
-                        F, LastMember, Pathway...>(t[static_cast<std::size_t>(std::get<PathElement::index>(keys))], keys, f, type_tags<PathTraversed..., PathElement>{});
+                    operate_on_impl<Keys, std::remove_cvref_t<decltype(t[static_cast<std::size_t>(std::get<Path_element::index>(keys))])>,
+                        F, Last_member, Pathway...>(t[static_cast<std::size_t>(std::get<Path_element::index>(keys))], keys, f, type_tags<Path_traversed..., Path_element>{});
                 }
             }
             else
-                static_assert(std::is_void_v<PathElement>, "Unexpected path element type!");
+                static_assert(std::is_void_v<Path_element>, "Unexpected path element type!");
         }
         
         template <class ... Pathway, class Keys, class U, class F>
-        void operateOn(U & t, Keys & keys, F f)
+        void operate_on(U & t, Keys & keys, F f)
         {
             if constexpr ( sizeof...(Pathway) == 0 )
-                f(t, type_tags<void, PathTaggedKeys<Keys, type_tags<>, EditorType>>{});
+                f(t, type_tags<void, path_tagged_keys<Keys, type_tags<>, Editor_type>>{});
             else
-                operateOnImpl<Keys, U, F, void, Pathway...>(t, keys, f, {});
+                operate_on_impl<Keys, U, F, void, Pathway...>(t, keys, f, {});
         }
         
-        template <class Keys, class U, class LastMember, class PathElement, class ... Pathway, class ... PathTraversed>
-        auto editorFromPathImpl(auto && editor, U & t, Keys & keys, type_tags<PathTraversed...>)
+        template <class Keys, class U, class Last_member, class Path_element, class ... Pathway, class ... Path_traversed>
+        auto editor_from_path_impl(auto && editor, U & t, Keys & keys, type_tags<Path_traversed...>)
         {
-            if constexpr ( is_path_selections_v<PathElement> )
+            if constexpr ( is_path_selections_v<Path_element> )
             {
-                auto & selData = getSelections<PathTraversed...>();
-                for ( auto & sel : selData )
+                auto & sel_data = get_selections<Path_traversed...>();
+                for ( auto & sel : sel_data )
                 {
                     if constexpr ( sizeof...(Pathway) == 0 )
-                        return ReadEditPair{((const U &)t)[sel], editor[sel]};
+                        return read_edit_pair{((const U &)t)[sel], editor[sel]};
                     else
-                        return editorFromPathImpl<Keys, std::remove_cvref_t<decltype(t[0])>, LastMember, Pathway...>(editor[sel], t[sel], keys, type_tags<PathTraversed..., PathElement>{});
+                        return editor_from_path_impl<Keys, std::remove_cvref_t<decltype(t[0])>, Last_member, Pathway...>(editor[sel], t[sel], keys, type_tags<Path_traversed..., Path_element>{});
                 }
             }
-            else if constexpr ( is_path_member_v<PathElement> )
+            else if constexpr ( is_path_member_v<Path_element> )
             {
                 if constexpr ( RareTs::is_optional_v<std::remove_cvref_t<U>> )
                 {
                     if constexpr ( sizeof...(Pathway) == 0 )
                     {
                         if ( t.has_value() )
-                            return ReadEditPair{*((const U &)t), *editor};
+                            return read_edit_pair{*((const U &)t), *editor};
                         else
-                            return ReadEditPair{refNullOpt, *editor};
+                            return read_edit_pair{ref_null_opt, *editor};
                     }
                     else if ( t.has_value() )
-                        return editorFromPathImpl<Keys, typename std::remove_cvref_t<U>::value_type, LastMember, Pathway...>(*editor, *t, keys, type_tags<PathTraversed..., PathElement>{});
+                        return editor_from_path_impl<Keys, typename std::remove_cvref_t<U>::value_type, Last_member, Pathway...>(*editor, *t, keys, type_tags<Path_traversed..., Path_element>{});
                 }
                 else
                 {
-                    using Member = RareTs::Member<U, PathElement::index>;
+                    using member = RareTs::Member<U, Path_element::index>;
                     if constexpr ( sizeof...(Pathway) == 0 )
-                        return ReadEditPair{Member::value((const U &)t), editor.template fromMember<PathElement::index>()};
+                        return read_edit_pair{member::value((const U &)t), editor.template from_member<Path_element::index>()};
                     else
-                        return editorFromPathImpl<Keys, typename Member::type, Member, Pathway...>(editor.template fromMember<PathElement::index>(), Member::value(t), keys, type_tags<PathTraversed..., PathElement>{});
+                        return editor_from_path_impl<Keys, typename member::type, member, Pathway...>(editor.template from_member<Path_element::index>(), member::value(t), keys, type_tags<Path_traversed..., Path_element>{});
                 }
             }
-            else if constexpr ( is_path_index_v<PathElement> )
+            else if constexpr ( is_path_index_v<Path_element> )
             {
-                auto index = static_cast<std::size_t>(std::get<PathElement::index>(keys));
+                auto index = static_cast<std::size_t>(std::get<Path_element::index>(keys));
                 if constexpr ( sizeof...(Pathway) == 0 )
-                    return ReadEditPair{((const U &)t)[index], editor[index]};
+                    return read_edit_pair{((const U &)t)[index], editor[index]};
                 else
                 {
-                    return editorFromPathImpl<Keys, std::remove_cvref_t<decltype(t[index])>,
-                        LastMember, Pathway...>(editor[index], t[index], keys, type_tags<PathTraversed..., PathElement>{});
+                    return editor_from_path_impl<Keys, std::remove_cvref_t<decltype(t[index])>,
+                        Last_member, Pathway...>(editor[index], t[index], keys, type_tags<Path_traversed..., Path_element>{});
                 }
             }
             else
-                static_assert(std::is_void_v<PathElement>, "Unexpected path element type!");
+                static_assert(std::is_void_v<Path_element>, "Unexpected path element type!");
         }
 
         template <class ... Pathway, class Keys, class U>
-        auto editorFromPath(auto & editor, U & t, Keys & keys)
+        auto editor_from_path(auto & editor, U & t, Keys & keys)
         {
             if constexpr ( sizeof...(Pathway) == 0 )
-                return ReadEditPair{(const U &)t, editor};
+                return read_edit_pair{(const U &)t, editor};
             else
-                return editorFromPathImpl<Keys, U, void, Pathway...>(editor, t, keys, {});
+                return editor_from_path_impl<Keys, U, void, Pathway...>(editor, t, keys, {});
         }
 
-        constexpr void initAttachedData()
+        constexpr void init_attached_data()
         {
-            auto dataSizer = [&]<class ... Pathway>(type_tags<Pathway...>) {
-                std::size_t dataSize = 0;
-                if constexpr ( hasAttachedData<Pathway...>() )
+            auto data_sizer = [&]<class ... Pathway>(type_tags<Pathway...>) {
+                std::size_t data_size = 0;
+                if constexpr ( has_attached_data<Pathway...>() )
                 {
                     std::tuple<> keys {};
-                    operateOn<Pathway...>(t, keys, [&dataSize]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
-                        dataSize = std::size(ref);
+                    operate_on<Pathway...>(t, keys, [&data_size]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                        data_size = std::size(ref);
                     });
                 }
-                return dataSize;
+                return data_size;
             };
-            selections.template initAttachedData<>(dataSizer);
+            selections.template init_attached_data<>(data_sizer);
+        }
+        
+        template <class ... Pathway, class Keys>
+        void record_initialization(Keys & keys) // Creates an init event saving the existing data, does not make data change or send notifications
+        {
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::init));
+            if constexpr ( sizeof...(Pathway) > 0 )
+                serialize_pathway<Pathway...>(keys);
+            else
+                events.push_back(uint8_t(path_op::root_path));
+
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                serialize_value<Member>(ref);
+            });
         }
 
         template <class ... Pathway, class Keys>
         void reset(Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::Reset));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::reset));
+            serialize_pathway<Pathway...>(keys);
 
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
                 using value_type = std::remove_cvref_t<decltype(ref)>;
-                constexpr bool isIterable = RareTs::is_iterable_v<value_type>;
-                if constexpr ( isIterable && hasElementRemovedOp<Route> ) // Iterable
+                constexpr bool is_iterable = RareTs::is_iterable_v<value_type>;
+                if constexpr ( is_iterable && has_element_removed_op<Route> ) // Iterable
                 {
                     std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1;
-                    serializeValue<Member>(ref);
+                    serialize_value<Member>(ref);
                     for ( ; i>=0; --i )
-                        notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i)); // Issue remove changes
+                        notify_element_removed(user, Route{keys}, static_cast<std::size_t>(i)); // Issue remove changes
                     
                     ref = {};
-                    if constexpr ( hasAttachedData<Pathway...>() )
-                        getAttachedData<Pathway...>() = {};
+                    if constexpr ( has_attached_data<Pathway...>() )
+                        get_attached_data<Pathway...>() = {};
                 }
-                else if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> ) // Non-iterables (also no selections)
+                else if constexpr ( !is_iterable && has_value_changed_op<Route, value_type> ) // Non-iterables (also no selections)
                 {
                     if constexpr ( std::is_array_v<typename Member::type> )
                     {
-                        serializeValue<Member>(ref);
-                        typename Member::type prevValue {};
-                        auto refArray = as_1d<typename Member::type>(ref);
-                        as_1d(prevValue) = refArray;
-                        refArray.clear();
-                        notifyValueChanged(user, Route{keys}, prevValue, ref); // Issue change notification
+                        serialize_value<Member>(ref);
+                        typename Member::type prev_value {};
+                        auto ref_array = as_1d<typename Member::type>(ref);
+                        as_1d(prev_value) = ref_array;
+                        ref_array.clear();
+                        notify_value_changed(user, Route{keys}, prev_value, ref); // Issue change notification
                     }
                     else
                     {
-                        auto prevValue = ref;
-                        serializeValue<Member>(ref);
+                        auto prev_value = ref;
+                        serialize_value<Member>(ref);
                         ref = {};
-                        notifyValueChanged(user, Route{keys}, prevValue, ref); // Issue change notification
+                        notify_value_changed(user, Route{keys}, prev_value, ref); // Issue change notification
                     }
                 }
                 else
                 {
-                    serializeValue<Member>(ref);
+                    serialize_value<Member>(ref);
                     if constexpr ( std::is_array_v<typename Member::type> )
                         as_1d<typename Member::type>(ref).clear();
                     else
                         ref = {};
                     
-                    if constexpr ( hasAttachedData<Pathway...>() )
-                        getAttachedData<Pathway...>() = {};
+                    if constexpr ( has_attached_data<Pathway...>() )
+                        get_attached_data<Pathway...>() = {};
                 }
                     
-                if constexpr ( hasSelections<Pathway...>() )
+                if constexpr ( has_selections<Pathway...>() )
                 {
-                    auto & sel = getSelections<Pathway...>();
-                    writeSelections(events, sel);
-                    if constexpr ( hasSelectionsChangedOp<Route> )
+                    auto & sel = get_selections<Pathway...>();
+                    write_selections(events, sel);
+                    if constexpr ( has_selections_changed_op<Route> )
                     {
                         if ( !std::empty(sel) )
                         {
-                            clearSel(sel);
-                            notifySelectionsChanged(user, Route{keys});
+                            clear_sel(sel);
+                            notify_selections_changed(user, Route{keys});
                         }
                     }
                     else
-                        clearSel(sel);
+                        clear_sel(sel);
                 }
             });
         }
@@ -2021,12 +2038,12 @@ namespace RareEdit
         template <class ... Pathway, class Keys>
         void reserve(std::size_t size, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::Reserve));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::reserve));
+            serialize_pathway<Pathway...>(keys);
             
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
-                serializeIndex<Member>(size);
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                serialize_index<Member>(size);
                 ref.reserve(size);
             });
         }
@@ -2034,11 +2051,11 @@ namespace RareEdit
         template <class ... Pathway, class Keys>
         void trim(Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::Trim));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::trim));
+            serialize_pathway<Pathway...>(keys);
             
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
                 ref.shrink_to_fit();
             });
         }
@@ -2046,87 +2063,87 @@ namespace RareEdit
         template <class ... Pathway, class Value, class Keys>
         void assign(std::size_t size, Value && value, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::Assign));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::assign));
+            serialize_pathway<Pathway...>(keys);
             
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
-                serializeIndex<Member>(size);
-                serializeValue<Member>(value);
-                serializeValue<Member>(ref);
-                if constexpr ( hasElementRemovedOp<Route> )
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                serialize_index<Member>(size);
+                serialize_value<Member>(value);
+                serialize_value<Member>(ref);
+                if constexpr ( has_element_removed_op<Route> )
                 {
                     for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1; i>=0; --i )
-                        notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
+                        notify_element_removed(user, Route{keys}, static_cast<std::size_t>(i));
                 }
                 ref.assign(size, value);
-                if constexpr ( hasAttachedData<Pathway...>() )
-                    getAttachedData<Pathway...>() = std::remove_cvref_t<decltype(getAttachedData<Pathway...>())>(size); // = std::vector(size) ctor
+                if constexpr ( has_attached_data<Pathway...>() )
+                    get_attached_data<Pathway...>() = std::remove_cvref_t<decltype(get_attached_data<Pathway...>())>(size); // = std::vector(size) ctor
 
-                if constexpr ( hasElementAddedOp<Route> )
+                if constexpr ( has_element_added_op<Route> )
                 {
                     for ( std::size_t i=0; i<std::size(ref); ++i )
-                        notifyElementAdded(user, Route{keys}, i);
+                        notify_element_added(user, Route{keys}, i);
                 }
 
-                if constexpr ( hasSelections<Pathway...>() )
+                if constexpr ( has_selections<Pathway...>() )
                 {
-                    auto & sel = getSelections<Pathway...>();
-                    writeSelections(events, sel);
-                    if constexpr ( hasSelectionsChangedOp<Route> )
+                    auto & sel = get_selections<Pathway...>();
+                    write_selections(events, sel);
+                    if constexpr ( has_selections_changed_op<Route> )
                     {
                         if ( !std::empty(sel) )
                         {
-                            clearSel(sel);
-                            notifySelectionsChanged(user, Route{keys});
+                            clear_sel(sel);
+                            notify_selections_changed(user, Route{keys});
                         }
                     }
                     else
-                        clearSel(sel);
+                        clear_sel(sel);
                 }
             });
         }
 
         template <class ... Pathway, class Keys>
-        void assignDefault(std::size_t size, Keys & keys)
+        void assign_default(std::size_t size, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::AssignDefault));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::assign_default));
+            serialize_pathway<Pathway...>(keys);
             
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
-                serializeIndex<Member>(size);
-                serializeValue<Member>(ref);
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                serialize_index<Member>(size);
+                serialize_value<Member>(ref);
                 
-                if constexpr ( hasElementRemovedOp<Route> )
+                if constexpr ( has_element_removed_op<Route> )
                 {
                     for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1; i>=0; --i )
-                        notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
+                        notify_element_removed(user, Route{keys}, static_cast<std::size_t>(i));
                 }
                 ref = std::remove_cvref_t<decltype(ref)>(size); // = std::vector(size) ctor
-                if constexpr ( hasAttachedData<Pathway...>() )
-                    getAttachedData<Pathway...>() = std::remove_cvref_t<decltype(getAttachedData<Pathway...>())>(size); // = std::vector(size) ctor
+                if constexpr ( has_attached_data<Pathway...>() )
+                    get_attached_data<Pathway...>() = std::remove_cvref_t<decltype(get_attached_data<Pathway...>())>(size); // = std::vector(size) ctor
 
-                if constexpr ( hasElementAddedOp<Route> )
+                if constexpr ( has_element_added_op<Route> )
                 {
                     for ( std::size_t i=0; i<std::size(ref); ++i )
-                        notifyElementAdded(user, Route{keys}, i);
+                        notify_element_added(user, Route{keys}, i);
                 }
 
-                if constexpr ( hasSelections<Pathway...>() )
+                if constexpr ( has_selections<Pathway...>() )
                 {
-                    auto & sel = getSelections<Pathway...>();
-                    writeSelections(events, sel);
-                    if constexpr ( hasSelectionsChangedOp<Route> )
+                    auto & sel = get_selections<Pathway...>();
+                    write_selections(events, sel);
+                    if constexpr ( has_selections_changed_op<Route> )
                     {
                         if ( !std::empty(sel) )
                         {
-                            clearSel(sel);
-                            notifySelectionsChanged(user, Route{keys});
+                            clear_sel(sel);
+                            notify_selections_changed(user, Route{keys});
                         }
                     }
                     else
-                        clearSel(sel);
+                        clear_sel(sel);
                 }
             });
         }
@@ -2134,126 +2151,126 @@ namespace RareEdit
         template <class ... Pathway, class Value, class Keys>
         void set(Value && value, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::Set));
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::set));
             if constexpr ( sizeof...(Pathway) > 0 )
-                serializePathway<Pathway...>(keys);
+                serialize_pathway<Pathway...>(keys);
             else
-                events.push_back(uint8_t(PathOp::RootPath));
+                events.push_back(uint8_t(path_op::root_path));
 
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
                 using value_type = std::remove_cvref_t<decltype(ref)>;
-                constexpr bool isIterable = !RareTs::is_optional_v<value_type> && RareTs::is_iterable_v<value_type>;
-                if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> )
+                constexpr bool is_iterable = !RareTs::is_optional_v<value_type> && RareTs::is_iterable_v<value_type>;
+                if constexpr ( !is_iterable && has_value_changed_op<Route, value_type> )
                 {
-                    auto prevValue = ref;
-                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(value)); // Value set to
-                    serializeValue<Member>(ref); // Value before changing
+                    auto prev_value = ref;
+                    serialize_value<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(value)); // Value set to
+                    serialize_value<Member>(ref); // Value before changing
                     ref = std::forward<Value>(value);
-                    notifyValueChanged(user, Route{keys}, prevValue, ref);
+                    notify_value_changed(user, Route{keys}, prev_value, ref);
                 }
                 else
                 {
-                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(value)); // Value set to
-                    serializeValue<Member>(ref); // Value before changing
+                    serialize_value<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(value)); // Value set to
+                    serialize_value<Member>(ref); // Value before changing
                         
-                    if constexpr ( isIterable && hasElementRemovedOp<Route> )
+                    if constexpr ( is_iterable && has_element_removed_op<Route> )
                     {
                         for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1; i>=0; --i )
-                            notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
+                            notify_element_removed(user, Route{keys}, static_cast<std::size_t>(i));
                     }
                     if constexpr ( requires{ref = std::forward<Value>(value);} )
                     {
                         ref = std::forward<Value>(value);
-                        if constexpr ( hasAttachedData<Pathway...>() )
-                            getAttachedData<Pathway...>() = std::remove_cvref_t<decltype(getAttachedData<Pathway...>())>(std::size(ref)); // = std::vector(size)
+                        if constexpr ( has_attached_data<Pathway...>() )
+                            get_attached_data<Pathway...>() = std::remove_cvref_t<decltype(get_attached_data<Pathway...>())>(std::size(ref)); // = std::vector(size)
                     }
-                    if constexpr ( isIterable && hasElementAddedOp<Route> )
+                    if constexpr ( is_iterable && has_element_added_op<Route> )
                     {
                         for ( std::size_t i=0; i<std::size(ref); ++i )
-                            notifyElementAdded(user, Route{keys}, i);
+                            notify_element_added(user, Route{keys}, i);
                     }
                 }
 
-                if constexpr ( hasSelections<Pathway...>() )
+                if constexpr ( has_selections<Pathway...>() )
                 {
-                    auto & sel = getSelections<Pathway...>();
-                    writeSelections(events, sel);
-                    clearSel(sel);
+                    auto & sel = get_selections<Pathway...>();
+                    write_selections(events, sel);
+                    clear_sel(sel);
 
-                    if constexpr ( hasSelectionsChangedOp<Route> )
-                        notifySelectionsChanged(user, Route{keys});
+                    if constexpr ( has_selections_changed_op<Route> )
+                        notify_selections_changed(user, Route{keys});
                 }
             });
         }
 
-        template <class ... Pathway, class SetIndexes, class Value, class Keys>
-        void setN(SetIndexes && setIndexes, const Value & value, Keys & keys)
+        template <class ... Pathway, class Set_indexes, class Value, class Keys>
+        void set_n(Set_indexes && set_indexes, const Value & value, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::SetN));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::set_n));
+            serialize_pathway<Pathway...>(keys);
             
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
                 using element_type = RareTs::element_type_t<std::remove_cvref_t<decltype(ref)>>;
                 using index_type = index_type_t<default_index_type, Member>;
-                using ElemPath = type_tags<Pathway..., PathIndex<std::tuple_size_v<std::remove_cvref_t<decltype(keys)>>>>;
-                using ElemKeys = std::remove_cvref_t<decltype(std::tuple_cat(keys, std::tuple<index_type>{0}))>;
-                using ElemRoute = PathTaggedKeys<ElemKeys, ElemPath, EditorType>;
-                constexpr bool isIterableElement = RareTs::is_iterable_v<element_type>;
+                using elem_path = type_tags<Pathway..., path_index<std::tuple_size_v<std::remove_cvref_t<decltype(keys)>>>>;
+                using elem_keys = std::remove_cvref_t<decltype(std::tuple_cat(keys, std::tuple<index_type>{0}))>;
+                using elem_route = path_tagged_keys<elem_keys, elem_path, Editor_type>;
+                constexpr bool is_iterable_element = RareTs::is_iterable_v<element_type>;
                 if constexpr ( !std::is_void_v<element_type> )
                 {
-                    if constexpr ( !isIterableElement && hasValueChangedOp<Route, element_type> )
+                    if constexpr ( !is_iterable_element && has_value_changed_op<Route, element_type> )
                     {
-                        serializeIndex<Member>(std::size(setIndexes)); // Index count
-                        for ( auto setIndex : setIndexes )
-                            serializeIndex<Member>(setIndex); // Indexes
+                        serialize_index<Member>(std::size(set_indexes)); // Index count
+                        for ( auto set_index : set_indexes )
+                            serialize_index<Member>(set_index); // Indexes
 
-                        serializeValue<Member>(value); // Value set to
+                        serialize_value<Member>(value); // Value set to
 
-                        for ( auto setIndex : setIndexes )
-                            serializeValue<Member>(ref[setIndex]); // Value before changing
+                        for ( auto set_index : set_indexes )
+                            serialize_value<Member>(ref[set_index]); // Value before changing
 
-                        for ( auto setIndex : setIndexes )
+                        for ( auto set_index : set_indexes )
                         {
-                            auto prevValue = ref[setIndex];
-                            ref[setIndex] = value; // Make the change
-                            notifyValueChanged(user, ElemRoute{std::tuple_cat(keys, std::tuple<index_type>{setIndex})}, prevValue, ref[setIndex]);
+                            auto prev_value = ref[set_index];
+                            ref[set_index] = value; // Make the change
+                            notify_value_changed(user, elem_route{std::tuple_cat(keys, std::tuple<index_type>{set_index})}, prev_value, ref[set_index]);
                         }
                     }
                     else
                     {
-                        serializeIndex<Member>(std::size(setIndexes)); // Index count
-                        for ( auto setIndex : setIndexes )
-                            serializeIndex<Member>(setIndex); // Indexes
+                        serialize_index<Member>(std::size(set_indexes)); // Index count
+                        for ( auto set_index : set_indexes )
+                            serialize_index<Member>(set_index); // Indexes
 
-                        serializeValue<Member>(value); // Value set to
+                        serialize_value<Member>(value); // Value set to
 
-                        for ( auto setIndex : setIndexes )
-                            serializeValue<Member>(ref[setIndex]); // Value before changing
+                        for ( auto set_index : set_indexes )
+                            serialize_value<Member>(ref[set_index]); // Value before changing
 
-                        if constexpr ( isIterableElement )
+                        if constexpr ( is_iterable_element )
                         {
-                            for ( auto setIndex : setIndexes )
+                            for ( auto set_index : set_indexes )
                             {
-                                if constexpr ( hasElementRemovedOp<Route> )
+                                if constexpr ( has_element_removed_op<Route> )
                                 {
-                                    for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref[setIndex]))-1; i>=0; --i )
-                                        notifyElementRemoved(user, ElemRoute{std::tuple_cat(keys, std::tuple<index_type>{setIndex})}, static_cast<std::size_t>(i));
+                                    for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref[set_index]))-1; i>=0; --i )
+                                        notify_element_removed(user, elem_route{std::tuple_cat(keys, std::tuple<index_type>{set_index})}, static_cast<std::size_t>(i));
                                 }
-                                ref[setIndex] = value; // Make the change
+                                ref[set_index] = value; // Make the change
                                 
-                                if constexpr ( hasElementAddedOp<Route> )
+                                if constexpr ( has_element_added_op<Route> )
                                 {
-                                    for ( std::size_t i=0; i<std::size(ref[setIndex]); ++i )
-                                        notifyElementAdded(user, ElemRoute{std::tuple_cat(keys, std::tuple<index_type>{setIndex})}, i);
+                                    for ( std::size_t i=0; i<std::size(ref[set_index]); ++i )
+                                        notify_element_added(user, elem_route{std::tuple_cat(keys, std::tuple<index_type>{set_index})}, i);
                                 }
                             }
                         }
                         else if constexpr ( requires{ref[0] = value;} )
                         {
-                            for ( auto setIndex : setIndexes )
-                                ref[setIndex] = value; // Make the change
+                            for ( auto set_index : set_indexes )
+                                ref[set_index] = value; // Make the change
                         }
                     }
                 }
@@ -2261,282 +2278,282 @@ namespace RareEdit
         }
 
         template <class ... Pathway, class Value, class Keys>
-        void setL(Value && value, Keys & keys)
+        void set_l(Value && value, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::SetL));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::set_l));
+            serialize_pathway<Pathway...>(keys);
 
             bool first = true;
-            operateThruSel<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>, auto & newKeys) {
+            operate_thru_sel<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>, auto & new_keys) {
                 using value_type = std::remove_cvref_t<decltype(ref)>;
-                constexpr bool isIterable = RareTs::is_iterable_v<value_type>;
+                constexpr bool is_iterable = RareTs::is_iterable_v<value_type>;
                 if ( first )
                 {
                     first = false;
-                    if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> )
+                    if constexpr ( !is_iterable && has_value_changed_op<Route, value_type> )
                     {
-                        auto prevValue = ref;
-                        serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(value)); // Value set to
-                        serializeValue<Member>(ref); // Value before changing
+                        auto prev_value = ref;
+                        serialize_value<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(value)); // Value set to
+                        serialize_value<Member>(ref); // Value before changing
                         ref = std::forward<Value>(value);
-                        notifyValueChanged(user, Route{newKeys}, prevValue, ref);
+                        notify_value_changed(user, Route{new_keys}, prev_value, ref);
                     }
                     else
                     {
-                        serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(value)); // Value set to
-                        serializeValue<Member>(ref); // Value before changing
-                        if constexpr ( isIterable && hasElementRemovedOp<Route> )
+                        serialize_value<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(value)); // Value set to
+                        serialize_value<Member>(ref); // Value before changing
+                        if constexpr ( is_iterable && has_element_removed_op<Route> )
                         {
                             for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1; i>=0; --i )
-                                notifyElementRemoved(user, Route{newKeys}, static_cast<std::size_t>(i));
+                                notify_element_removed(user, Route{new_keys}, static_cast<std::size_t>(i));
                         }
                         ref = std::forward<Value>(value);
 
-                        if constexpr ( isIterable && hasElementAddedOp<Route> )
+                        if constexpr ( is_iterable && has_element_added_op<Route> )
                         {
                             for ( std::size_t i=0; i<std::size(ref); ++i )
-                                notifyElementAdded(user, Route{newKeys}, i);
+                                notify_element_added(user, Route{new_keys}, i);
                         }
                     }
                 }
-                else if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> )
+                else if constexpr ( !is_iterable && has_value_changed_op<Route, value_type> )
                 {
-                    auto prevValue = ref;
-                    serializeValue<Member>(ref); // Value before changing
+                    auto prev_value = ref;
+                    serialize_value<Member>(ref); // Value before changing
                     ref = std::forward<Value>(value);
-                    notifyValueChanged(user, Route{newKeys}, prevValue, ref);
+                    notify_value_changed(user, Route{new_keys}, prev_value, ref);
                 }
                 else
                 {
-                    serializeValue<Member>(ref); // Value before changing
-                    if constexpr ( isIterable && hasElementRemovedOp<Route> )
+                    serialize_value<Member>(ref); // Value before changing
+                    if constexpr ( is_iterable && has_element_removed_op<Route> )
                     {
                         for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1; i>=0; --i )
-                            notifyElementRemoved(user, Route{newKeys}, static_cast<std::size_t>(i));
+                            notify_element_removed(user, Route{new_keys}, static_cast<std::size_t>(i));
                     }
                     ref = std::forward<Value>(value);
 
-                    if constexpr ( isIterable && hasElementAddedOp<Route> )
+                    if constexpr ( is_iterable && has_element_added_op<Route> )
                     {
                         for ( std::size_t i=0; i<std::size(ref); ++i )
-                            notifyElementAdded(user, Route{newKeys}, i);
+                            notify_element_added(user, Route{new_keys}, i);
                     }
                 }
             });
         }
 
         template <class ... Pathway, class Value, class Keys>
-        void plusEq(Value && value, Keys & keys)
+        void plus_eq_(Value && value, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::Set)); // "Set like operation"
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::set)); // "Set like operation"
+            serialize_pathway<Pathway...>(keys);
 
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
                 
                 using value_type = std::remove_cvref_t<decltype(ref)>;
-                if constexpr ( hasValueChangedOp<Route, value_type> )
+                if constexpr ( has_value_changed_op<Route, value_type> )
                 {
-                    auto prevValue = ref;
+                    auto prev_value = ref;
                     ref += std::forward<Value>(value);
-                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
-                    serializeValue<Member>(prevValue); // Value before changing
-                    notifyValueChanged(user, Route{keys}, prevValue, ref);
+                    serialize_value<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
+                    serialize_value<Member>(prev_value); // Value before changing
+                    notify_value_changed(user, Route{keys}, prev_value, ref);
                 }
                 else
                 {
-                    serializeValue<Member>(std::remove_cvref_t<decltype(ref)>(ref + value)); // Value set to
-                    serializeValue<Member>(ref); // Value before changing
+                    serialize_value<Member>(std::remove_cvref_t<decltype(ref)>(ref + value)); // Value set to
+                    serialize_value<Member>(ref); // Value before changing
                     ref += std::forward<Value>(value);
                 }
             });
         }
 
         template <class ... Pathway, class Value, class Keys>
-        void minusEq(Value && value, Keys & keys)
+        void minus_eq_(Value && value, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::Set)); // "Set like operation"
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::set)); // "Set like operation"
+            serialize_pathway<Pathway...>(keys);
 
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
                 
                 using value_type = std::remove_cvref_t<decltype(ref)>;
-                if constexpr ( hasValueChangedOp<Route, value_type> )
+                if constexpr ( has_value_changed_op<Route, value_type> )
                 {
-                    auto prevValue = ref;
+                    auto prev_value = ref;
                     ref -= std::forward<Value>(value);
-                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
-                    serializeValue<Member>(prevValue); // Value before changing
-                    notifyValueChanged(user, Route{keys}, prevValue, ref);
+                    serialize_value<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
+                    serialize_value<Member>(prev_value); // Value before changing
+                    notify_value_changed(user, Route{keys}, prev_value, ref);
                 }
                 else
                 {
-                    serializeValue<Member>(std::remove_cvref_t<decltype(ref)>(ref - value)); // Value set to
-                    serializeValue<Member>(ref); // Value before changing
+                    serialize_value<Member>(std::remove_cvref_t<decltype(ref)>(ref - value)); // Value set to
+                    serialize_value<Member>(ref); // Value before changing
                     ref -= std::forward<Value>(value);
                 }
             });
         }
 
         template <class ... Pathway, class Value, class Keys>
-        void multEq(Value && value, Keys & keys)
+        void mult_eq_(Value && value, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::Set)); // "Set like operation"
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::set)); // "Set like operation"
+            serialize_pathway<Pathway...>(keys);
 
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
                 
                 using value_type = std::remove_cvref_t<decltype(ref)>;
-                if constexpr ( hasValueChangedOp<Route, value_type> )
+                if constexpr ( has_value_changed_op<Route, value_type> )
                 {
-                    auto prevValue = ref;
+                    auto prev_value = ref;
                     ref *= std::forward<Value>(value);
-                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
-                    serializeValue<Member>(prevValue); // Value before changing
-                    notifyValueChanged(user, Route{keys}, prevValue, ref);
+                    serialize_value<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
+                    serialize_value<Member>(prev_value); // Value before changing
+                    notify_value_changed(user, Route{keys}, prev_value, ref);
                 }
                 else
                 {
-                    serializeValue<Member>(std::remove_cvref_t<decltype(ref)>(ref * value)); // Value set to
-                    serializeValue<Member>(ref); // Value before changing
+                    serialize_value<Member>(std::remove_cvref_t<decltype(ref)>(ref * value)); // Value set to
+                    serialize_value<Member>(ref); // Value before changing
                     ref *= std::forward<Value>(value);
                 }
             });
         }
 
         template <class ... Pathway, class Value, class Keys>
-        void divEq(Value && value, Keys & keys)
+        void div_eq_(Value && value, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::Set)); // "Set like operation"
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::set)); // "Set like operation"
+            serialize_pathway<Pathway...>(keys);
 
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
                 
                 using value_type = std::remove_cvref_t<decltype(ref)>;
-                if constexpr ( hasValueChangedOp<Route, value_type> )
+                if constexpr ( has_value_changed_op<Route, value_type> )
                 {
-                    auto prevValue = ref;
+                    auto prev_value = ref;
                     ref /= std::forward<Value>(value);
-                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
-                    serializeValue<Member>(prevValue); // Value before changing
-                    notifyValueChanged(user, Route{keys}, prevValue, ref);
+                    serialize_value<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
+                    serialize_value<Member>(prev_value); // Value before changing
+                    notify_value_changed(user, Route{keys}, prev_value, ref);
                 }
                 else
                 {
-                    serializeValue<Member>(std::remove_cvref_t<decltype(ref)>(ref / value)); // Value set to
-                    serializeValue<Member>(ref); // Value before changing
+                    serialize_value<Member>(std::remove_cvref_t<decltype(ref)>(ref / value)); // Value set to
+                    serialize_value<Member>(ref); // Value before changing
                     ref /= std::forward<Value>(value);
                 }
             });
         }
 
         template <class ... Pathway, class Value, class Keys>
-        void modEq(Value && value, Keys & keys)
+        void mod_eq_(Value && value, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::Set)); // "Set like operation"
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::set)); // "Set like operation"
+            serialize_pathway<Pathway...>(keys);
 
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
                 
                 using value_type = std::remove_cvref_t<decltype(ref)>;
-                if constexpr ( hasValueChangedOp<Route, value_type> )
+                if constexpr ( has_value_changed_op<Route, value_type> )
                 {
-                    auto prevValue = ref;
+                    auto prev_value = ref;
                     ref %= std::forward<Value>(value);
-                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
-                    serializeValue<Member>(prevValue); // Value before changing
-                    notifyValueChanged(user, Route{keys}, prevValue, ref);
+                    serialize_value<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
+                    serialize_value<Member>(prev_value); // Value before changing
+                    notify_value_changed(user, Route{keys}, prev_value, ref);
                 }
                 else
                 {
-                    serializeValue<Member>(std::remove_cvref_t<decltype(ref)>(ref % value)); // Value set to
-                    serializeValue<Member>(ref); // Value before changing
+                    serialize_value<Member>(std::remove_cvref_t<decltype(ref)>(ref % value)); // Value set to
+                    serialize_value<Member>(ref); // Value before changing
                     ref %= std::forward<Value>(value);
                 }
             });
         }
 
         template <class ... Pathway, class Value, class Keys>
-        void xorEq(Value && value, Keys & keys)
+        void xor_eq_(Value && value, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::Set)); // "Set like operation"
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::set)); // "Set like operation"
+            serialize_pathway<Pathway...>(keys);
 
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
                 
                 using value_type = std::remove_cvref_t<decltype(ref)>;
-                if constexpr ( hasValueChangedOp<Route, value_type> )
+                if constexpr ( has_value_changed_op<Route, value_type> )
                 {
-                    auto prevValue = ref;
+                    auto prev_value = ref;
                     ref ^= std::forward<Value>(value);
-                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
-                    serializeValue<Member>(prevValue); // Value before changing
-                    notifyValueChanged(user, Route{keys}, prevValue, ref);
+                    serialize_value<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
+                    serialize_value<Member>(prev_value); // Value before changing
+                    notify_value_changed(user, Route{keys}, prev_value, ref);
                 }
                 else
                 {
-                    serializeValue<Member>(std::remove_cvref_t<decltype(ref)>(ref ^ value)); // Value set to
-                    serializeValue<Member>(ref); // Value before changing
+                    serialize_value<Member>(std::remove_cvref_t<decltype(ref)>(ref ^ value)); // Value set to
+                    serialize_value<Member>(ref); // Value before changing
                     ref ^= std::forward<Value>(value);
                 }
             });
         }
 
         template <class ... Pathway, class Value, class Keys>
-        void andEq(Value && value, Keys & keys)
+        void and_eq_(Value && value, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::Set)); // "Set like operation"
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::set)); // "Set like operation"
+            serialize_pathway<Pathway...>(keys);
 
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
                 
                 using value_type = std::remove_cvref_t<decltype(ref)>;
-                if constexpr ( hasValueChangedOp<Route, value_type> )
+                if constexpr ( has_value_changed_op<Route, value_type> )
                 {
-                    auto prevValue = ref;
+                    auto prev_value = ref;
                     ref &= std::forward<Value>(value);
-                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
-                    serializeValue<Member>(prevValue); // Value before changing
-                    notifyValueChanged(user, Route{keys}, prevValue, ref);
+                    serialize_value<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
+                    serialize_value<Member>(prev_value); // Value before changing
+                    notify_value_changed(user, Route{keys}, prev_value, ref);
                 }
                 else
                 {
-                    serializeValue<Member>(std::remove_cvref_t<decltype(ref)>(ref & value)); // Value set to
-                    serializeValue<Member>(ref); // Value before changing
+                    serialize_value<Member>(std::remove_cvref_t<decltype(ref)>(ref & value)); // Value set to
+                    serialize_value<Member>(ref); // Value before changing
                     ref &= std::forward<Value>(value);
                 }
             });
         }
 
         template <class ... Pathway, class Value, class Keys>
-        void orEq(Value && value, Keys & keys)
+        void or_eq_(Value && value, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::Set)); // "Set like operation"
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::set)); // "Set like operation"
+            serialize_pathway<Pathway...>(keys);
 
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
                 
                 using value_type = std::remove_cvref_t<decltype(ref)>;
-                if constexpr ( hasValueChangedOp<Route, value_type> )
+                if constexpr ( has_value_changed_op<Route, value_type> )
                 {
-                    auto prevValue = ref;
+                    auto prev_value = ref;
                     ref |= std::forward<Value>(value);
-                    serializeValue<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
-                    serializeValue<Member>(prevValue); // Value before changing
-                    notifyValueChanged(user, Route{keys}, prevValue, ref);
+                    serialize_value<Member>(static_cast<std::remove_cvref_t<decltype(ref)>>(ref)); // Value set to
+                    serialize_value<Member>(prev_value); // Value before changing
+                    notify_value_changed(user, Route{keys}, prev_value, ref);
                 }
                 else
                 {
-                    serializeValue<Member>(std::remove_cvref_t<decltype(ref)>(ref | value)); // Value set to
-                    serializeValue<Member>(ref); // Value before changing
+                    serialize_value<Member>(std::remove_cvref_t<decltype(ref)>(ref | value)); // Value set to
+                    serialize_value<Member>(ref); // Value before changing
                     ref |= std::forward<Value>(value);
                 }
             });
@@ -2545,1512 +2562,1512 @@ namespace RareEdit
         template <class ... Pathway, class Value, class Keys>
         void append(Value && value, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::Append));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::append));
+            serialize_pathway<Pathway...>(keys);
             
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
                 ref.push_back(std::forward<Value>(value));
-                if constexpr ( hasAttachedData<Pathway...>() )
-                    getAttachedData<Pathway...>().push_back({});
-                serializeValue<Member>(ref.back());
-                if constexpr ( hasElementAddedOp<Route> )
-                    notifyElementAdded(user, Route{keys}, ref.size()-1);
+                if constexpr ( has_attached_data<Pathway...>() )
+                    get_attached_data<Pathway...>().push_back({});
+                serialize_value<Member>(ref.back());
+                if constexpr ( has_element_added_op<Route> )
+                    notify_element_added(user, Route{keys}, ref.size()-1);
             });
         }
 
         template <class ... Pathway, class Values, class Keys>
-        void appendN(Values && values, Keys & keys)
+        void append_n(Values && values, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::AppendN));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::append_n));
+            serialize_pathway<Pathway...>(keys);
             
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
-                serializeIndex<Member>(std::size(values));
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                serialize_index<Member>(std::size(values));
                 for ( auto & value : values )
                 {
                     ref.push_back(value);
-                    if constexpr ( hasAttachedData<Pathway...>() )
-                        getAttachedData<Pathway...>().push_back({});
+                    if constexpr ( has_attached_data<Pathway...>() )
+                        get_attached_data<Pathway...>().push_back({});
 
-                    serializeValue<Member>(ref.back());
-                    if constexpr ( hasElementAddedOp<Route> )
-                        notifyElementAdded(user, Route{keys}, ref.size()-1);
+                    serialize_value<Member>(ref.back());
+                    if constexpr ( has_element_added_op<Route> )
+                        notify_element_added(user, Route{keys}, ref.size()-1);
                 }
             });
         }
 
-        template <class ... Pathway, class InsertionIndex, class Value, class Keys>
-        void insert(InsertionIndex insertionIndex, Value && value, Keys & keys)
+        template <class ... Pathway, class Insertion_index, class Value, class Keys>
+        void insert(Insertion_index insertion_index, Value && value, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::Insert));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::insert));
+            serialize_pathway<Pathway...>(keys);
             
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
-                serializeIndex<Member>(insertionIndex);
-                serializeValue<Member>(value);
-                ref.insert(std::next(ref.begin(), static_cast<std::ptrdiff_t>(insertionIndex)), std::forward<Value>(value));
-                if constexpr ( hasAttachedData<Pathway...>() )
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                serialize_index<Member>(insertion_index);
+                serialize_value<Member>(value);
+                ref.insert(std::next(ref.begin(), static_cast<std::ptrdiff_t>(insertion_index)), std::forward<Value>(value));
+                if constexpr ( has_attached_data<Pathway...>() )
                 {
-                    auto & attachedData = getAttachedData<Pathway...>();
-                    attachedData.emplace(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(insertionIndex)));
+                    auto & attached_data = get_attached_data<Pathway...>();
+                    attached_data.emplace(std::next(attached_data.begin(), static_cast<std::ptrdiff_t>(insertion_index)));
                 }
-                if constexpr ( hasElementAddedOp<Route> )
-                    notifyElementAdded(user, Route{keys}, static_cast<std::size_t>(insertionIndex));
-                if constexpr ( hasElementMovedOp<Route> )
+                if constexpr ( has_element_added_op<Route> )
+                    notify_element_added(user, Route{keys}, static_cast<std::size_t>(insertion_index));
+                if constexpr ( has_element_moved_op<Route> )
                 {
-                    for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(std::size(ref))-1; i>static_cast<std::ptrdiff_t>(insertionIndex); --i )
-                        notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(i-1), static_cast<std::size_t>(i));
+                    for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(std::size(ref))-1; i>static_cast<std::ptrdiff_t>(insertion_index); --i )
+                        notify_element_moved(user, Route{keys}, static_cast<std::size_t>(i-1), static_cast<std::size_t>(i));
                 }
 
-                if constexpr ( hasSelections<Pathway...>() )
+                if constexpr ( has_selections<Pathway...>() )
                 {
-                    auto & sel = getSelections<Pathway...>();
+                    auto & sel = get_selections<Pathway...>();
                     for ( auto & index : sel )
                     {
-                        if ( static_cast<InsertionIndex>(index) >= insertionIndex )
+                        if ( static_cast<Insertion_index>(index) >= insertion_index )
                             ++index;
                     }
-                    if constexpr ( hasSelectionsChangedOp<Route> )
-                        notifySelectionsChanged(user, Route{keys});
+                    if constexpr ( has_selections_changed_op<Route> )
+                        notify_selections_changed(user, Route{keys});
                 }
             });
         }
 
-        template <class ... Pathway, class InsertionIndex, class Values, class Keys>
-        void insertN(InsertionIndex insertionIndex, Values && values, Keys & keys)
+        template <class ... Pathway, class Insertion_index, class Values, class Keys>
+        void insert_n(Insertion_index insertion_index, Values && values, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::InsertN));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::insert_n));
+            serialize_pathway<Pathway...>(keys);
             
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
-                serializeIndex<Member>(std::size(values));
-                serializeIndex<Member>(insertionIndex);
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                serialize_index<Member>(std::size(values));
+                serialize_index<Member>(insertion_index);
                 for ( auto & value : values )
-                    serializeValue<Member>(value);
+                    serialize_value<Member>(value);
                 
-                ref.insert(std::next(ref.begin(), static_cast<std::ptrdiff_t>(insertionIndex)), std::begin(values), std::end(values));
-                if constexpr ( hasAttachedData<Pathway...>() )
+                ref.insert(std::next(ref.begin(), static_cast<std::ptrdiff_t>(insertion_index)), std::begin(values), std::end(values));
+                if constexpr ( has_attached_data<Pathway...>() )
                 {
-                    auto & attachedData = getAttachedData<Pathway...>();
+                    auto & attached_data = get_attached_data<Pathway...>();
                     for ( std::size_t i=0; i<std::size(values); ++i )
-                        attachedData.emplace(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(insertionIndex)));
+                        attached_data.emplace(std::next(attached_data.begin(), static_cast<std::ptrdiff_t>(insertion_index)));
                 }
-                if constexpr ( hasElementAddedOp<Route> )
+                if constexpr ( has_element_added_op<Route> )
                 {
-                    auto limit = insertionIndex + static_cast<InsertionIndex>(std::size(values));
-                    for ( auto i = insertionIndex; i < limit; ++i )
-                        notifyElementAdded(user, Route{keys}, static_cast<std::size_t>(i));
+                    auto limit = insertion_index + static_cast<Insertion_index>(std::size(values));
+                    for ( auto i = insertion_index; i < limit; ++i )
+                        notify_element_added(user, Route{keys}, static_cast<std::size_t>(i));
                 }
-                if constexpr ( hasElementMovedOp<Route> )
+                if constexpr ( has_element_moved_op<Route> )
                 {
-                    std::size_t countInserted = std::size(values);
-                    std::size_t prevSize = std::size(ref) - countInserted;
-                    for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(prevSize)-1; i>=static_cast<std::ptrdiff_t>(insertionIndex); --i )
-                        notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(i), static_cast<std::size_t>(i)+countInserted);
+                    std::size_t count_inserted = std::size(values);
+                    std::size_t prev_size = std::size(ref) - count_inserted;
+                    for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(prev_size)-1; i>=static_cast<std::ptrdiff_t>(insertion_index); --i )
+                        notify_element_moved(user, Route{keys}, static_cast<std::size_t>(i), static_cast<std::size_t>(i)+count_inserted);
                 }
 
-                if constexpr ( hasSelections<Pathway...>() )
+                if constexpr ( has_selections<Pathway...>() )
                 {
-                    auto & sel = getSelections<Pathway...>();
+                    auto & sel = get_selections<Pathway...>();
                     for ( auto & index : sel )
                     {
                         std::size_t count = values.size();
-                        if ( static_cast<InsertionIndex>(index) >= insertionIndex )
+                        if ( static_cast<Insertion_index>(index) >= insertion_index )
                             index += count;
                     }
-                    if constexpr ( hasSelectionsChangedOp<Route> )
-                        notifySelectionsChanged(user, Route{keys});
+                    if constexpr ( has_selections_changed_op<Route> )
+                        notify_selections_changed(user, Route{keys});
                 }
             });
         }
 
-        template <class ... Pathway, class RemovalIndex, class Keys>
-        void remove(RemovalIndex removalIndex, Keys & keys)
+        template <class ... Pathway, class Removal_index, class Keys>
+        void remove(Removal_index removal_index, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::Remove));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::remove));
+            serialize_pathway<Pathway...>(keys);
             
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
                 
                 using index_type = index_type_t<default_index_type, Member>;
-                serializeIndex<Member>(removalIndex);
-                serializeValue<Member>(ref[static_cast<std::size_t>(removalIndex)]);
+                serialize_index<Member>(removal_index);
+                serialize_value<Member>(ref[static_cast<std::size_t>(removal_index)]);
                 
-                if constexpr ( hasElementRemovedOp<Route> )
-                    notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(removalIndex));
+                if constexpr ( has_element_removed_op<Route> )
+                    notify_element_removed(user, Route{keys}, static_cast<std::size_t>(removal_index));
 
-                ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removalIndex)));
-                if constexpr ( hasAttachedData<Pathway...>() )
+                ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removal_index)));
+                if constexpr ( has_attached_data<Pathway...>() )
                 {
-                    auto & attachedData = getAttachedData<Pathway...>();
-                    attachedData.erase(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(removalIndex)));
+                    auto & attached_data = get_attached_data<Pathway...>();
+                    attached_data.erase(std::next(attached_data.begin(), static_cast<std::ptrdiff_t>(removal_index)));
                 }
-                if constexpr ( hasElementMovedOp<Route> )
+                if constexpr ( has_element_moved_op<Route> )
                 {
-                    for ( std::size_t i=static_cast<std::size_t>(removalIndex); i<std::size(ref); ++i )
-                        notifyElementMoved(user, Route{keys}, i+1, i);
+                    for ( std::size_t i=static_cast<std::size_t>(removal_index); i<std::size(ref); ++i )
+                        notify_element_moved(user, Route{keys}, i+1, i);
                 }
 
-                auto & sel = getSelections<Pathway...>();
+                auto & sel = get_selections<Pathway...>();
                 auto found = sel.end();
-                auto indexRemoved = static_cast<index_type>(removalIndex);
+                auto index_removed = static_cast<index_type>(removal_index);
                 for ( auto it = sel.begin(); it != sel.end(); ++it )
                 {
-                    if ( *it == indexRemoved )
+                    if ( *it == index_removed )
                         found = it;
-                    else if ( *it > indexRemoved )
+                    else if ( *it > index_removed )
                         --(*it);
                 }
 
                 u8bool::write(events, found != sel.end());
                 if ( found != sel.end() )
                 {
-                    index_type foundAt = static_cast<index_type>(std::distance(sel.begin(), found));
-                    serializeIndex<Member>(foundAt);
+                    index_type found_at = static_cast<index_type>(std::distance(sel.begin(), found));
+                    serialize_index<Member>(found_at);
                     sel.erase(found);
                 }
-                if constexpr ( hasSelectionsChangedOp<Route> )
-                    notifySelectionsChanged(user, Route{keys});
+                if constexpr ( has_selections_changed_op<Route> )
+                    notify_selections_changed(user, Route{keys});
             });
         }
 
-        template <class ... Pathway, class RemovalIndexes, class Keys>
-        void removeN(RemovalIndexes && removalIndexes, Keys & keys)
+        template <class ... Pathway, class Removal_indexes, class Keys>
+        void remove_n(Removal_indexes && removal_indexes, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::RemoveN));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::remove_n));
+            serialize_pathway<Pathway...>(keys);
             
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
 
                 using index_type = index_type_t<default_index_type, Member>;
-                serializeIndex<Member>(std::size(removalIndexes));
+                serialize_index<Member>(std::size(removal_indexes));
                 // Sort indexes so largest indexes come first/are removed first
-                std::sort(removalIndexes.begin(), removalIndexes.end(), std::greater<RareTs::element_type_t<std::remove_cvref_t<RemovalIndexes>>>{});
-                for ( auto removalIndex : removalIndexes )
-                    serializeIndex<Member>(removalIndex);
-                for ( auto removalIndex : removalIndexes )
-                    serializeValue<Member>(ref[static_cast<std::size_t>(removalIndex)]);
+                std::sort(removal_indexes.begin(), removal_indexes.end(), std::greater<RareTs::element_type_t<std::remove_cvref_t<Removal_indexes>>>{});
+                for ( auto removal_index : removal_indexes )
+                    serialize_index<Member>(removal_index);
+                for ( auto removal_index : removal_indexes )
+                    serialize_value<Member>(ref[static_cast<std::size_t>(removal_index)]);
 
-                if constexpr ( hasElementRemovedOp<Route> )
+                if constexpr ( has_element_removed_op<Route> )
                 {
-                    for ( auto removalIndex : removalIndexes )
-                        notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(removalIndex));
+                    for ( auto removal_index : removal_indexes )
+                        notify_element_removed(user, Route{keys}, static_cast<std::size_t>(removal_index));
                 }
 
-                if constexpr ( hasAttachedData<Pathway...>() )
+                if constexpr ( has_attached_data<Pathway...>() )
                 {
-                    auto & attachedData = getAttachedData<Pathway...>();
-                    for ( auto removalIndex : removalIndexes )
+                    auto & attached_data = get_attached_data<Pathway...>();
+                    for ( auto removal_index : removal_indexes )
                     {
-                        ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removalIndex)));
-                        attachedData.erase(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(removalIndex)));
+                        ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removal_index)));
+                        attached_data.erase(std::next(attached_data.begin(), static_cast<std::ptrdiff_t>(removal_index)));
                     }
                 }
                 else
                 {
-                    for ( auto removalIndex : removalIndexes )
-                        ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removalIndex)));
+                    for ( auto removal_index : removal_indexes )
+                        ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removal_index)));
                 }
 
-                if constexpr ( hasElementMovedOp<Route> )
+                if constexpr ( has_element_moved_op<Route> )
                 {
                     if ( !ref.empty() )
                     {
-                        std::size_t sizeRemoved = std::size(removalIndexes);
-                        std::size_t collectionIndex = static_cast<std::size_t>(removalIndexes[sizeRemoved-1]);
-                        std::size_t moveDistance = 1;
-                        for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(sizeRemoved)-1; i>0; --i )
+                        std::size_t size_removed = std::size(removal_indexes);
+                        std::size_t collection_index = static_cast<std::size_t>(removal_indexes[size_removed-1]);
+                        std::size_t move_distance = 1;
+                        for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(size_removed)-1; i>0; --i )
                         {
-                            for ( std::size_t j=static_cast<std::size_t>(removalIndexes[static_cast<std::size_t>(i)]);
-                                j<static_cast<std::size_t>(removalIndexes[static_cast<std::size_t>(i-1)]-1); ++j )
+                            for ( std::size_t j=static_cast<std::size_t>(removal_indexes[static_cast<std::size_t>(i)]);
+                                j<static_cast<std::size_t>(removal_indexes[static_cast<std::size_t>(i-1)]-1); ++j )
                             {
-                                notifyElementMoved(user, Route{keys}, collectionIndex+moveDistance, collectionIndex);
-                                ++collectionIndex;
+                                notify_element_moved(user, Route{keys}, collection_index+move_distance, collection_index);
+                                ++collection_index;
                             }
-                            ++moveDistance;
+                            ++move_distance;
                         }
-                        for ( ; collectionIndex < std::size(ref); ++collectionIndex )
-                            notifyElementMoved(user, Route{keys}, collectionIndex+moveDistance, collectionIndex);
+                        for ( ; collection_index < std::size(ref); ++collection_index )
+                            notify_element_moved(user, Route{keys}, collection_index+move_distance, collection_index);
                     }
                 }
 
-                if constexpr ( hasSelections<Pathway...>() )
+                if constexpr ( has_selections<Pathway...>() )
                 {
-                    auto & sel = getSelections<Pathway...>();
-                    std::vector<bool> removalIndexSelected(std::size(removalIndexes), false);
-                    std::vector<index_type> prevSelIndexes {};
-                    prevSelIndexes.reserve(std::size(removalIndexes));
-                    for ( std::size_t i=0; i<removalIndexes.size(); ++i )
+                    auto & sel = get_selections<Pathway...>();
+                    std::vector<bool> removal_index_selected(std::size(removal_indexes), false);
+                    std::vector<index_type> prev_sel_indexes {};
+                    prev_sel_indexes.reserve(std::size(removal_indexes));
+                    for ( std::size_t i=0; i<removal_indexes.size(); ++i )
                     {
-                        auto indexRemoved = removalIndexes[i];
+                        auto index_removed = removal_indexes[i];
                         auto found = sel.end();
                         for ( auto it = sel.begin(); it != sel.end(); ++it )
                         {
-                            if ( *it == static_cast<index_type>(indexRemoved) )
+                            if ( *it == static_cast<index_type>(index_removed) )
                                 found = it;
-                            else if ( *it > static_cast<index_type>(indexRemoved) )
+                            else if ( *it > static_cast<index_type>(index_removed) )
                                 --(*it);
                         }
                         if ( found != sel.end() )
                         {
-                            removalIndexSelected[i] = true;
-                            prevSelIndexes.push_back(static_cast<index_type>(std::distance(sel.begin(), found)));
+                            removal_index_selected[i] = true;
+                            prev_sel_indexes.push_back(static_cast<index_type>(std::distance(sel.begin(), found)));
                             sel.erase(found);
                         }
                     }
-                    if constexpr ( hasSelectionsChangedOp<Route> )
-                        notifySelectionsChanged(user, Route{keys});
+                    if constexpr ( has_selections_changed_op<Route> )
+                        notify_selections_changed(user, Route{keys});
 
-                    writeVecBoolData(events, removalIndexSelected);
-                    serializeIndex<Member>(static_cast<index_type>(prevSelIndexes.size()));
-                    if ( !prevSelIndexes.empty() )
+                    write_vec_bool_data(events, removal_index_selected);
+                    serialize_index<Member>(static_cast<index_type>(prev_sel_indexes.size()));
+                    if ( !prev_sel_indexes.empty() )
                     {
-                        events.insert(events.end(), reinterpret_cast<const std::uint8_t*>(&prevSelIndexes[0]),
-                            reinterpret_cast<const std::uint8_t*>(&prevSelIndexes[0])+std::size(prevSelIndexes)*sizeof(prevSelIndexes[0]));
+                        events.insert(events.end(), reinterpret_cast<const std::uint8_t*>(&prev_sel_indexes[0]),
+                            reinterpret_cast<const std::uint8_t*>(&prev_sel_indexes[0])+std::size(prev_sel_indexes)*sizeof(prev_sel_indexes[0]));
                     }
                 }
             });
         }
 
         template <class ... Pathway, class Keys>
-        void removeL(Keys & keys)
+        void remove_l(Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::RemoveL));
-            serializePathway<Pathway...>(keys);
-            auto & sel = getSelections<Pathway...>();
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::remove_l));
+            serialize_pathway<Pathway...>(keys);
+            auto & sel = get_selections<Pathway...>();
             
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
                 auto selections = sel;
                 std::sort(selections.begin(), selections.end(), std::greater<RareTs::element_type_t<std::remove_cvref_t<decltype(selections)>>>{});
-                serializeIndex<Member>(std::size(selections));
+                serialize_index<Member>(std::size(selections));
                 for ( auto i : selections )
-                    serializeIndex<Member>(i);
+                    serialize_index<Member>(i);
                 for ( auto i : selections )
                 {
-                    if constexpr ( hasElementRemovedOp<Route> )
+                    if constexpr ( has_element_removed_op<Route> )
                     {
-                        serializeValue<Member>(ref[i]);
-                        notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
+                        serialize_value<Member>(ref[i]);
+                        notify_element_removed(user, Route{keys}, static_cast<std::size_t>(i));
                         ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(i)));
-                        if constexpr ( hasAttachedData<Pathway...>() )
+                        if constexpr ( has_attached_data<Pathway...>() )
                         {
-                            auto & attachedData = getAttachedData<Pathway...>();
-                            attachedData.erase(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(i)));
+                            auto & attached_data = get_attached_data<Pathway...>();
+                            attached_data.erase(std::next(attached_data.begin(), static_cast<std::ptrdiff_t>(i)));
                         }
                     }
                     else
                     {
-                        serializeValue<Member>(ref[i]);
+                        serialize_value<Member>(ref[i]);
                         ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(i)));
-                        if constexpr ( hasAttachedData<Pathway...>() )
+                        if constexpr ( has_attached_data<Pathway...>() )
                         {
-                            auto & attachedData = getAttachedData<Pathway...>();
-                            attachedData.erase(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(i)));
+                            auto & attached_data = get_attached_data<Pathway...>();
+                            attached_data.erase(std::next(attached_data.begin(), static_cast<std::ptrdiff_t>(i)));
                         }
                     }
                 }
-                if constexpr ( hasElementMovedOp<Route> )
+                if constexpr ( has_element_moved_op<Route> )
                 {
                     if ( !ref.empty() )
                     {
-                        std::size_t sizeRemoved = std::size(selections);
-                        std::size_t collectionIndex = static_cast<std::size_t>(selections[sizeRemoved-1]);
-                        std::size_t moveDistance = 1;
-                        for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(sizeRemoved)-1; i>0; --i )
+                        std::size_t size_removed = std::size(selections);
+                        std::size_t collection_index = static_cast<std::size_t>(selections[size_removed-1]);
+                        std::size_t move_distance = 1;
+                        for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(size_removed)-1; i>0; --i )
                         {
                             for ( std::size_t j=selections[static_cast<std::size_t>(i)]; j<selections[static_cast<std::size_t>(i-1)]-1; ++j )
                             {
-                                notifyElementMoved(user, Route{keys}, collectionIndex + moveDistance, collectionIndex);
-                                ++collectionIndex;
+                                notify_element_moved(user, Route{keys}, collection_index + move_distance, collection_index);
+                                ++collection_index;
                             }
-                            ++moveDistance;
+                            ++move_distance;
                         }
-                        for ( ; collectionIndex < std::size(ref); ++collectionIndex )
-                            notifyElementMoved(user, Route{keys}, collectionIndex+moveDistance, collectionIndex);
+                        for ( ; collection_index < std::size(ref); ++collection_index )
+                            notify_element_moved(user, Route{keys}, collection_index+move_distance, collection_index);
                     }
                 }
-                writeSelections(events, sel);
-                clearSel(sel);
-                if constexpr ( hasSelectionsChangedOp<Route> )
-                    notifySelectionsChanged(user, Route{keys});
+                write_selections(events, sel);
+                clear_sel(sel);
+                if constexpr ( has_selections_changed_op<Route> )
+                    notify_selections_changed(user, Route{keys});
             });
         }
 
         template <class ... Pathway, class Keys>
         void sort(Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::Sort));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::sort));
+            serialize_pathway<Pathway...>(keys);
             
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
                 using index_type = index_type_t<default_index_type, Member>;
-                auto sourceIndexes = trackedSort<false, index_type>(ref);
-                if constexpr ( hasAttachedData<Pathway...>() )
-                    redoSort(getAttachedData<Pathway...>(), std::span(sourceIndexes));
+                auto source_indexes = tracked_sort<false, index_type>(ref);
+                if constexpr ( has_attached_data<Pathway...>() )
+                    redo_sort(get_attached_data<Pathway...>(), std::span(source_indexes));
 
-                index_type serializedSize = static_cast<index_type>(sourceIndexes.size());
-                serializeIndex<Member>(serializedSize);
-                for ( auto index : sourceIndexes )
+                index_type serialized_size = static_cast<index_type>(source_indexes.size());
+                serialize_index<Member>(serialized_size);
+                for ( auto index : source_indexes )
                 {
-                    index_type sourceIndex = static_cast<index_type>(index);
-                    serializeIndex<Member>(sourceIndex);
+                    index_type source_index = static_cast<index_type>(index);
+                    serialize_index<Member>(source_index);
                 }
-                auto count = std::size(sourceIndexes);
-                auto & sel = getSelections<Pathway...>();
-                auto newSel = std::remove_cvref_t<decltype(sel)>{};
+                auto count = std::size(source_indexes);
+                auto & sel = get_selections<Pathway...>();
+                auto new_sel = std::remove_cvref_t<decltype(sel)>{};
                 for ( std::size_t i=0; i<count; ++i )
                 {
-                    if ( std::find(sel.begin(), sel.end(), sourceIndexes[i]) != sel.end() )
-                        RareTs::append(newSel, static_cast<index_type>(i));
+                    if ( std::find(sel.begin(), sel.end(), source_indexes[i]) != sel.end() )
+                        RareTs::append(new_sel, static_cast<index_type>(i));
                 }
-                std::swap(sel, newSel);
-                if constexpr ( hasElementMovedOp<Route> )
+                std::swap(sel, new_sel);
+                if constexpr ( has_element_moved_op<Route> )
                 {
                     for ( std::size_t i=0; i<count; ++i )
                     {
-                        if ( i != sourceIndexes[i] )
-                            notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(sourceIndexes[i]), static_cast<std::size_t>(i));
+                        if ( i != source_indexes[i] )
+                            notify_element_moved(user, Route{keys}, static_cast<std::size_t>(source_indexes[i]), static_cast<std::size_t>(i));
                     }
                 }
-                if constexpr ( hasSelectionsChangedOp<Route> )
-                    notifySelectionsChanged(user, Route{keys});
+                if constexpr ( has_selections_changed_op<Route> )
+                    notify_selections_changed(user, Route{keys});
             });
         }
 
         template <class ... Pathway, class Keys>
-        void sortDesc(Keys & keys)
+        void sort_desc(Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::SortDesc));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::sort_desc));
+            serialize_pathway<Pathway...>(keys);
             
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
                 using index_type = index_type_t<default_index_type, Member>;
-                auto sourceIndexes = trackedSort<true, index_type>(ref);
-                if constexpr ( hasAttachedData<Pathway...>() )
-                    redoSort(getAttachedData<Pathway...>(), std::span(sourceIndexes));
+                auto source_indexes = tracked_sort<true, index_type>(ref);
+                if constexpr ( has_attached_data<Pathway...>() )
+                    redo_sort(get_attached_data<Pathway...>(), std::span(source_indexes));
 
-                index_type serializedSize = static_cast<index_type>(sourceIndexes.size());
-                serializeIndex<Member>(serializedSize);
-                for ( auto index : sourceIndexes )
+                index_type serialized_size = static_cast<index_type>(source_indexes.size());
+                serialize_index<Member>(serialized_size);
+                for ( auto index : source_indexes )
                 {
-                    index_type sourceIndex = static_cast<index_type>(index);
-                    serializeIndex<Member>(sourceIndex);
+                    index_type source_index = static_cast<index_type>(index);
+                    serialize_index<Member>(source_index);
                 }
-                auto count = std::size(sourceIndexes);
-                auto & sel = getSelections<Pathway...>();
-                auto newSel = std::remove_cvref_t<decltype(sel)>{};
+                auto count = std::size(source_indexes);
+                auto & sel = get_selections<Pathway...>();
+                auto new_sel = std::remove_cvref_t<decltype(sel)>{};
                 for ( std::size_t i=0; i<count; ++i )
                 {
-                    if ( std::find(sel.begin(), sel.end(), sourceIndexes[i]) != sel.end() )
-                        RareTs::append(newSel, i);
+                    if ( std::find(sel.begin(), sel.end(), source_indexes[i]) != sel.end() )
+                        RareTs::append(new_sel, i);
                 }
-                std::swap(sel, newSel);
-                if constexpr ( hasElementMovedOp<Route> )
+                std::swap(sel, new_sel);
+                if constexpr ( has_element_moved_op<Route> )
                 {
-                    auto limit = std::size(sourceIndexes);
+                    auto limit = std::size(source_indexes);
                     for ( std::size_t i=0; i<limit; ++i )
                     {
-                        if ( i != sourceIndexes[i] )
-                            notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(sourceIndexes[i]), static_cast<std::size_t>(i));
+                        if ( i != source_indexes[i] )
+                            notify_element_moved(user, Route{keys}, static_cast<std::size_t>(source_indexes[i]), static_cast<std::size_t>(i));
                     }
                 }
-                if constexpr ( hasSelectionsChangedOp<Route> )
-                    notifySelectionsChanged(user, Route{keys});
+                if constexpr ( has_selections_changed_op<Route> )
+                    notify_selections_changed(user, Route{keys});
             });
         }
 
-        template <class ... Pathway, class MovedIndex, class Keys>
-        void swap(MovedIndex firstIndex, MovedIndex secondIndex, Keys & keys)
+        template <class ... Pathway, class Moved_index, class Keys>
+        void swap(Moved_index first_index, Moved_index second_index, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::Swap));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::swap));
+            serialize_pathway<Pathway...>(keys);
 
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
-                serializeIndex<Member>(firstIndex);
-                serializeIndex<Member>(secondIndex);
-                if ( firstIndex != secondIndex && static_cast<std::size_t>(firstIndex) < std::size(ref) && static_cast<std::size_t>(secondIndex) < std::size(ref) )
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                serialize_index<Member>(first_index);
+                serialize_index<Member>(second_index);
+                if ( first_index != second_index && static_cast<std::size_t>(first_index) < std::size(ref) && static_cast<std::size_t>(second_index) < std::size(ref) )
                 {
-                    std::swap(ref[static_cast<std::size_t>(firstIndex)], ref[static_cast<std::size_t>(secondIndex)]);
-                    if constexpr ( hasAttachedData<Pathway...>() )
-                        mirrorSwapTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(firstIndex), static_cast<std::size_t>(secondIndex));
+                    std::swap(ref[static_cast<std::size_t>(first_index)], ref[static_cast<std::size_t>(second_index)]);
+                    if constexpr ( has_attached_data<Pathway...>() )
+                        mirror_swap_to(get_attached_data<Pathway...>(), static_cast<std::size_t>(first_index), static_cast<std::size_t>(second_index));
 
-                    mirrorSwapToSelection(getSelections<Pathway...>(), static_cast<std::size_t>(firstIndex), static_cast<std::size_t>(secondIndex));
-                    if constexpr ( hasElementMovedOp<Route> )
+                    mirror_swap_to_selection(get_selections<Pathway...>(), static_cast<std::size_t>(first_index), static_cast<std::size_t>(second_index));
+                    if constexpr ( has_element_moved_op<Route> )
                     {
-                        notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(firstIndex), static_cast<std::size_t>(secondIndex));
-                        notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(secondIndex), static_cast<std::size_t>(firstIndex));
+                        notify_element_moved(user, Route{keys}, static_cast<std::size_t>(first_index), static_cast<std::size_t>(second_index));
+                        notify_element_moved(user, Route{keys}, static_cast<std::size_t>(second_index), static_cast<std::size_t>(first_index));
                     }
-                    if constexpr ( hasSelections<Pathway...>() && hasSelectionsChangedOp<Route> )
-                        notifySelectionsChanged(user, Route{keys});
+                    if constexpr ( has_selections<Pathway...>() && has_selections_changed_op<Route> )
+                        notify_selections_changed(user, Route{keys});
                 }
             });
         }
 
-        template <class ... Pathway, class MovedIndex, class Keys>
-        void moveUp(MovedIndex movedIndex, Keys & keys)
+        template <class ... Pathway, class Moved_index, class Keys>
+        void move_up(Moved_index moved_index, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::MoveUp));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::move_up));
+            serialize_pathway<Pathway...>(keys);
             
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
-                serializeIndex<Member>(movedIndex);
-                if ( movedIndex > 0 && static_cast<std::size_t>(movedIndex) < std::size(ref) )
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                serialize_index<Member>(moved_index);
+                if ( moved_index > 0 && static_cast<std::size_t>(moved_index) < std::size(ref) )
                 {
-                    std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex-1)]);
-                    if constexpr ( hasAttachedData<Pathway...>() )
-                        mirrorSwapTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(movedIndex)-1);
+                    std::swap(ref[static_cast<std::size_t>(moved_index)], ref[static_cast<std::size_t>(moved_index-1)]);
+                    if constexpr ( has_attached_data<Pathway...>() )
+                        mirror_swap_to(get_attached_data<Pathway...>(), static_cast<std::size_t>(moved_index), static_cast<std::size_t>(moved_index)-1);
 
-                    mirrorSwapToSelection(getSelections<Pathway...>(), static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(movedIndex)-1);
-                    if constexpr ( hasElementMovedOp<Route> )
+                    mirror_swap_to_selection(get_selections<Pathway...>(), static_cast<std::size_t>(moved_index), static_cast<std::size_t>(moved_index)-1);
+                    if constexpr ( has_element_moved_op<Route> )
                     {
-                        notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(movedIndex)-1);
-                        notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(movedIndex)-1, static_cast<std::size_t>(movedIndex));
+                        notify_element_moved(user, Route{keys}, static_cast<std::size_t>(moved_index), static_cast<std::size_t>(moved_index)-1);
+                        notify_element_moved(user, Route{keys}, static_cast<std::size_t>(moved_index)-1, static_cast<std::size_t>(moved_index));
                     }
-                    if constexpr ( hasSelections<Pathway...>() && hasSelectionsChangedOp<Route> )
-                        notifySelectionsChanged(user, Route{keys});
+                    if constexpr ( has_selections<Pathway...>() && has_selections_changed_op<Route> )
+                        notify_selections_changed(user, Route{keys});
                 }
             });
         }
 
-        template <class ... Pathway, class MovedIndexes, class Keys>
-        void moveUpN(MovedIndexes && movedIndexes, Keys & keys)
+        template <class ... Pathway, class Moved_indexes, class Keys>
+        void move_up_n(Moved_indexes && moved_indexes, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::MoveUpN));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::move_up_n));
+            serialize_pathway<Pathway...>(keys);
             
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
-                std::sort(movedIndexes.begin(), movedIndexes.end());
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                std::sort(moved_indexes.begin(), moved_indexes.end());
 
-                serializeIndex<Member>(std::size(movedIndexes));
-                for ( auto index : movedIndexes )
-                    serializeIndex<Member>(index);
+                serialize_index<Member>(std::size(moved_indexes));
+                for ( auto index : moved_indexes )
+                    serialize_index<Member>(index);
 
-                std::size_t nextAvailable = 0;
-                for ( auto movedIndex : movedIndexes )
+                std::size_t next_available = 0;
+                for ( auto moved_index : moved_indexes )
                 {
-                    if ( movedIndex > nextAvailable && static_cast<std::size_t>(movedIndex) < std::size(ref) )
+                    if ( moved_index > next_available && static_cast<std::size_t>(moved_index) < std::size(ref) )
                     {
-                        std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex-1)]);
-                        if constexpr ( hasAttachedData<Pathway...>() )
-                            mirrorSwapTo(getAttachedData<Pathway...>(), movedIndex, movedIndex-1);
+                        std::swap(ref[static_cast<std::size_t>(moved_index)], ref[static_cast<std::size_t>(moved_index-1)]);
+                        if constexpr ( has_attached_data<Pathway...>() )
+                            mirror_swap_to(get_attached_data<Pathway...>(), moved_index, moved_index-1);
 
-                        mirrorSwapToSelection(getSelections<Pathway...>(), movedIndex, movedIndex-1);
-                        nextAvailable = movedIndex;
+                        mirror_swap_to_selection(get_selections<Pathway...>(), moved_index, moved_index-1);
+                        next_available = moved_index;
                     }
-                    else if ( movedIndex == nextAvailable )
-                        ++nextAvailable;
+                    else if ( moved_index == next_available )
+                        ++next_available;
                 }
 
-                if constexpr ( hasElementMovedOp<Route> )
+                if constexpr ( has_element_moved_op<Route> )
                 {
-                    nextAvailable = 0;
-                    std::size_t blockSize = 1;
-                    for ( std::size_t i=0; i<std::size(movedIndexes); ++i )
+                    next_available = 0;
+                    std::size_t block_size = 1;
+                    for ( std::size_t i=0; i<std::size(moved_indexes); ++i )
                     {
-                        if ( movedIndexes[i] > nextAvailable && static_cast<std::size_t>(movedIndexes[i]) < std::size(ref) )
+                        if ( moved_indexes[i] > next_available && static_cast<std::size_t>(moved_indexes[i]) < std::size(ref) )
                         {
-                            if ( i+1 < std::size(movedIndexes) && movedIndexes[i]+1 == movedIndexes[i+1] )
-                                ++blockSize;
+                            if ( i+1 < std::size(moved_indexes) && moved_indexes[i]+1 == moved_indexes[i+1] )
+                                ++block_size;
                             else
                             {
-                                notifyElementMoved(user, Route{keys}, movedIndexes[i]-blockSize, movedIndexes[i]);
-                                blockSize = 1;
+                                notify_element_moved(user, Route{keys}, moved_indexes[i]-block_size, moved_indexes[i]);
+                                block_size = 1;
                             }
-                            notifyElementMoved(user, Route{keys}, movedIndexes[i], movedIndexes[i]-1);
+                            notify_element_moved(user, Route{keys}, moved_indexes[i], moved_indexes[i]-1);
                         }
-                        else if ( movedIndexes[i] == nextAvailable )
-                            ++nextAvailable;
+                        else if ( moved_indexes[i] == next_available )
+                            ++next_available;
                     }
                 }
-                if constexpr ( hasSelectionsChangedOp<Route> )
-                    notifySelectionsChanged(user, Route{keys});
+                if constexpr ( has_selections_changed_op<Route> )
+                    notify_selections_changed(user, Route{keys});
             });
         }
 
         template <class ... Pathway, class Keys>
-        void moveUpL(Keys & keys)
+        void move_up_l(Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::MoveUpL));
-            serializePathway<Pathway...>(keys); 
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::move_up_l));
+            serialize_pathway<Pathway...>(keys); 
             
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
-                auto & sel = getSelections<Pathway...>();
-                writeSelections(events, sel);
-                auto movedIndexes = sel; // Copy so it can be sorted without changing selections
-                std::sort(movedIndexes.begin(), movedIndexes.end());
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                auto & sel = get_selections<Pathway...>();
+                write_selections(events, sel);
+                auto moved_indexes = sel; // Copy so it can be sorted without changing selections
+                std::sort(moved_indexes.begin(), moved_indexes.end());
                 
-                std::size_t nextAvailable = 0;
-                for ( auto movedIndex : movedIndexes )
+                std::size_t next_available = 0;
+                for ( auto moved_index : moved_indexes )
                 {
-                    if ( movedIndex > nextAvailable && static_cast<std::size_t>(movedIndex) < std::size(ref) )
+                    if ( moved_index > next_available && static_cast<std::size_t>(moved_index) < std::size(ref) )
                     {
-                        std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex-1)]);
-                        if constexpr ( hasAttachedData<Pathway...>() )
-                            mirrorSwapTo(getAttachedData<Pathway...>(), movedIndex, movedIndex-1);
+                        std::swap(ref[static_cast<std::size_t>(moved_index)], ref[static_cast<std::size_t>(moved_index-1)]);
+                        if constexpr ( has_attached_data<Pathway...>() )
+                            mirror_swap_to(get_attached_data<Pathway...>(), moved_index, moved_index-1);
 
-                        mirrorSwapToSelection(getSelections<Pathway...>(), movedIndex, movedIndex-1);
-                        nextAvailable = movedIndex;
+                        mirror_swap_to_selection(get_selections<Pathway...>(), moved_index, moved_index-1);
+                        next_available = moved_index;
                     }
-                    else if ( movedIndex == nextAvailable )
-                        ++nextAvailable;
+                    else if ( moved_index == next_available )
+                        ++next_available;
                 }
 
-                if constexpr ( hasElementMovedOp<Route> )
+                if constexpr ( has_element_moved_op<Route> )
                 {
-                    nextAvailable = 0;
-                    std::size_t blockSize = 1;
-                    for ( std::size_t i=0; i<std::size(movedIndexes); ++i )
+                    next_available = 0;
+                    std::size_t block_size = 1;
+                    for ( std::size_t i=0; i<std::size(moved_indexes); ++i )
                     {
-                        if ( movedIndexes[i] > nextAvailable && static_cast<std::size_t>(movedIndexes[i]) < std::size(ref) )
+                        if ( moved_indexes[i] > next_available && static_cast<std::size_t>(moved_indexes[i]) < std::size(ref) )
                         {
-                            if ( i+1 < std::size(movedIndexes) && movedIndexes[i]+1 == movedIndexes[i+1] )
-                                ++blockSize;
+                            if ( i+1 < std::size(moved_indexes) && moved_indexes[i]+1 == moved_indexes[i+1] )
+                                ++block_size;
                             else
                             {
-                                notifyElementMoved(user, Route{keys}, movedIndexes[i]-blockSize, movedIndexes[i]);
-                                blockSize = 1;
+                                notify_element_moved(user, Route{keys}, moved_indexes[i]-block_size, moved_indexes[i]);
+                                block_size = 1;
                             }
-                            notifyElementMoved(user, Route{keys}, movedIndexes[i], movedIndexes[i]-1);
+                            notify_element_moved(user, Route{keys}, moved_indexes[i], moved_indexes[i]-1);
                         }
-                        else if ( movedIndexes[i] == nextAvailable )
-                            ++nextAvailable;
+                        else if ( moved_indexes[i] == next_available )
+                            ++next_available;
                     }
                 }
-                if constexpr ( hasSelectionsChangedOp<Route> )
-                    notifySelectionsChanged(user, Route{keys});
+                if constexpr ( has_selections_changed_op<Route> )
+                    notify_selections_changed(user, Route{keys});
             });
         }
 
-        template <class ... Pathway, class MovedIndex, class Keys>
-        void moveTop(MovedIndex movedIndex, Keys & keys)
+        template <class ... Pathway, class Moved_index, class Keys>
+        void move_top(Moved_index moved_index, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::MoveTop));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::move_top));
+            serialize_pathway<Pathway...>(keys);
             
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
-                serializeIndex<Member>(movedIndex);
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                serialize_index<Member>(moved_index);
                 auto size = std::size(ref);
-                if ( movedIndex > 0 && static_cast<std::size_t>(movedIndex) < size )
+                if ( moved_index > 0 && static_cast<std::size_t>(moved_index) < size )
                 {
-                    auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(movedIndex));
-                    std::rotate(ref.begin(), it, it+1); // [0, movedIndex) are moved forward 1... [movedIndex] is moved to 0
-                    if constexpr ( hasAttachedData<Pathway...>() )
-                        mirrorRotationTo(getAttachedData<Pathway...>(), 0, static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(movedIndex)+1);
+                    auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(moved_index));
+                    std::rotate(ref.begin(), it, it+1); // [0, moved_index) are moved forward 1... [moved_index] is moved to 0
+                    if constexpr ( has_attached_data<Pathway...>() )
+                        mirror_rotation_to(get_attached_data<Pathway...>(), 0, static_cast<std::size_t>(moved_index), static_cast<std::size_t>(moved_index)+1);
 
-                    mirrorRotationToSelection(getSelections<Pathway...>(), 0, static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(movedIndex)+1);
-                    if constexpr ( hasElementMovedOp<Route> )
+                    mirror_rotation_to_selection(get_selections<Pathway...>(), 0, static_cast<std::size_t>(moved_index), static_cast<std::size_t>(moved_index)+1);
+                    if constexpr ( has_element_moved_op<Route> )
                     {
-                        notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(movedIndex), 0);
-                        for ( std::size_t i=0; i<static_cast<std::size_t>(movedIndex); ++i )
-                            notifyElementMoved(user, Route{keys}, i, i+1);
+                        notify_element_moved(user, Route{keys}, static_cast<std::size_t>(moved_index), 0);
+                        for ( std::size_t i=0; i<static_cast<std::size_t>(moved_index); ++i )
+                            notify_element_moved(user, Route{keys}, i, i+1);
                     }
-                    if constexpr ( hasSelections<Pathway...>() && hasSelectionsChangedOp<Route> )
-                        notifySelectionsChanged(user, Route{keys});
+                    if constexpr ( has_selections<Pathway...>() && has_selections_changed_op<Route> )
+                        notify_selections_changed(user, Route{keys});
                 }
             });
         }
 
-        template <class ... Pathway, class MovedIndexes, class Keys>
-        void moveTopN(MovedIndexes && movedIndexes, Keys & keys)
+        template <class ... Pathway, class Moved_indexes, class Keys>
+        void move_top_n(Moved_indexes && moved_indexes, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::MoveTopN));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::move_top_n));
+            serialize_pathway<Pathway...>(keys);
             
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
-                std::sort(movedIndexes.begin(), movedIndexes.end()); // lowest to highest
-                serializeIndex<Member>(std::size(movedIndexes));
-                for ( auto i : movedIndexes )
-                    serializeIndex<Member>(i);
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                std::sort(moved_indexes.begin(), moved_indexes.end()); // lowest to highest
+                serialize_index<Member>(std::size(moved_indexes));
+                for ( auto i : moved_indexes )
+                    serialize_index<Member>(i);
 
-                writeSelections(events, getSelections<Pathway...>());
+                write_selections(events, get_selections<Pathway...>());
                 
                 std::size_t size = std::size(ref);
-                std::vector<std::size_t> trackedIndexes {};
-                if constexpr ( hasElementMovedOp<Route> )
+                std::vector<std::size_t> tracked_indexes {};
+                if constexpr ( has_element_moved_op<Route> )
                 {
-                    trackedIndexes.assign(size, 0);
-                    std::iota(trackedIndexes.begin(), trackedIndexes.end(), 0);
+                    tracked_indexes.assign(size, 0);
+                    std::iota(tracked_indexes.begin(), tracked_indexes.end(), 0);
                 }
 
-                std::ptrdiff_t insertionIndex = 0;
-                for ( auto i : movedIndexes )
+                std::ptrdiff_t insertion_index = 0;
+                for ( auto i : moved_indexes )
                 {
-                    if ( static_cast<std::ptrdiff_t>(i) > insertionIndex && static_cast<std::size_t>(i) < size )
+                    if ( static_cast<std::ptrdiff_t>(i) > insertion_index && static_cast<std::size_t>(i) < size )
                     {
                         auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
-                        std::rotate(std::next(ref.begin(), insertionIndex), it, it+1);
-                        if constexpr ( hasAttachedData<Pathway...>() )
-                            mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(insertionIndex), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1);
+                        std::rotate(std::next(ref.begin(), insertion_index), it, it+1);
+                        if constexpr ( has_attached_data<Pathway...>() )
+                            mirror_rotation_to(get_attached_data<Pathway...>(), static_cast<std::size_t>(insertion_index), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1);
 
-                        mirrorRotationToSelection(getSelections<Pathway...>(), static_cast<std::size_t>(insertionIndex), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1);
-                        if constexpr ( hasElementMovedOp<Route> )
-                            mirrorRotationTo(trackedIndexes, insertionIndex, i, i+1);
+                        mirror_rotation_to_selection(get_selections<Pathway...>(), static_cast<std::size_t>(insertion_index), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1);
+                        if constexpr ( has_element_moved_op<Route> )
+                            mirror_rotation_to(tracked_indexes, insertion_index, i, i+1);
                     }
-                    ++insertionIndex;
+                    ++insertion_index;
                 }
 
-                if constexpr ( hasElementMovedOp<Route> )
+                if constexpr ( has_element_moved_op<Route> )
                 {
                     for ( std::size_t i=0; i<size; ++i )
                     {
-                        if ( i != trackedIndexes[i] )
-                            notifyElementMoved(user, Route{keys}, trackedIndexes[i], i);
+                        if ( i != tracked_indexes[i] )
+                            notify_element_moved(user, Route{keys}, tracked_indexes[i], i);
                     }
                 }
-                if constexpr ( hasSelectionsChangedOp<Route> )
-                    notifySelectionsChanged(user, Route{keys});
+                if constexpr ( has_selections_changed_op<Route> )
+                    notify_selections_changed(user, Route{keys});
             });
         }
 
         template <class ... Pathway, class Keys>
-        void moveTopL(Keys & keys)
+        void move_top_l(Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::MoveTopL));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::move_top_l));
+            serialize_pathway<Pathway...>(keys);
             
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
-                auto & sel = getSelections<Pathway...>();
-                writeSelections(events, sel);
-                auto movedIndexes = sel; // Copy so it can be sorted without changing selections
-                std::sort(movedIndexes.begin(), movedIndexes.end());
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                auto & sel = get_selections<Pathway...>();
+                write_selections(events, sel);
+                auto moved_indexes = sel; // Copy so it can be sorted without changing selections
+                std::sort(moved_indexes.begin(), moved_indexes.end());
 
                 std::size_t size = std::size(ref);
-                std::vector<std::size_t> trackedIndexes {};
-                if constexpr ( hasElementMovedOp<Route> )
+                std::vector<std::size_t> tracked_indexes {};
+                if constexpr ( has_element_moved_op<Route> )
                 {
-                    trackedIndexes.assign(size, 0);
-                    std::iota(trackedIndexes.begin(), trackedIndexes.end(), 0);
+                    tracked_indexes.assign(size, 0);
+                    std::iota(tracked_indexes.begin(), tracked_indexes.end(), 0);
                 }
 
-                std::ptrdiff_t insertionIndex = 0;
-                for ( auto i : movedIndexes )
+                std::ptrdiff_t insertion_index = 0;
+                for ( auto i : moved_indexes )
                 {
-                    if ( static_cast<std::ptrdiff_t>(i) > insertionIndex && static_cast<std::size_t>(i) < size )
+                    if ( static_cast<std::ptrdiff_t>(i) > insertion_index && static_cast<std::size_t>(i) < size )
                     {
                         auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
-                        std::rotate(std::next(ref.begin(), insertionIndex), it, it+1);
-                        if constexpr ( hasAttachedData<Pathway...>() )
-                            mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(insertionIndex), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1);
+                        std::rotate(std::next(ref.begin(), insertion_index), it, it+1);
+                        if constexpr ( has_attached_data<Pathway...>() )
+                            mirror_rotation_to(get_attached_data<Pathway...>(), static_cast<std::size_t>(insertion_index), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1);
 
-                        mirrorRotationToSelection(getSelections<Pathway...>(), static_cast<std::size_t>(insertionIndex), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1);
-                        if constexpr ( hasElementMovedOp<Route> )
-                            mirrorRotationTo(trackedIndexes, insertionIndex, i, i+1);
+                        mirror_rotation_to_selection(get_selections<Pathway...>(), static_cast<std::size_t>(insertion_index), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1);
+                        if constexpr ( has_element_moved_op<Route> )
+                            mirror_rotation_to(tracked_indexes, insertion_index, i, i+1);
                     }
-                    ++insertionIndex;
+                    ++insertion_index;
                 }
 
-                if constexpr ( hasElementMovedOp<Route> )
+                if constexpr ( has_element_moved_op<Route> )
                 {
                     for ( std::size_t i=0; i<size; ++i )
                     {
-                        if ( i != trackedIndexes[i] )
-                            notifyElementMoved(user, Route{keys}, trackedIndexes[i], i);
+                        if ( i != tracked_indexes[i] )
+                            notify_element_moved(user, Route{keys}, tracked_indexes[i], i);
                     }
                 }
-                if constexpr ( hasSelectionsChangedOp<Route> )
-                    notifySelectionsChanged(user, Route{keys});
+                if constexpr ( has_selections_changed_op<Route> )
+                    notify_selections_changed(user, Route{keys});
             });
         }
 
-        template <class ... Pathway, class MovedIndex, class Keys>
-        void moveDown(MovedIndex movedIndex, Keys & keys)
+        template <class ... Pathway, class Moved_index, class Keys>
+        void move_down(Moved_index moved_index, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::MoveDown));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::move_down));
+            serialize_pathway<Pathway...>(keys);
             
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
-                serializeIndex<Member>(movedIndex);
-                if ( static_cast<std::size_t>(movedIndex)+1 < std::size(ref) )
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                serialize_index<Member>(moved_index);
+                if ( static_cast<std::size_t>(moved_index)+1 < std::size(ref) )
                 {
-                    std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex)+1]);
-                    if constexpr ( hasAttachedData<Pathway...>() )
-                        mirrorSwapTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(movedIndex)+1);
+                    std::swap(ref[static_cast<std::size_t>(moved_index)], ref[static_cast<std::size_t>(moved_index)+1]);
+                    if constexpr ( has_attached_data<Pathway...>() )
+                        mirror_swap_to(get_attached_data<Pathway...>(), static_cast<std::size_t>(moved_index), static_cast<std::size_t>(moved_index)+1);
 
-                    mirrorSwapToSelection(getSelections<Pathway...>(), static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(movedIndex)+1);
-                    if constexpr ( hasElementMovedOp<Route> )
+                    mirror_swap_to_selection(get_selections<Pathway...>(), static_cast<std::size_t>(moved_index), static_cast<std::size_t>(moved_index)+1);
+                    if constexpr ( has_element_moved_op<Route> )
                     {
-                        notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(movedIndex)+1);
-                        notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(movedIndex)+1, static_cast<std::size_t>(movedIndex));
+                        notify_element_moved(user, Route{keys}, static_cast<std::size_t>(moved_index), static_cast<std::size_t>(moved_index)+1);
+                        notify_element_moved(user, Route{keys}, static_cast<std::size_t>(moved_index)+1, static_cast<std::size_t>(moved_index));
                     }
-                    if constexpr ( hasSelections<Pathway...>() && hasSelectionsChangedOp<Route> )
-                        notifySelectionsChanged(user, Route{keys});
+                    if constexpr ( has_selections<Pathway...>() && has_selections_changed_op<Route> )
+                        notify_selections_changed(user, Route{keys});
                 }
             });
         }
 
-        template <class ... Pathway, class MovedIndexes, class Keys>
-        void moveDownN(MovedIndexes && movedIndexes, Keys & keys)
+        template <class ... Pathway, class Moved_indexes, class Keys>
+        void move_down_n(Moved_indexes && moved_indexes, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::MoveDownN));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::move_down_n));
+            serialize_pathway<Pathway...>(keys);
             
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
-                std::sort(movedIndexes.begin(), movedIndexes.end(), std::greater<RareTs::element_type_t<std::remove_cvref_t<MovedIndexes>>>{});
-                serializeIndex<Member>(std::size(movedIndexes));
-                for ( auto i : movedIndexes )
-                    serializeIndex<Member>(i);
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                std::sort(moved_indexes.begin(), moved_indexes.end(), std::greater<RareTs::element_type_t<std::remove_cvref_t<Moved_indexes>>>{});
+                serialize_index<Member>(std::size(moved_indexes));
+                for ( auto i : moved_indexes )
+                    serialize_index<Member>(i);
 
                 auto size = std::size(ref);
                 if ( size > 0 )
                 {
                     auto limit = size;
-                    for ( auto movedIndex : movedIndexes )
+                    for ( auto moved_index : moved_indexes )
                     {
-                        if ( static_cast<std::size_t>(movedIndex)+1 < limit )
+                        if ( static_cast<std::size_t>(moved_index)+1 < limit )
                         {
-                            std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex)+1]);
-                            if constexpr ( hasAttachedData<Pathway...>() )
-                                mirrorSwapTo(getAttachedData<Pathway...>(), movedIndex, movedIndex+1);
+                            std::swap(ref[static_cast<std::size_t>(moved_index)], ref[static_cast<std::size_t>(moved_index)+1]);
+                            if constexpr ( has_attached_data<Pathway...>() )
+                                mirror_swap_to(get_attached_data<Pathway...>(), moved_index, moved_index+1);
 
-                            mirrorSwapToSelection(getSelections<Pathway...>(), movedIndex, movedIndex+1);
-                            limit = movedIndex+1;
+                            mirror_swap_to_selection(get_selections<Pathway...>(), moved_index, moved_index+1);
+                            limit = moved_index+1;
                         }
                         else if ( limit > 0 )
                             --limit;
                     }
 
-                    if constexpr ( hasElementMovedOp<Route> )
+                    if constexpr ( has_element_moved_op<Route> )
                     {
                         limit = size;
-                        std::size_t count = std::size(movedIndexes);
-                        std::size_t blockSize = 1;
+                        std::size_t count = std::size(moved_indexes);
+                        std::size_t block_size = 1;
                         for ( std::size_t i=0; i<count; ++i )
                         {
-                            if ( static_cast<std::size_t>(movedIndexes[i])+1 < limit )
+                            if ( static_cast<std::size_t>(moved_indexes[i])+1 < limit )
                             {
-                                if ( i+1 < count && movedIndexes[i]-1 == movedIndexes[i+1] )
-                                    ++blockSize;
+                                if ( i+1 < count && moved_indexes[i]-1 == moved_indexes[i+1] )
+                                    ++block_size;
                                 else
                                 {
-                                    notifyElementMoved(user, Route{keys}, movedIndexes[i]+blockSize, movedIndexes[i]);
-                                    blockSize = 1;
+                                    notify_element_moved(user, Route{keys}, moved_indexes[i]+block_size, moved_indexes[i]);
+                                    block_size = 1;
                                 }
-                                notifyElementMoved(user, Route{keys}, movedIndexes[i], movedIndexes[i]+1);
-                                limit = movedIndexes[i]+1;
+                                notify_element_moved(user, Route{keys}, moved_indexes[i], moved_indexes[i]+1);
+                                limit = moved_indexes[i]+1;
                             }
                             else if ( limit > 0 )
                                 --limit;
                         }
                     }
-                    if constexpr ( hasSelectionsChangedOp<Route> )
-                        notifySelectionsChanged(user, Route{keys});
+                    if constexpr ( has_selections_changed_op<Route> )
+                        notify_selections_changed(user, Route{keys});
                 }
             });
         }
 
         template <class ... Pathway, class Keys>
-        void moveDownL(Keys & keys)
+        void move_down_l(Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::MoveDownL));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::move_down_l));
+            serialize_pathway<Pathway...>(keys);
             
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
                 using index_type = index_type_t<default_index_type, Member>;
-                auto & sel = getSelections<Pathway...>();
-                writeSelections(events, sel);
-                auto movedIndexes = sel; // Copy so it can be sorted without changing selections
-                std::sort(movedIndexes.begin(), movedIndexes.end(), std::greater<index_type>{});
+                auto & sel = get_selections<Pathway...>();
+                write_selections(events, sel);
+                auto moved_indexes = sel; // Copy so it can be sorted without changing selections
+                std::sort(moved_indexes.begin(), moved_indexes.end(), std::greater<index_type>{});
 
                 auto size = std::size(ref);
                 if ( size > 0 )
                 {
                     auto limit = size;
-                    for ( auto movedIndex : movedIndexes )
+                    for ( auto moved_index : moved_indexes )
                     {
-                        if ( static_cast<std::size_t>(movedIndex)+1 < limit )
+                        if ( static_cast<std::size_t>(moved_index)+1 < limit )
                         {
-                            std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex)+1]);
-                            if constexpr ( hasAttachedData<Pathway...>() )
-                                mirrorSwapTo(getAttachedData<Pathway...>(), movedIndex, movedIndex+1);
+                            std::swap(ref[static_cast<std::size_t>(moved_index)], ref[static_cast<std::size_t>(moved_index)+1]);
+                            if constexpr ( has_attached_data<Pathway...>() )
+                                mirror_swap_to(get_attached_data<Pathway...>(), moved_index, moved_index+1);
 
-                            mirrorSwapToSelection(getSelections<Pathway...>(), movedIndex, movedIndex+1);
+                            mirror_swap_to_selection(get_selections<Pathway...>(), moved_index, moved_index+1);
                         }
                         else if ( limit > 0 )
                             --limit;
                     }
 
-                    if constexpr ( hasElementMovedOp<Route> )
+                    if constexpr ( has_element_moved_op<Route> )
                     {
                         limit = size;
-                        std::size_t count = std::size(movedIndexes);
-                        std::size_t blockSize = 1;
+                        std::size_t count = std::size(moved_indexes);
+                        std::size_t block_size = 1;
                         for ( std::size_t i=0; i<count; ++i )
                         {
-                            if ( static_cast<std::size_t>(movedIndexes[i])+1 < limit )
+                            if ( static_cast<std::size_t>(moved_indexes[i])+1 < limit )
                             {
-                                if ( i+1 < count && movedIndexes[i]-1 == movedIndexes[i+1] )
-                                    ++blockSize;
+                                if ( i+1 < count && moved_indexes[i]-1 == moved_indexes[i+1] )
+                                    ++block_size;
                                 else
                                 {
-                                    notifyElementMoved(user, Route{keys}, movedIndexes[i]+blockSize, movedIndexes[i]);
-                                    blockSize = 1;
+                                    notify_element_moved(user, Route{keys}, moved_indexes[i]+block_size, moved_indexes[i]);
+                                    block_size = 1;
                                 }
-                                notifyElementMoved(user, Route{keys}, movedIndexes[i], movedIndexes[i]+1);
-                                limit = movedIndexes[i]+1;
+                                notify_element_moved(user, Route{keys}, moved_indexes[i], moved_indexes[i]+1);
+                                limit = moved_indexes[i]+1;
                             }
                             else if ( limit > 0 )
                                 --limit;
                         }
                     }
-                    if constexpr ( hasSelectionsChangedOp<Route> )
-                        notifySelectionsChanged(user, Route{keys});
+                    if constexpr ( has_selections_changed_op<Route> )
+                        notify_selections_changed(user, Route{keys});
                 }
 
             });
         }
 
-        template <class ... Pathway, class MovedIndex, class Keys>
-        void moveBottom(MovedIndex movedIndex, Keys & keys)
+        template <class ... Pathway, class Moved_index, class Keys>
+        void move_bottom(Moved_index moved_index, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::MoveBottom));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::move_bottom));
+            serialize_pathway<Pathway...>(keys);
             
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
-                serializeIndex<Member>(movedIndex);
-                if ( movedIndex >= 0 && static_cast<std::size_t>(movedIndex)+1 < std::size(ref) )
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                serialize_index<Member>(moved_index);
+                if ( moved_index >= 0 && static_cast<std::size_t>(moved_index)+1 < std::size(ref) )
                 {
-                    auto it = std::next(ref.begin(), movedIndex);
+                    auto it = std::next(ref.begin(), moved_index);
                     std::rotate(it, it+1, ref.end());
-                    if constexpr ( hasAttachedData<Pathway...>() )
-                        mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(movedIndex)+1, std::size(ref));
+                    if constexpr ( has_attached_data<Pathway...>() )
+                        mirror_rotation_to(get_attached_data<Pathway...>(), static_cast<std::size_t>(moved_index), static_cast<std::size_t>(moved_index)+1, std::size(ref));
 
-                    mirrorRotationToSelection(getSelections<Pathway...>(), static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(movedIndex)+1, std::size(ref));
-                    if constexpr ( hasElementMovedOp<Route> )
+                    mirror_rotation_to_selection(get_selections<Pathway...>(), static_cast<std::size_t>(moved_index), static_cast<std::size_t>(moved_index)+1, std::size(ref));
+                    if constexpr ( has_element_moved_op<Route> )
                     {
-                        notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(movedIndex), std::size(ref)-1);
-                        for ( std::size_t i=static_cast<std::size_t>(movedIndex)+1; i<std::size(ref); ++i )
-                            notifyElementMoved(user, Route{keys}, i, i-1);
+                        notify_element_moved(user, Route{keys}, static_cast<std::size_t>(moved_index), std::size(ref)-1);
+                        for ( std::size_t i=static_cast<std::size_t>(moved_index)+1; i<std::size(ref); ++i )
+                            notify_element_moved(user, Route{keys}, i, i-1);
                     }
-                    if constexpr ( hasSelections<Pathway...>() && hasSelectionsChangedOp<Route> )
-                        notifySelectionsChanged(user, Route{keys});
+                    if constexpr ( has_selections<Pathway...>() && has_selections_changed_op<Route> )
+                        notify_selections_changed(user, Route{keys});
                 }
             });
         }
 
-        template <class ... Pathway, class MovedIndexes, class Keys>
-        void moveBottomN(MovedIndexes && movedIndexes, Keys & keys)
+        template <class ... Pathway, class Moved_indexes, class Keys>
+        void move_bottom_n(Moved_indexes && moved_indexes, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::MoveBottomN));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::move_bottom_n));
+            serialize_pathway<Pathway...>(keys);
             
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
-                std::sort(movedIndexes.begin(), movedIndexes.end(), std::greater<RareTs::element_type_t<std::remove_cvref_t<MovedIndexes>>>{});
-                serializeIndex<Member>(std::size(movedIndexes));
-                for ( auto i : movedIndexes )
-                    serializeIndex<Member>(i);
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                std::sort(moved_indexes.begin(), moved_indexes.end(), std::greater<RareTs::element_type_t<std::remove_cvref_t<Moved_indexes>>>{});
+                serialize_index<Member>(std::size(moved_indexes));
+                for ( auto i : moved_indexes )
+                    serialize_index<Member>(i);
                 
-                writeSelections(events, getSelections<Pathway...>());
+                write_selections(events, get_selections<Pathway...>());
 
                 std::size_t size = std::size(ref);
-                std::vector<std::size_t> trackedIndexes {};
-                if constexpr ( hasElementMovedOp<Route> )
+                std::vector<std::size_t> tracked_indexes {};
+                if constexpr ( has_element_moved_op<Route> )
                 {
-                    trackedIndexes.assign(size, 0);
-                    std::iota(trackedIndexes.begin(), trackedIndexes.end(), 0);
+                    tracked_indexes.assign(size, 0);
+                    std::iota(tracked_indexes.begin(), tracked_indexes.end(), 0);
                 }
 
-                std::ptrdiff_t insertionIndex = static_cast<std::ptrdiff_t>(size);
-                for ( auto i : movedIndexes )
+                std::ptrdiff_t insertion_index = static_cast<std::ptrdiff_t>(size);
+                for ( auto i : moved_indexes )
                 {
-                    if ( i >= 0 && static_cast<std::ptrdiff_t>(i)+1 < insertionIndex )
+                    if ( i >= 0 && static_cast<std::ptrdiff_t>(i)+1 < insertion_index )
                     {
                         auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
-                        std::rotate(it, it+1, std::next(ref.begin(), insertionIndex));
-                        if constexpr ( hasAttachedData<Pathway...>() )
-                            mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
+                        std::rotate(it, it+1, std::next(ref.begin(), insertion_index));
+                        if constexpr ( has_attached_data<Pathway...>() )
+                            mirror_rotation_to(get_attached_data<Pathway...>(), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertion_index));
 
-                        mirrorRotationToSelection(getSelections<Pathway...>(), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
-                        if constexpr ( hasElementMovedOp<Route> )
-                            mirrorRotationTo(trackedIndexes, i, i+1, insertionIndex);
+                        mirror_rotation_to_selection(get_selections<Pathway...>(), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertion_index));
+                        if constexpr ( has_element_moved_op<Route> )
+                            mirror_rotation_to(tracked_indexes, i, i+1, insertion_index);
                     }
-                    --insertionIndex;
+                    --insertion_index;
                 }
 
-                if constexpr ( hasElementMovedOp<Route> )
+                if constexpr ( has_element_moved_op<Route> )
                 {
                     for ( std::size_t i=0; i<size; ++i )
                     {
-                        if ( i != trackedIndexes[i] )
-                            notifyElementMoved(user, Route{keys}, trackedIndexes[i], i);
+                        if ( i != tracked_indexes[i] )
+                            notify_element_moved(user, Route{keys}, tracked_indexes[i], i);
                     }
                 }
-                if constexpr ( hasSelectionsChangedOp<Route> )
-                    notifySelectionsChanged(user, Route{keys});
+                if constexpr ( has_selections_changed_op<Route> )
+                    notify_selections_changed(user, Route{keys});
             });
         }
 
         template <class ... Pathway, class Keys>
-        void moveBottomL(Keys & keys)
+        void move_bottom_l(Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::MoveBottomL));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::move_bottom_l));
+            serialize_pathway<Pathway...>(keys);
             
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
                 using index_type = index_type_t<default_index_type, Member>;
-                auto & sel = getSelections<Pathway...>();
-                writeSelections(events, sel);
-                auto movedIndexes = sel; // Copy so it can be sorted without changing selections
-                std::sort(movedIndexes.begin(), movedIndexes.end(), std::greater<index_type>{});
+                auto & sel = get_selections<Pathway...>();
+                write_selections(events, sel);
+                auto moved_indexes = sel; // Copy so it can be sorted without changing selections
+                std::sort(moved_indexes.begin(), moved_indexes.end(), std::greater<index_type>{});
 
                 std::size_t size = std::size(ref);
-                std::vector<std::size_t> trackedIndexes {};
-                if constexpr ( hasElementMovedOp<Route> )
+                std::vector<std::size_t> tracked_indexes {};
+                if constexpr ( has_element_moved_op<Route> )
                 {
-                    trackedIndexes.assign(size, 0);
-                    std::iota(trackedIndexes.begin(), trackedIndexes.end(), 0);
+                    tracked_indexes.assign(size, 0);
+                    std::iota(tracked_indexes.begin(), tracked_indexes.end(), 0);
                 }
 
-                std::ptrdiff_t insertionIndex = static_cast<std::ptrdiff_t>(size);
-                for ( auto i : movedIndexes )
+                std::ptrdiff_t insertion_index = static_cast<std::ptrdiff_t>(size);
+                for ( auto i : moved_indexes )
                 {
-                    if ( i >= 0 && static_cast<std::ptrdiff_t>(i)+1 < insertionIndex )
+                    if ( i >= 0 && static_cast<std::ptrdiff_t>(i)+1 < insertion_index )
                     {
                         auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
-                        std::rotate(it, it+1, std::next(ref.begin(), insertionIndex));
-                        if constexpr ( hasAttachedData<Pathway...>() )
-                            mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
+                        std::rotate(it, it+1, std::next(ref.begin(), insertion_index));
+                        if constexpr ( has_attached_data<Pathway...>() )
+                            mirror_rotation_to(get_attached_data<Pathway...>(), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertion_index));
 
-                        mirrorRotationToSelection(getSelections<Pathway...>(), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
-                        if constexpr ( hasElementMovedOp<Route> )
-                            mirrorRotationTo(trackedIndexes, i, i+1, insertionIndex);
+                        mirror_rotation_to_selection(get_selections<Pathway...>(), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertion_index));
+                        if constexpr ( has_element_moved_op<Route> )
+                            mirror_rotation_to(tracked_indexes, i, i+1, insertion_index);
                     }
-                    --insertionIndex;
+                    --insertion_index;
                 }
 
-                if constexpr ( hasElementMovedOp<Route> )
+                if constexpr ( has_element_moved_op<Route> )
                 {
                     for ( std::size_t i=0; i<size; ++i )
                     {
-                        if ( i != trackedIndexes[i] )
-                            notifyElementMoved(user, Route{keys}, trackedIndexes[i], i);
+                        if ( i != tracked_indexes[i] )
+                            notify_element_moved(user, Route{keys}, tracked_indexes[i], i);
                     }
                 }
-                if constexpr ( hasSelectionsChangedOp<Route> )
-                    notifySelectionsChanged(user, Route{keys});
+                if constexpr ( has_selections_changed_op<Route> )
+                    notify_selections_changed(user, Route{keys});
             });
         }
 
-        template <class ... Pathway, class MovedIndex, class IndexMovedTo, class Keys>
-        void moveTo(MovedIndex movedIndex, IndexMovedTo indexMovedTo, Keys & keys)
+        template <class ... Pathway, class Moved_index, class Index_moved_to, class Keys>
+        void move_to(Moved_index moved_index, Index_moved_to index_moved_to, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::MoveTo));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::move_to));
+            serialize_pathway<Pathway...>(keys);
             
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
-                serializeIndex<Member>(indexMovedTo);
-                serializeIndex<Member>(movedIndex);
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                serialize_index<Member>(index_moved_to);
+                serialize_index<Member>(moved_index);
 
-                auto it = std::next(ref.begin(), movedIndex);
-                if ( static_cast<std::ptrdiff_t>(indexMovedTo) < static_cast<std::ptrdiff_t>(movedIndex) && indexMovedTo >= 0 && static_cast<std::size_t>(movedIndex) < std::size(ref) )
+                auto it = std::next(ref.begin(), moved_index);
+                if ( static_cast<std::ptrdiff_t>(index_moved_to) < static_cast<std::ptrdiff_t>(moved_index) && index_moved_to >= 0 && static_cast<std::size_t>(moved_index) < std::size(ref) )
                 {
-                    std::rotate(std::next(ref.begin(), indexMovedTo), it, it+1);
-                    if constexpr ( hasAttachedData<Pathway...>() )
-                        mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(indexMovedTo), static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(movedIndex)+1);
+                    std::rotate(std::next(ref.begin(), index_moved_to), it, it+1);
+                    if constexpr ( has_attached_data<Pathway...>() )
+                        mirror_rotation_to(get_attached_data<Pathway...>(), static_cast<std::size_t>(index_moved_to), static_cast<std::size_t>(moved_index), static_cast<std::size_t>(moved_index)+1);
 
-                    mirrorRotationToSelection(getSelections<Pathway...>(), static_cast<std::size_t>(indexMovedTo), static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(movedIndex)+1);
-                    if constexpr ( hasElementMovedOp<Route> )
+                    mirror_rotation_to_selection(get_selections<Pathway...>(), static_cast<std::size_t>(index_moved_to), static_cast<std::size_t>(moved_index), static_cast<std::size_t>(moved_index)+1);
+                    if constexpr ( has_element_moved_op<Route> )
                     {
-                        notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(indexMovedTo));
-                        for ( std::size_t i=static_cast<std::size_t>(indexMovedTo); i<static_cast<std::size_t>(movedIndex); ++i )
-                            notifyElementMoved(user, Route{keys}, i, i+1);
+                        notify_element_moved(user, Route{keys}, static_cast<std::size_t>(moved_index), static_cast<std::size_t>(index_moved_to));
+                        for ( std::size_t i=static_cast<std::size_t>(index_moved_to); i<static_cast<std::size_t>(moved_index); ++i )
+                            notify_element_moved(user, Route{keys}, i, i+1);
                     }
-                    if constexpr ( hasSelections<Pathway...>() && hasSelectionsChangedOp<Route> )
-                        notifySelectionsChanged(user, Route{keys});
+                    if constexpr ( has_selections<Pathway...>() && has_selections_changed_op<Route> )
+                        notify_selections_changed(user, Route{keys});
                 }
-                else if ( static_cast<std::ptrdiff_t>(indexMovedTo) > static_cast<std::ptrdiff_t>(movedIndex) && movedIndex >= 0 && static_cast<std::size_t>(indexMovedTo) < std::size(ref) )
+                else if ( static_cast<std::ptrdiff_t>(index_moved_to) > static_cast<std::ptrdiff_t>(moved_index) && moved_index >= 0 && static_cast<std::size_t>(index_moved_to) < std::size(ref) )
                 {
-                    std::rotate(it, it+1, std::next(ref.begin(), indexMovedTo)+1);
-                    if constexpr ( hasAttachedData<Pathway...>() )
-                        mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(movedIndex)+1, static_cast<std::size_t>(indexMovedTo)+1);
+                    std::rotate(it, it+1, std::next(ref.begin(), index_moved_to)+1);
+                    if constexpr ( has_attached_data<Pathway...>() )
+                        mirror_rotation_to(get_attached_data<Pathway...>(), static_cast<std::size_t>(moved_index), static_cast<std::size_t>(moved_index)+1, static_cast<std::size_t>(index_moved_to)+1);
 
-                    mirrorRotationToSelection(getSelections<Pathway...>(), static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(movedIndex)+1, static_cast<std::size_t>(indexMovedTo)+1);
-                    if constexpr ( hasElementMovedOp<Route> )
+                    mirror_rotation_to_selection(get_selections<Pathway...>(), static_cast<std::size_t>(moved_index), static_cast<std::size_t>(moved_index)+1, static_cast<std::size_t>(index_moved_to)+1);
+                    if constexpr ( has_element_moved_op<Route> )
                     {
-                        notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(indexMovedTo));
-                        for ( std::size_t i=static_cast<std::size_t>(movedIndex)+1; i<static_cast<std::size_t>(indexMovedTo)+1; ++i )
-                            notifyElementMoved(user, Route{keys}, i, i-1);
+                        notify_element_moved(user, Route{keys}, static_cast<std::size_t>(moved_index), static_cast<std::size_t>(index_moved_to));
+                        for ( std::size_t i=static_cast<std::size_t>(moved_index)+1; i<static_cast<std::size_t>(index_moved_to)+1; ++i )
+                            notify_element_moved(user, Route{keys}, i, i-1);
                     }
-                    if constexpr ( hasSelections<Pathway...>() && hasSelectionsChangedOp<Route> )
-                        notifySelectionsChanged(user, Route{keys});
+                    if constexpr ( has_selections<Pathway...>() && has_selections_changed_op<Route> )
+                        notify_selections_changed(user, Route{keys});
                 }
             });
         }
 
-        template <class ... Pathway, class MovedIndexes, class IndexMovedTo, class Keys>
-        void moveToN(MovedIndexes && movedIndexes, IndexMovedTo indexMovedTo, Keys & keys)
+        template <class ... Pathway, class Moved_indexes, class Index_moved_to, class Keys>
+        void move_to_n(Moved_indexes && moved_indexes, Index_moved_to index_moved_to, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::MoveToN));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::move_to_n));
+            serialize_pathway<Pathway...>(keys);
             
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
-                std::sort(movedIndexes.begin(), movedIndexes.end());
-                serializeIndex<Member>(indexMovedTo);
-                serializeIndex<Member>(std::size(movedIndexes));
-                for ( auto i : movedIndexes )
-                    serializeIndex<Member>(i);
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                std::sort(moved_indexes.begin(), moved_indexes.end());
+                serialize_index<Member>(index_moved_to);
+                serialize_index<Member>(std::size(moved_indexes));
+                for ( auto i : moved_indexes )
+                    serialize_index<Member>(i);
 
-                auto & sel = getSelections<Pathway...>();
-                writeSelections(events, sel);
+                auto & sel = get_selections<Pathway...>();
+                write_selections(events, sel);
 
                 auto size = std::size(ref);
-                if ( indexMovedTo < 0 )
-                    indexMovedTo = 0;
-                else if ( static_cast<std::size_t>(indexMovedTo) >= size && size > 0 )
-                    indexMovedTo = static_cast<IndexMovedTo>(size-1);
+                if ( index_moved_to < 0 )
+                    index_moved_to = 0;
+                else if ( static_cast<std::size_t>(index_moved_to) >= size && size > 0 )
+                    index_moved_to = static_cast<Index_moved_to>(size-1);
 
-                if ( !std::empty(movedIndexes) && indexMovedTo >= 0 )
+                if ( !std::empty(moved_indexes) && index_moved_to >= 0 )
                 {
-                    std::size_t countValidIndexes = 0;
-                    for ( auto movedIndex : movedIndexes )
+                    std::size_t count_valid_indexes = 0;
+                    for ( auto moved_index : moved_indexes )
                     {
-                        if ( movedIndex >= 0 && static_cast<std::size_t>(movedIndex) < std::size(ref) )
-                            ++countValidIndexes;
+                        if ( moved_index >= 0 && static_cast<std::size_t>(moved_index) < std::size(ref) )
+                            ++count_valid_indexes;
                     }
-                    if ( countValidIndexes == 0 )
+                    if ( count_valid_indexes == 0 )
                         return;
 
-                    std::vector<std::size_t> trackedIndexes {};
-                    if constexpr ( hasElementMovedOp<Route> )
+                    std::vector<std::size_t> tracked_indexes {};
+                    if constexpr ( has_element_moved_op<Route> )
                     {
-                        trackedIndexes.assign(size, 0);
-                        std::iota(trackedIndexes.begin(), trackedIndexes.end(), 0);
+                        tracked_indexes.assign(size, 0);
+                        std::iota(tracked_indexes.begin(), tracked_indexes.end(), 0);
                     }
 
-                    if ( static_cast<std::size_t>(indexMovedTo) + countValidIndexes >= size ) // Operation collapses to moveToEnd
+                    if ( static_cast<std::size_t>(index_moved_to) + count_valid_indexes >= size ) // Operation collapses to move_to_end
                     {
-                        std::ptrdiff_t insertionIndex = static_cast<std::ptrdiff_t>(size);
-                        for ( auto mit = movedIndexes.rbegin(); mit != movedIndexes.rend(); ++mit ) // movedIndexes sorted least to greatest, so reverse read
+                        std::ptrdiff_t insertion_index = static_cast<std::ptrdiff_t>(size);
+                        for ( auto mit = moved_indexes.rbegin(); mit != moved_indexes.rend(); ++mit ) // moved_indexes sorted least to greatest, so reverse read
                         {
                             auto i = *mit;
-                            if ( static_cast<std::ptrdiff_t>(i) >= 0 && static_cast<std::ptrdiff_t>(i)+1 < insertionIndex )
+                            if ( static_cast<std::ptrdiff_t>(i) >= 0 && static_cast<std::ptrdiff_t>(i)+1 < insertion_index )
                             {
                                 auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
-                                std::rotate(it, it+1, std::next(ref.begin(), insertionIndex));
-                                if constexpr ( hasAttachedData<Pathway...>() )
-                                    mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
+                                std::rotate(it, it+1, std::next(ref.begin(), insertion_index));
+                                if constexpr ( has_attached_data<Pathway...>() )
+                                    mirror_rotation_to(get_attached_data<Pathway...>(), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertion_index));
 
-                                mirrorRotationToSelection(sel, static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
-                                if constexpr ( hasElementMovedOp<Route> )
-                                    mirrorRotationTo(trackedIndexes, static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
+                                mirror_rotation_to_selection(sel, static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertion_index));
+                                if constexpr ( has_element_moved_op<Route> )
+                                    mirror_rotation_to(tracked_indexes, static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertion_index));
                             }
-                            --insertionIndex;
+                            --insertion_index;
                         }
                     }
-                    else // Non-collapsed moveTo operation
+                    else // Non-collapsed move_to operation
                     {
-                        std::size_t minValidIndex = 0;
-                        std::size_t maxValidIndex = 0;
-                        for ( std::size_t i=0; i<std::size(movedIndexes); ++i )
+                        std::size_t min_valid_index = 0;
+                        std::size_t max_valid_index = 0;
+                        for ( std::size_t i=0; i<std::size(moved_indexes); ++i )
                         {
-                            if ( static_cast<std::ptrdiff_t>(movedIndexes[i]) >= 0 )
+                            if ( static_cast<std::ptrdiff_t>(moved_indexes[i]) >= 0 )
                             {
-                                minValidIndex = static_cast<std::size_t>(movedIndexes[i]);
+                                min_valid_index = static_cast<std::size_t>(moved_indexes[i]);
                                 break;
                             }
                         }
-                        for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(std::size(movedIndexes))-1; i>=0; --i )
+                        for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(std::size(moved_indexes))-1; i>=0; --i )
                         {
-                            if ( static_cast<std::ptrdiff_t>(movedIndexes[static_cast<std::size_t>(i)]) < static_cast<std::ptrdiff_t>(size) )
+                            if ( static_cast<std::ptrdiff_t>(moved_indexes[static_cast<std::size_t>(i)]) < static_cast<std::ptrdiff_t>(size) )
                             {
-                                maxValidIndex = static_cast<std::size_t>(movedIndexes[static_cast<std::size_t>(i)]);
+                                max_valid_index = static_cast<std::size_t>(moved_indexes[static_cast<std::size_t>(i)]);
                                 break;
                             }
                         }
 
-                        std::size_t leftChunkSize = minValidIndex < static_cast<std::size_t>(indexMovedTo) ? 1 : 0;
-                        std::size_t rightChunkSize = maxValidIndex >= static_cast<std::size_t>(indexMovedTo) ? 1 : 0;
-                        std::size_t leftChunkFirst = minValidIndex;
-                        std::size_t rightChunkFirst = maxValidIndex;
+                        std::size_t left_chunk_size = min_valid_index < static_cast<std::size_t>(index_moved_to) ? 1 : 0;
+                        std::size_t right_chunk_size = max_valid_index >= static_cast<std::size_t>(index_moved_to) ? 1 : 0;
+                        std::size_t left_chunk_first = min_valid_index;
+                        std::size_t right_chunk_first = max_valid_index;
 
-                        for ( std::size_t i=0; i+1<std::size(movedIndexes) && static_cast<std::size_t>(movedIndexes[i+1]) < static_cast<std::size_t>(indexMovedTo); ++i )
+                        for ( std::size_t i=0; i+1<std::size(moved_indexes) && static_cast<std::size_t>(moved_indexes[i+1]) < static_cast<std::size_t>(index_moved_to); ++i )
                         {
-                            // rotate left chunk together with element[movedIndexes[i+1]]
-                            auto leftStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
-                            auto leftEnd = std::next(leftStart, static_cast<std::ptrdiff_t>(leftChunkSize));
-                            std::rotate(leftStart, leftEnd, std::next(ref.begin(), static_cast<std::ptrdiff_t>(movedIndexes[i+1])));
-                            if constexpr ( hasAttachedData<Pathway...>() )
-                                mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]);
+                            // rotate left chunk together with element[moved_indexes[i+1]]
+                            auto left_start = std::next(ref.begin(), static_cast<std::ptrdiff_t>(left_chunk_first));
+                            auto left_end = std::next(left_start, static_cast<std::ptrdiff_t>(left_chunk_size));
+                            std::rotate(left_start, left_end, std::next(ref.begin(), static_cast<std::ptrdiff_t>(moved_indexes[i+1])));
+                            if constexpr ( has_attached_data<Pathway...>() )
+                                mirror_rotation_to(get_attached_data<Pathway...>(), left_chunk_first, left_chunk_first+left_chunk_size, moved_indexes[i+1]);
 
-                            mirrorRotationToSelection(sel, leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]);
-                            if constexpr ( hasElementMovedOp<Route> )
-                                mirrorRotationTo(trackedIndexes, leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]);
-                            leftChunkFirst = static_cast<std::size_t>(movedIndexes[i+1])-leftChunkSize;
-                            ++leftChunkSize;
+                            mirror_rotation_to_selection(sel, left_chunk_first, left_chunk_first+left_chunk_size, moved_indexes[i+1]);
+                            if constexpr ( has_element_moved_op<Route> )
+                                mirror_rotation_to(tracked_indexes, left_chunk_first, left_chunk_first+left_chunk_size, moved_indexes[i+1]);
+                            left_chunk_first = static_cast<std::size_t>(moved_indexes[i+1])-left_chunk_size;
+                            ++left_chunk_size;
                         }
-                        for ( std::size_t i=std::size(movedIndexes)-1; i>0 && static_cast<std::size_t>(movedIndexes[i-1]) >= static_cast<std::size_t>(indexMovedTo); --i )
+                        for ( std::size_t i=std::size(moved_indexes)-1; i>0 && static_cast<std::size_t>(moved_indexes[i-1]) >= static_cast<std::size_t>(index_moved_to); --i )
                         {
-                            // rotate right chunk together with element[movedIndexes[i-1]]
-                            auto rightStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(rightChunkFirst));
-                            auto rightEnd = std::next(rightStart, static_cast<std::ptrdiff_t>(rightChunkSize));
-                            std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(movedIndexes[i-1])+1), rightStart, rightEnd);
-                            if constexpr ( hasAttachedData<Pathway...>() )
-                                mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(movedIndexes[i-1])+1, rightChunkFirst, rightChunkFirst+rightChunkSize);
+                            // rotate right chunk together with element[moved_indexes[i-1]]
+                            auto right_start = std::next(ref.begin(), static_cast<std::ptrdiff_t>(right_chunk_first));
+                            auto right_end = std::next(right_start, static_cast<std::ptrdiff_t>(right_chunk_size));
+                            std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(moved_indexes[i-1])+1), right_start, right_end);
+                            if constexpr ( has_attached_data<Pathway...>() )
+                                mirror_rotation_to(get_attached_data<Pathway...>(), static_cast<std::size_t>(moved_indexes[i-1])+1, right_chunk_first, right_chunk_first+right_chunk_size);
 
-                            mirrorRotationToSelection(sel, static_cast<std::size_t>(movedIndexes[i-1])+1, rightChunkFirst, rightChunkFirst+rightChunkSize);
-                            if constexpr ( hasElementMovedOp<Route> )
-                                mirrorRotationTo(trackedIndexes, static_cast<std::size_t>(movedIndexes[i-1])+1, rightChunkFirst, rightChunkFirst+rightChunkSize);
-                            rightChunkFirst = static_cast<std::size_t>(movedIndexes[i-1]);
-                            ++rightChunkSize;
+                            mirror_rotation_to_selection(sel, static_cast<std::size_t>(moved_indexes[i-1])+1, right_chunk_first, right_chunk_first+right_chunk_size);
+                            if constexpr ( has_element_moved_op<Route> )
+                                mirror_rotation_to(tracked_indexes, static_cast<std::size_t>(moved_indexes[i-1])+1, right_chunk_first, right_chunk_first+right_chunk_size);
+                            right_chunk_first = static_cast<std::size_t>(moved_indexes[i-1]);
+                            ++right_chunk_size;
                         }
-                        if ( leftChunkFirst+leftChunkSize != rightChunkFirst && leftChunkSize > 0 && rightChunkSize > 0 ) // Need to combine the chunks then rotate combined to final position
+                        if ( left_chunk_first+left_chunk_size != right_chunk_first && left_chunk_size > 0 && right_chunk_size > 0 ) // Need to combine the chunks then rotate combined to final position
                         {
-                            std::size_t leftDistance = leftChunkFirst < static_cast<std::size_t>(indexMovedTo) ? static_cast<std::size_t>(indexMovedTo)-leftChunkFirst : leftChunkFirst-static_cast<std::size_t>(indexMovedTo);
-                            std::size_t rightDistance = rightChunkFirst < static_cast<std::size_t>(indexMovedTo)+leftChunkSize ? static_cast<std::size_t>(indexMovedTo)+leftChunkSize-rightChunkFirst : rightChunkFirst-static_cast<std::size_t>(indexMovedTo)-leftChunkSize;
-                            if ( rightDistance < leftDistance ) // Right chunk closer to target, move left up to right
+                            std::size_t left_distance = left_chunk_first < static_cast<std::size_t>(index_moved_to) ? static_cast<std::size_t>(index_moved_to)-left_chunk_first : left_chunk_first-static_cast<std::size_t>(index_moved_to);
+                            std::size_t right_distance = right_chunk_first < static_cast<std::size_t>(index_moved_to)+left_chunk_size ? static_cast<std::size_t>(index_moved_to)+left_chunk_size-right_chunk_first : right_chunk_first-static_cast<std::size_t>(index_moved_to)-left_chunk_size;
+                            if ( right_distance < left_distance ) // Right chunk closer to target, move left up to right
                             {
-                                auto leftStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
-                                auto leftEnd = std::next(leftStart, static_cast<std::ptrdiff_t>(leftChunkSize));
-                                std::rotate(leftStart, leftEnd, std::next(ref.begin(), static_cast<std::ptrdiff_t>(rightChunkFirst)));
-                                if constexpr ( hasAttachedData<Pathway...>() )
-                                    mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst);
+                                auto left_start = std::next(ref.begin(), static_cast<std::ptrdiff_t>(left_chunk_first));
+                                auto left_end = std::next(left_start, static_cast<std::ptrdiff_t>(left_chunk_size));
+                                std::rotate(left_start, left_end, std::next(ref.begin(), static_cast<std::ptrdiff_t>(right_chunk_first)));
+                                if constexpr ( has_attached_data<Pathway...>() )
+                                    mirror_rotation_to(get_attached_data<Pathway...>(), left_chunk_first, left_chunk_first+left_chunk_size, right_chunk_first);
 
-                                mirrorRotationToSelection(sel, leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst);
-                                if constexpr ( hasElementMovedOp<Route> )
-                                    mirrorRotationTo(trackedIndexes, leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst);
-                                leftChunkFirst = rightChunkFirst-leftChunkSize;
+                                mirror_rotation_to_selection(sel, left_chunk_first, left_chunk_first+left_chunk_size, right_chunk_first);
+                                if constexpr ( has_element_moved_op<Route> )
+                                    mirror_rotation_to(tracked_indexes, left_chunk_first, left_chunk_first+left_chunk_size, right_chunk_first);
+                                left_chunk_first = right_chunk_first-left_chunk_size;
                             }
                             else // Left chunk closer to target, move right up to left
                             {
-                                auto rightStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(rightChunkFirst));
-                                auto rightEnd = std::next(rightStart, static_cast<std::ptrdiff_t>(rightChunkSize));
-                                std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst+leftChunkSize)), rightStart, rightEnd);
-                                if constexpr ( hasAttachedData<Pathway...>() )
-                                    mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize);
+                                auto right_start = std::next(ref.begin(), static_cast<std::ptrdiff_t>(right_chunk_first));
+                                auto right_end = std::next(right_start, static_cast<std::ptrdiff_t>(right_chunk_size));
+                                std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(left_chunk_first+left_chunk_size)), right_start, right_end);
+                                if constexpr ( has_attached_data<Pathway...>() )
+                                    mirror_rotation_to(get_attached_data<Pathway...>(), left_chunk_first+left_chunk_size, right_chunk_first, right_chunk_first+right_chunk_size);
 
-                                mirrorRotationToSelection(sel, leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize);
-                                if constexpr ( hasElementMovedOp<Route> )
-                                    mirrorRotationTo(trackedIndexes, leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize);
-                                rightChunkFirst = leftChunkFirst+leftChunkSize;
+                                mirror_rotation_to_selection(sel, left_chunk_first+left_chunk_size, right_chunk_first, right_chunk_first+right_chunk_size);
+                                if constexpr ( has_element_moved_op<Route> )
+                                    mirror_rotation_to(tracked_indexes, left_chunk_first+left_chunk_size, right_chunk_first, right_chunk_first+right_chunk_size);
+                                right_chunk_first = left_chunk_first+left_chunk_size;
                             }
                         }
-                        if ( leftChunkFirst < static_cast<std::size_t>(indexMovedTo) ) // Rotate combined chunk rightwards to final position
+                        if ( left_chunk_first < static_cast<std::size_t>(index_moved_to) ) // Rotate combined chunk rightwards to final position
                         {
-                            auto chunkStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
-                            auto chunkEnd = std::next(chunkStart, static_cast<std::ptrdiff_t>(countValidIndexes));
-                            std::rotate(chunkStart, chunkEnd, std::next(chunkEnd, static_cast<std::ptrdiff_t>(static_cast<std::size_t>(indexMovedTo)-leftChunkFirst)));
-                            if constexpr ( hasAttachedData<Pathway...>() )
-                                mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst, leftChunkFirst+countValidIndexes, leftChunkFirst+countValidIndexes+static_cast<std::size_t>(indexMovedTo)-leftChunkFirst);
+                            auto chunk_start = std::next(ref.begin(), static_cast<std::ptrdiff_t>(left_chunk_first));
+                            auto chunk_end = std::next(chunk_start, static_cast<std::ptrdiff_t>(count_valid_indexes));
+                            std::rotate(chunk_start, chunk_end, std::next(chunk_end, static_cast<std::ptrdiff_t>(static_cast<std::size_t>(index_moved_to)-left_chunk_first)));
+                            if constexpr ( has_attached_data<Pathway...>() )
+                                mirror_rotation_to(get_attached_data<Pathway...>(), left_chunk_first, left_chunk_first+count_valid_indexes, left_chunk_first+count_valid_indexes+static_cast<std::size_t>(index_moved_to)-left_chunk_first);
 
-                            mirrorRotationToSelection(sel, leftChunkFirst, leftChunkFirst+countValidIndexes, leftChunkFirst+countValidIndexes+static_cast<std::size_t>(indexMovedTo)-leftChunkFirst);
-                            if constexpr ( hasElementMovedOp<Route> )
-                                mirrorRotationTo(trackedIndexes, leftChunkFirst, leftChunkFirst+countValidIndexes, leftChunkFirst+countValidIndexes+static_cast<std::size_t>(indexMovedTo)-leftChunkFirst);
+                            mirror_rotation_to_selection(sel, left_chunk_first, left_chunk_first+count_valid_indexes, left_chunk_first+count_valid_indexes+static_cast<std::size_t>(index_moved_to)-left_chunk_first);
+                            if constexpr ( has_element_moved_op<Route> )
+                                mirror_rotation_to(tracked_indexes, left_chunk_first, left_chunk_first+count_valid_indexes, left_chunk_first+count_valid_indexes+static_cast<std::size_t>(index_moved_to)-left_chunk_first);
                         }
-                        else if ( leftChunkFirst > static_cast<std::size_t>(indexMovedTo) ) // Rotate combined chunk leftwards to final position
+                        else if ( left_chunk_first > static_cast<std::size_t>(index_moved_to) ) // Rotate combined chunk leftwards to final position
                         {
-                            auto chunkStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
-                            auto chunkEnd = std::next(chunkStart, static_cast<std::ptrdiff_t>(countValidIndexes));
-                            std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(indexMovedTo)), chunkStart, chunkEnd);
-                            if constexpr ( hasAttachedData<Pathway...>() )
-                                mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(indexMovedTo), leftChunkFirst, leftChunkFirst+countValidIndexes);
+                            auto chunk_start = std::next(ref.begin(), static_cast<std::ptrdiff_t>(left_chunk_first));
+                            auto chunk_end = std::next(chunk_start, static_cast<std::ptrdiff_t>(count_valid_indexes));
+                            std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(index_moved_to)), chunk_start, chunk_end);
+                            if constexpr ( has_attached_data<Pathway...>() )
+                                mirror_rotation_to(get_attached_data<Pathway...>(), static_cast<std::size_t>(index_moved_to), left_chunk_first, left_chunk_first+count_valid_indexes);
 
-                            mirrorRotationToSelection(sel, static_cast<std::size_t>(indexMovedTo), leftChunkFirst, leftChunkFirst+countValidIndexes);
-                            if constexpr ( hasElementMovedOp<Route> )
-                                mirrorRotationTo(trackedIndexes, static_cast<std::size_t>(indexMovedTo), leftChunkFirst, leftChunkFirst+countValidIndexes);
+                            mirror_rotation_to_selection(sel, static_cast<std::size_t>(index_moved_to), left_chunk_first, left_chunk_first+count_valid_indexes);
+                            if constexpr ( has_element_moved_op<Route> )
+                                mirror_rotation_to(tracked_indexes, static_cast<std::size_t>(index_moved_to), left_chunk_first, left_chunk_first+count_valid_indexes);
                         }
                     }
                     
-                    if constexpr ( hasElementMovedOp<Route> )
+                    if constexpr ( has_element_moved_op<Route> )
                     {
                         for ( std::size_t i=0; i<size; ++i )
                         {
-                            if ( i != trackedIndexes[i] )
-                                notifyElementMoved(user, Route{keys}, trackedIndexes[i], i);
+                            if ( i != tracked_indexes[i] )
+                                notify_element_moved(user, Route{keys}, tracked_indexes[i], i);
                         }
                     }
-                    if constexpr ( hasSelectionsChangedOp<Route> )
-                        notifySelectionsChanged(user, Route{keys});
+                    if constexpr ( has_selections_changed_op<Route> )
+                        notify_selections_changed(user, Route{keys});
                 }
             });
         }
 
-        template <class ... Pathway, class IndexMovedTo, class Keys>
-        void moveToL(IndexMovedTo indexMovedTo, Keys & keys)
+        template <class ... Pathway, class Index_moved_to, class Keys>
+        void move_to_l(Index_moved_to index_moved_to, Keys & keys)
         {
-            eventOffsets.push_back(events.size());
-            events.push_back(uint8_t(Op::MoveToL));
-            serializePathway<Pathway...>(keys);
+            event_offsets.push_back(events.size());
+            events.push_back(uint8_t(op::move_to_l));
+            serialize_pathway<Pathway...>(keys);
             
-            operateOn<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
-                auto & sel = getSelections<Pathway...>();
-                auto movedIndexes = sel; // Copy so it can be sorted without changing selections
-                std::sort(movedIndexes.begin(), movedIndexes.end());
-                serializeIndex<Member>(indexMovedTo);
-                writeSelections(events, sel);
+            operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
+                auto & sel = get_selections<Pathway...>();
+                auto moved_indexes = sel; // Copy so it can be sorted without changing selections
+                std::sort(moved_indexes.begin(), moved_indexes.end());
+                serialize_index<Member>(index_moved_to);
+                write_selections(events, sel);
 
                 auto size = std::size(ref);
-                if ( indexMovedTo < 0 )
-                    indexMovedTo = 0;
-                else if ( static_cast<std::size_t>(indexMovedTo) >= size && size > 0 )
-                    indexMovedTo = static_cast<IndexMovedTo>(size-1);
+                if ( index_moved_to < 0 )
+                    index_moved_to = 0;
+                else if ( static_cast<std::size_t>(index_moved_to) >= size && size > 0 )
+                    index_moved_to = static_cast<Index_moved_to>(size-1);
 
-                if ( !std::empty(movedIndexes) && indexMovedTo >= 0 )
+                if ( !std::empty(moved_indexes) && index_moved_to >= 0 )
                 {
-                    std::size_t countValidIndexes = 0;
-                    for ( auto movedIndex : movedIndexes )
+                    std::size_t count_valid_indexes = 0;
+                    for ( auto moved_index : moved_indexes )
                     {
-                        if ( movedIndex >= 0 && static_cast<std::size_t>(movedIndex) < std::size(ref) )
-                            ++countValidIndexes;
+                        if ( moved_index >= 0 && static_cast<std::size_t>(moved_index) < std::size(ref) )
+                            ++count_valid_indexes;
                     }
-                    if ( countValidIndexes == 0 )
+                    if ( count_valid_indexes == 0 )
                         return;
 
-                    std::vector<std::size_t> trackedIndexes {};
-                    if constexpr ( hasElementMovedOp<Route> )
+                    std::vector<std::size_t> tracked_indexes {};
+                    if constexpr ( has_element_moved_op<Route> )
                     {
-                        trackedIndexes.assign(size, 0);
-                        std::iota(trackedIndexes.begin(), trackedIndexes.end(), 0);
+                        tracked_indexes.assign(size, 0);
+                        std::iota(tracked_indexes.begin(), tracked_indexes.end(), 0);
                     }
 
-                    if ( static_cast<std::size_t>(indexMovedTo) + countValidIndexes >= size ) // Operation collapses to moveToEnd
+                    if ( static_cast<std::size_t>(index_moved_to) + count_valid_indexes >= size ) // Operation collapses to move_to_end
                     {
-                        std::ptrdiff_t insertionIndex = static_cast<std::ptrdiff_t>(size);
-                        for ( auto mit = movedIndexes.rbegin(); mit != movedIndexes.rend(); ++mit ) // movedIndexes sorted least to greatest, so reverse read
+                        std::ptrdiff_t insertion_index = static_cast<std::ptrdiff_t>(size);
+                        for ( auto mit = moved_indexes.rbegin(); mit != moved_indexes.rend(); ++mit ) // moved_indexes sorted least to greatest, so reverse read
                         {
                             auto i = *mit;
-                            if ( static_cast<std::ptrdiff_t>(i) >= 0 && static_cast<std::ptrdiff_t>(i)+1 < insertionIndex )
+                            if ( static_cast<std::ptrdiff_t>(i) >= 0 && static_cast<std::ptrdiff_t>(i)+1 < insertion_index )
                             {
                                 auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
-                                std::rotate(it, it+1, std::next(ref.begin(), insertionIndex));
-                                if constexpr ( hasAttachedData<Pathway...>() )
-                                    mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
+                                std::rotate(it, it+1, std::next(ref.begin(), insertion_index));
+                                if constexpr ( has_attached_data<Pathway...>() )
+                                    mirror_rotation_to(get_attached_data<Pathway...>(), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertion_index));
 
-                                mirrorRotationToSelection(sel, static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
-                                if constexpr ( hasElementMovedOp<Route> )
-                                    mirrorRotationTo(trackedIndexes, static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
+                                mirror_rotation_to_selection(sel, static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertion_index));
+                                if constexpr ( has_element_moved_op<Route> )
+                                    mirror_rotation_to(tracked_indexes, static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertion_index));
                             }
-                            --insertionIndex;
+                            --insertion_index;
                         }
                     }
-                    else // Non-collapsed moveTo operation
+                    else // Non-collapsed move_to operation
                     {
-                        std::size_t minValidIndex = 0;
-                        std::size_t maxValidIndex = 0;
-                        for ( std::size_t i=0; i<std::size(movedIndexes); ++i )
+                        std::size_t min_valid_index = 0;
+                        std::size_t max_valid_index = 0;
+                        for ( std::size_t i=0; i<std::size(moved_indexes); ++i )
                         {
-                            if ( static_cast<std::ptrdiff_t>(movedIndexes[i]) >= 0 )
+                            if ( static_cast<std::ptrdiff_t>(moved_indexes[i]) >= 0 )
                             {
-                                minValidIndex = static_cast<std::size_t>(movedIndexes[i]);
+                                min_valid_index = static_cast<std::size_t>(moved_indexes[i]);
                                 break;
                             }
                         }
-                        for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(std::size(movedIndexes))-1; i>=0; --i )
+                        for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(std::size(moved_indexes))-1; i>=0; --i )
                         {
-                            if ( static_cast<std::ptrdiff_t>(movedIndexes[static_cast<std::size_t>(i)]) < static_cast<std::ptrdiff_t>(size) )
+                            if ( static_cast<std::ptrdiff_t>(moved_indexes[static_cast<std::size_t>(i)]) < static_cast<std::ptrdiff_t>(size) )
                             {
-                                maxValidIndex = static_cast<std::size_t>(movedIndexes[static_cast<std::size_t>(i)]);
+                                max_valid_index = static_cast<std::size_t>(moved_indexes[static_cast<std::size_t>(i)]);
                                 break;
                             }
                         }
 
-                        std::size_t leftChunkSize = minValidIndex < static_cast<std::size_t>(indexMovedTo) ? 1 : 0;
-                        std::size_t rightChunkSize = maxValidIndex >= static_cast<std::size_t>(indexMovedTo) ? 1 : 0;
-                        std::size_t leftChunkFirst = minValidIndex;
-                        std::size_t rightChunkFirst = maxValidIndex;
+                        std::size_t left_chunk_size = min_valid_index < static_cast<std::size_t>(index_moved_to) ? 1 : 0;
+                        std::size_t right_chunk_size = max_valid_index >= static_cast<std::size_t>(index_moved_to) ? 1 : 0;
+                        std::size_t left_chunk_first = min_valid_index;
+                        std::size_t right_chunk_first = max_valid_index;
 
-                        for ( std::size_t i=0; i+1<std::size(movedIndexes) && static_cast<std::size_t>(movedIndexes[i+1]) < static_cast<std::size_t>(indexMovedTo); ++i )
+                        for ( std::size_t i=0; i+1<std::size(moved_indexes) && static_cast<std::size_t>(moved_indexes[i+1]) < static_cast<std::size_t>(index_moved_to); ++i )
                         {
-                            // rotate left chunk together with element[movedIndexes[i+1]]
-                            auto leftStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
-                            auto leftEnd = std::next(leftStart, static_cast<std::ptrdiff_t>(leftChunkSize));
-                            std::rotate(leftStart, leftEnd, std::next(ref.begin(), static_cast<std::ptrdiff_t>(movedIndexes[i+1])));
-                            if constexpr ( hasAttachedData<Pathway...>() )
-                                mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]);
+                            // rotate left chunk together with element[moved_indexes[i+1]]
+                            auto left_start = std::next(ref.begin(), static_cast<std::ptrdiff_t>(left_chunk_first));
+                            auto left_end = std::next(left_start, static_cast<std::ptrdiff_t>(left_chunk_size));
+                            std::rotate(left_start, left_end, std::next(ref.begin(), static_cast<std::ptrdiff_t>(moved_indexes[i+1])));
+                            if constexpr ( has_attached_data<Pathway...>() )
+                                mirror_rotation_to(get_attached_data<Pathway...>(), left_chunk_first, left_chunk_first+left_chunk_size, moved_indexes[i+1]);
 
-                            mirrorRotationToSelection(sel, leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]);
-                            if constexpr ( hasElementMovedOp<Route> )
-                                mirrorRotationTo(trackedIndexes, leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]);
-                            leftChunkFirst = static_cast<std::size_t>(movedIndexes[i+1])-leftChunkSize;
-                            ++leftChunkSize;
+                            mirror_rotation_to_selection(sel, left_chunk_first, left_chunk_first+left_chunk_size, moved_indexes[i+1]);
+                            if constexpr ( has_element_moved_op<Route> )
+                                mirror_rotation_to(tracked_indexes, left_chunk_first, left_chunk_first+left_chunk_size, moved_indexes[i+1]);
+                            left_chunk_first = static_cast<std::size_t>(moved_indexes[i+1])-left_chunk_size;
+                            ++left_chunk_size;
                         }
-                        for ( std::size_t i=std::size(movedIndexes)-1; i>0 && static_cast<std::size_t>(movedIndexes[i-1]) >= static_cast<std::size_t>(indexMovedTo); --i )
+                        for ( std::size_t i=std::size(moved_indexes)-1; i>0 && static_cast<std::size_t>(moved_indexes[i-1]) >= static_cast<std::size_t>(index_moved_to); --i )
                         {
-                            // rotate right chunk together with element[movedIndexes[i-1]]
-                            auto rightStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(rightChunkFirst));
-                            auto rightEnd = std::next(rightStart, static_cast<std::ptrdiff_t>(rightChunkSize));
-                            std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(movedIndexes[i-1])+1), rightStart, rightEnd);
-                            if constexpr ( hasAttachedData<Pathway...>() )
-                                mirrorRotationTo(getAttachedData<Pathway...>(), movedIndexes[i-1]+1, rightChunkFirst, rightChunkFirst+rightChunkSize);
+                            // rotate right chunk together with element[moved_indexes[i-1]]
+                            auto right_start = std::next(ref.begin(), static_cast<std::ptrdiff_t>(right_chunk_first));
+                            auto right_end = std::next(right_start, static_cast<std::ptrdiff_t>(right_chunk_size));
+                            std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(moved_indexes[i-1])+1), right_start, right_end);
+                            if constexpr ( has_attached_data<Pathway...>() )
+                                mirror_rotation_to(get_attached_data<Pathway...>(), moved_indexes[i-1]+1, right_chunk_first, right_chunk_first+right_chunk_size);
 
-                            mirrorRotationToSelection(sel, movedIndexes[i-1]+1, rightChunkFirst, rightChunkFirst+rightChunkSize);
-                            if constexpr ( hasElementMovedOp<Route> )
-                                mirrorRotationTo(trackedIndexes, movedIndexes[i-1]+1, rightChunkFirst, rightChunkFirst+rightChunkSize);
-                            rightChunkFirst = static_cast<std::size_t>(movedIndexes[i-1]);
-                            ++rightChunkSize;
+                            mirror_rotation_to_selection(sel, moved_indexes[i-1]+1, right_chunk_first, right_chunk_first+right_chunk_size);
+                            if constexpr ( has_element_moved_op<Route> )
+                                mirror_rotation_to(tracked_indexes, moved_indexes[i-1]+1, right_chunk_first, right_chunk_first+right_chunk_size);
+                            right_chunk_first = static_cast<std::size_t>(moved_indexes[i-1]);
+                            ++right_chunk_size;
                         }
-                        if ( leftChunkFirst+leftChunkSize != rightChunkFirst && leftChunkSize > 0 && rightChunkSize > 0 ) // Need to combine the chunks then rotate combined to final position
+                        if ( left_chunk_first+left_chunk_size != right_chunk_first && left_chunk_size > 0 && right_chunk_size > 0 ) // Need to combine the chunks then rotate combined to final position
                         {
-                            std::size_t leftDistance = leftChunkFirst < static_cast<std::size_t>(indexMovedTo) ? static_cast<std::size_t>(indexMovedTo)-leftChunkFirst : leftChunkFirst-static_cast<std::size_t>(indexMovedTo);
-                            std::size_t rightDistance = rightChunkFirst < static_cast<std::size_t>(indexMovedTo)+leftChunkSize ? static_cast<std::size_t>(indexMovedTo)+leftChunkSize-rightChunkFirst : rightChunkFirst-static_cast<std::size_t>(indexMovedTo)-leftChunkSize;
-                            if ( rightDistance < leftDistance ) // Right chunk closer to target, move left up to right
+                            std::size_t left_distance = left_chunk_first < static_cast<std::size_t>(index_moved_to) ? static_cast<std::size_t>(index_moved_to)-left_chunk_first : left_chunk_first-static_cast<std::size_t>(index_moved_to);
+                            std::size_t right_distance = right_chunk_first < static_cast<std::size_t>(index_moved_to)+left_chunk_size ? static_cast<std::size_t>(index_moved_to)+left_chunk_size-right_chunk_first : right_chunk_first-static_cast<std::size_t>(index_moved_to)-left_chunk_size;
+                            if ( right_distance < left_distance ) // Right chunk closer to target, move left up to right
                             {
-                                auto leftStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
-                                auto leftEnd = std::next(leftStart, static_cast<std::ptrdiff_t>(leftChunkSize));
-                                std::rotate(leftStart, leftEnd, std::next(ref.begin(), static_cast<std::ptrdiff_t>(rightChunkFirst)));
-                                if constexpr ( hasAttachedData<Pathway...>() )
-                                    mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst);
+                                auto left_start = std::next(ref.begin(), static_cast<std::ptrdiff_t>(left_chunk_first));
+                                auto left_end = std::next(left_start, static_cast<std::ptrdiff_t>(left_chunk_size));
+                                std::rotate(left_start, left_end, std::next(ref.begin(), static_cast<std::ptrdiff_t>(right_chunk_first)));
+                                if constexpr ( has_attached_data<Pathway...>() )
+                                    mirror_rotation_to(get_attached_data<Pathway...>(), left_chunk_first, left_chunk_first+left_chunk_size, right_chunk_first);
 
-                                mirrorRotationToSelection(sel, leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst);
-                                if constexpr ( hasElementMovedOp<Route> )
-                                    mirrorRotationTo(trackedIndexes, leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst);
-                                leftChunkFirst = rightChunkFirst-leftChunkSize;
+                                mirror_rotation_to_selection(sel, left_chunk_first, left_chunk_first+left_chunk_size, right_chunk_first);
+                                if constexpr ( has_element_moved_op<Route> )
+                                    mirror_rotation_to(tracked_indexes, left_chunk_first, left_chunk_first+left_chunk_size, right_chunk_first);
+                                left_chunk_first = right_chunk_first-left_chunk_size;
                             }
                             else // Left chunk closer to target, move right up to left
                             {
-                                auto rightStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(rightChunkFirst));
-                                auto rightEnd = std::next(rightStart, static_cast<std::ptrdiff_t>(rightChunkSize));
-                                std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst+leftChunkSize)), rightStart, rightEnd);
-                                if constexpr ( hasAttachedData<Pathway...>() )
-                                    mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize);
+                                auto right_start = std::next(ref.begin(), static_cast<std::ptrdiff_t>(right_chunk_first));
+                                auto right_end = std::next(right_start, static_cast<std::ptrdiff_t>(right_chunk_size));
+                                std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(left_chunk_first+left_chunk_size)), right_start, right_end);
+                                if constexpr ( has_attached_data<Pathway...>() )
+                                    mirror_rotation_to(get_attached_data<Pathway...>(), left_chunk_first+left_chunk_size, right_chunk_first, right_chunk_first+right_chunk_size);
 
-                                mirrorRotationToSelection(sel, leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize);
-                                if constexpr ( hasElementMovedOp<Route> )
-                                    mirrorRotationTo(trackedIndexes, leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize);
-                                rightChunkFirst = leftChunkFirst+leftChunkSize;
+                                mirror_rotation_to_selection(sel, left_chunk_first+left_chunk_size, right_chunk_first, right_chunk_first+right_chunk_size);
+                                if constexpr ( has_element_moved_op<Route> )
+                                    mirror_rotation_to(tracked_indexes, left_chunk_first+left_chunk_size, right_chunk_first, right_chunk_first+right_chunk_size);
+                                right_chunk_first = left_chunk_first+left_chunk_size;
                             }
                         }
-                        if ( leftChunkFirst < static_cast<std::size_t>(indexMovedTo) ) // Rotate combined chunk rightwards to final position
+                        if ( left_chunk_first < static_cast<std::size_t>(index_moved_to) ) // Rotate combined chunk rightwards to final position
                         {
-                            auto chunkStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
-                            auto chunkEnd = std::next(chunkStart, static_cast<std::ptrdiff_t>(countValidIndexes));
-                            std::rotate(chunkStart, chunkEnd, std::next(chunkEnd, static_cast<std::ptrdiff_t>(static_cast<std::size_t>(indexMovedTo)-leftChunkFirst)));
-                            if constexpr ( hasAttachedData<Pathway...>() )
-                                mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst, leftChunkFirst+countValidIndexes, leftChunkFirst+countValidIndexes+static_cast<std::size_t>(indexMovedTo)-leftChunkFirst);
+                            auto chunk_start = std::next(ref.begin(), static_cast<std::ptrdiff_t>(left_chunk_first));
+                            auto chunk_end = std::next(chunk_start, static_cast<std::ptrdiff_t>(count_valid_indexes));
+                            std::rotate(chunk_start, chunk_end, std::next(chunk_end, static_cast<std::ptrdiff_t>(static_cast<std::size_t>(index_moved_to)-left_chunk_first)));
+                            if constexpr ( has_attached_data<Pathway...>() )
+                                mirror_rotation_to(get_attached_data<Pathway...>(), left_chunk_first, left_chunk_first+count_valid_indexes, left_chunk_first+count_valid_indexes+static_cast<std::size_t>(index_moved_to)-left_chunk_first);
 
-                            mirrorRotationToSelection(sel, leftChunkFirst, leftChunkFirst+countValidIndexes, leftChunkFirst+countValidIndexes+static_cast<std::size_t>(indexMovedTo)-leftChunkFirst);
-                            if constexpr ( hasElementMovedOp<Route> )
-                                mirrorRotationTo(trackedIndexes, leftChunkFirst, leftChunkFirst+countValidIndexes, leftChunkFirst+countValidIndexes+static_cast<std::size_t>(indexMovedTo)-leftChunkFirst);
+                            mirror_rotation_to_selection(sel, left_chunk_first, left_chunk_first+count_valid_indexes, left_chunk_first+count_valid_indexes+static_cast<std::size_t>(index_moved_to)-left_chunk_first);
+                            if constexpr ( has_element_moved_op<Route> )
+                                mirror_rotation_to(tracked_indexes, left_chunk_first, left_chunk_first+count_valid_indexes, left_chunk_first+count_valid_indexes+static_cast<std::size_t>(index_moved_to)-left_chunk_first);
                         }
-                        else if ( leftChunkFirst > static_cast<std::size_t>(indexMovedTo) ) // Rotate combined chunk leftwards to final position
+                        else if ( left_chunk_first > static_cast<std::size_t>(index_moved_to) ) // Rotate combined chunk leftwards to final position
                         {
-                            auto chunkStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
-                            auto chunkEnd = std::next(chunkStart, static_cast<std::ptrdiff_t>(countValidIndexes));
-                            std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(indexMovedTo)), chunkStart, chunkEnd);
-                            if constexpr ( hasAttachedData<Pathway...>() )
-                                mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(indexMovedTo), leftChunkFirst, leftChunkFirst+countValidIndexes);
+                            auto chunk_start = std::next(ref.begin(), static_cast<std::ptrdiff_t>(left_chunk_first));
+                            auto chunk_end = std::next(chunk_start, static_cast<std::ptrdiff_t>(count_valid_indexes));
+                            std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(index_moved_to)), chunk_start, chunk_end);
+                            if constexpr ( has_attached_data<Pathway...>() )
+                                mirror_rotation_to(get_attached_data<Pathway...>(), static_cast<std::size_t>(index_moved_to), left_chunk_first, left_chunk_first+count_valid_indexes);
 
-                            mirrorRotationToSelection(sel, static_cast<std::size_t>(indexMovedTo), leftChunkFirst, leftChunkFirst+countValidIndexes);
-                            if constexpr ( hasElementMovedOp<Route> )
-                                mirrorRotationTo(trackedIndexes, static_cast<std::size_t>(indexMovedTo), leftChunkFirst, leftChunkFirst+countValidIndexes);
+                            mirror_rotation_to_selection(sel, static_cast<std::size_t>(index_moved_to), left_chunk_first, left_chunk_first+count_valid_indexes);
+                            if constexpr ( has_element_moved_op<Route> )
+                                mirror_rotation_to(tracked_indexes, static_cast<std::size_t>(index_moved_to), left_chunk_first, left_chunk_first+count_valid_indexes);
                         }
                     }
                     
-                    if constexpr ( hasElementMovedOp<Route> )
+                    if constexpr ( has_element_moved_op<Route> )
                     {
                         for ( std::size_t i=0; i<size; ++i )
                         {
-                            if ( i != trackedIndexes[i] )
-                                notifyElementMoved(user, Route{keys}, trackedIndexes[i], i);
+                            if ( i != tracked_indexes[i] )
+                                notify_element_moved(user, Route{keys}, tracked_indexes[i], i);
                         }
                     }
-                    if constexpr ( hasSelectionsChangedOp<Route> )
-                        notifySelectionsChanged(user, Route{keys});
+                    if constexpr ( has_selections_changed_op<Route> )
+                        notify_selections_changed(user, Route{keys});
                 }
             });
         }
 
         template <class Value, class Member>
-        void readValue(std::size_t & offset, auto && value) const
+        void read_value(std::size_t & offset, auto && value) const
         {
-            using U = std::remove_cvref_t<Value>;
+            using deref = std::remove_cvref_t<Value>;
             using index_type = index_type_t<default_index_type, Member>;
-            if constexpr ( std::is_same_v<U, std::string> )
+            if constexpr ( std::is_same_v<deref, std::string> )
             {
-                auto stringSize = *(reinterpret_cast<const index_type*>(&events[offset]));
-                offset += sizeof(stringSize);
-                if ( stringSize > 0 )
+                auto string_size = *(reinterpret_cast<const index_type*>(&events[offset]));
+                offset += sizeof(string_size);
+                if ( string_size > 0 )
                 {
-                    value = std::string{(const char*)&events[offset], stringSize};
-                    offset += stringSize;
+                    value = std::string{(const char*)&events[offset], string_size};
+                    offset += string_size;
                 }
             }
-            else if constexpr ( RareTs::is_optional_v<U> )
+            else if constexpr ( RareTs::is_optional_v<deref> )
             {
                 if ( u8bool::read(events, offset) ) // optional.has_value()
                 {
-                    value = typename U::value_type{};
-                    readValue<typename U::value_type, Member>(offset, *value);
+                    value = typename deref::value_type{};
+                    read_value<typename deref::value_type, Member>(offset, *value);
                 }
                 else
                     value = std::nullopt;
             }
-            else if constexpr ( is_flat_mdspan_v<U> )
+            else if constexpr ( is_flat_mdspan_v<deref> )
             {
                 using collapsed_index_type = collapsed_index_type_t<Member>;
                 offset += sizeof(collapsed_index_type); // Skip over array size
-                for ( auto it = value.flatBegin(); it != value.flatEnd(); ++it )
-                    readValue<typename U::element_type, Member>(offset, *it);
+                for ( auto it = value.flat_begin(); it != value.flat_end(); ++it )
+                    read_value<typename deref::element_type, Member>(offset, *it);
             }
-            else if constexpr ( std::is_array_v<U> )
+            else if constexpr ( std::is_array_v<deref> )
             {
                 auto span = as_1d<Value>(value);
                 using collapsed_index_type = collapsed_index_type_t<Member>;
                 offset += sizeof(collapsed_index_type); // Skip over array size
-                for ( auto it = span.flatBegin(); it != span.flatEnd(); ++it )
-                    readValue<typename decltype(span)::element_type, Member>(offset, *it);
+                for ( auto it = span.flat_begin(); it != span.flat_end(); ++it )
+                    read_value<typename decltype(span)::element_type, Member>(offset, *it);
             }
-            else if constexpr ( RareTs::is_static_array_v<U> )
+            else if constexpr ( RareTs::is_static_array_v<deref> )
             {
-                constexpr std::size_t size = RareTs::static_array_size_v<U>;
+                constexpr std::size_t size = RareTs::static_array_size_v<deref>;
                 offset += sizeof(size); // Skip over array size
                 for ( std::size_t i=0; i<size; ++i )
-                    readValue<std::remove_cvref_t<decltype(std::declval<U>()[0])>, Member>(offset, value[i]);
+                    read_value<std::remove_cvref_t<decltype(std::declval<deref>()[0])>, Member>(offset, value[i]);
             }
-            else if constexpr ( RareTs::is_iterable_v<U> && requires{value.resize(std::size_t{0});} )
+            else if constexpr ( RareTs::is_iterable_v<deref> && requires{value.resize(std::size_t{0});} )
             {
                 auto size = static_cast<std::size_t>(*(reinterpret_cast<const index_type*>(&events[offset])));
                 value.resize(std::size_t{size});
                 offset += sizeof(index_type);
                 for ( decltype(size) i=0; i<size; ++i )
-                    readValue<std::remove_cvref_t<decltype(std::declval<U>()[0])>, Member>(offset, value[i]);
+                    read_value<std::remove_cvref_t<decltype(std::declval<deref>()[0])>, Member>(offset, value[i]);
             }
-            else if constexpr ( RareTs::is_reflected_v<U> )
+            else if constexpr ( RareTs::is_reflected_v<deref> )
             {
-                RareTs::Members<U>::forEach([&](auto member) {
-                    readValue<std::remove_cvref_t<typename decltype(member)::type>, decltype(member)>(offset, member.value(value));
+                RareTs::Members<deref>::forEach([&](auto member) {
+                    read_value<std::remove_cvref_t<typename decltype(member)::type>, decltype(member)>(offset, member.value(value));
                 });
             }
             else
             {
-                value = (U &)events[offset];
-                offset += sizeof(U);
+                value = (deref &)events[offset];
+                offset += sizeof(deref);
             }
         }
 
         template <class Value, class Member>
-        auto readValue(std::size_t & offset) const
+        auto read_value(std::size_t & offset) const
         {
-            static_assert(!std::is_array_v<Value>, "Cannot return array[] types, use the readValue reference overload");
+            static_assert(!std::is_array_v<Value>, "Cannot return array[] types, use the read_value reference overload");
             std::remove_cvref_t<Value> value {};
-            readValue<Value, Member>(offset, value);
+            read_value<Value, Member>(offset, value);
             return value;
         }
 
         template <class Value, class Member>
-        auto peekValue(std::size_t offset) const // readValue but doesn't change offset
+        auto peek_value(std::size_t offset) const // read_value but doesn't change offset
         {
             if constexpr ( std::is_array_v<Value> ) // Avoid trying to return array[] types, make a vector
             {
@@ -4062,2395 +4079,2407 @@ namespace RareEdit
                     for ( auto & vec : value )
                         vec.assign(RareTs::static_array_size_v<element_type>, {});
 
-                    readValue<decltype(value), Member>(offset, value);
+                    read_value<decltype(value), Member>(offset, value);
                     return value;
                 }
                 else
                 {
                     std::vector<RareTs::element_type_t<Value>> value { std::size_t{RareTs::static_array_size_v<Value>} };
-                    readValue<decltype(value), Member>(offset, value);
+                    read_value<decltype(value), Member>(offset, value);
                     return value;
                 }
             }
             else
             {
                 std::remove_cvref_t<Value> value {};
-                readValue<Value, Member>(offset, value);
+                read_value<Value, Member>(offset, value);
                 return value;
             }
         }
 
-        template <class index_type>
-        auto readIndex(std::size_t & offset) const {
-            auto index = *(reinterpret_cast<const index_type*>(&events[offset]));
+        template <class Index_type>
+        auto read_index(std::size_t & offset) const {
+            auto index = *(reinterpret_cast<const Index_type*>(&events[offset]));
             offset += sizeof(index);
             return index;
         }
 
-        template <class index_type>
-        auto readIndex(std::ptrdiff_t & offset) const {
-            auto index = *(reinterpret_cast<const index_type*>(&events[static_cast<std::size_t>(offset)]));
+        template <class Index_type>
+        auto read_index(std::ptrdiff_t & offset) const {
+            auto index = *(reinterpret_cast<const Index_type*>(&events[static_cast<std::size_t>(offset)]));
             offset += sizeof(index);
             return index;
         }
 
-        template <class index_type>
-        std::span<const index_type> readIndexes(std::size_t & offset, std::size_t count) const
+        template <class Index_type>
+        std::span<const Index_type> read_indexes(std::size_t & offset, std::size_t count) const
         {
             if ( count > 0 )
             {
-                std::span<const index_type> indexes(reinterpret_cast<const index_type*>(&events[offset]), count);
-                offset += sizeof(index_type)*count;
+                std::span<const Index_type> indexes(reinterpret_cast<const Index_type*>(&events[offset]), count);
+                offset += sizeof(Index_type)*count;
                 return indexes;
             }
             else
-                return std::span<const index_type>();
+                return std::span<const Index_type>();
         }
 
-        template <class index_type>
-        std::span<const index_type> readIndexes(std::ptrdiff_t & offset, std::size_t count) const
+        template <class Index_type>
+        std::span<const Index_type> read_indexes(std::ptrdiff_t & offset, std::size_t count) const
         {
             if ( count > 0 )
             {
-                std::span<const index_type> indexes(reinterpret_cast<const index_type*>(&events[static_cast<std::size_t>(offset)]), count);
-                offset += sizeof(index_type)*count;
+                std::span<const Index_type> indexes(reinterpret_cast<const Index_type*>(&events[static_cast<std::size_t>(offset)]), count);
+                offset += sizeof(Index_type)*count;
                 return indexes;
             }
             else
-                return std::span<const index_type>();
+                return std::span<const Index_type>();
         }
 
-        template <class value_type, class Member, class ... Pathway>
-        void processUndoEvent(std::uint8_t op, std::size_t & offset, std::optional<std::size_t> & secondaryOffset, auto & ref, auto keys)
+        template <class Value_type, class Member, class ... Pathway>
+        void process_undo_event(std::uint8_t operation, std::size_t & offset, std::optional<std::size_t> & secondary_offset, auto & ref, auto keys)
         {
             using index_type = index_type_t<default_index_type, Member>;
             using path_pack = type_tags<Pathway...>;
-            using sel_type = std::remove_cvref_t<decltype(getSelections<Pathway...>())>;
-            using element_type = RareTs::element_type_t<value_type>;
-            using attached_data_type = std::remove_cvref_t<decltype(getAttachedData<Pathway...>())>;
-            using Route = PathTaggedKeys<decltype(keys), path_pack, EditorType>;
-            using ElemPath = type_tags<Pathway..., PathIndex<std::tuple_size_v<std::remove_cvref_t<decltype(keys)>>>>;
-            using ElemKeys = std::remove_cvref_t<decltype(std::tuple_cat(keys, std::tuple<index_type>{0}))>;
-            using ElemRoute = PathTaggedKeys<ElemKeys, ElemPath, EditorType>;
-            constexpr bool hasAttachedData = Agent::hasAttachedData<Pathway...>();
-            constexpr bool hasSelections = !std::is_null_pointer_v<sel_type> && RareTs::is_specialization_v<sel_type, std::vector>;
-            constexpr bool hasSelChangeOp = hasSelections && hasSelectionsChangedOp<Route>;
-            constexpr bool isIterable = RareTs::is_iterable_v<value_type>;
-            constexpr bool hasMoveOps = !std::is_void_v<element_type> && requires { ref.begin(); };
+            using sel_type = std::remove_cvref_t<decltype(get_selections<Pathway...>())>;
+            using element_type = RareTs::element_type_t<Value_type>;
+            using attached_data_type = std::remove_cvref_t<decltype(get_attached_data<Pathway...>())>;
+            using route = path_tagged_keys<decltype(keys), path_pack, Editor_type>;
+            using elem_path = type_tags<Pathway..., path_index<std::tuple_size_v<std::remove_cvref_t<decltype(keys)>>>>;
+            using elem_keys = std::remove_cvref_t<decltype(std::tuple_cat(keys, std::tuple<index_type>{0}))>;
+            using elem_route = path_tagged_keys<elem_keys, elem_path, Editor_type>;
+            constexpr bool has_attached_data = agent::has_attached_data<Pathway...>();
+            constexpr bool has_selections = !std::is_null_pointer_v<sel_type> && RareTs::is_specialization_v<sel_type, std::vector>;
+            constexpr bool has_sel_change_op = has_selections && has_selections_changed_op<route>;
+            constexpr bool is_iterable = RareTs::is_iterable_v<Value_type>;
+            constexpr bool has_move_ops = !std::is_void_v<element_type> && requires { ref.begin(); };
 
-            switch ( Op(op) )
+            switch ( op(operation) )
             {
-                case Op::Reset:
+                case op::init:
                 {
-                    if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> )
+                    if constexpr ( RareTs::is_assignable_v<decltype(ref), Value_type> )
+                        ref = read_value<Value_type, Member>(offset);
+                }
+                break;
+                case op::reset:
+                {
+                    if constexpr ( !is_iterable && has_value_changed_op<route, Value_type> )
                     {
                         if constexpr ( std::is_array_v<typename Member::type> )
                         {
-                            typename Member::type prevValue {};
-                            auto refArray = as_1d<typename Member::type>(ref);
-                            as_1d(prevValue) = refArray;
-                            readValue<value_type, Member>(offset, refArray);
-                            notifyValueChanged(user, Route{keys}, prevValue, ref); // Issue change notification
+                            typename Member::type prev_value {};
+                            auto ref_array = as_1d<typename Member::type>(ref);
+                            as_1d(prev_value) = ref_array;
+                            read_value<Value_type, Member>(offset, ref_array);
+                            notify_value_changed(user, route{keys}, prev_value, ref); // Issue change notification
                         }
                         else
                         {
-                            auto prevValue = ref;
-                            ref = readValue<value_type, Member>(offset);
-                            notifyValueChanged(user, Route{keys}, prevValue, ref);
+                            auto prev_value = ref;
+                            ref = read_value<Value_type, Member>(offset);
+                            notify_value_changed(user, route{keys}, prev_value, ref);
                         }
                     }
-                    else if constexpr ( isIterable && hasElementAddedOp<Route> )
+                    else if constexpr ( is_iterable && has_element_added_op<route> )
                     {
-                        ref = readValue<value_type, Member>(offset);
-                        if constexpr ( hasAttachedData )
-                            getAttachedData<Pathway...>() = attached_data_type(std::size(ref));
+                        ref = read_value<Value_type, Member>(offset);
+                        if constexpr ( has_attached_data )
+                            get_attached_data<Pathway...>() = attached_data_type(std::size(ref));
                         for ( std::size_t i=0; i<std::size(ref); ++i )
-                            notifyElementAdded(user, Route{keys}, i);
+                            notify_element_added(user, route{keys}, i);
                     }
                     else if constexpr ( is_array_member_v<Member> && requires { ref[0]; } )
-                        readValue<value_type, Member>(offset, ref);
+                        read_value<Value_type, Member>(offset, ref);
                     else
                     {
-                        ref = readValue<value_type, Member>(offset);
-                        if constexpr ( hasAttachedData )
-                            getAttachedData<Pathway...>() = attached_data_type(std::size(ref));
+                        ref = read_value<Value_type, Member>(offset);
+                        if constexpr ( has_attached_data )
+                            get_attached_data<Pathway...>() = attached_data_type(std::size(ref));
                     }
 
-                    if constexpr ( hasSelections )
+                    if constexpr ( has_selections )
                     {
-                        readSelections(events, offset, getSelections<Pathway...>());
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        read_selections(events, offset, get_selections<Pathway...>());
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::Reserve:
+                case op::reserve:
                 {
                     if constexpr ( requires { ref.shrink_to_fit(); } )
                         ref.shrink_to_fit();
                 }
                 break;
-                case Op::Trim:
+                case op::trim:
                 {
                     // NoOp
                 }
                 break;
-                case Op::Assign:
+                case op::assign:
                 {
-                    if constexpr ( hasSelections && isIterable && requires { ref.reserve(1); } )
+                    if constexpr ( has_selections && is_iterable && requires { ref.reserve(1); } )
                     {
-                        readIndex<index_type>(offset); // new size (unused)
-                        readValue<element_type, Member>(offset); // assigned value (unused)
-                        auto size = static_cast<std::size_t>(readIndex<index_type>(offset)); // prev size
+                        read_index<index_type>(offset); // new size (unused)
+                        read_value<element_type, Member>(offset); // assigned value (unused)
+                        auto size = static_cast<std::size_t>(read_index<index_type>(offset)); // prev size
 
-                        value_type prevContainer {};
-                        prevContainer.reserve(size);
+                        Value_type prev_container {};
+                        prev_container.reserve(size);
                         for ( std::size_t i=0; i<size; ++i )
-                            prevContainer.push_back(readValue<element_type, Member>(offset));
+                            prev_container.push_back(read_value<element_type, Member>(offset));
 
-                        if constexpr ( hasElementRemovedOp<Route> )
+                        if constexpr ( has_element_removed_op<route> )
                         {
                             for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1; i>=0; --i )
-                                notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
+                                notify_element_removed(user, route{keys}, static_cast<std::size_t>(i));
                         }
-                        std::swap(ref, prevContainer);
-                        if constexpr ( hasAttachedData )
-                            getAttachedData<Pathway...>() = attached_data_type(std::size(ref));
+                        std::swap(ref, prev_container);
+                        if constexpr ( has_attached_data )
+                            get_attached_data<Pathway...>() = attached_data_type(std::size(ref));
 
-                        if constexpr ( hasElementAddedOp<Route> )
+                        if constexpr ( has_element_added_op<route> )
                         {
                             for ( std::size_t i=0; i<std::size(ref); ++i )
-                                notifyElementAdded(user, Route{keys}, i);
+                                notify_element_added(user, route{keys}, i);
                         }
 
-                        if constexpr ( hasSelChangeOp )
+                        if constexpr ( has_sel_change_op )
                         {
-                            if ( readSelections(events, offset, getSelections<Pathway...>()) )
-                                notifySelectionsChanged(user, Route{keys});
+                            if ( read_selections(events, offset, get_selections<Pathway...>()) )
+                                notify_selections_changed(user, route{keys});
                         }
                         else
-                            readSelections(events, offset, getSelections<Pathway...>());
+                            read_selections(events, offset, get_selections<Pathway...>());
                     }
                 }
                 break;
-                case Op::AssignDefault:
+                case op::assign_default:
                 {
-                    if constexpr ( hasSelections && isIterable && requires { ref.reserve(1); } )
+                    if constexpr ( has_selections && is_iterable && requires { ref.reserve(1); } )
                     {
-                        readIndex<index_type>(offset); // new size (unused)
-                        auto size = static_cast<std::size_t>(readIndex<index_type>(offset)); // old size
+                        read_index<index_type>(offset); // new size (unused)
+                        auto size = static_cast<std::size_t>(read_index<index_type>(offset)); // old size
 
-                        value_type prevContainer {};
-                        prevContainer.reserve(size);
+                        Value_type prev_container {};
+                        prev_container.reserve(size);
                         for ( std::size_t i=0; i<size; ++i )
-                            prevContainer.push_back(readValue<element_type, Member>(offset));
+                            prev_container.push_back(read_value<element_type, Member>(offset));
 
-                        if constexpr ( hasElementRemovedOp<Route> )
+                        if constexpr ( has_element_removed_op<route> )
                         {
                             for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1; i>=0; --i )
-                                notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
+                                notify_element_removed(user, route{keys}, static_cast<std::size_t>(i));
                         }
-                        std::swap(ref, prevContainer);
-                        if constexpr ( hasAttachedData )
-                            getAttachedData<Pathway...>() = attached_data_type(std::size(ref));
+                        std::swap(ref, prev_container);
+                        if constexpr ( has_attached_data )
+                            get_attached_data<Pathway...>() = attached_data_type(std::size(ref));
 
-                        if constexpr ( hasElementAddedOp<Route> )
+                        if constexpr ( has_element_added_op<route> )
                         {
                             for ( std::size_t i=0; i<std::size(ref); ++i )
-                                notifyElementAdded(user, Route{keys}, i);
+                                notify_element_added(user, route{keys}, i);
                         }
 
-                        if constexpr ( hasSelChangeOp )
+                        if constexpr ( has_sel_change_op )
                         {
-                            if ( readSelections(events, offset, getSelections<Pathway...>()) )
-                                notifySelectionsChanged(user, Route{keys});
+                            if ( read_selections(events, offset, get_selections<Pathway...>()) )
+                                notify_selections_changed(user, route{keys});
                         }
                         else
-                            readSelections(events, offset, getSelections<Pathway...>());
+                            read_selections(events, offset, get_selections<Pathway...>());
                     }
                 }
                 break;
-                case Op::ClearSelections:
+                case op::clear_selections:
                 {
-                    if constexpr ( hasSelections )
+                    if constexpr ( has_selections )
                     {
-                        auto & sel = getSelections<Pathway...>();
-                        sel_type prevSelections {};
-                        readSelectionVector(events, offset, prevSelections);
-                        std::swap(sel, prevSelections);
+                        auto & sel = get_selections<Pathway...>();
+                        sel_type prev_selections {};
+                        read_selection_vector(events, offset, prev_selections);
+                        std::swap(sel, prev_selections);
                     }
-                    if constexpr ( hasSelChangeOp )
-                        notifySelectionsChanged(user, Route{keys});
+                    if constexpr ( has_sel_change_op )
+                        notify_selections_changed(user, route{keys});
                 }
                 break;
-                case Op::SelectAll:
+                case op::select_all:
                 {
-                    if constexpr ( hasSelections )
+                    if constexpr ( has_selections )
                     {
-                        auto & sel = getSelections<Pathway...>();
-                        sel_type prevSelections {};
-                        readSelectionVector(events, offset, prevSelections);
-                        std::swap(sel, prevSelections);
+                        auto & sel = get_selections<Pathway...>();
+                        sel_type prev_selections {};
+                        read_selection_vector(events, offset, prev_selections);
+                        std::swap(sel, prev_selections);
 
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::Select:
+                case op::select:
                 {
-                    if constexpr ( hasSelections )
+                    if constexpr ( has_selections )
                     {
-                        auto & sel = getSelections<Pathway...>();
-                        auto value = static_cast<std::size_t>(readIndex<index_type>(offset));
+                        auto & sel = get_selections<Pathway...>();
+                        auto value = static_cast<std::size_t>(read_index<index_type>(offset));
                         auto found = std::find(sel.begin(), sel.end(), value);
                         if ( found != sel.end() )
                             sel.erase(found);
 
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::SelectN:
+                case op::select_n:
                 {
-                    if constexpr ( hasSelections )
+                    if constexpr ( has_selections )
                     {
-                        auto & sel = getSelections<Pathway...>();
-                        auto size = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        auto selIndexes = readIndexes<index_type>(offset, size);
+                        auto & sel = get_selections<Pathway...>();
+                        auto size = static_cast<std::size_t>(read_index<index_type>(offset));
+                        auto sel_indexes = read_indexes<index_type>(offset, size);
                         for ( std::size_t i=0; i<size; ++i )
                         {
-                            auto found = std::find(sel.begin(), sel.end(), selIndexes[i]);
+                            auto found = std::find(sel.begin(), sel.end(), sel_indexes[i]);
                             if ( found != sel.end() )
                                 sel.erase(found);
                         }
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::Deselect:
+                case op::deselect:
                 {
-                    if constexpr ( hasSelections )
+                    if constexpr ( has_selections )
                     {
-                    auto & sel = getSelections<Pathway...>();
-                    auto value = readIndex<index_type>(offset);
-                    auto selIndex = readIndex<index_type>(offset);
+                    auto & sel = get_selections<Pathway...>();
+                    auto value = read_index<index_type>(offset);
+                    auto sel_index = read_index<index_type>(offset);
                     if ( std::find(sel.begin(), sel.end(), value) == sel.end() )
-                        sel.insert(std::next(sel.begin(), static_cast<std::ptrdiff_t>(selIndex)), value);
+                        sel.insert(std::next(sel.begin(), static_cast<std::ptrdiff_t>(sel_index)), value);
                         
-                    if constexpr ( hasSelChangeOp )
-                        notifySelectionsChanged(user, Route{keys});
+                    if constexpr ( has_sel_change_op )
+                        notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::DeselectN:
+                case op::deselect_n:
                 {
-                    if constexpr ( hasSelections )
+                    if constexpr ( has_selections )
                     {
-                        auto & sel = getSelections<Pathway...>();
-                        auto size = static_cast<std::ptrdiff_t>(readIndex<index_type>(offset));
-                        auto deselectIndexes = readIndexes<index_type>(offset, static_cast<std::size_t>(size));
-                        auto prevSelIndexes = readIndexes<index_type>(offset, static_cast<std::size_t>(size));
+                        auto & sel = get_selections<Pathway...>();
+                        auto size = static_cast<std::ptrdiff_t>(read_index<index_type>(offset));
+                        auto deselect_indexes = read_indexes<index_type>(offset, static_cast<std::size_t>(size));
+                        auto prev_sel_indexes = read_indexes<index_type>(offset, static_cast<std::size_t>(size));
 
                         for ( std::ptrdiff_t i=size-1; i>=0; --i )
                         {
-                            sel.insert(std::next(sel.begin(), static_cast<std::ptrdiff_t>(prevSelIndexes[static_cast<std::size_t>(i)])),
-                                deselectIndexes[static_cast<std::size_t>(i)]);
+                            sel.insert(std::next(sel.begin(), static_cast<std::ptrdiff_t>(prev_sel_indexes[static_cast<std::size_t>(i)])),
+                                deselect_indexes[static_cast<std::size_t>(i)]);
                         }
 
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::ToggleSelection:
+                case op::toggle_selection:
                 {
-                    if constexpr ( hasSelections )
+                    if constexpr ( has_selections )
                     {
-                        auto & sel = getSelections<Pathway...>();
-                        auto value = readIndex<index_type>(offset);
-                        if ( u8bool::read(events, offset) ) // wasSelected
-                            sel.insert(std::next(sel.begin(), static_cast<std::ptrdiff_t>(readIndex<index_type>(offset))), value);
+                        auto & sel = get_selections<Pathway...>();
+                        auto value = read_index<index_type>(offset);
+                        if ( u8bool::read(events, offset) ) // was_selected
+                            sel.insert(std::next(sel.begin(), static_cast<std::ptrdiff_t>(read_index<index_type>(offset))), value);
                         else
                             std::erase(sel, value);
                         
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::ToggleSelectionN:
+                case op::toggle_selection_n:
                 {
-                    if constexpr ( hasSelections )
+                    if constexpr ( has_selections )
                     {
-                        auto & sel = getSelections<Pathway...>();
-                        auto size = static_cast<std::ptrdiff_t>(readIndex<index_type>(offset));
-                        auto toggledIndexes = readIndexes<index_type>(offset, static_cast<std::size_t>(size));
+                        auto & sel = get_selections<Pathway...>();
+                        auto size = static_cast<std::ptrdiff_t>(read_index<index_type>(offset));
+                        auto toggled_indexes = read_indexes<index_type>(offset, static_cast<std::size_t>(size));
 
-                        std::vector<bool> wasSelected {};
-                        readVecBoolData(events, offset, static_cast<std::size_t>(size), wasSelected);
+                        std::vector<bool> was_selected {};
+                        read_vec_bool_data(events, offset, static_cast<std::size_t>(size), was_selected);
 
-                        auto prevSelIndexes = readIndexes<index_type>(offset, static_cast<std::size_t>(size));
+                        auto prev_sel_indexes = read_indexes<index_type>(offset, static_cast<std::size_t>(size));
 
                         for ( std::ptrdiff_t i=size-1; i>=0; --i )
                         {
-                            auto found = std::find(sel.begin(), sel.end(), toggledIndexes[static_cast<std::size_t>(i)]);
+                            auto found = std::find(sel.begin(), sel.end(), toggled_indexes[static_cast<std::size_t>(i)]);
                             if ( found == sel.end() )
-                                sel.insert(std::next(sel.begin(), static_cast<std::ptrdiff_t>(prevSelIndexes[static_cast<std::size_t>(i)])), toggledIndexes[static_cast<std::size_t>(i)]);
+                                sel.insert(std::next(sel.begin(), static_cast<std::ptrdiff_t>(prev_sel_indexes[static_cast<std::size_t>(i)])), toggled_indexes[static_cast<std::size_t>(i)]);
                             else
                                 sel.erase(found);
                         }
 
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::SortSelections:
+                case op::sort_selections:
                 {
-                    if constexpr ( hasSelections )
+                    if constexpr ( has_selections )
                     {
-                        auto & sel = getSelections<Pathway...>();
-                        auto size = readIndex<index_type>(offset);
-                        auto sourceIndexes = readIndexes<index_type>(offset, size);
+                        auto & sel = get_selections<Pathway...>();
+                        auto size = read_index<index_type>(offset);
+                        auto source_indexes = read_indexes<index_type>(offset, size);
 
-                        undoSort(sel, sourceIndexes);
+                        undo_sort(sel, source_indexes);
 
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::SortSelectionsDesc:
+                case op::sort_selections_desc:
                 {
-                    if constexpr ( hasSelections )
+                    if constexpr ( has_selections )
                     {
-                        auto & sel = getSelections<Pathway...>();
-                        auto size = readIndex<index_type>(offset);
-                        auto sourceIndexes = readIndexes<index_type>(offset, size);
+                        auto & sel = get_selections<Pathway...>();
+                        auto size = read_index<index_type>(offset);
+                        auto source_indexes = read_indexes<index_type>(offset, size);
 
-                        undoSort(sel, sourceIndexes);
+                        undo_sort(sel, source_indexes);
 
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::Set:
+                case op::set:
                 {
-                    if constexpr ( RareTs::is_assignable_v<decltype(ref), value_type> )
+                    if constexpr ( RareTs::is_assignable_v<decltype(ref), Value_type> )
                     {
-                        readValue<value_type, Member>(offset); // newValue (unused)
-                        auto prevValue = readValue<value_type, Member>(offset);
-                        if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> )
+                        read_value<Value_type, Member>(offset); // new_value (unused)
+                        auto prev_value = read_value<Value_type, Member>(offset);
+                        if constexpr ( !is_iterable && has_value_changed_op<route, Value_type> )
                         {
                             auto temp = ref;
-                            ref = prevValue;
-                            notifyValueChanged(user, Route{keys}, temp, ref);
+                            ref = prev_value;
+                            notify_value_changed(user, route{keys}, temp, ref);
                         }
                         else
                         {
-                            if constexpr ( isIterable && hasElementRemovedOp<Route> )
+                            if constexpr ( is_iterable && has_element_removed_op<route> )
                             {
                                 for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1; i>=0; --i )
-                                    notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
+                                    notify_element_removed(user, route{keys}, static_cast<std::size_t>(i));
                             }
 
-                            ref = prevValue;
-                            if constexpr ( hasAttachedData )
-                                getAttachedData<Pathway...>() = attached_data_type(std::size(ref));
+                            ref = prev_value;
+                            if constexpr ( has_attached_data )
+                                get_attached_data<Pathway...>() = attached_data_type(std::size(ref));
 
-                            if constexpr ( isIterable && hasElementAddedOp<Route> )
+                            if constexpr ( is_iterable && has_element_added_op<route> )
                             {
                                 for ( std::size_t i=0; i<std::size(ref); ++i )
-                                    notifyElementAdded(user, Route{keys}, i);
+                                    notify_element_added(user, route{keys}, i);
                             }
                         }
 
-                        if constexpr ( hasSelections )
+                        if constexpr ( has_selections )
                         {
-                            readSelections(events, offset, getSelections<Pathway...>());
-                            if constexpr ( hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            read_selections(events, offset, get_selections<Pathway...>());
+                            if constexpr ( has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
                     }
                 }
                 break;
-                case Op::SetN:
+                case op::set_n:
                 {
                     if constexpr ( requires{ref[0];} && requires{ref[0] = std::declval<decltype(ref[0])>();} )
                     {
-                        constexpr bool isIterableElement = RareTs::is_iterable_v<element_type>;
-                        auto count = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        auto setIndexes = readIndexes<index_type>(offset, count);
+                        constexpr bool is_iterable_element = RareTs::is_iterable_v<element_type>;
+                        auto count = static_cast<std::size_t>(read_index<index_type>(offset));
+                        auto set_indexes = read_indexes<index_type>(offset, count);
 
-                        readValue<element_type, Member>(offset); // new value (unused);
+                        read_value<element_type, Member>(offset); // new value (unused);
                             
-                        if constexpr ( !isIterableElement && hasValueChangedOp<Route, element_type> )
+                        if constexpr ( !is_iterable_element && has_value_changed_op<route, element_type> )
                         {
-                            for ( auto index : setIndexes )
+                            for ( auto index : set_indexes )
                             {
-                                auto prevValue = readValue<element_type, Member>(offset);
-                                std::swap(ref[index], prevValue);
-                                notifyValueChanged(user, ElemRoute{std::tuple_cat(keys, std::tuple<index_type>{index})}, prevValue, ref[index]);
+                                auto prev_value = read_value<element_type, Member>(offset);
+                                std::swap(ref[index], prev_value);
+                                notify_value_changed(user, elem_route{std::tuple_cat(keys, std::tuple<index_type>{index})}, prev_value, ref[index]);
                             }
                         }
-                        else if constexpr ( isIterableElement && hasElementRemovedOp<Route> )
+                        else if constexpr ( is_iterable_element && has_element_removed_op<route> )
                         {
-                            for ( auto index : setIndexes )
+                            for ( auto index : set_indexes )
                             {
                                 for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref[index]))-1; i>=0; --i )
-                                    notifyElementRemoved(user, ElemRoute{std::tuple_cat(keys, std::tuple<index_type>{index})}, static_cast<std::size_t>(i));
+                                    notify_element_removed(user, elem_route{std::tuple_cat(keys, std::tuple<index_type>{index})}, static_cast<std::size_t>(i));
 
-                                ref[index] = readValue<element_type, Member>(offset);
+                                ref[index] = read_value<element_type, Member>(offset);
 
-                                if constexpr ( hasElementAddedOp<Route> )
+                                if constexpr ( has_element_added_op<route> )
                                 {
                                     for ( std::size_t j=0; j<std::size(ref[index]); ++j )
-                                        notifyElementAdded(user, ElemRoute{std::tuple_cat(keys, std::tuple<index_type>{index})}, j);
+                                        notify_element_added(user, elem_route{std::tuple_cat(keys, std::tuple<index_type>{index})}, j);
                                 }
                             }
                         }
                         else
                         {
-                            for ( auto index : setIndexes )
+                            for ( auto index : set_indexes )
                             {
-                                ref[index] = readValue<element_type, Member>(offset);
-                                if constexpr ( isIterableElement && hasElementAddedOp<Route> )
+                                ref[index] = read_value<element_type, Member>(offset);
+                                if constexpr ( is_iterable_element && has_element_added_op<route> )
                                 {
                                     for ( std::size_t i=0; i<std::size(ref[index]); ++i )
-                                        notifyElementAdded(user, ElemRoute{std::tuple_cat(keys, std::tuple<index_type>{index})}, i);
+                                        notify_element_added(user, elem_route{std::tuple_cat(keys, std::tuple<index_type>{index})}, i);
                                 }
                             }
                         }
                     }
                 }
                 break;
-                case Op::SetL:
+                case op::set_l:
                 {
-                    if constexpr ( RareTs::is_assignable_v<decltype(ref), value_type> )
+                    if constexpr ( RareTs::is_assignable_v<decltype(ref), Value_type> )
                     {
-                        if ( !secondaryOffset )
+                        if ( !secondary_offset )
                         {
-                            secondaryOffset = offset; // Is set exclusively for the first visit of the selection
-                            readValue<value_type, Member>(*secondaryOffset); // Advanced past valueSetTo (unused for undos, used for redos)
+                            secondary_offset = offset; // Is set exclusively for the first visit of the selection
+                            read_value<Value_type, Member>(*secondary_offset); // Advanced past valueSetTo (unused for undos, used for redos)
                         }
-                        auto prevValue = readValue<value_type, Member>(*secondaryOffset);
-                        if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> )
+                        auto prev_value = read_value<Value_type, Member>(*secondary_offset);
+                        if constexpr ( !is_iterable && has_value_changed_op<route, Value_type> )
                         {
                             auto temp = ref;
-                            ref = prevValue;
-                            notifyValueChanged(user, Route{keys}, temp, ref);
+                            ref = prev_value;
+                            notify_value_changed(user, route{keys}, temp, ref);
                         }
                         else
                         {
-                            if constexpr ( isIterable && hasElementRemovedOp<Route> )
+                            if constexpr ( is_iterable && has_element_removed_op<route> )
                             {
                                 for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1; i>=0; --i )
-                                    notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
+                                    notify_element_removed(user, route{keys}, static_cast<std::size_t>(i));
                             }
-                            ref = prevValue;
+                            ref = prev_value;
 
-                            if constexpr ( isIterable && hasElementAddedOp<Route> )
+                            if constexpr ( is_iterable && has_element_added_op<route> )
                             {
                                 for ( std::size_t i=0; i<std::size(ref); ++i )
-                                    notifyElementAdded(user, Route{keys}, i);
+                                    notify_element_added(user, route{keys}, i);
                             }
                         }
                     }
                 }
                 break;
-                case Op::Append:
+                case op::append:
                 {
-                    if constexpr ( hasElementRemovedOp<Route> && requires { ref.size(); } )
-                        notifyElementRemoved(user, Route{keys}, ref.size()-1);
+                    if constexpr ( has_element_removed_op<route> && requires { ref.size(); } )
+                        notify_element_removed(user, route{keys}, ref.size()-1);
                     if constexpr ( RareTs::has_pop_back_v<decltype(ref)> )
                         ref.pop_back();
-                    if constexpr ( hasAttachedData )
-                        getAttachedData<Pathway...>().pop_back();
+                    if constexpr ( has_attached_data )
+                        get_attached_data<Pathway...>().pop_back();
                 }
                 break;
-                case Op::AppendN:
+                case op::append_n:
                 {
                     if constexpr ( requires { ref.size(); ref.erase(ref.begin(), ref.end()); } )
                     {
-                        auto count = static_cast<std::ptrdiff_t>(readIndex<index_type>(offset));
+                        auto count = static_cast<std::ptrdiff_t>(read_index<index_type>(offset));
                         auto size = static_cast<std::ptrdiff_t>(ref.size());
-                        if constexpr ( hasElementRemovedOp<Route> )
+                        if constexpr ( has_element_removed_op<route> )
                         {
                             for ( std::ptrdiff_t i=size-1; i>=size-count; --i )
-                                notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
+                                notify_element_removed(user, route{keys}, static_cast<std::size_t>(i));
                         }
                         ref.erase(std::next(ref.begin(), size-count), ref.end());
-                        if constexpr ( hasAttachedData )
+                        if constexpr ( has_attached_data )
                         {
-                            auto & attachedData = getAttachedData<Pathway...>();
-                            attachedData.erase(std::next(attachedData.begin(), size-count), attachedData.end());
+                            auto & attached_data = get_attached_data<Pathway...>();
+                            attached_data.erase(std::next(attached_data.begin(), size-count), attached_data.end());
                         }
                     }
                 }
                 break;
-                case Op::Insert:
+                case op::insert:
                 {
-                    if constexpr ( hasSelections && !std::is_void_v<element_type> && requires { ref.erase(ref.begin()); } )
+                    if constexpr ( has_selections && !std::is_void_v<element_type> && requires { ref.erase(ref.begin()); } )
                     {
-                        auto insertionIndex = readIndex<index_type>(offset);
-                        if constexpr ( hasElementRemovedOp<Route> )
-                            notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(insertionIndex));
+                        auto insertion_index = read_index<index_type>(offset);
+                        if constexpr ( has_element_removed_op<route> )
+                            notify_element_removed(user, route{keys}, static_cast<std::size_t>(insertion_index));
 
-                        ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(insertionIndex)));
-                        if constexpr ( hasAttachedData )
+                        ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(insertion_index)));
+                        if constexpr ( has_attached_data )
                         {
-                            auto & attachedData = getAttachedData<Pathway...>();
-                            attachedData.erase(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(insertionIndex)));
+                            auto & attached_data = get_attached_data<Pathway...>();
+                            attached_data.erase(std::next(attached_data.begin(), static_cast<std::ptrdiff_t>(insertion_index)));
                         }
 
-                        if constexpr ( hasElementMovedOp<Route> )
+                        if constexpr ( has_element_moved_op<route> )
                         {
-                            for ( std::size_t i=static_cast<std::size_t>(insertionIndex); i<std::size(ref); ++i )
-                                notifyElementMoved(user, Route{keys}, i+1, i);
+                            for ( std::size_t i=static_cast<std::size_t>(insertion_index); i<std::size(ref); ++i )
+                                notify_element_moved(user, route{keys}, i+1, i);
                         }
 
-                        if constexpr ( hasSelections )
+                        if constexpr ( has_selections )
                         {
-                            auto & sel = getSelections<Pathway...>();
+                            auto & sel = get_selections<Pathway...>();
                             for ( auto & index : sel )
                             {
-                                if ( static_cast<index_type>(index) >= insertionIndex )
+                                if ( static_cast<index_type>(index) >= insertion_index )
                                     --index;
                             }
-                            if constexpr ( hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            if constexpr ( has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
                     }
                 }
                 break;
-                case Op::InsertN:
+                case op::insert_n:
                 {
                     if constexpr ( !std::is_void_v<element_type> && requires { ref.erase(ref.begin(), ref.end()); } )
                     {
-                        auto insertionCount = readIndex<index_type>(offset);
-                        auto insertionIndex = readIndex<index_type>(offset);
-                        if constexpr ( hasElementRemovedOp<Route> )
+                        auto insertion_count = read_index<index_type>(offset);
+                        auto insertion_index = read_index<index_type>(offset);
+                        if constexpr ( has_element_removed_op<route> )
                         {
-                            for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(insertionIndex)+static_cast<std::ptrdiff_t>(insertionCount)-1;
-                                i >= static_cast<std::ptrdiff_t>(insertionIndex); --i )
+                            for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(insertion_index)+static_cast<std::ptrdiff_t>(insertion_count)-1;
+                                i >= static_cast<std::ptrdiff_t>(insertion_index); --i )
                             {
-                                notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
+                                notify_element_removed(user, route{keys}, static_cast<std::size_t>(i));
                             }
                         }
                         ref.erase(
-                            std::next(ref.begin(), static_cast<std::ptrdiff_t>(insertionIndex)),
-                            std::next(ref.begin(), static_cast<std::ptrdiff_t>(insertionIndex)+static_cast<std::ptrdiff_t>(insertionCount))
+                            std::next(ref.begin(), static_cast<std::ptrdiff_t>(insertion_index)),
+                            std::next(ref.begin(), static_cast<std::ptrdiff_t>(insertion_index)+static_cast<std::ptrdiff_t>(insertion_count))
                         );
-                        if constexpr ( hasAttachedData )
+                        if constexpr ( has_attached_data )
                         {
-                            auto & attachedData = getAttachedData<Pathway...>();
-                            attachedData.erase(
-                                std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(insertionIndex)),
-                                std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(insertionIndex)+static_cast<std::ptrdiff_t>(insertionCount))
+                            auto & attached_data = get_attached_data<Pathway...>();
+                            attached_data.erase(
+                                std::next(attached_data.begin(), static_cast<std::ptrdiff_t>(insertion_index)),
+                                std::next(attached_data.begin(), static_cast<std::ptrdiff_t>(insertion_index)+static_cast<std::ptrdiff_t>(insertion_count))
                             );
                         }
-                        if constexpr ( hasElementMovedOp<Route> )
+                        if constexpr ( has_element_moved_op<route> )
                         {
-                            for ( std::size_t i=static_cast<std::size_t>(insertionIndex);
-                                i+1<static_cast<std::size_t>(insertionIndex)+static_cast<std::size_t>(insertionCount); ++i )
+                            for ( std::size_t i=static_cast<std::size_t>(insertion_index);
+                                i+1<static_cast<std::size_t>(insertion_index)+static_cast<std::size_t>(insertion_count); ++i )
                             {
-                                notifyElementMoved(user, Route{keys}, i+static_cast<std::size_t>(insertionCount), i);
+                                notify_element_moved(user, route{keys}, i+static_cast<std::size_t>(insertion_count), i);
                             }
                         }
-                        if constexpr ( hasSelections )
+                        if constexpr ( has_selections )
                         {
-                            auto & sel = getSelections<Pathway...>();
+                            auto & sel = get_selections<Pathway...>();
                             for ( auto & index : sel )
                             {
-                                if ( static_cast<index_type>(index) >= insertionIndex )
-                                    index -= insertionCount;
+                                if ( static_cast<index_type>(index) >= insertion_index )
+                                    index -= insertion_count;
                             }
-                            if constexpr ( hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            if constexpr ( has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
                     }
                 }
                 break;
-                case Op::Remove:
+                case op::remove:
                 {
                     if constexpr ( !std::is_void_v<element_type> && requires { ref.insert(ref.begin(), std::declval<element_type>()); } )
                     {
-                        auto removalIndex = readIndex<index_type>(offset);
-                        auto removedValue = readValue<element_type, Member>(offset);
-                        ref.insert(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removalIndex)), removedValue);
-                        if constexpr ( hasAttachedData )
+                        auto removal_index = read_index<index_type>(offset);
+                        auto removed_value = read_value<element_type, Member>(offset);
+                        ref.insert(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removal_index)), removed_value);
+                        if constexpr ( has_attached_data )
                         {
-                            auto & attachedData = getAttachedData<Pathway...>();
-                            attachedData.emplace(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(removalIndex)));
+                            auto & attached_data = get_attached_data<Pathway...>();
+                            attached_data.emplace(std::next(attached_data.begin(), static_cast<std::ptrdiff_t>(removal_index)));
                         }
-                        if constexpr ( hasElementAddedOp<Route> )
-                            notifyElementAdded(user, Route{keys}, removalIndex);
+                        if constexpr ( has_element_added_op<route> )
+                            notify_element_added(user, route{keys}, removal_index);
 
-                        if constexpr ( hasElementMovedOp<Route> )
+                        if constexpr ( has_element_moved_op<route> )
                         {
-                            for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(std::size(ref))-1; i>static_cast<std::ptrdiff_t>(removalIndex); --i )
-                                notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(i-1), static_cast<std::size_t>(i));
+                            for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(std::size(ref))-1; i>static_cast<std::ptrdiff_t>(removal_index); --i )
+                                notify_element_moved(user, route{keys}, static_cast<std::size_t>(i-1), static_cast<std::size_t>(i));
                         }
 
                         if ( u8bool::read(events, offset) )
                         {
-                            if constexpr ( hasSelections )
+                            if constexpr ( has_selections )
                             {
-                                auto & sel = getSelections<Pathway...>();
-                                auto prevSelIndex = readIndex<index_type>(offset);
-                                sel.insert(std::next(sel.begin(), static_cast<std::ptrdiff_t>(prevSelIndex)), removalIndex);
+                                auto & sel = get_selections<Pathway...>();
+                                auto prev_sel_index = read_index<index_type>(offset);
+                                sel.insert(std::next(sel.begin(), static_cast<std::ptrdiff_t>(prev_sel_index)), removal_index);
                                 for ( auto & i : sel )
                                 {
-                                    if ( i > removalIndex )
+                                    if ( i > removal_index )
                                         ++i;
                                 }
                             }
                         }
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::RemoveN:
+                case op::remove_n:
                 {
                     if constexpr ( !std::is_void_v<element_type> && requires { ref.insert(ref.begin(), std::declval<element_type>()); } )
                     {
-                        std::ptrdiff_t removalCount = static_cast<std::ptrdiff_t>(readIndex<index_type>(offset));
-                        auto removalIndexes = readIndexes<index_type>(offset, static_cast<std::size_t>(removalCount)); // removalIndexes were pre-sorted highest index to lowest index
+                        std::ptrdiff_t removal_count = static_cast<std::ptrdiff_t>(read_index<index_type>(offset));
+                        auto removal_indexes = read_indexes<index_type>(offset, static_cast<std::size_t>(removal_count)); // removal_indexes were pre-sorted highest index to lowest index
 
-                        std::vector<element_type> removedValues {};
-                        removedValues.reserve(static_cast<std::size_t>(removalCount));
-                        for ( std::ptrdiff_t i=0; i<removalCount; ++i )
-                            removedValues.push_back(readValue<element_type, Member>(offset));
+                        std::vector<element_type> removed_values {};
+                        removed_values.reserve(static_cast<std::size_t>(removal_count));
+                        for ( std::ptrdiff_t i=0; i<removal_count; ++i )
+                            removed_values.push_back(read_value<element_type, Member>(offset));
                             
-                        for ( std::ptrdiff_t i=removalCount-1; i>=0; --i ) // insert values which were removed from the lowest indexes first
+                        for ( std::ptrdiff_t i=removal_count-1; i>=0; --i ) // insert values which were removed from the lowest indexes first
                         {
-                            auto reinsertedIndex = removalIndexes[static_cast<std::size_t>(i)];
-                            ref.insert(std::next(ref.begin(), static_cast<std::ptrdiff_t>(reinsertedIndex)), removedValues[static_cast<std::size_t>(i)]);
-                            if constexpr ( hasAttachedData )
+                            auto reinserted_index = removal_indexes[static_cast<std::size_t>(i)];
+                            ref.insert(std::next(ref.begin(), static_cast<std::ptrdiff_t>(reinserted_index)), removed_values[static_cast<std::size_t>(i)]);
+                            if constexpr ( has_attached_data )
                             {
-                                auto & attachedData = getAttachedData<Pathway...>();
-                                attachedData.emplace(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(reinsertedIndex)));
+                                auto & attached_data = get_attached_data<Pathway...>();
+                                attached_data.emplace(std::next(attached_data.begin(), static_cast<std::ptrdiff_t>(reinserted_index)));
                             }
-                            if constexpr ( hasSelections )
+                            if constexpr ( has_selections )
                             {
-                                auto & sel = getSelections<Pathway...>();
+                                auto & sel = get_selections<Pathway...>();
                                 for ( auto & s : sel )
                                 {
-                                    if ( s >= reinsertedIndex )
+                                    if ( s >= reinserted_index )
                                         ++s;
                                 }
                             }
                         }
-                        if constexpr ( hasElementAddedOp<Route> )
+                        if constexpr ( has_element_added_op<route> )
                         {
-                            for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(std::size(removalIndexes))-1; i>=0; --i )
-                                notifyElementAdded(user, Route{keys}, static_cast<std::size_t>(removalIndexes[static_cast<std::size_t>(i)]));
+                            for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(std::size(removal_indexes))-1; i>=0; --i )
+                                notify_element_added(user, route{keys}, static_cast<std::size_t>(removal_indexes[static_cast<std::size_t>(i)]));
                         }
-                        if constexpr ( hasElementMovedOp<Route> )
+                        if constexpr ( has_element_moved_op<route> )
                         {
-                            std::ptrdiff_t collectionIndex = static_cast<std::ptrdiff_t>(std::size(ref))-1;
-                            std::ptrdiff_t moveDistance = static_cast<std::ptrdiff_t>(std::size(removalIndexes));
-                            for ( ; collectionIndex>static_cast<std::ptrdiff_t>(removalIndexes[0]); --collectionIndex )
-                                notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(collectionIndex-moveDistance), static_cast<std::size_t>(collectionIndex));
-                            for ( std::size_t i=1; i<std::size(removalIndexes); ++i )
+                            std::ptrdiff_t collection_index = static_cast<std::ptrdiff_t>(std::size(ref))-1;
+                            std::ptrdiff_t move_distance = static_cast<std::ptrdiff_t>(std::size(removal_indexes));
+                            for ( ; collection_index>static_cast<std::ptrdiff_t>(removal_indexes[0]); --collection_index )
+                                notify_element_moved(user, route{keys}, static_cast<std::size_t>(collection_index-move_distance), static_cast<std::size_t>(collection_index));
+                            for ( std::size_t i=1; i<std::size(removal_indexes); ++i )
                             {
-                                --moveDistance;
-                                for ( collectionIndex = static_cast<std::ptrdiff_t>(removalIndexes[i-1])-1; collectionIndex > static_cast<std::ptrdiff_t>(removalIndexes[i]); --collectionIndex )
-                                    notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(collectionIndex-moveDistance), static_cast<std::size_t>(collectionIndex));
+                                --move_distance;
+                                for ( collection_index = static_cast<std::ptrdiff_t>(removal_indexes[i-1])-1; collection_index > static_cast<std::ptrdiff_t>(removal_indexes[i]); --collection_index )
+                                    notify_element_moved(user, route{keys}, static_cast<std::size_t>(collection_index-move_distance), static_cast<std::size_t>(collection_index));
                             }
                         }
 
-                        if constexpr ( hasSelections )
+                        if constexpr ( has_selections )
                         {
-                            auto & sel = getSelections<Pathway...>();
-                            std::vector<bool> removalIndexSelected {};
-                            readVecBoolData(events, offset, static_cast<std::size_t>(removalCount), removalIndexSelected);
+                            auto & sel = get_selections<Pathway...>();
+                            std::vector<bool> removal_index_selected {};
+                            read_vec_bool_data(events, offset, static_cast<std::size_t>(removal_count), removal_index_selected);
 
-                            std::size_t prevSelIndexCount = static_cast<std::size_t>(readIndex<index_type>(offset));
-                            auto prevSelIndexes = readIndexes<index_type>(offset, prevSelIndexCount);
+                            std::size_t prev_sel_index_count = static_cast<std::size_t>(read_index<index_type>(offset));
+                            auto prev_sel_indexes = read_indexes<index_type>(offset, prev_sel_index_count);
 
-                            std::size_t unremovedI = std::size(prevSelIndexes)-1;
-                            for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(removalCount)-1; i>=0; --i )
+                            std::size_t unremoved_i = std::size(prev_sel_indexes)-1;
+                            for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(removal_count)-1; i>=0; --i )
                             {
-                                if ( removalIndexSelected[static_cast<std::size_t>(i)] )
+                                if ( removal_index_selected[static_cast<std::size_t>(i)] )
                                 {
-                                    auto insertedValue = removalIndexes[static_cast<std::size_t>(i)];
-                                    sel.insert(std::next(sel.begin(), static_cast<std::ptrdiff_t>(prevSelIndexes[unremovedI])), insertedValue);
-                                    --unremovedI;
+                                    auto inserted_value = removal_indexes[static_cast<std::size_t>(i)];
+                                    sel.insert(std::next(sel.begin(), static_cast<std::ptrdiff_t>(prev_sel_indexes[unremoved_i])), inserted_value);
+                                    --unremoved_i;
                                 }
                             }
                                 
-                            if constexpr ( hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            if constexpr ( has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
                     }
                 }
                 break;
-                case Op::RemoveL:
+                case op::remove_l:
                 {
                     if constexpr ( !std::is_void_v<element_type> && requires { ref.insert(ref.begin(), std::declval<element_type>()); } )
                     {
-                        std::ptrdiff_t removalCount = static_cast<std::ptrdiff_t>(readIndex<index_type>(offset));
-                        auto removalIndexes = readIndexes<index_type>(offset, static_cast<std::size_t>(removalCount)); // removalIndexes were pre-sorted highest index to lowest index
+                        std::ptrdiff_t removal_count = static_cast<std::ptrdiff_t>(read_index<index_type>(offset));
+                        auto removal_indexes = read_indexes<index_type>(offset, static_cast<std::size_t>(removal_count)); // removal_indexes were pre-sorted highest index to lowest index
 
-                        std::vector<element_type> removedValues {};
-                        removedValues.reserve(static_cast<std::size_t>(removalCount));
-                        for ( std::ptrdiff_t i=0; i<removalCount; ++i )
-                            removedValues.push_back(readValue<element_type, Member>(offset));
+                        std::vector<element_type> removed_values {};
+                        removed_values.reserve(static_cast<std::size_t>(removal_count));
+                        for ( std::ptrdiff_t i=0; i<removal_count; ++i )
+                            removed_values.push_back(read_value<element_type, Member>(offset));
 
-                        for ( std::ptrdiff_t i=removalCount-1; i>=0; --i ) // insert values which were removed from the lowest indexes first
-                            ref.insert(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removalIndexes[static_cast<std::size_t>(i)])), removedValues[static_cast<std::size_t>(i)]);
+                        for ( std::ptrdiff_t i=removal_count-1; i>=0; --i ) // insert values which were removed from the lowest indexes first
+                            ref.insert(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removal_indexes[static_cast<std::size_t>(i)])), removed_values[static_cast<std::size_t>(i)]);
 
-                        if constexpr ( hasAttachedData )
+                        if constexpr ( has_attached_data )
                         {
-                            auto & attachedData = getAttachedData<Pathway...>();
-                            for ( std::ptrdiff_t i=removalCount-1; i>=0; --i )
-                                attachedData.emplace(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(removalIndexes[static_cast<std::size_t>(i)])));
+                            auto & attached_data = get_attached_data<Pathway...>();
+                            for ( std::ptrdiff_t i=removal_count-1; i>=0; --i )
+                                attached_data.emplace(std::next(attached_data.begin(), static_cast<std::ptrdiff_t>(removal_indexes[static_cast<std::size_t>(i)])));
                         }
 
-                        if constexpr ( hasElementAddedOp<Route> )
+                        if constexpr ( has_element_added_op<route> )
                         {
-                            for ( std::ptrdiff_t i=removalCount-1; i>=0; --i ) // insert values which were removed from the lowest indexes first
-                                notifyElementAdded(user, Route{keys}, static_cast<std::size_t>(removalIndexes[static_cast<std::size_t>(i)]));
+                            for ( std::ptrdiff_t i=removal_count-1; i>=0; --i ) // insert values which were removed from the lowest indexes first
+                                notify_element_added(user, route{keys}, static_cast<std::size_t>(removal_indexes[static_cast<std::size_t>(i)]));
                         }
 
-                        if constexpr ( hasElementMovedOp<Route> )
+                        if constexpr ( has_element_moved_op<route> )
                         {
-                            std::ptrdiff_t collectionIndex = static_cast<std::ptrdiff_t>(std::size(ref))-1;
-                            std::ptrdiff_t moveDistance = static_cast<std::ptrdiff_t>(std::size(removalIndexes));
-                            for ( ; collectionIndex>static_cast<std::ptrdiff_t>(removalIndexes[0]); --collectionIndex )
-                                notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(collectionIndex-moveDistance), static_cast<std::size_t>(collectionIndex));
-                            for ( std::size_t i=1; i<std::size(removalIndexes); ++i )
+                            std::ptrdiff_t collection_index = static_cast<std::ptrdiff_t>(std::size(ref))-1;
+                            std::ptrdiff_t move_distance = static_cast<std::ptrdiff_t>(std::size(removal_indexes));
+                            for ( ; collection_index>static_cast<std::ptrdiff_t>(removal_indexes[0]); --collection_index )
+                                notify_element_moved(user, route{keys}, static_cast<std::size_t>(collection_index-move_distance), static_cast<std::size_t>(collection_index));
+                            for ( std::size_t i=1; i<std::size(removal_indexes); ++i )
                             {
-                                --moveDistance;
-                                for ( collectionIndex = static_cast<std::ptrdiff_t>(removalIndexes[i-1])-1; collectionIndex > static_cast<std::ptrdiff_t>(removalIndexes[i]); --collectionIndex )
-                                    notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(collectionIndex-moveDistance), static_cast<std::size_t>(collectionIndex));
+                                --move_distance;
+                                for ( collection_index = static_cast<std::ptrdiff_t>(removal_indexes[i-1])-1; collection_index > static_cast<std::ptrdiff_t>(removal_indexes[i]); --collection_index )
+                                    notify_element_moved(user, route{keys}, static_cast<std::size_t>(collection_index-move_distance), static_cast<std::size_t>(collection_index));
                             }
                         }
 
-                        readSelections(events, offset, getSelections<Pathway...>());
+                        read_selections(events, offset, get_selections<Pathway...>());
 
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 };
                 break;
-                case Op::Sort:
+                case op::sort:
                 {
-                    if constexpr ( RareTs::is_specialization_v<value_type, std::vector> )
+                    if constexpr ( RareTs::is_specialization_v<Value_type, std::vector> )
                     {
-                        std::size_t count = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        auto sourceIndexes = readIndexes<index_type>(offset, count);
+                        std::size_t count = static_cast<std::size_t>(read_index<index_type>(offset));
+                        auto source_indexes = read_indexes<index_type>(offset, count);
 
-                        undoSort(ref, sourceIndexes);
-                        if constexpr ( hasAttachedData )
-                            undoSort(getAttachedData<Pathway...>(), sourceIndexes);
+                        undo_sort(ref, source_indexes);
+                        if constexpr ( has_attached_data )
+                            undo_sort(get_attached_data<Pathway...>(), source_indexes);
 
-                        if constexpr ( hasElementMovedOp<Route> )
+                        if constexpr ( has_element_moved_op<route> )
                         {
                             for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(count)-1; i>=0; --i )
                             {
-                                if ( i != static_cast<std::ptrdiff_t>(sourceIndexes[static_cast<std::size_t>(i)]) )
-                                    notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(i), static_cast<std::size_t>(sourceIndexes[static_cast<std::size_t>(i)]));
+                                if ( i != static_cast<std::ptrdiff_t>(source_indexes[static_cast<std::size_t>(i)]) )
+                                    notify_element_moved(user, route{keys}, static_cast<std::size_t>(i), static_cast<std::size_t>(source_indexes[static_cast<std::size_t>(i)]));
                             }
                         }
 
-                        if constexpr ( hasSelections )
+                        if constexpr ( has_selections )
                         {
-                            auto & sel = getSelections<Pathway...>();
-                            sel_type oldSel {};
+                            auto & sel = get_selections<Pathway...>();
+                            sel_type old_sel {};
                             for ( std::size_t i=0; i<count; ++i )
                             {
                                 if ( std::find(sel.begin(), sel.end(), i) != sel.end() )
-                                    RareTs::append(oldSel, sourceIndexes[i]);
+                                    RareTs::append(old_sel, source_indexes[i]);
                             }
 
-                            std::swap(sel, oldSel);
+                            std::swap(sel, old_sel);
 
-                            if constexpr ( hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            if constexpr ( has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
                     }
                 }
                 break;
-                case Op::SortDesc:
+                case op::sort_desc:
                 {
-                    if constexpr ( RareTs::is_specialization_v<value_type, std::vector> )
+                    if constexpr ( RareTs::is_specialization_v<Value_type, std::vector> )
                     {
-                        std::size_t count = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        auto sourceIndexes = readIndexes<index_type>(offset, count);
+                        std::size_t count = static_cast<std::size_t>(read_index<index_type>(offset));
+                        auto source_indexes = read_indexes<index_type>(offset, count);
                             
-                        undoSort(ref, sourceIndexes);
-                        if constexpr ( hasAttachedData )
-                            undoSort(getAttachedData<Pathway...>(), sourceIndexes);
+                        undo_sort(ref, source_indexes);
+                        if constexpr ( has_attached_data )
+                            undo_sort(get_attached_data<Pathway...>(), source_indexes);
 
-                        if constexpr ( hasElementMovedOp<Route> )
+                        if constexpr ( has_element_moved_op<route> )
                         {
                             for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(count)-1; i>=0; --i )
                             {
-                                if ( i != static_cast<std::ptrdiff_t>(sourceIndexes[static_cast<std::size_t>(i)]) )
-                                    notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(i), static_cast<std::size_t>(sourceIndexes[static_cast<std::size_t>(i)]));
+                                if ( i != static_cast<std::ptrdiff_t>(source_indexes[static_cast<std::size_t>(i)]) )
+                                    notify_element_moved(user, route{keys}, static_cast<std::size_t>(i), static_cast<std::size_t>(source_indexes[static_cast<std::size_t>(i)]));
                             }
                         }
 
-                        if constexpr ( hasSelections )
+                        if constexpr ( has_selections )
                         {
-                            auto & sel = getSelections<Pathway...>();
-                            sel_type oldSel {};
+                            auto & sel = get_selections<Pathway...>();
+                            sel_type old_sel {};
                             for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(count)-1; i>=0; --i )
                             {
                                 if ( std::find(sel.begin(), sel.end(), static_cast<index_type>(i)) != sel.end() )
-                                    RareTs::append(oldSel, sourceIndexes[static_cast<std::size_t>(i)]);
+                                    RareTs::append(old_sel, source_indexes[static_cast<std::size_t>(i)]);
                             }
 
-                            std::swap(sel, oldSel);
+                            std::swap(sel, old_sel);
 
-                            if constexpr ( hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            if constexpr ( has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
                     }
                 }
                 break;
-                case Op::Swap:
+                case op::swap:
                 {
-                    if constexpr ( hasMoveOps )
+                    if constexpr ( has_move_ops )
                     {
-                        auto firstIndex = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        auto secondIndex = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        if ( firstIndex != secondIndex && firstIndex < std::size(ref) && secondIndex < std::size(ref) )
+                        auto first_index = static_cast<std::size_t>(read_index<index_type>(offset));
+                        auto second_index = static_cast<std::size_t>(read_index<index_type>(offset));
+                        if ( first_index != second_index && first_index < std::size(ref) && second_index < std::size(ref) )
                         {
-                            std::swap(ref[firstIndex], ref[secondIndex]);
-                            if constexpr ( hasAttachedData )
-                                mirrorSwapTo(getAttachedData<Pathway...>(), firstIndex, secondIndex);
+                            std::swap(ref[first_index], ref[second_index]);
+                            if constexpr ( has_attached_data )
+                                mirror_swap_to(get_attached_data<Pathway...>(), first_index, second_index);
 
-                            mirrorSwapToSelection(getSelections<Pathway...>(), firstIndex, secondIndex);
-                            if constexpr ( hasElementMovedOp<Route> )
+                            mirror_swap_to_selection(get_selections<Pathway...>(), first_index, second_index);
+                            if constexpr ( has_element_moved_op<route> )
                             {
-                                notifyElementMoved(user, Route{keys}, secondIndex, firstIndex);
-                                notifyElementMoved(user, Route{keys}, firstIndex, secondIndex);
+                                notify_element_moved(user, route{keys}, second_index, first_index);
+                                notify_element_moved(user, route{keys}, first_index, second_index);
                             }
-                            if constexpr ( hasSelections && hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            if constexpr ( has_selections && has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
                     }
                 }
                 break;
-                case Op::MoveUp:
+                case op::move_up:
                 {
-                    if constexpr ( hasMoveOps )
+                    if constexpr ( has_move_ops )
                     {
-                        auto movedIndex = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        if ( movedIndex > 0 && movedIndex < std::size(ref) )
+                        auto moved_index = static_cast<std::size_t>(read_index<index_type>(offset));
+                        if ( moved_index > 0 && moved_index < std::size(ref) )
                         {
-                            std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex-1)]);
-                            if constexpr ( hasAttachedData )
-                                mirrorSwapTo(getAttachedData<Pathway...>(), movedIndex, movedIndex-1);
+                            std::swap(ref[static_cast<std::size_t>(moved_index)], ref[static_cast<std::size_t>(moved_index-1)]);
+                            if constexpr ( has_attached_data )
+                                mirror_swap_to(get_attached_data<Pathway...>(), moved_index, moved_index-1);
 
-                            mirrorSwapToSelection(getSelections<Pathway...>(), movedIndex, movedIndex-1);
-                            if constexpr ( hasElementMovedOp<Route> )
+                            mirror_swap_to_selection(get_selections<Pathway...>(), moved_index, moved_index-1);
+                            if constexpr ( has_element_moved_op<route> )
                             {
-                                notifyElementMoved(user, Route{keys}, movedIndex-1, movedIndex);
-                                notifyElementMoved(user, Route{keys}, movedIndex, movedIndex-1);
+                                notify_element_moved(user, route{keys}, moved_index-1, moved_index);
+                                notify_element_moved(user, route{keys}, moved_index, moved_index-1);
                             }
-                            if constexpr ( hasSelections && hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            if constexpr ( has_selections && has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
                     }
                 }
                 break;
-                case Op::MoveUpN:
+                case op::move_up_n:
                 {
-                    if constexpr ( hasMoveOps )
+                    if constexpr ( has_move_ops )
                     {
-                        auto count = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        auto movedIndexes = readIndexes<index_type>(offset, count);
+                        auto count = static_cast<std::size_t>(read_index<index_type>(offset));
+                        auto moved_indexes = read_indexes<index_type>(offset, count);
                         if ( count > 0 )
                         {
-                            std::size_t minimumIndexMoved = 0;
+                            std::size_t min_index_moved = 0;
                             for ( std::size_t i=0; i<count; ++i )
                             {
-                                if ( minimumIndexMoved == static_cast<std::size_t>(movedIndexes[i]) )
-                                    ++minimumIndexMoved;
+                                if ( min_index_moved == static_cast<std::size_t>(moved_indexes[i]) )
+                                    ++min_index_moved;
                                 else
                                     break;
                             }
 
-                            for ( auto it = movedIndexes.rbegin(); it != movedIndexes.rend(); ++it )
+                            for ( auto it = moved_indexes.rbegin(); it != moved_indexes.rend(); ++it )
                             {
                                 auto i = static_cast<std::size_t>(*it);
-                                if ( i > minimumIndexMoved && i < std::size(ref) )
+                                if ( i > min_index_moved && i < std::size(ref) )
                                 {
                                     std::swap(ref[i-1], ref[i]);
-                                    if constexpr ( hasAttachedData )
-                                        mirrorSwapTo(getAttachedData<Pathway...>(), i-1, i);
+                                    if constexpr ( has_attached_data )
+                                        mirror_swap_to(get_attached_data<Pathway...>(), i-1, i);
 
-                                    mirrorSwapToSelection(getSelections<Pathway...>(), i-1, i);
+                                    mirror_swap_to_selection(get_selections<Pathway...>(), i-1, i);
                                 }
                             }
                         }
 
-                        if constexpr ( hasElementMovedOp<Route> )
+                        if constexpr ( has_element_moved_op<route> )
                         {
-                            std::size_t nextAvailable = 0;
-                            std::size_t blockSize = 1;
+                            std::size_t next_available = 0;
+                            std::size_t block_size = 1;
                             for ( std::size_t i=0; i<count; ++i )
                             {
-                                if ( movedIndexes[i] > nextAvailable && static_cast<std::size_t>(movedIndexes[i]) < std::size(ref) )
+                                if ( moved_indexes[i] > next_available && static_cast<std::size_t>(moved_indexes[i]) < std::size(ref) )
                                 {
-                                    notifyElementMoved(user, Route{keys}, movedIndexes[i]-1, movedIndexes[i]);
-                                    if ( i+1 < std::size(movedIndexes) && movedIndexes[i]+1 == movedIndexes[i+1] )
-                                        ++blockSize;
+                                    notify_element_moved(user, route{keys}, moved_indexes[i]-1, moved_indexes[i]);
+                                    if ( i+1 < std::size(moved_indexes) && moved_indexes[i]+1 == moved_indexes[i+1] )
+                                        ++block_size;
                                     else
                                     {
-                                        notifyElementMoved(user, Route{keys}, movedIndexes[i], movedIndexes[i]-blockSize);
-                                        blockSize = 1;
+                                        notify_element_moved(user, route{keys}, moved_indexes[i], moved_indexes[i]-block_size);
+                                        block_size = 1;
                                     }
                                 }
-                                else if ( movedIndexes[i] == nextAvailable )
-                                    ++nextAvailable;
+                                else if ( moved_indexes[i] == next_available )
+                                    ++next_available;
                             }
                         }
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::MoveUpL:
+                case op::move_up_l:
                 {
-                    if constexpr ( hasSelections && hasMoveOps )
+                    if constexpr ( has_selections && has_move_ops )
                     {
-                        auto & sel = getSelections<Pathway...>();
-                        sel_type prevSel {};
-                        readSelections(events, offset, prevSel);
+                        auto & sel = get_selections<Pathway...>();
+                        sel_type prev_sel {};
+                        read_selections(events, offset, prev_sel);
 
-                        auto movedIndexes = prevSel;
-                        auto count = movedIndexes.size();
-                        std::sort(movedIndexes.begin(), movedIndexes.end());
+                        auto moved_indexes = prev_sel;
+                        auto count = moved_indexes.size();
+                        std::sort(moved_indexes.begin(), moved_indexes.end());
 
-                        std::size_t minimumIndexMoved = 0;
+                        std::size_t min_index_moved = 0;
                         for ( std::size_t i=0; i<count; ++i )
                         {
-                            if ( minimumIndexMoved == movedIndexes[i] )
-                                ++minimumIndexMoved;
+                            if ( min_index_moved == moved_indexes[i] )
+                                ++min_index_moved;
                             else
                                 break;
                         }
 
                         auto size = std::size(ref);
-                        for ( auto it = movedIndexes.rbegin(); it != movedIndexes.rend(); ++it )
+                        for ( auto it = moved_indexes.rbegin(); it != moved_indexes.rend(); ++it )
                         {
                             auto i = static_cast<std::size_t>(*it);
-                            if ( i > minimumIndexMoved && i < size )
+                            if ( i > min_index_moved && i < size )
                             {
                                 std::swap(ref[i-1], ref[i]);
-                                if constexpr ( hasAttachedData )
-                                    mirrorSwapTo(getAttachedData<Pathway...>(), i-1, i);
+                                if constexpr ( has_attached_data )
+                                    mirror_swap_to(get_attached_data<Pathway...>(), i-1, i);
                             }
                         }
-                        std::swap(sel, prevSel);
+                        std::swap(sel, prev_sel);
 
-                        if constexpr ( hasElementMovedOp<Route> )
+                        if constexpr ( has_element_moved_op<route> )
                         {
-                            std::size_t nextAvailable = 0;
-                            std::size_t blockSize = 1;
+                            std::size_t next_available = 0;
+                            std::size_t block_size = 1;
                             for ( std::size_t i=0; i<count; ++i )
                             {
-                                if ( movedIndexes[i] > nextAvailable && static_cast<std::size_t>(movedIndexes[i]) < std::size(ref) )
+                                if ( moved_indexes[i] > next_available && static_cast<std::size_t>(moved_indexes[i]) < std::size(ref) )
                                 {
-                                    notifyElementMoved(user, Route{keys}, movedIndexes[i]-1, movedIndexes[i]);
-                                    if ( i+1 < std::size(movedIndexes) && movedIndexes[i]+1 == movedIndexes[i+1] )
-                                        ++blockSize;
+                                    notify_element_moved(user, route{keys}, moved_indexes[i]-1, moved_indexes[i]);
+                                    if ( i+1 < std::size(moved_indexes) && moved_indexes[i]+1 == moved_indexes[i+1] )
+                                        ++block_size;
                                     else
                                     {
-                                        notifyElementMoved(user, Route{keys}, movedIndexes[i], movedIndexes[i]-blockSize);
-                                        blockSize = 1;
+                                        notify_element_moved(user, route{keys}, moved_indexes[i], moved_indexes[i]-block_size);
+                                        block_size = 1;
                                     }
                                 }
-                                else if ( movedIndexes[i] == nextAvailable )
-                                    ++nextAvailable;
+                                else if ( moved_indexes[i] == next_available )
+                                    ++next_available;
                             }
                         }
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::MoveTop:
+                case op::move_top:
                 {
-                    if constexpr ( hasMoveOps )
+                    if constexpr ( has_move_ops )
                     {
-                        auto movedIndex = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        if ( movedIndex > 0 && movedIndex < std::size(ref) )
+                        auto moved_index = static_cast<std::size_t>(read_index<index_type>(offset));
+                        if ( moved_index > 0 && moved_index < std::size(ref) )
                         {
                             auto it = ref.begin();
-                            std::rotate(it, it+1, std::next(ref.begin(), static_cast<std::ptrdiff_t>(movedIndex))+1);
-                            if constexpr ( hasAttachedData )
-                                mirrorRotationTo(getAttachedData<Pathway...>(), 0, 1, movedIndex+1);
+                            std::rotate(it, it+1, std::next(ref.begin(), static_cast<std::ptrdiff_t>(moved_index))+1);
+                            if constexpr ( has_attached_data )
+                                mirror_rotation_to(get_attached_data<Pathway...>(), 0, 1, moved_index+1);
 
-                            mirrorRotationToSelection(getSelections<Pathway...>(), 0, 1, movedIndex+1);
-                            if constexpr ( hasElementMovedOp<Route> )
+                            mirror_rotation_to_selection(get_selections<Pathway...>(), 0, 1, moved_index+1);
+                            if constexpr ( has_element_moved_op<route> )
                             {
-                                notifyElementMoved(user, Route{keys}, 0, movedIndex);
-                                for ( std::size_t i=0; i<static_cast<std::size_t>(movedIndex); ++i )
-                                    notifyElementMoved(user, Route{keys}, i+1, i);
+                                notify_element_moved(user, route{keys}, 0, moved_index);
+                                for ( std::size_t i=0; i<static_cast<std::size_t>(moved_index); ++i )
+                                    notify_element_moved(user, route{keys}, i+1, i);
                             }
-                            if constexpr ( hasSelections && hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            if constexpr ( has_selections && has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
                     }
                 }
                 break;
-                case Op::MoveTopN:
+                case op::move_top_n:
                 {
-                    if constexpr ( hasMoveOps )
+                    if constexpr ( has_move_ops )
                     {
-                        auto count = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        auto movedIndexes = readIndexes<index_type>(offset, count);
+                        auto count = static_cast<std::size_t>(read_index<index_type>(offset));
+                        auto moved_indexes = read_indexes<index_type>(offset, count);
 
-                        std::size_t minimumIndexMoved = 0;
+                        std::size_t min_index_moved = 0;
                         for ( std::size_t i=0; i<count; ++i )
                         {
-                            if ( minimumIndexMoved == static_cast<std::size_t>(movedIndexes[i]) )
-                                ++minimumIndexMoved;
+                            if ( min_index_moved == static_cast<std::size_t>(moved_indexes[i]) )
+                                ++min_index_moved;
                             else
                                 break;
                         }
 
                         std::size_t size = std::size(ref);
-                        std::size_t countValid = 0;
-                        for ( auto i : movedIndexes )
+                        std::size_t count_valid = 0;
+                        for ( auto i : moved_indexes )
                         {
-                            if ( i > minimumIndexMoved && static_cast<std::size_t>(i) < size )
-                                ++countValid;
+                            if ( i > min_index_moved && static_cast<std::size_t>(i) < size )
+                                ++count_valid;
                         }
 
-                        std::vector<std::size_t> trackedIndexes {};
-                        if constexpr ( hasElementMovedOp<Route> )
+                        std::vector<std::size_t> tracked_indexes {};
+                        if constexpr ( has_element_moved_op<route> )
                         {
-                            trackedIndexes.assign(size, 0);
-                            std::iota(trackedIndexes.begin(), trackedIndexes.end(), 0);
+                            tracked_indexes.assign(size, 0);
+                            std::iota(tracked_indexes.begin(), tracked_indexes.end(), 0);
                         }
 
-                        std::size_t i = minimumIndexMoved+countValid-1;
-                        for ( auto it = movedIndexes.rbegin(); it != movedIndexes.rend(); ++it )
+                        std::size_t i = min_index_moved+count_valid-1;
+                        for ( auto it = moved_indexes.rbegin(); it != moved_indexes.rend(); ++it )
                         {
-                            if ( static_cast<std::size_t>(*it) > minimumIndexMoved && static_cast<std::size_t>(*it) < size )
+                            if ( static_cast<std::size_t>(*it) > min_index_moved && static_cast<std::size_t>(*it) < size )
                             {
-                                auto toMove = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
+                                auto to_move = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
                                 auto dest = std::next(ref.begin(), static_cast<std::ptrdiff_t>(*it));
-                                std::rotate(toMove, toMove+1, dest+1);
-                                if constexpr ( hasAttachedData )
-                                    mirrorRotationTo(getAttachedData<Pathway...>(), i, i+1, *it+1);
-                                if constexpr ( hasElementMovedOp<Route> )
-                                    mirrorRotationTo(trackedIndexes, i, i+1, *it+1);
+                                std::rotate(to_move, to_move+1, dest+1);
+                                if constexpr ( has_attached_data )
+                                    mirror_rotation_to(get_attached_data<Pathway...>(), i, i+1, *it+1);
+                                if constexpr ( has_element_moved_op<route> )
+                                    mirror_rotation_to(tracked_indexes, i, i+1, *it+1);
 
                                 --i;
                             }
                         }
 
-                        if constexpr ( hasSelections )
+                        if constexpr ( has_selections )
                         {
-                            auto & sel = getSelections<Pathway...>();
-                            sel_type prevSel {};
-                            readSelections(events, offset, prevSel);
-                            std::swap(sel, prevSel);
+                            auto & sel = get_selections<Pathway...>();
+                            sel_type prev_sel {};
+                            read_selections(events, offset, prev_sel);
+                            std::swap(sel, prev_sel);
                         }
-                        if constexpr ( hasElementMovedOp<Route> )
+                        if constexpr ( has_element_moved_op<route> )
                         {
                             for ( i=0; i<size; ++i )
                             {
-                                if ( i != trackedIndexes[i] )
-                                    notifyElementMoved(user, Route{keys}, i, trackedIndexes[i]);
+                                if ( i != tracked_indexes[i] )
+                                    notify_element_moved(user, route{keys}, i, tracked_indexes[i]);
                             }
                         }
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::MoveTopL:
+                case op::move_top_l:
                 {
-                    if constexpr ( hasSelections && hasMoveOps )
+                    if constexpr ( has_selections && has_move_ops )
                     {
-                        auto & sel = getSelections<Pathway...>();
-                        sel_type prevSel {};
-                        readSelections(events, offset, prevSel);
+                        auto & sel = get_selections<Pathway...>();
+                        sel_type prev_sel {};
+                        read_selections(events, offset, prev_sel);
 
-                        auto movedIndexes = prevSel; // Copy so it can be sorted without changing selections
-                        std::sort(movedIndexes.begin(), movedIndexes.end(), std::greater<index_type>{});
+                        auto moved_indexes = prev_sel; // Copy so it can be sorted without changing selections
+                        std::sort(moved_indexes.begin(), moved_indexes.end(), std::greater<index_type>{});
 
                         std::size_t size = std::size(ref);
-                        std::vector<std::size_t> trackedIndexes {};
-                        if constexpr ( hasElementMovedOp<Route> )
+                        std::vector<std::size_t> tracked_indexes {};
+                        if constexpr ( has_element_moved_op<route> )
                         {
-                            trackedIndexes.assign(size, 0);
-                            std::iota(trackedIndexes.begin(), trackedIndexes.end(), 0);
+                            tracked_indexes.assign(size, 0);
+                            std::iota(tracked_indexes.begin(), tracked_indexes.end(), 0);
                         }
 
-                        std::size_t toMoveIndex = std::size(prevSel)-1;
-                        for ( auto i : movedIndexes )
+                        std::size_t to_move_index = std::size(prev_sel)-1;
+                        for ( auto i : moved_indexes )
                         {
                             if ( i > 0 && static_cast<std::size_t>(i) < size )
                             {
-                                auto toMove = std::next(ref.begin(), static_cast<std::ptrdiff_t>(toMoveIndex));
+                                auto to_move = std::next(ref.begin(), static_cast<std::ptrdiff_t>(to_move_index));
                                 auto dest = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
-                                std::rotate(toMove, toMove+1, dest+1);
-                                if constexpr ( hasAttachedData )
-                                    mirrorRotationTo(getAttachedData<Pathway...>(), toMoveIndex, toMoveIndex+1, i+1);
-                                if constexpr ( hasElementMovedOp<Route> )
-                                    mirrorRotationTo(trackedIndexes, toMoveIndex, toMoveIndex+1, i+1);
+                                std::rotate(to_move, to_move+1, dest+1);
+                                if constexpr ( has_attached_data )
+                                    mirror_rotation_to(get_attached_data<Pathway...>(), to_move_index, to_move_index+1, i+1);
+                                if constexpr ( has_element_moved_op<route> )
+                                    mirror_rotation_to(tracked_indexes, to_move_index, to_move_index+1, i+1);
 
-                                --toMoveIndex;
+                                --to_move_index;
                             }
                         }
-                        std::swap(sel, prevSel);
+                        std::swap(sel, prev_sel);
 
-                        if constexpr ( hasElementMovedOp<Route> )
+                        if constexpr ( has_element_moved_op<route> )
                         {
                             for ( std::size_t i=0; i<size; ++i )
                             {
-                                if ( i != trackedIndexes[i] )
-                                    notifyElementMoved(user, Route{keys}, i, trackedIndexes[i]);
+                                if ( i != tracked_indexes[i] )
+                                    notify_element_moved(user, route{keys}, i, tracked_indexes[i]);
                             }
                         }
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::MoveDown:
+                case op::move_down:
                 {
-                    if constexpr ( hasMoveOps )
+                    if constexpr ( has_move_ops )
                     {
-                        auto movedIndex = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        if ( movedIndex+1 < std::size(ref) )
+                        auto moved_index = static_cast<std::size_t>(read_index<index_type>(offset));
+                        if ( moved_index+1 < std::size(ref) )
                         {
-                            std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex+1)]);
-                            if constexpr ( hasAttachedData )
-                                mirrorSwapTo(getAttachedData<Pathway...>(), movedIndex, movedIndex+1);
+                            std::swap(ref[static_cast<std::size_t>(moved_index)], ref[static_cast<std::size_t>(moved_index+1)]);
+                            if constexpr ( has_attached_data )
+                                mirror_swap_to(get_attached_data<Pathway...>(), moved_index, moved_index+1);
 
-                            mirrorSwapToSelection(getSelections<Pathway...>(), movedIndex, movedIndex+1);
-                            if constexpr ( hasElementMovedOp<Route> )
+                            mirror_swap_to_selection(get_selections<Pathway...>(), moved_index, moved_index+1);
+                            if constexpr ( has_element_moved_op<route> )
                             {
-                                notifyElementMoved(user, Route{keys}, movedIndex+1, movedIndex);
-                                notifyElementMoved(user, Route{keys}, movedIndex, movedIndex+1);
+                                notify_element_moved(user, route{keys}, moved_index+1, moved_index);
+                                notify_element_moved(user, route{keys}, moved_index, moved_index+1);
                             }
-                            if constexpr ( hasSelections && hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            if constexpr ( has_selections && has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
                     }
                 }
                 break;
-                case Op::MoveDownN:
+                case op::move_down_n:
                 {
-                    if constexpr ( hasMoveOps )
+                    if constexpr ( has_move_ops )
                     {
-                        auto count = static_cast<std::size_t>(readIndex<index_type>(offset));
+                        auto count = static_cast<std::size_t>(read_index<index_type>(offset));
                         if ( count > 0 )
                         {
-                            auto movedIndexes = readIndexes<index_type>(offset, count);
+                            auto moved_indexes = read_indexes<index_type>(offset, count);
 
-                            std::size_t maximumIndexMoved = std::size(ref);
+                            std::size_t max_index_moved = std::size(ref);
                             for ( std::size_t i=0; i<count; ++i )
                             {
-                                if ( static_cast<std::size_t>(movedIndexes[i])+1 == maximumIndexMoved )
-                                    --maximumIndexMoved;
+                                if ( static_cast<std::size_t>(moved_indexes[i])+1 == max_index_moved )
+                                    --max_index_moved;
                                 else
                                     break;
                             }
 
-                            for ( auto it = movedIndexes.rbegin(); it != movedIndexes.rend(); ++it )
+                            for ( auto it = moved_indexes.rbegin(); it != moved_indexes.rend(); ++it )
                             {
                                 auto i = static_cast<std::size_t>(*it);
-                                if ( i+1 < maximumIndexMoved )
+                                if ( i+1 < max_index_moved )
                                 {
                                     std::swap(ref[i], ref[i+1]);
-                                    if constexpr ( hasAttachedData )
-                                        mirrorSwapTo(getAttachedData<Pathway...>(), i, i+1);
+                                    if constexpr ( has_attached_data )
+                                        mirror_swap_to(get_attached_data<Pathway...>(), i, i+1);
 
-                                    mirrorSwapToSelection(getSelections<Pathway...>(), i, i+1);
+                                    mirror_swap_to_selection(get_selections<Pathway...>(), i, i+1);
                                 }
                             }
 
-                            if constexpr ( hasElementMovedOp<Route> )
+                            if constexpr ( has_element_moved_op<route> )
                             {
                                 std::size_t limit = std::size(ref);
-                                std::size_t blockSize = 1;
+                                std::size_t block_size = 1;
                                 for ( std::size_t i=0; i<count; ++i )
                                 {
-                                    if ( static_cast<std::size_t>(movedIndexes[i])+1 < limit )
+                                    if ( static_cast<std::size_t>(moved_indexes[i])+1 < limit )
                                     {
-                                        if ( i+1 < count && movedIndexes[i]-1 == movedIndexes[i+1] )
-                                            ++blockSize;
+                                        if ( i+1 < count && moved_indexes[i]-1 == moved_indexes[i+1] )
+                                            ++block_size;
                                         else
                                         {
-                                            notifyElementMoved(user, Route{keys}, movedIndexes[i], movedIndexes[i]+blockSize);
-                                            blockSize = 1;
+                                            notify_element_moved(user, route{keys}, moved_indexes[i], moved_indexes[i]+block_size);
+                                            block_size = 1;
                                         }
-                                        notifyElementMoved(user, Route{keys}, movedIndexes[i]+1, movedIndexes[i]);
-                                        limit = movedIndexes[i]+1;
+                                        notify_element_moved(user, route{keys}, moved_indexes[i]+1, moved_indexes[i]);
+                                        limit = moved_indexes[i]+1;
                                     }
                                     else if ( limit > 0 )
                                         --limit;
                                 }
                             }
-                            if constexpr ( hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            if constexpr ( has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
                     }
                 }
                 break;
-                case Op::MoveDownL:
+                case op::move_down_l:
                 {
-                    if constexpr ( hasSelections && hasMoveOps )
+                    if constexpr ( has_selections && has_move_ops )
                     {
-                        auto & sel = getSelections<Pathway...>();
-                        sel_type prevSel {};
-                        readSelections(events, offset, prevSel);
+                        auto & sel = get_selections<Pathway...>();
+                        sel_type prev_sel {};
+                        read_selections(events, offset, prev_sel);
 
-                        auto movedIndexes = prevSel;
-                        std::sort(movedIndexes.begin(), movedIndexes.end(), std::greater<index_type>{});
-                        std::size_t count = std::size(movedIndexes);
+                        auto moved_indexes = prev_sel;
+                        std::sort(moved_indexes.begin(), moved_indexes.end(), std::greater<index_type>{});
+                        std::size_t count = std::size(moved_indexes);
 
-                        std::size_t maximumIndexMoved = std::size(ref);
+                        std::size_t max_index_moved = std::size(ref);
                         for ( std::size_t i=0; i<count; ++i )
                         {
-                            if ( static_cast<std::size_t>(movedIndexes[i])+1 == maximumIndexMoved )
-                                --maximumIndexMoved;
+                            if ( static_cast<std::size_t>(moved_indexes[i])+1 == max_index_moved )
+                                --max_index_moved;
                             else
                                 break;
                         }
 
-                        for ( auto it = movedIndexes.rbegin(); it != movedIndexes.rend(); ++it )
+                        for ( auto it = moved_indexes.rbegin(); it != moved_indexes.rend(); ++it )
                         {
                             auto i = static_cast<std::size_t>(*it);
-                            if ( static_cast<std::size_t>(i)+1 < maximumIndexMoved )
+                            if ( static_cast<std::size_t>(i)+1 < max_index_moved )
                             {
                                 std::swap(ref[static_cast<std::size_t>(i)], ref[static_cast<std::size_t>(i)+1]);
-                                if constexpr ( hasAttachedData )
-                                    mirrorSwapTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1);
+                                if constexpr ( has_attached_data )
+                                    mirror_swap_to(get_attached_data<Pathway...>(), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1);
                             }
                         }
-                        std::swap(sel, prevSel);
+                        std::swap(sel, prev_sel);
 
-                        if constexpr ( hasElementMovedOp<Route> )
+                        if constexpr ( has_element_moved_op<route> )
                         {
                             std::size_t limit = std::size(ref);
-                            std::size_t blockSize = 1;
+                            std::size_t block_size = 1;
                             for ( std::size_t i=0; i<count; ++i )
                             {
-                                if ( static_cast<std::size_t>(movedIndexes[i])+1 < limit )
+                                if ( static_cast<std::size_t>(moved_indexes[i])+1 < limit )
                                 {
-                                    if ( i+1 < count && movedIndexes[i]-1 == movedIndexes[i+1] )
-                                        ++blockSize;
+                                    if ( i+1 < count && moved_indexes[i]-1 == moved_indexes[i+1] )
+                                        ++block_size;
                                     else
                                     {
-                                        notifyElementMoved(user, Route{keys}, movedIndexes[i], movedIndexes[i]+blockSize);
-                                        blockSize = 1;
+                                        notify_element_moved(user, route{keys}, moved_indexes[i], moved_indexes[i]+block_size);
+                                        block_size = 1;
                                     }
-                                    notifyElementMoved(user, Route{keys}, movedIndexes[i]+1, movedIndexes[i]);
-                                    limit = movedIndexes[i]+1;
+                                    notify_element_moved(user, route{keys}, moved_indexes[i]+1, moved_indexes[i]);
+                                    limit = moved_indexes[i]+1;
                                 }
                                 else if ( limit > 0 )
                                     --limit;
                             }
                         }
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::MoveBottom:
+                case op::move_bottom:
                 {
-                    if constexpr ( hasMoveOps )
+                    if constexpr ( has_move_ops )
                     {
-                        auto movedIndex = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        if ( movedIndex+1 < std::size(ref) )
+                        auto moved_index = static_cast<std::size_t>(read_index<index_type>(offset));
+                        if ( moved_index+1 < std::size(ref) )
                         {
-                            auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(movedIndex));
-                            auto movedTo = std::next(ref.begin(), static_cast<std::ptrdiff_t>(std::size(ref))-1);
-                            std::rotate(it, movedTo, ref.end());
-                            if constexpr ( hasAttachedData )
-                                mirrorRotationTo(getAttachedData<Pathway...>(), movedIndex, std::size(ref)-1, std::size(ref));
+                            auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(moved_index));
+                            auto moved_to = std::next(ref.begin(), static_cast<std::ptrdiff_t>(std::size(ref))-1);
+                            std::rotate(it, moved_to, ref.end());
+                            if constexpr ( has_attached_data )
+                                mirror_rotation_to(get_attached_data<Pathway...>(), moved_index, std::size(ref)-1, std::size(ref));
 
-                            mirrorRotationToSelection(getSelections<Pathway...>(), movedIndex, std::size(ref)-1, std::size(ref));
-                            if constexpr ( hasElementMovedOp<Route> )
+                            mirror_rotation_to_selection(get_selections<Pathway...>(), moved_index, std::size(ref)-1, std::size(ref));
+                            if constexpr ( has_element_moved_op<route> )
                             {
-                                notifyElementMoved(user, Route{keys}, std::size(ref)-1, movedIndex);
-                                for ( std::size_t i=movedIndex; i<std::size(ref)-1; ++i )
-                                    notifyElementMoved(user, Route{keys}, i, i+1);
+                                notify_element_moved(user, route{keys}, std::size(ref)-1, moved_index);
+                                for ( std::size_t i=moved_index; i<std::size(ref)-1; ++i )
+                                    notify_element_moved(user, route{keys}, i, i+1);
                             }
-                            if constexpr ( hasSelections && hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            if constexpr ( has_selections && has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
                     }
                 }
                 break;
-                case Op::MoveBottomN:
+                case op::move_bottom_n:
                 {
-                    if constexpr ( hasMoveOps )
+                    if constexpr ( has_move_ops )
                     {
-                        auto count = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        auto movedIndexes = readIndexes<index_type>(offset, count);
+                        auto count = static_cast<std::size_t>(read_index<index_type>(offset));
+                        auto moved_indexes = read_indexes<index_type>(offset, count);
 
                         std::size_t size = std::size(ref);
-                        std::size_t maximumIndexMoved = size;
+                        std::size_t max_index_moved = size;
                         for ( std::size_t i=0; i<count; ++i )
                         {
-                            if ( static_cast<std::size_t>(movedIndexes[i])+1 == maximumIndexMoved )
-                                --maximumIndexMoved;
+                            if ( static_cast<std::size_t>(moved_indexes[i])+1 == max_index_moved )
+                                --max_index_moved;
                             else
                                 break;
                         }
 
-                        std::size_t countValid = 0;
-                        for ( auto i : movedIndexes )
+                        std::size_t count_valid = 0;
+                        for ( auto i : moved_indexes )
                         {
-                            if ( static_cast<std::size_t>(i)+1 < maximumIndexMoved )
-                                ++countValid;
+                            if ( static_cast<std::size_t>(i)+1 < max_index_moved )
+                                ++count_valid;
                         }
 
-                        std::vector<std::size_t> trackedIndexes {};
-                        if constexpr ( hasElementMovedOp<Route> )
+                        std::vector<std::size_t> tracked_indexes {};
+                        if constexpr ( has_element_moved_op<route> )
                         {
-                            trackedIndexes.assign(size, 0);
-                            std::iota(trackedIndexes.begin(), trackedIndexes.end(), 0);
+                            tracked_indexes.assign(size, 0);
+                            std::iota(tracked_indexes.begin(), tracked_indexes.end(), 0);
                         }
 
-                        std::size_t i = maximumIndexMoved-countValid;
-                        for ( auto it = movedIndexes.rbegin(); it != movedIndexes.rend(); ++it )
+                        std::size_t i = max_index_moved-count_valid;
+                        for ( auto it = moved_indexes.rbegin(); it != moved_indexes.rend(); ++it )
                         {
-                            if ( static_cast<std::size_t>(*it)+1 < maximumIndexMoved )
+                            if ( static_cast<std::size_t>(*it)+1 < max_index_moved )
                             {
-                                auto toMove = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
+                                auto to_move = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
                                 auto dest = std::next(ref.begin(), static_cast<std::ptrdiff_t>(*it));
-                                std::rotate(dest, toMove, toMove+1);
-                                if constexpr ( hasAttachedData )
-                                    mirrorRotationTo(getAttachedData<Pathway...>(), *it, i, i+1);
-                                if constexpr ( hasElementMovedOp<Route> )
-                                    mirrorRotationTo(trackedIndexes, *it, i, i+1);
+                                std::rotate(dest, to_move, to_move+1);
+                                if constexpr ( has_attached_data )
+                                    mirror_rotation_to(get_attached_data<Pathway...>(), *it, i, i+1);
+                                if constexpr ( has_element_moved_op<route> )
+                                    mirror_rotation_to(tracked_indexes, *it, i, i+1);
                                 ++i;
                             }
                         }
 
-                        if constexpr ( hasSelections )
+                        if constexpr ( has_selections )
                         {
-                            auto & sel = getSelections<Pathway...>();
-                            sel_type prevSel {};
-                            readSelections(events, offset, prevSel);
-                            std::swap(sel, prevSel);
+                            auto & sel = get_selections<Pathway...>();
+                            sel_type prev_sel {};
+                            read_selections(events, offset, prev_sel);
+                            std::swap(sel, prev_sel);
                         }
 
-                        if constexpr ( hasElementMovedOp<Route> )
+                        if constexpr ( has_element_moved_op<route> )
                         {
                             for ( i=0; i<size; ++i )
                             {
-                                if ( i != trackedIndexes[i] )
-                                    notifyElementMoved(user, Route{keys}, trackedIndexes[i], i);
+                                if ( i != tracked_indexes[i] )
+                                    notify_element_moved(user, route{keys}, tracked_indexes[i], i);
                             }
                         }
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::MoveBottomL:
+                case op::move_bottom_l:
                 {
-                    if constexpr ( hasSelections && hasMoveOps )
+                    if constexpr ( has_selections && has_move_ops )
                     {
-                        auto & sel = getSelections<Pathway...>();
-                        sel_type prevSel {};
-                        readSelections(events, offset, prevSel);
+                        auto & sel = get_selections<Pathway...>();
+                        sel_type prev_sel {};
+                        read_selections(events, offset, prev_sel);
 
-                        auto movedIndexes = prevSel; // Copy so it can be sorted without changing selections
-                        std::sort(movedIndexes.begin(), movedIndexes.end());
+                        auto moved_indexes = prev_sel; // Copy so it can be sorted without changing selections
+                        std::sort(moved_indexes.begin(), moved_indexes.end());
 
                         std::size_t size = std::size(ref);
-                        std::vector<std::size_t> trackedIndexes {};
-                        if constexpr ( hasElementMovedOp<Route> )
+                        std::vector<std::size_t> tracked_indexes {};
+                        if constexpr ( has_element_moved_op<route> )
                         {
-                            trackedIndexes.assign(size, 0);
-                            std::iota(trackedIndexes.begin(), trackedIndexes.end(), 0);
+                            tracked_indexes.assign(size, 0);
+                            std::iota(tracked_indexes.begin(), tracked_indexes.end(), 0);
                         }
 
-                        std::size_t toMoveIndex = std::size(ref)-std::size(prevSel);
-                        for ( auto i : movedIndexes )
+                        std::size_t to_move_index = std::size(ref)-std::size(prev_sel);
+                        for ( auto i : moved_indexes )
                         {
                             if ( static_cast<std::size_t>(i)+1 < size )
                             {
-                                auto toMove = std::next(ref.begin(), static_cast<std::ptrdiff_t>(toMoveIndex));
+                                auto to_move = std::next(ref.begin(), static_cast<std::ptrdiff_t>(to_move_index));
                                 auto dest = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
-                                std::rotate(dest, toMove, toMove+1);
-                                if constexpr ( hasAttachedData )
-                                    mirrorRotationTo(getAttachedData<Pathway...>(), i, toMoveIndex, toMoveIndex+1);
-                                if constexpr ( hasElementMovedOp<Route> )
-                                    mirrorRotationTo(trackedIndexes, i, toMoveIndex, toMoveIndex+1);
-                                ++toMoveIndex;
+                                std::rotate(dest, to_move, to_move+1);
+                                if constexpr ( has_attached_data )
+                                    mirror_rotation_to(get_attached_data<Pathway...>(), i, to_move_index, to_move_index+1);
+                                if constexpr ( has_element_moved_op<route> )
+                                    mirror_rotation_to(tracked_indexes, i, to_move_index, to_move_index+1);
+                                ++to_move_index;
                             }
                         }
 
-                        std::swap(sel, prevSel);
+                        std::swap(sel, prev_sel);
 
-                        if constexpr ( hasElementMovedOp<Route> )
+                        if constexpr ( has_element_moved_op<route> )
                         {
                             for ( std::size_t i=0; i<size; ++i )
                             {
-                                if ( i != trackedIndexes[i] )
-                                    notifyElementMoved(user, Route{keys}, trackedIndexes[i], i);
+                                if ( i != tracked_indexes[i] )
+                                    notify_element_moved(user, route{keys}, tracked_indexes[i], i);
                             }
                         }
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::MoveTo:
+                case op::move_to:
                 {
-                    if constexpr ( hasMoveOps )
+                    if constexpr ( has_move_ops )
                     {
-                        auto indexMovedTo = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        auto movedIndex = static_cast<std::size_t>(readIndex<index_type>(offset));
+                        auto index_moved_to = static_cast<std::size_t>(read_index<index_type>(offset));
+                        auto moved_index = static_cast<std::size_t>(read_index<index_type>(offset));
                             
-                        auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(movedIndex));
-                        auto target = std::next(ref.begin(), static_cast<std::ptrdiff_t>(indexMovedTo));
-                        if ( indexMovedTo < movedIndex && movedIndex < std::size(ref) )
+                        auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(moved_index));
+                        auto target = std::next(ref.begin(), static_cast<std::ptrdiff_t>(index_moved_to));
+                        if ( index_moved_to < moved_index && moved_index < std::size(ref) )
                         {
                             std::rotate(target, target+1, it+1);
-                            if constexpr ( hasAttachedData )
-                                mirrorRotationTo(getAttachedData<Pathway...>(), indexMovedTo, indexMovedTo+1, movedIndex+1);
+                            if constexpr ( has_attached_data )
+                                mirror_rotation_to(get_attached_data<Pathway...>(), index_moved_to, index_moved_to+1, moved_index+1);
 
-                            mirrorRotationToSelection(getSelections<Pathway...>(), indexMovedTo, indexMovedTo+1, movedIndex+1);
-                            if constexpr ( hasElementMovedOp<Route> )
+                            mirror_rotation_to_selection(get_selections<Pathway...>(), index_moved_to, index_moved_to+1, moved_index+1);
+                            if constexpr ( has_element_moved_op<route> )
                             {
-                                notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(indexMovedTo), static_cast<std::size_t>(movedIndex));
-                                for ( std::size_t i=static_cast<std::size_t>(indexMovedTo)+1; i<static_cast<std::size_t>(movedIndex)+1; ++i )
-                                    notifyElementMoved(user, Route{keys}, i, i-1);
+                                notify_element_moved(user, route{keys}, static_cast<std::size_t>(index_moved_to), static_cast<std::size_t>(moved_index));
+                                for ( std::size_t i=static_cast<std::size_t>(index_moved_to)+1; i<static_cast<std::size_t>(moved_index)+1; ++i )
+                                    notify_element_moved(user, route{keys}, i, i-1);
                             }
-                            if constexpr ( hasSelections && hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            if constexpr ( has_selections && has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
-                        else if ( indexMovedTo > movedIndex && indexMovedTo < std::size(ref) )
+                        else if ( index_moved_to > moved_index && index_moved_to < std::size(ref) )
                         {
                             std::rotate(it, target, target+1);
-                            if constexpr ( hasAttachedData )
-                                mirrorRotationTo(getAttachedData<Pathway...>(), movedIndex, indexMovedTo, indexMovedTo+1);
+                            if constexpr ( has_attached_data )
+                                mirror_rotation_to(get_attached_data<Pathway...>(), moved_index, index_moved_to, index_moved_to+1);
 
-                            mirrorRotationToSelection(getSelections<Pathway...>(), movedIndex, indexMovedTo, indexMovedTo+1);
-                            if constexpr ( hasElementMovedOp<Route> )
+                            mirror_rotation_to_selection(get_selections<Pathway...>(), moved_index, index_moved_to, index_moved_to+1);
+                            if constexpr ( has_element_moved_op<route> )
                             {
-                                notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(indexMovedTo), static_cast<std::size_t>(movedIndex));
-                                for ( std::size_t i=static_cast<std::size_t>(movedIndex); i<static_cast<std::size_t>(indexMovedTo); ++i )
-                                    notifyElementMoved(user, Route{keys}, i, i+1);
+                                notify_element_moved(user, route{keys}, static_cast<std::size_t>(index_moved_to), static_cast<std::size_t>(moved_index));
+                                for ( std::size_t i=static_cast<std::size_t>(moved_index); i<static_cast<std::size_t>(index_moved_to); ++i )
+                                    notify_element_moved(user, route{keys}, i, i+1);
                             }
-                            if constexpr ( hasSelections && hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            if constexpr ( has_selections && has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
                     }
                 }
                 break;
-                case Op::MoveToN:
+                case op::move_to_n:
                 {
-                    if constexpr ( hasMoveOps )
+                    if constexpr ( has_move_ops )
                     {
                         // Calculate the rotates you would perform in the forward direction, then reverse the rotations
-                        std::vector<Rotation> rotations {};
+                        std::vector<rotation> rotations {};
                             
-                        auto indexMovedTo = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        auto countMovedIndexes = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        auto movedIndexes = readIndexes<index_type>(offset, countMovedIndexes);
+                        auto index_moved_to = static_cast<std::size_t>(read_index<index_type>(offset));
+                        auto count_moved_indexes = static_cast<std::size_t>(read_index<index_type>(offset));
+                        auto moved_indexes = read_indexes<index_type>(offset, count_moved_indexes);
 
                         auto size = std::size(ref);
-                        if ( !std::empty(movedIndexes) )
+                        if ( !std::empty(moved_indexes) )
                         {
-                            std::size_t countValidIndexes = 0;
-                            for ( auto movedIndex : movedIndexes )
+                            std::size_t count_valid_indexes = 0;
+                            for ( auto moved_index : moved_indexes )
                             {
-                                if ( movedIndex >= 0 && static_cast<std::size_t>(movedIndex) < std::size(ref) )
-                                    ++countValidIndexes;
+                                if ( moved_index >= 0 && static_cast<std::size_t>(moved_index) < std::size(ref) )
+                                    ++count_valid_indexes;
                             }
-                            if ( countValidIndexes == 0 )
+                            if ( count_valid_indexes == 0 )
                                 return;
 
-                            if ( static_cast<std::size_t>(indexMovedTo) + countValidIndexes >= size ) // Operation collapses to moveToEnd
+                            if ( static_cast<std::size_t>(index_moved_to) + count_valid_indexes >= size ) // Operation collapses to move_to_end
                             {
-                                std::ptrdiff_t insertionIndex = static_cast<std::ptrdiff_t>(size);
-                                for ( auto mit = movedIndexes.rbegin(); mit != movedIndexes.rend(); ++mit ) // movedIndexes sorted least to greatest, so reverse read
+                                std::ptrdiff_t insertion_index = static_cast<std::ptrdiff_t>(size);
+                                for ( auto mit = moved_indexes.rbegin(); mit != moved_indexes.rend(); ++mit ) // moved_indexes sorted least to greatest, so reverse read
                                 {
                                     auto i = *mit;
-                                    if ( i >= 0 && static_cast<std::ptrdiff_t>(i)+1 < insertionIndex )
-                                        rotations.push_back(Rotation::makeReverse(static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex)));
+                                    if ( i >= 0 && static_cast<std::ptrdiff_t>(i)+1 < insertion_index )
+                                        rotations.push_back(rotation::make_reverse(static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertion_index)));
 
-                                    --insertionIndex;
+                                    --insertion_index;
                                 }
                             }
-                            else // Non-collapsed moveTo operation
+                            else // Non-collapsed move_to operation
                             {
-                                std::size_t minValidIndex = 0;
-                                std::size_t maxValidIndex = 0;
-                                for ( std::size_t i=0; i<std::size(movedIndexes); ++i )
+                                std::size_t min_valid_index = 0;
+                                std::size_t max_valid_index = 0;
+                                for ( std::size_t i=0; i<std::size(moved_indexes); ++i )
                                 {
-                                    if ( static_cast<std::ptrdiff_t>(movedIndexes[i]) >= 0 )
+                                    if ( static_cast<std::ptrdiff_t>(moved_indexes[i]) >= 0 )
                                     {
-                                        minValidIndex = static_cast<std::size_t>(movedIndexes[i]);
+                                        min_valid_index = static_cast<std::size_t>(moved_indexes[i]);
                                         break;
                                     }
                                 }
-                                for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(std::size(movedIndexes))-1; i>=0; --i )
+                                for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(std::size(moved_indexes))-1; i>=0; --i )
                                 {
-                                    if ( static_cast<std::ptrdiff_t>(movedIndexes[static_cast<std::size_t>(i)]) < static_cast<std::ptrdiff_t>(size) )
+                                    if ( static_cast<std::ptrdiff_t>(moved_indexes[static_cast<std::size_t>(i)]) < static_cast<std::ptrdiff_t>(size) )
                                     {
-                                        maxValidIndex = static_cast<std::size_t>(movedIndexes[static_cast<std::size_t>(i)]);
+                                        max_valid_index = static_cast<std::size_t>(moved_indexes[static_cast<std::size_t>(i)]);
                                         break;
                                     }
                                 }
 
-                                std::size_t leftChunkSize = minValidIndex < static_cast<std::size_t>(indexMovedTo) ? 1 : 0;
-                                std::size_t rightChunkSize = maxValidIndex >= static_cast<std::size_t>(indexMovedTo) ? 1 : 0;
-                                std::size_t leftChunkFirst = minValidIndex;
-                                std::size_t rightChunkFirst = maxValidIndex;
+                                std::size_t left_chunk_size = min_valid_index < static_cast<std::size_t>(index_moved_to) ? 1 : 0;
+                                std::size_t right_chunk_size = max_valid_index >= static_cast<std::size_t>(index_moved_to) ? 1 : 0;
+                                std::size_t left_chunk_first = min_valid_index;
+                                std::size_t right_chunk_first = max_valid_index;
 
-                                for ( std::size_t i=0; i+1<std::size(movedIndexes) && static_cast<std::size_t>(movedIndexes[i+1]) < indexMovedTo; ++i )
+                                for ( std::size_t i=0; i+1<std::size(moved_indexes) && static_cast<std::size_t>(moved_indexes[i+1]) < index_moved_to; ++i )
                                 {
-                                    // rotate left chunk together with element[movedIndexes[i+1]]
-                                    rotations.push_back(Rotation::makeReverse(leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]));
-                                    leftChunkFirst = static_cast<std::size_t>(movedIndexes[i+1])-leftChunkSize;
-                                    ++leftChunkSize;
+                                    // rotate left chunk together with element[moved_indexes[i+1]]
+                                    rotations.push_back(rotation::make_reverse(left_chunk_first, left_chunk_first+left_chunk_size, moved_indexes[i+1]));
+                                    left_chunk_first = static_cast<std::size_t>(moved_indexes[i+1])-left_chunk_size;
+                                    ++left_chunk_size;
                                 }
-                                for ( std::size_t i=std::size(movedIndexes)-1; i>0 && static_cast<std::size_t>(movedIndexes[i-1]) >= indexMovedTo; --i )
+                                for ( std::size_t i=std::size(moved_indexes)-1; i>0 && static_cast<std::size_t>(moved_indexes[i-1]) >= index_moved_to; --i )
                                 {
-                                    // rotate right chunk together with element[movedIndexes[i-1]]
-                                    rotations.push_back(Rotation::makeReverse(static_cast<std::size_t>(movedIndexes[i-1])+1, rightChunkFirst, rightChunkFirst+rightChunkSize));
-                                    rightChunkFirst = static_cast<std::size_t>(movedIndexes[i-1]);
-                                    ++rightChunkSize;
+                                    // rotate right chunk together with element[moved_indexes[i-1]]
+                                    rotations.push_back(rotation::make_reverse(static_cast<std::size_t>(moved_indexes[i-1])+1, right_chunk_first, right_chunk_first+right_chunk_size));
+                                    right_chunk_first = static_cast<std::size_t>(moved_indexes[i-1]);
+                                    ++right_chunk_size;
                                 }
-                                if ( leftChunkFirst+leftChunkSize != rightChunkFirst && leftChunkSize > 0 && rightChunkSize > 0 ) // Need to combine the chunks then rotate combined to final position
+                                if ( left_chunk_first+left_chunk_size != right_chunk_first && left_chunk_size > 0 && right_chunk_size > 0 ) // Need to combine the chunks then rotate combined to final position
                                 {
-                                    std::size_t leftDistance = leftChunkFirst < static_cast<std::size_t>(indexMovedTo) ? static_cast<std::size_t>(indexMovedTo)-leftChunkFirst : leftChunkFirst-static_cast<std::size_t>(indexMovedTo);
-                                    std::size_t rightDistance = rightChunkFirst < static_cast<std::size_t>(indexMovedTo)+leftChunkSize ? static_cast<std::size_t>(indexMovedTo)+leftChunkSize-rightChunkFirst : rightChunkFirst-static_cast<std::size_t>(indexMovedTo)-leftChunkSize;
-                                    if ( rightDistance < leftDistance ) // Right chunk closer to target, move left up to right
+                                    std::size_t left_distance = left_chunk_first < static_cast<std::size_t>(index_moved_to) ? static_cast<std::size_t>(index_moved_to)-left_chunk_first : left_chunk_first-static_cast<std::size_t>(index_moved_to);
+                                    std::size_t right_distance = right_chunk_first < static_cast<std::size_t>(index_moved_to)+left_chunk_size ? static_cast<std::size_t>(index_moved_to)+left_chunk_size-right_chunk_first : right_chunk_first-static_cast<std::size_t>(index_moved_to)-left_chunk_size;
+                                    if ( right_distance < left_distance ) // Right chunk closer to target, move left up to right
                                     {
-                                        rotations.push_back(Rotation::makeReverse(leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst));
-                                        leftChunkFirst = rightChunkFirst-leftChunkSize;
+                                        rotations.push_back(rotation::make_reverse(left_chunk_first, left_chunk_first+left_chunk_size, right_chunk_first));
+                                        left_chunk_first = right_chunk_first-left_chunk_size;
                                     }
                                     else // Left chunk closer to target, move right up to left
                                     {
-                                        rotations.push_back(Rotation::makeReverse(leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize));
-                                        rightChunkFirst = leftChunkFirst+leftChunkSize;
+                                        rotations.push_back(rotation::make_reverse(left_chunk_first+left_chunk_size, right_chunk_first, right_chunk_first+right_chunk_size));
+                                        right_chunk_first = left_chunk_first+left_chunk_size;
                                     }
                                 }
-                                if ( leftChunkFirst < static_cast<std::size_t>(indexMovedTo) ) // Rotate combined chunk rightwards to final position
-                                    rotations.push_back(Rotation::makeReverse(leftChunkFirst, leftChunkFirst+countValidIndexes, indexMovedTo+leftChunkSize+rightChunkSize));
-                                else if ( leftChunkFirst > static_cast<std::size_t>(indexMovedTo) ) // Rotate combined chunk leftwards to final position
-                                    rotations.push_back(Rotation::makeReverse(indexMovedTo, leftChunkFirst, leftChunkFirst+countValidIndexes));
+                                if ( left_chunk_first < static_cast<std::size_t>(index_moved_to) ) // Rotate combined chunk rightwards to final position
+                                    rotations.push_back(rotation::make_reverse(left_chunk_first, left_chunk_first+count_valid_indexes, index_moved_to+left_chunk_size+right_chunk_size));
+                                else if ( left_chunk_first > static_cast<std::size_t>(index_moved_to) ) // Rotate combined chunk leftwards to final position
+                                    rotations.push_back(rotation::make_reverse(index_moved_to, left_chunk_first, left_chunk_first+count_valid_indexes));
                             }
                         }
 
-                        std::vector<std::size_t> trackedIndexes {};
-                        if constexpr ( hasElementMovedOp<Route> )
+                        std::vector<std::size_t> tracked_indexes {};
+                        if constexpr ( has_element_moved_op<route> )
                         {
-                            trackedIndexes.assign(size, 0);
-                            std::iota(trackedIndexes.begin(), trackedIndexes.end(), 0);
+                            tracked_indexes.assign(size, 0);
+                            std::iota(tracked_indexes.begin(), tracked_indexes.end(), 0);
                         }
                         for ( auto it = rotations.rbegin(); it != rotations.rend(); ++it )
                         {
                             it->perform(ref);
-                            if constexpr ( hasAttachedData )
-                                it->perform(getAttachedData<Pathway...>());
-                            if constexpr ( hasElementMovedOp<Route> )
-                                it->perform(trackedIndexes);
+                            if constexpr ( has_attached_data )
+                                it->perform(get_attached_data<Pathway...>());
+                            if constexpr ( has_element_moved_op<route> )
+                                it->perform(tracked_indexes);
                         }
 
-                        if constexpr ( hasSelections )
+                        if constexpr ( has_selections )
                         {
-                            auto & sel = getSelections<Pathway...>();
-                            sel_type prevSel {};
-                            readSelections(events, offset, prevSel);
-                            std::swap(sel, prevSel);
+                            auto & sel = get_selections<Pathway...>();
+                            sel_type prev_sel {};
+                            read_selections(events, offset, prev_sel);
+                            std::swap(sel, prev_sel);
                         }
                     
-                        if constexpr ( hasElementMovedOp<Route> )
+                        if constexpr ( has_element_moved_op<route> )
                         {
                             for ( std::size_t i=0; i<size; ++i )
                             {
-                                if ( i != trackedIndexes[i] )
-                                    notifyElementMoved(user, Route{keys}, trackedIndexes[i], i);
+                                if ( i != tracked_indexes[i] )
+                                    notify_element_moved(user, route{keys}, tracked_indexes[i], i);
                             }
                         }
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::MoveToL:
+                case op::move_to_l:
                 {
-                    if constexpr ( hasSelections && hasMoveOps )
+                    if constexpr ( has_selections && has_move_ops )
                     {
                         // Calculate the rotates you would perform in the forward direction, then reverse the rotations
-                        std::vector<Rotation> rotations {};
+                        std::vector<rotation> rotations {};
                             
-                        auto indexMovedTo = static_cast<std::size_t>(readIndex<index_type>(offset));
+                        auto index_moved_to = static_cast<std::size_t>(read_index<index_type>(offset));
                             
-                        auto & sel = getSelections<Pathway...>();
-                        sel_type prevSel {};
-                        readSelections(events, offset, prevSel);
-                        auto movedIndexes = prevSel; // Copy so it can be sorted without changing selections
-                        std::sort(movedIndexes.begin(), movedIndexes.end());
+                        auto & sel = get_selections<Pathway...>();
+                        sel_type prev_sel {};
+                        read_selections(events, offset, prev_sel);
+                        auto moved_indexes = prev_sel; // Copy so it can be sorted without changing selections
+                        std::sort(moved_indexes.begin(), moved_indexes.end());
 
                         auto size = std::size(ref);
-                        if ( !std::empty(movedIndexes) )
+                        if ( !std::empty(moved_indexes) )
                         {
-                            std::size_t countValidIndexes = 0;
-                            for ( auto movedIndex : movedIndexes )
+                            std::size_t count_valid_indexes = 0;
+                            for ( auto moved_index : moved_indexes )
                             {
-                                if ( movedIndex >= 0 && static_cast<std::size_t>(movedIndex) < std::size(ref) )
-                                    ++countValidIndexes;
+                                if ( moved_index >= 0 && static_cast<std::size_t>(moved_index) < std::size(ref) )
+                                    ++count_valid_indexes;
                             }
-                            if ( countValidIndexes == 0 )
+                            if ( count_valid_indexes == 0 )
                                 return;
 
-                            if ( static_cast<std::size_t>(indexMovedTo) + countValidIndexes >= size ) // Operation collapses to moveToEnd
+                            if ( static_cast<std::size_t>(index_moved_to) + count_valid_indexes >= size ) // Operation collapses to move_to_end
                             {
-                                std::ptrdiff_t insertionIndex = static_cast<std::ptrdiff_t>(size);
-                                for ( auto mit = movedIndexes.rbegin(); mit != movedIndexes.rend(); ++mit ) // movedIndexes sorted least to greatest, so reverse read
+                                std::ptrdiff_t insertion_index = static_cast<std::ptrdiff_t>(size);
+                                for ( auto mit = moved_indexes.rbegin(); mit != moved_indexes.rend(); ++mit ) // moved_indexes sorted least to greatest, so reverse read
                                 {
                                     auto i = *mit;
-                                    if ( i >= 0 && static_cast<std::ptrdiff_t>(i)+1 < insertionIndex )
-                                        rotations.push_back(Rotation::makeReverse(i, static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex)));
+                                    if ( i >= 0 && static_cast<std::ptrdiff_t>(i)+1 < insertion_index )
+                                        rotations.push_back(rotation::make_reverse(i, static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertion_index)));
 
-                                    --insertionIndex;
+                                    --insertion_index;
                                 }
                             }
-                            else // Non-collapsed moveTo operation
+                            else // Non-collapsed move_to operation
                             {
-                                std::size_t minValidIndex = 0;
-                                std::size_t maxValidIndex = 0;
-                                for ( std::size_t i=0; i<std::size(movedIndexes); ++i )
+                                std::size_t min_valid_index = 0;
+                                std::size_t max_valid_index = 0;
+                                for ( std::size_t i=0; i<std::size(moved_indexes); ++i )
                                 {
-                                    if ( movedIndexes[i] >= 0 )
+                                    if ( moved_indexes[i] >= 0 )
                                     {
-                                        minValidIndex = static_cast<std::size_t>(movedIndexes[i]);
+                                        min_valid_index = static_cast<std::size_t>(moved_indexes[i]);
                                         break;
                                     }
                                 }
-                                for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(std::size(movedIndexes))-1; i>=0; --i )
+                                for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(std::size(moved_indexes))-1; i>=0; --i )
                                 {
-                                    if ( static_cast<std::ptrdiff_t>(movedIndexes[static_cast<std::size_t>(i)]) < static_cast<std::ptrdiff_t>(size) )
+                                    if ( static_cast<std::ptrdiff_t>(moved_indexes[static_cast<std::size_t>(i)]) < static_cast<std::ptrdiff_t>(size) )
                                     {
-                                        maxValidIndex = static_cast<std::size_t>(movedIndexes[static_cast<std::size_t>(i)]);
+                                        max_valid_index = static_cast<std::size_t>(moved_indexes[static_cast<std::size_t>(i)]);
                                         break;
                                     }
                                 }
 
-                                std::size_t leftChunkSize = minValidIndex < static_cast<std::size_t>(indexMovedTo) ? 1 : 0;
-                                std::size_t rightChunkSize = maxValidIndex >= static_cast<std::size_t>(indexMovedTo) ? 1 : 0;
-                                std::size_t leftChunkFirst = minValidIndex;
-                                std::size_t rightChunkFirst = maxValidIndex;
+                                std::size_t left_chunk_size = min_valid_index < static_cast<std::size_t>(index_moved_to) ? 1 : 0;
+                                std::size_t right_chunk_size = max_valid_index >= static_cast<std::size_t>(index_moved_to) ? 1 : 0;
+                                std::size_t left_chunk_first = min_valid_index;
+                                std::size_t right_chunk_first = max_valid_index;
 
-                                for ( std::size_t i=0; i+1<std::size(movedIndexes) && movedIndexes[i+1] < indexMovedTo; ++i )
+                                for ( std::size_t i=0; i+1<std::size(moved_indexes) && moved_indexes[i+1] < index_moved_to; ++i )
                                 {
-                                    // rotate left chunk together with element[movedIndexes[i+1]]
-                                    rotations.push_back(Rotation::makeReverse(leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]));
-                                    leftChunkFirst = static_cast<std::size_t>(movedIndexes[i+1])-leftChunkSize;
-                                    ++leftChunkSize;
+                                    // rotate left chunk together with element[moved_indexes[i+1]]
+                                    rotations.push_back(rotation::make_reverse(left_chunk_first, left_chunk_first+left_chunk_size, moved_indexes[i+1]));
+                                    left_chunk_first = static_cast<std::size_t>(moved_indexes[i+1])-left_chunk_size;
+                                    ++left_chunk_size;
                                 }
-                                for ( std::size_t i=std::size(movedIndexes)-1; i>0 && movedIndexes[i-1] >= indexMovedTo; --i )
+                                for ( std::size_t i=std::size(moved_indexes)-1; i>0 && moved_indexes[i-1] >= index_moved_to; --i )
                                 {
-                                    // rotate right chunk together with element[movedIndexes[i-1]]
-                                    rotations.push_back(Rotation::makeReverse(static_cast<std::size_t>(movedIndexes[i-1])+1, rightChunkFirst, rightChunkFirst+rightChunkSize));
-                                    rightChunkFirst = static_cast<std::size_t>(movedIndexes[i-1]);
-                                    ++rightChunkSize;
+                                    // rotate right chunk together with element[moved_indexes[i-1]]
+                                    rotations.push_back(rotation::make_reverse(static_cast<std::size_t>(moved_indexes[i-1])+1, right_chunk_first, right_chunk_first+right_chunk_size));
+                                    right_chunk_first = static_cast<std::size_t>(moved_indexes[i-1]);
+                                    ++right_chunk_size;
                                 }
-                                if ( leftChunkFirst+leftChunkSize != rightChunkFirst && leftChunkSize > 0 && rightChunkSize > 0 ) // Need to combine the chunks then rotate combined to final position
+                                if ( left_chunk_first+left_chunk_size != right_chunk_first && left_chunk_size > 0 && right_chunk_size > 0 ) // Need to combine the chunks then rotate combined to final position
                                 {
-                                    std::size_t leftDistance = leftChunkFirst < static_cast<std::size_t>(indexMovedTo) ? static_cast<std::size_t>(indexMovedTo)-leftChunkFirst : leftChunkFirst-static_cast<std::size_t>(indexMovedTo);
-                                    std::size_t rightDistance = rightChunkFirst < static_cast<std::size_t>(indexMovedTo)+leftChunkSize ? static_cast<std::size_t>(indexMovedTo)+leftChunkSize-rightChunkFirst : rightChunkFirst-static_cast<std::size_t>(indexMovedTo)-leftChunkSize;
-                                    if ( rightDistance < leftDistance ) // Right chunk closer to target, move left up to right
+                                    std::size_t left_distance = left_chunk_first < static_cast<std::size_t>(index_moved_to) ? static_cast<std::size_t>(index_moved_to)-left_chunk_first : left_chunk_first-static_cast<std::size_t>(index_moved_to);
+                                    std::size_t right_distance = right_chunk_first < static_cast<std::size_t>(index_moved_to)+left_chunk_size ? static_cast<std::size_t>(index_moved_to)+left_chunk_size-right_chunk_first : right_chunk_first-static_cast<std::size_t>(index_moved_to)-left_chunk_size;
+                                    if ( right_distance < left_distance ) // Right chunk closer to target, move left up to right
                                     {
-                                        rotations.push_back(Rotation::makeReverse(leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst));
-                                        leftChunkFirst = rightChunkFirst-leftChunkSize;
+                                        rotations.push_back(rotation::make_reverse(left_chunk_first, left_chunk_first+left_chunk_size, right_chunk_first));
+                                        left_chunk_first = right_chunk_first-left_chunk_size;
                                     }
                                     else // Left chunk closer to target, move right up to left
                                     {
-                                        rotations.push_back(Rotation::makeReverse(leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize));
-                                        rightChunkFirst = leftChunkFirst+leftChunkSize;
+                                        rotations.push_back(rotation::make_reverse(left_chunk_first+left_chunk_size, right_chunk_first, right_chunk_first+right_chunk_size));
+                                        right_chunk_first = left_chunk_first+left_chunk_size;
                                     }
                                 }
-                                if ( leftChunkFirst < static_cast<std::size_t>(indexMovedTo) ) // Rotate combined chunk rightwards to final position
-                                    rotations.push_back(Rotation::makeReverse(leftChunkFirst, leftChunkFirst+countValidIndexes, indexMovedTo+leftChunkSize+rightChunkSize));
-                                else if ( leftChunkFirst > static_cast<std::size_t>(indexMovedTo) ) // Rotate combined chunk leftwards to final position
-                                    rotations.push_back(Rotation::makeReverse(indexMovedTo, leftChunkFirst, leftChunkFirst+countValidIndexes));
+                                if ( left_chunk_first < static_cast<std::size_t>(index_moved_to) ) // Rotate combined chunk rightwards to final position
+                                    rotations.push_back(rotation::make_reverse(left_chunk_first, left_chunk_first+count_valid_indexes, index_moved_to+left_chunk_size+right_chunk_size));
+                                else if ( left_chunk_first > static_cast<std::size_t>(index_moved_to) ) // Rotate combined chunk leftwards to final position
+                                    rotations.push_back(rotation::make_reverse(index_moved_to, left_chunk_first, left_chunk_first+count_valid_indexes));
                             }
                         }
 
-                        std::vector<std::size_t> trackedIndexes {};
-                        if constexpr ( hasElementMovedOp<Route> )
+                        std::vector<std::size_t> tracked_indexes {};
+                        if constexpr ( has_element_moved_op<route> )
                         {
-                            trackedIndexes.assign(size, 0);
-                            std::iota(trackedIndexes.begin(), trackedIndexes.end(), 0);
+                            tracked_indexes.assign(size, 0);
+                            std::iota(tracked_indexes.begin(), tracked_indexes.end(), 0);
                         }
                         for ( auto it = rotations.rbegin(); it != rotations.rend(); ++it )
                         {
                             it->perform(ref);
-                            if constexpr ( hasAttachedData )
-                                it->perform(getAttachedData<Pathway...>());
-                            if constexpr ( hasElementMovedOp<Route> )
-                                it->perform(trackedIndexes);
+                            if constexpr ( has_attached_data )
+                                it->perform(get_attached_data<Pathway...>());
+                            if constexpr ( has_element_moved_op<route> )
+                                it->perform(tracked_indexes);
                         }
 
-                        std::swap(sel, prevSel);
+                        std::swap(sel, prev_sel);
                     
-                        if constexpr ( hasElementMovedOp<Route> )
+                        if constexpr ( has_element_moved_op<route> )
                         {
                             for ( std::size_t i=0; i<size; ++i )
                             {
-                                if ( i != trackedIndexes[i] )
-                                    notifyElementMoved(user, Route{keys}, trackedIndexes[i], i);
+                                if ( i != tracked_indexes[i] )
+                                    notify_element_moved(user, route{keys}, tracked_indexes[i], i);
                             }
                         }
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
             }
         }
 
-        template <class value_type, class Member, class ... Pathway>
-        void processRedoEvent(std::uint8_t op, std::size_t & offset, std::optional<std::size_t> & secondaryOffset, auto & ref, auto keys)
+        template <class Value_type, class Member, class ... Pathway>
+        void process_redo_event(std::uint8_t operation, std::size_t & offset, std::optional<std::size_t> & secondary_offset, auto & ref, auto keys)
         {
             using index_type = index_type_t<default_index_type, Member>;
             using path_pack = type_tags<Pathway...>;
-            using sel_type = std::remove_cvref_t<decltype(getSelections<Pathway...>())>;
-            using element_type = RareTs::element_type_t<value_type>;
-            using attached_data_type = std::remove_cvref_t<decltype(getAttachedData<Pathway...>())>;
-            using Route = PathTaggedKeys<decltype(keys), path_pack, EditorType>;
-            using ElemPath = type_tags<Pathway..., PathIndex<std::tuple_size_v<std::remove_cvref_t<decltype(keys)>>>>;
-            using ElemKeys = std::remove_cvref_t<decltype(std::tuple_cat(keys, std::tuple<index_type>{0}))>;
-            using ElemRoute = PathTaggedKeys<ElemKeys, ElemPath, EditorType>;
-            constexpr bool hasAttachedData = Agent::hasAttachedData<Pathway...>();
-            constexpr bool hasSelections = !std::is_null_pointer_v<sel_type> && RareTs::is_specialization_v<sel_type, std::vector>;
-            constexpr bool hasSelChangeOp = hasSelections && hasSelectionsChangedOp<Route>;
-            constexpr bool isIterable = RareTs::is_iterable_v<value_type>;
-            constexpr bool hasMoveOps = !std::is_void_v<element_type> && requires { ref.begin(); };
+            using sel_type = std::remove_cvref_t<decltype(get_selections<Pathway...>())>;
+            using element_type = RareTs::element_type_t<Value_type>;
+            using attached_data_type = std::remove_cvref_t<decltype(get_attached_data<Pathway...>())>;
+            using route = path_tagged_keys<decltype(keys), path_pack, Editor_type>;
+            using elem_path = type_tags<Pathway..., path_index<std::tuple_size_v<std::remove_cvref_t<decltype(keys)>>>>;
+            using elem_keys = std::remove_cvref_t<decltype(std::tuple_cat(keys, std::tuple<index_type>{0}))>;
+            using elem_route = path_tagged_keys<elem_keys, elem_path, Editor_type>;
+            constexpr bool has_attached_data = agent::has_attached_data<Pathway...>();
+            constexpr bool has_selections = !std::is_null_pointer_v<sel_type> && RareTs::is_specialization_v<sel_type, std::vector>;
+            constexpr bool has_sel_change_op = has_selections && has_selections_changed_op<route>;
+            constexpr bool is_iterable = RareTs::is_iterable_v<Value_type>;
+            constexpr bool has_move_ops = !std::is_void_v<element_type> && requires { ref.begin(); };
 
-            switch ( Op(op) )
+            switch ( op(operation) )
             {
-                case Op::Reset:
+                case op::init:
                 {
-                    if constexpr ( isIterable && hasElementRemovedOp<Route> ) // Iterable
+                    if constexpr ( RareTs::is_assignable_v<decltype(ref), Value_type> )
+                        ref = read_value<Value_type, Member>(offset);
+                }
+                break;
+                case op::reset:
+                {
+                    if constexpr ( is_iterable && has_element_removed_op<route> ) // Iterable
                     {
                         for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1; i>=0; --i )
-                            notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i)); // Issue remove changes
+                            notify_element_removed(user, route{keys}, static_cast<std::size_t>(i)); // Issue remove changes
 
                         ref = {};
-                        if constexpr ( hasAttachedData )
-                            getAttachedData<Pathway...>() = {};
+                        if constexpr ( has_attached_data )
+                            get_attached_data<Pathway...>() = {};
                     }
-                    else if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> ) // Non-iterables
+                    else if constexpr ( !is_iterable && has_value_changed_op<route, Value_type> ) // Non-iterables
                     {
                         if constexpr ( std::is_array_v<typename Member::type> )
                         {
-                            typename Member::type prevValue {};
-                            auto refArray = as_1d<typename Member::type>(ref);
-                            as_1d(prevValue) = refArray;
-                            refArray.clear();
-                            notifyValueChanged(user, Route{keys}, prevValue, ref); // Issue change notification
+                            typename Member::type prev_value {};
+                            auto ref_array = as_1d<typename Member::type>(ref);
+                            as_1d(prev_value) = ref_array;
+                            ref_array.clear();
+                            notify_value_changed(user, route{keys}, prev_value, ref); // Issue change notification
                         }
                         else
                         {
-                            auto prevValue = ref;
+                            auto prev_value = ref;
                             ref = {};
-                            notifyValueChanged(user, Route{keys}, prevValue, ref); // Issue change notification
+                            notify_value_changed(user, route{keys}, prev_value, ref); // Issue change notification
                         }
                     }
                     else
                     {
-                        if constexpr ( std::is_array_v<value_type> && requires { ref[0]; } )
-                            as_1d<value_type>(ref).clear();
+                        if constexpr ( std::is_array_v<Value_type> && requires { ref[0]; } )
+                            as_1d<Value_type>(ref).clear();
                         else
                         {
                             ref = {};
-                            if constexpr ( hasAttachedData )
-                                getAttachedData<Pathway...>() = {};
+                            if constexpr ( has_attached_data )
+                                get_attached_data<Pathway...>() = {};
                         }
                     }
                             
-                    if constexpr ( hasSelections )
+                    if constexpr ( has_selections )
                     {
-                        auto & sel = getSelections<Pathway...>();
-                        if constexpr ( hasSelChangeOp )
+                        auto & sel = get_selections<Pathway...>();
+                        if constexpr ( has_sel_change_op )
                         {
                             if ( !std::empty(sel) )
                             {
-                                clearSel(sel);
-                                notifySelectionsChanged(user, Route{keys});
+                                clear_sel(sel);
+                                notify_selections_changed(user, route{keys});
                             }
                         }
                         else
-                            clearSel(sel);
+                            clear_sel(sel);
                     }
                 }
                 break;
-                case Op::Reserve:
+                case op::reserve:
                 {
-                    if constexpr ( RareTs::is_specialization_v<value_type, std::vector> )
-                        ref.reserve(static_cast<std::size_t>(readIndex<index_type>(offset)));
+                    if constexpr ( RareTs::is_specialization_v<Value_type, std::vector> )
+                        ref.reserve(static_cast<std::size_t>(read_index<index_type>(offset)));
                 }
                 break;
-                case Op::Trim:
+                case op::trim:
                 {
-                    if constexpr ( RareTs::is_specialization_v<value_type, std::vector> )
+                    if constexpr ( RareTs::is_specialization_v<Value_type, std::vector> )
                         ref.shrink_to_fit();
                 }
                 break;
-                case Op::Assign:
+                case op::assign:
                 {
-                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> &&
-                        !RareTs::is_optional_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.assign(0, {});} )
+                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<Value_type> &&
+                        !RareTs::is_optional_v<Value_type> && !std::is_same_v<std::string, Value_type> && requires{ref.assign(0, {});} )
                     {
-                        std::size_t count = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        auto value = readValue<element_type, Member>(offset);
+                        std::size_t count = static_cast<std::size_t>(read_index<index_type>(offset));
+                        auto value = read_value<element_type, Member>(offset);
 
-                        if constexpr ( hasElementRemovedOp<Route> )
+                        if constexpr ( has_element_removed_op<route> )
                         {
                             for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1; i>=0; --i )
-                                notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i)); // Issue remove changes
+                                notify_element_removed(user, route{keys}, static_cast<std::size_t>(i)); // Issue remove changes
                         }
                         ref.assign(count, value);
-                        if constexpr ( hasAttachedData )
-                            getAttachedData<Pathway...>() = attached_data_type(count);
+                        if constexpr ( has_attached_data )
+                            get_attached_data<Pathway...>() = attached_data_type(count);
 
-                        if constexpr ( hasElementAddedOp<Route> )
+                        if constexpr ( has_element_added_op<route> )
                         {
                             for ( std::size_t i=0; i<std::size(ref); ++i )
-                                notifyElementAdded(user, Route{keys}, i);
+                                notify_element_added(user, route{keys}, i);
                         }
 
-                        if constexpr ( hasSelections )
+                        if constexpr ( has_selections )
                         {
-                            auto & sel = getSelections<Pathway...>();
-                            writeSelections(events, sel);
-                            if constexpr ( hasSelChangeOp )
+                            auto & sel = get_selections<Pathway...>();
+                            write_selections(events, sel);
+                            if constexpr ( has_sel_change_op )
                             {
                                 if ( !std::empty(sel) )
                                 {
-                                    clearSel(sel);
-                                    notifySelectionsChanged(user, Route{keys});
+                                    clear_sel(sel);
+                                    notify_selections_changed(user, route{keys});
                                 }
                             }
                             else
-                                clearSel(sel);
+                                clear_sel(sel);
                         }
                     }
                 }
                 break;
-                case Op::AssignDefault:
+                case op::assign_default:
                 {
-                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> &&
-                        !RareTs::is_optional_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref = value_type(0);} )
+                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<Value_type> &&
+                        !RareTs::is_optional_v<Value_type> && !std::is_same_v<std::string, Value_type> && requires{ref = Value_type(0);} )
                     {
-                        std::size_t size = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        if constexpr ( hasElementRemovedOp<Route> )
+                        std::size_t size = static_cast<std::size_t>(read_index<index_type>(offset));
+                        if constexpr ( has_element_removed_op<route> )
                         {
                             for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1; i>=0; --i )
-                                notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i)); // Issue remove changes
+                                notify_element_removed(user, route{keys}, static_cast<std::size_t>(i)); // Issue remove changes
                         }
-                        ref = value_type(size);
-                        if constexpr ( hasAttachedData )
-                            getAttachedData<Pathway...>() = attached_data_type(size);
+                        ref = Value_type(size);
+                        if constexpr ( has_attached_data )
+                            get_attached_data<Pathway...>() = attached_data_type(size);
 
-                        if constexpr ( hasElementAddedOp<Route> )
+                        if constexpr ( has_element_added_op<route> )
                         {
                             for ( std::size_t i=0; i<std::size(ref); ++i )
-                                notifyElementAdded(user, Route{keys}, i);
+                                notify_element_added(user, route{keys}, i);
                         }
 
-                        if constexpr ( hasSelections )
+                        if constexpr ( has_selections )
                         {
-                            auto & sel = getSelections<Pathway...>();
-                            writeSelections(events, sel);
-                            if constexpr ( hasSelChangeOp )
+                            auto & sel = get_selections<Pathway...>();
+                            write_selections(events, sel);
+                            if constexpr ( has_sel_change_op )
                             {
                                 if ( !std::empty(sel) )
                                 {
-                                    clearSel(sel);
-                                    notifySelectionsChanged(user, Route{keys});
+                                    clear_sel(sel);
+                                    notify_selections_changed(user, route{keys});
                                 }
                             }
                             else
-                                clearSel(sel);
+                                clear_sel(sel);
                         }
 
                     }
                 }
                 break;
-                case Op::ClearSelections:
+                case op::clear_selections:
                 {
-                    auto & sel = getSelections<Pathway...>();
-                    clearSel(sel);
+                    auto & sel = get_selections<Pathway...>();
+                    clear_sel(sel);
 
-                    if constexpr ( hasSelChangeOp )
-                        notifySelectionsChanged(user, Route{keys});
+                    if constexpr ( has_sel_change_op )
+                        notify_selections_changed(user, route{keys});
                 }
                 break;
-                case Op::SelectAll:
+                case op::select_all:
                 {
-                    if constexpr ( hasSelections && requires { std::size(ref); } )
+                    if constexpr ( has_selections && requires { std::size(ref); } )
                     {
-                        auto & sel = getSelections<Pathway...>();
+                        auto & sel = get_selections<Pathway...>();
                         RareTs::clear(sel);
                         sel.assign(std::size(ref), index_type{0});
                         std::iota(sel.begin(), sel.end(), index_type{0});
 
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::Select:
+                case op::select:
                 {
-                    if constexpr ( hasSelections )
+                    if constexpr ( has_selections )
                     {
-                        auto & sel = getSelections<Pathway...>();
-                        auto value = readIndex<index_type>(offset);
+                        auto & sel = get_selections<Pathway...>();
+                        auto value = read_index<index_type>(offset);
                         if ( std::find(sel.begin(), sel.end(), value) == sel.end() )
                             sel.push_back(value);
                         
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::SelectN:
+                case op::select_n:
                 {
-                    if constexpr ( hasSelections )
+                    if constexpr ( has_selections )
                     {
-                        auto & sel = getSelections<Pathway...>();
-                        auto size = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        auto selIndexes = readIndexes<index_type>(offset, size);
+                        auto & sel = get_selections<Pathway...>();
+                        auto size = static_cast<std::size_t>(read_index<index_type>(offset));
+                        auto sel_indexes = read_indexes<index_type>(offset, size);
                         for ( std::size_t i=0; i<size; ++i )
                         {
-                            if ( std::find(sel.begin(), sel.end(), selIndexes[i]) == sel.end() )
-                                sel.push_back(selIndexes[i]);
+                            if ( std::find(sel.begin(), sel.end(), sel_indexes[i]) == sel.end() )
+                                sel.push_back(sel_indexes[i]);
                         }
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::Deselect:
+                case op::deselect:
                 {
-                    if constexpr ( hasSelections )
+                    if constexpr ( has_selections )
                     {
-                        auto & sel = getSelections<Pathway...>();
-                        auto value = static_cast<std::size_t>(readIndex<index_type>(offset));
+                        auto & sel = get_selections<Pathway...>();
+                        auto value = static_cast<std::size_t>(read_index<index_type>(offset));
                         auto found = std::find(sel.begin(), sel.end(), value);
                         if ( found != sel.end() )
                             sel.erase(found);
                         
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::DeselectN:
+                case op::deselect_n:
                 {
-                    if constexpr ( hasSelections )
+                    if constexpr ( has_selections )
                     {
-                        auto & sel = getSelections<Pathway...>();
-                        auto size = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        auto selIndexes = readIndexes<index_type>(offset, size);
+                        auto & sel = get_selections<Pathway...>();
+                        auto size = static_cast<std::size_t>(read_index<index_type>(offset));
+                        auto sel_indexes = read_indexes<index_type>(offset, size);
                         for ( std::size_t i=0; i<size; ++i )
                         {
-                            auto found = std::find(sel.begin(), sel.end(), selIndexes[i]);
+                            auto found = std::find(sel.begin(), sel.end(), sel_indexes[i]);
                             if ( found != sel.end() )
                                 sel.erase(found);
                         }
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::ToggleSelection:
+                case op::toggle_selection:
                 {
-                    if constexpr ( hasSelections )
+                    if constexpr ( has_selections )
                     {
-                        auto & sel = getSelections<Pathway...>();
-                        auto value = readIndex<index_type>(offset);
-                        readIndex<index_type>(offset);
+                        auto & sel = get_selections<Pathway...>();
+                        auto value = read_index<index_type>(offset);
+                        read_index<index_type>(offset);
                         auto found = std::find(sel.begin(), sel.end(), value);
                         if ( found == sel.end() )
                             RareTs::append(sel, value);
                         else
                             sel.erase(found);
                         
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::ToggleSelectionN:
+                case op::toggle_selection_n:
                 {
-                    if constexpr ( hasSelections )
+                    if constexpr ( has_selections )
                     {
-                        auto & sel = getSelections<Pathway...>();
-                        auto size = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        auto selIndexes = readIndexes<index_type>(offset, size);
+                        auto & sel = get_selections<Pathway...>();
+                        auto size = static_cast<std::size_t>(read_index<index_type>(offset));
+                        auto sel_indexes = read_indexes<index_type>(offset, size);
                         for ( std::size_t i=0; i<size; ++i )
                         {
-                            auto found = std::find(sel.begin(), sel.end(), selIndexes[i]);
+                            auto found = std::find(sel.begin(), sel.end(), sel_indexes[i]);
                             if ( found == sel.end() )
-                                RareTs::append(sel, selIndexes[i]);
+                                RareTs::append(sel, sel_indexes[i]);
                             else
                                 sel.erase(found);
                         }
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::SortSelections:
+                case op::sort_selections:
                 {
-                    if constexpr ( hasSelections && requires{redoSort(getSelections<Pathway...>(), readIndexes<index_type>(offset, 0));} )
+                    if constexpr ( has_selections && requires{redo_sort(get_selections<Pathway...>(), read_indexes<index_type>(offset, 0));} )
                     {
-                        auto & sel = getSelections<Pathway...>();
-                        auto size = readIndex<index_type>(offset);
-                        auto sourceIndexes = readIndexes<index_type>(offset, size);
+                        auto & sel = get_selections<Pathway...>();
+                        auto size = read_index<index_type>(offset);
+                        auto source_indexes = read_indexes<index_type>(offset, size);
 
-                        redoSort(sel, sourceIndexes);
+                        redo_sort(sel, source_indexes);
 
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::SortSelectionsDesc:
+                case op::sort_selections_desc:
                 {
-                    if constexpr ( hasSelections && requires{redoSort(getSelections<Pathway...>(), readIndexes<index_type>(offset, 0));} )
+                    if constexpr ( has_selections && requires{redo_sort(get_selections<Pathway...>(), read_indexes<index_type>(offset, 0));} )
                     {
-                        auto & sel = getSelections<Pathway...>();
-                        auto size = readIndex<index_type>(offset);
-                        auto sourceIndexes = readIndexes<index_type>(offset, size);
+                        auto & sel = get_selections<Pathway...>();
+                        auto size = read_index<index_type>(offset);
+                        auto source_indexes = read_indexes<index_type>(offset, size);
 
-                        redoSort(sel, sourceIndexes);
+                        redo_sort(sel, source_indexes);
 
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::Set:
+                case op::set:
                 {
-                    if constexpr ( RareTs::is_assignable_v<decltype(ref), value_type> )
+                    if constexpr ( RareTs::is_assignable_v<decltype(ref), Value_type> )
                     {
-                        auto newValue = readValue<value_type, Member>(offset);
-                        readValue<value_type, Member>(offset); // prevValue (unused)
-                        if constexpr ( !isIterable && hasValueChangedOp<Route, value_type> )
+                        auto new_value = read_value<Value_type, Member>(offset);
+                        read_value<Value_type, Member>(offset); // prev_value (unused)
+                        if constexpr ( !is_iterable && has_value_changed_op<route, Value_type> )
                         {
                             auto temp = ref;
-                            ref = newValue;
-                            notifyValueChanged(user, Route{keys}, temp, ref);
+                            ref = new_value;
+                            notify_value_changed(user, route{keys}, temp, ref);
                         }
                         else
                         {
-                            if constexpr ( isIterable && hasElementRemovedOp<Route> )
+                            if constexpr ( is_iterable && has_element_removed_op<route> )
                             {
                                 for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1; i>=0; --i )
-                                    notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
+                                    notify_element_removed(user, route{keys}, static_cast<std::size_t>(i));
                             }
-                            ref = newValue;
-                            if constexpr ( hasAttachedData )
-                                getAttachedData<Pathway...>() = attached_data_type(std::size(ref));
+                            ref = new_value;
+                            if constexpr ( has_attached_data )
+                                get_attached_data<Pathway...>() = attached_data_type(std::size(ref));
 
-                            if constexpr ( isIterable && hasElementAddedOp<Route> )
+                            if constexpr ( is_iterable && has_element_added_op<route> )
                             {
                                 for ( std::size_t i=0; i<std::size(ref); ++i )
-                                    notifyElementAdded(user, Route{keys}, i);
+                                    notify_element_added(user, route{keys}, i);
                             }
                         }
 
-                        if constexpr ( hasSelections )
+                        if constexpr ( has_selections )
                         {
-                            clearSel(getSelections<Pathway...>());
-                            if constexpr ( hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            clear_sel(get_selections<Pathway...>());
+                            if constexpr ( has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
                     }
                 }
                 break;
-                case Op::SetN:
+                case op::set_n:
                 {
                     if constexpr ( !std::is_void_v<element_type> && requires{ref[0] = std::declval<element_type>();} )
                     {
-                        constexpr bool isIterableElement = RareTs::is_iterable_v<element_type>;
-                        auto count = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        auto setIndexes = readIndexes<index_type>(offset, count);
+                        constexpr bool is_iterable_element = RareTs::is_iterable_v<element_type>;
+                        auto count = static_cast<std::size_t>(read_index<index_type>(offset));
+                        auto set_indexes = read_indexes<index_type>(offset, count);
 
-                        auto newValue = readValue<element_type, Member>(offset);
+                        auto new_value = read_value<element_type, Member>(offset);
 
-                        if constexpr ( !isIterableElement && hasValueChangedOp<Route, element_type> )
+                        if constexpr ( !is_iterable_element && has_value_changed_op<route, element_type> )
                         {
-                            for ( auto index : setIndexes )
+                            for ( auto index : set_indexes )
                             {
-                                auto prevValue = ref[index];
-                                ref[index] = newValue;
-                                notifyValueChanged(user, ElemRoute{std::tuple_cat(keys, std::tuple<index_type>{index})}, prevValue, ref[index]);
+                                auto prev_value = ref[index];
+                                ref[index] = new_value;
+                                notify_value_changed(user, elem_route{std::tuple_cat(keys, std::tuple<index_type>{index})}, prev_value, ref[index]);
                             }
                         }
-                        else if constexpr ( isIterableElement && hasElementRemovedOp<Route> )
+                        else if constexpr ( is_iterable_element && has_element_removed_op<route> )
                         {
-                            for ( auto index : setIndexes )
+                            for ( auto index : set_indexes )
                             {
                                 for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref[index]))-1; i>=0; --i )
-                                    notifyElementRemoved(user, ElemRoute{std::tuple_cat(keys, std::tuple<index_type>{index})}, static_cast<std::size_t>(i));
+                                    notify_element_removed(user, elem_route{std::tuple_cat(keys, std::tuple<index_type>{index})}, static_cast<std::size_t>(i));
 
-                                ref[index] = newValue;
+                                ref[index] = new_value;
 
-                                if constexpr ( hasElementAddedOp<Route> )
+                                if constexpr ( has_element_added_op<route> )
                                 {
                                     for ( std::size_t j=0; j<std::size(ref[index]); ++j )
-                                        notifyElementAdded(user, ElemRoute{std::tuple_cat(keys, std::tuple<index_type>{index})}, j);
+                                        notify_element_added(user, elem_route{std::tuple_cat(keys, std::tuple<index_type>{index})}, j);
                                 }
                             }
                         }
                         else
                         {
-                            for ( auto index : setIndexes )
+                            for ( auto index : set_indexes )
                             {
-                                ref[index] = newValue;
-                                if constexpr ( isIterableElement && hasElementAddedOp<Route> )
+                                ref[index] = new_value;
+                                if constexpr ( is_iterable_element && has_element_added_op<route> )
                                 {
                                     for ( std::size_t i=0; i<std::size(ref[index]); ++i )
-                                        notifyElementAdded(user, ElemRoute{std::tuple_cat(keys, std::tuple<index_type>{index})}, i);
+                                        notify_element_added(user, elem_route{std::tuple_cat(keys, std::tuple<index_type>{index})}, i);
                                 }
                             }
                         }
                     }
                 }
                 break;
-                case Op::SetL:
+                case op::set_l:
                 {
-                    if constexpr ( RareTs::is_assignable_v<decltype(ref), value_type> )
+                    if constexpr ( RareTs::is_assignable_v<decltype(ref), Value_type> )
                     {
-                        if ( !secondaryOffset )
-                            secondaryOffset = offset; // Is set exclusively for the first visit of the selection
+                        if ( !secondary_offset )
+                            secondary_offset = offset; // Is set exclusively for the first visit of the selection
 
-                        if constexpr ( hasValueChangedOp<Route, value_type> )
+                        if constexpr ( has_value_changed_op<route, Value_type> )
                         {
                             auto temp = ref;
-                            ref = peekValue<value_type, Member>(*secondaryOffset);
-                            notifyValueChanged(user, Route{keys}, temp, ref);
+                            ref = peek_value<Value_type, Member>(*secondary_offset);
+                            notify_value_changed(user, route{keys}, temp, ref);
                         }
                         else
                         {
-                            if constexpr ( isIterable && hasElementRemovedOp<Route> )
+                            if constexpr ( is_iterable && has_element_removed_op<route> )
                             {
                                 for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1; i>=0; --i )
-                                    notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(i));
+                                    notify_element_removed(user, route{keys}, static_cast<std::size_t>(i));
                             }
-                            ref = peekValue<value_type, Member>(*secondaryOffset);
+                            ref = peek_value<Value_type, Member>(*secondary_offset);
 
-                            if constexpr ( isIterable && hasElementAddedOp<Route> )
+                            if constexpr ( is_iterable && has_element_added_op<route> )
                             {
                                 for ( std::size_t i=0; i<std::size(ref); ++i )
-                                    notifyElementAdded(user, Route{keys}, i);
+                                    notify_element_added(user, route{keys}, i);
                             }
                         }
                     }
                 }
                 break;
-                case Op::Append:
+                case op::append:
                 {
-                    if constexpr ( RareTs::is_specialization_v<value_type, std::vector> )
+                    if constexpr ( RareTs::is_specialization_v<Value_type, std::vector> )
                     {
-                        auto value = readValue<element_type, Member>(offset);
+                        auto value = read_value<element_type, Member>(offset);
                         ref.push_back(value);
-                        if constexpr ( hasAttachedData )
-                            getAttachedData<Pathway...>().push_back({});
-                        if constexpr ( hasElementAddedOp<Route> )
-                            notifyElementAdded(user, Route{keys}, ref.size()-1);
+                        if constexpr ( has_attached_data )
+                            get_attached_data<Pathway...>().push_back({});
+                        if constexpr ( has_element_added_op<route> )
+                            notify_element_added(user, route{keys}, ref.size()-1);
                     }
                 }
                 break;
-                case Op::AppendN:
+                case op::append_n:
                 {
-                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> &&
-                        !RareTs::is_optional_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.push_back(element_type{});} )
+                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<Value_type> &&
+                        !RareTs::is_optional_v<Value_type> && !std::is_same_v<std::string, Value_type> && requires{ref.push_back(element_type{});} )
                     {
-                        auto count = static_cast<std::size_t>(readIndex<index_type>(offset));
+                        auto count = static_cast<std::size_t>(read_index<index_type>(offset));
                         for ( std::size_t i=0; i<count; ++i )
                         {
-                            ref.push_back(readValue<element_type, Member>(offset));
-                            if constexpr ( hasAttachedData )
-                                getAttachedData<Pathway...>().push_back({});
-                            if constexpr ( hasElementAddedOp<Route> )
-                                notifyElementAdded(user, Route{keys}, ref.size()-1);
+                            ref.push_back(read_value<element_type, Member>(offset));
+                            if constexpr ( has_attached_data )
+                                get_attached_data<Pathway...>().push_back({});
+                            if constexpr ( has_element_added_op<route> )
+                                notify_element_added(user, route{keys}, ref.size()-1);
                         }
                     }
                 }
                 break;
-                case Op::Insert:
+                case op::insert:
                 {
-                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> &&
-                        !RareTs::is_optional_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.insert(ref.begin(), std::declval<element_type>());} )
+                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<Value_type> &&
+                        !RareTs::is_optional_v<Value_type> && !std::is_same_v<std::string, Value_type> && requires{ref.insert(ref.begin(), std::declval<element_type>());} )
                     {
-                        auto insertionIndex = readIndex<index_type>(offset);
-                        auto insertedValue = readValue<element_type, Member>(offset);
-                        ref.insert(std::next(ref.begin(), static_cast<std::ptrdiff_t>(insertionIndex)), insertedValue);
-                        if constexpr ( hasAttachedData )
+                        auto insertion_index = read_index<index_type>(offset);
+                        auto inserted_value = read_value<element_type, Member>(offset);
+                        ref.insert(std::next(ref.begin(), static_cast<std::ptrdiff_t>(insertion_index)), inserted_value);
+                        if constexpr ( has_attached_data )
                         {
-                            auto & attachedData = getAttachedData<Pathway...>();
-                            attachedData.emplace(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(insertionIndex)));
+                            auto & attached_data = get_attached_data<Pathway...>();
+                            attached_data.emplace(std::next(attached_data.begin(), static_cast<std::ptrdiff_t>(insertion_index)));
                         }
                         
-                        if constexpr ( hasElementAddedOp<Route> )
-                            notifyElementAdded(user, Route{keys}, static_cast<std::size_t>(insertionIndex));
+                        if constexpr ( has_element_added_op<route> )
+                            notify_element_added(user, route{keys}, static_cast<std::size_t>(insertion_index));
 
-                        if constexpr ( hasElementMovedOp<Route> )
+                        if constexpr ( has_element_moved_op<route> )
                         {
-                            for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(std::size(ref))-1; i>static_cast<std::ptrdiff_t>(insertionIndex); --i )
-                                notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(i-1), static_cast<std::size_t>(i));
+                            for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(std::size(ref))-1; i>static_cast<std::ptrdiff_t>(insertion_index); --i )
+                                notify_element_moved(user, route{keys}, static_cast<std::size_t>(i-1), static_cast<std::size_t>(i));
                         }
 
-                        if constexpr ( hasSelections )
+                        if constexpr ( has_selections )
                         {
-                            auto & sel = getSelections<Pathway...>();
+                            auto & sel = get_selections<Pathway...>();
                             for ( auto & index : sel )
                             {
-                                if ( static_cast<index_type>(index)  >= insertionIndex )
+                                if ( static_cast<index_type>(index)  >= insertion_index )
                                     ++index;
                             }
-                            if constexpr ( hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            if constexpr ( has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
                     }
                 }
                 break;
-                case Op::InsertN:
+                case op::insert_n:
                 {
-                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> &&
-                        !RareTs::is_optional_v<value_type> && !std::is_same_v<std::string, value_type> && requires {ref.insert(ref.begin(), std::declval<element_type>());} )
+                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<Value_type> &&
+                        !RareTs::is_optional_v<Value_type> && !std::is_same_v<std::string, Value_type> && requires {ref.insert(ref.begin(), std::declval<element_type>());} )
                     {
-                        std::size_t insertionCount = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        auto insertionIndex = readIndex<index_type>(offset);
-                        for ( std::size_t i=0; i<insertionCount; ++i )
+                        std::size_t insertion_count = static_cast<std::size_t>(read_index<index_type>(offset));
+                        auto insertion_index = read_index<index_type>(offset);
+                        for ( std::size_t i=0; i<insertion_count; ++i )
                         {
                             ref.insert(
-                                std::next(ref.begin(), static_cast<std::ptrdiff_t>(insertionIndex+i)),
-                                readValue<element_type, Member>(offset)
+                                std::next(ref.begin(), static_cast<std::ptrdiff_t>(insertion_index+i)),
+                                read_value<element_type, Member>(offset)
                             );
-                            if constexpr ( hasAttachedData )
+                            if constexpr ( has_attached_data )
                             {
-                                auto & attachedData = getAttachedData<Pathway...>();
-                                attachedData.emplace(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(insertionIndex+i)));
+                                auto & attached_data = get_attached_data<Pathway...>();
+                                attached_data.emplace(std::next(attached_data.begin(), static_cast<std::ptrdiff_t>(insertion_index+i)));
                             }
                         }
 
-                        if constexpr ( hasElementAddedOp<Route> )
+                        if constexpr ( has_element_added_op<route> )
                         {
-                            auto limit = static_cast<std::size_t>(insertionIndex) + insertionCount;
-                            for ( auto i = static_cast<std::size_t>(insertionIndex); i < limit; ++i )
-                                notifyElementAdded(user, Route{keys}, i);
+                            auto limit = static_cast<std::size_t>(insertion_index) + insertion_count;
+                            for ( auto i = static_cast<std::size_t>(insertion_index); i < limit; ++i )
+                                notify_element_added(user, route{keys}, i);
                         }
 
-                        if constexpr ( hasElementMovedOp<Route> )
+                        if constexpr ( has_element_moved_op<route> )
                         {
-                            std::size_t prevSize = std::size(ref) - insertionCount;
-                            for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(prevSize)-1; i>=static_cast<std::ptrdiff_t>(insertionIndex); --i )
-                                notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(i), static_cast<std::size_t>(i)+insertionCount);
+                            std::size_t prev_size = std::size(ref) - insertion_count;
+                            for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(prev_size)-1; i>=static_cast<std::ptrdiff_t>(insertion_index); --i )
+                                notify_element_moved(user, route{keys}, static_cast<std::size_t>(i), static_cast<std::size_t>(i)+insertion_count);
                         }
 
-                        if constexpr ( hasSelections )
+                        if constexpr ( has_selections )
                         {
-                            auto & sel = getSelections<Pathway...>();
+                            auto & sel = get_selections<Pathway...>();
                             for ( auto & index : sel )
                             {
-                                if ( static_cast<index_type>(index) >= insertionIndex )
-                                    index += static_cast<index_type>(insertionCount);
+                                if ( static_cast<index_type>(index) >= insertion_index )
+                                    index += static_cast<index_type>(insertion_count);
                             }
-                            if constexpr ( hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            if constexpr ( has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
                     }
                 }
                 break;
-                case Op::Remove:
+                case op::remove:
                 {
-                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> &&
-                        !RareTs::is_optional_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.erase(ref.begin());} )
+                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<Value_type> &&
+                        !RareTs::is_optional_v<Value_type> && !std::is_same_v<std::string, Value_type> && requires{ref.erase(ref.begin());} )
                     {
-                        auto removalIndex = readIndex<index_type>(offset);
-                        if constexpr ( hasElementRemovedOp<Route> )
-                            notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(removalIndex));
+                        auto removal_index = read_index<index_type>(offset);
+                        if constexpr ( has_element_removed_op<route> )
+                            notify_element_removed(user, route{keys}, static_cast<std::size_t>(removal_index));
 
-                        ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removalIndex)));
-                        if constexpr ( hasAttachedData )
+                        ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removal_index)));
+                        if constexpr ( has_attached_data )
                         {
-                            auto & attachedData = getAttachedData<Pathway...>();
-                            attachedData.erase(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(removalIndex)));
+                            auto & attached_data = get_attached_data<Pathway...>();
+                            attached_data.erase(std::next(attached_data.begin(), static_cast<std::ptrdiff_t>(removal_index)));
                         }
 
-                        if constexpr ( hasElementMovedOp<Route> )
+                        if constexpr ( has_element_moved_op<route> )
                         {
-                            for ( std::size_t i=static_cast<std::size_t>(removalIndex); i<std::size(ref); ++i )
-                                notifyElementMoved(user, Route{keys}, i+1, i);
+                            for ( std::size_t i=static_cast<std::size_t>(removal_index); i<std::size(ref); ++i )
+                                notify_element_moved(user, route{keys}, i+1, i);
                         }
 
-                        if constexpr ( hasSelections )
+                        if constexpr ( has_selections )
                         {
-                            auto & sel = getSelections<Pathway...>();
+                            auto & sel = get_selections<Pathway...>();
                             auto found = sel.end();
                             for ( auto it = sel.begin(); it != sel.end(); ++it )
                             {
-                                if ( *it == removalIndex )
+                                if ( *it == removal_index )
                                     found = it;
-                                else if ( *it > removalIndex )
+                                else if ( *it > removal_index )
                                     --(*it);
                             }
                             if ( found != sel.end() )
                                 sel.erase(found);
 
-                            if constexpr ( hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            if constexpr ( has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
                     }
                 }
                 break;
-                case Op::RemoveN:
+                case op::remove_n:
                 {
-                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> &&
-                        !RareTs::is_optional_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.erase(ref.begin());} )
+                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<Value_type> &&
+                        !RareTs::is_optional_v<Value_type> && !std::is_same_v<std::string, Value_type> && requires{ref.erase(ref.begin());} )
                     {
-                        auto & sel = getSelections<Pathway...>();
-                        std::size_t removalCount = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        auto removalIndexes = readIndexes<index_type>(offset, removalCount);
-                        if constexpr ( hasElementRemovedOp<Route> )
+                        auto & sel = get_selections<Pathway...>();
+                        std::size_t removal_count = static_cast<std::size_t>(read_index<index_type>(offset));
+                        auto removal_indexes = read_indexes<index_type>(offset, removal_count);
+                        if constexpr ( has_element_removed_op<route> )
                         {
-                            for ( auto removalIndex : removalIndexes )
-                                notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(removalIndex));
+                            for ( auto removal_index : removal_indexes )
+                                notify_element_removed(user, route{keys}, static_cast<std::size_t>(removal_index));
                         }
-                        for ( std::size_t i=0; i<removalCount; ++i )
+                        for ( std::size_t i=0; i<removal_count; ++i )
                         {
-                            auto indexRemoved = removalIndexes[i];
-                            ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(indexRemoved)));
-                            if constexpr ( hasAttachedData )
+                            auto index_removed = removal_indexes[i];
+                            ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(index_removed)));
+                            if constexpr ( has_attached_data )
                             {
-                                auto & attachedData = getAttachedData<Pathway...>();
-                                attachedData.erase(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(indexRemoved)));
+                                auto & attached_data = get_attached_data<Pathway...>();
+                                attached_data.erase(std::next(attached_data.begin(), static_cast<std::ptrdiff_t>(index_removed)));
                             }
-                            if constexpr ( hasSelections )
+                            if constexpr ( has_selections )
                             {
                                 auto found = sel.end();
                                 for ( auto it = sel.begin(); it != sel.end(); ++it )
                                 {
-                                    if ( *it == indexRemoved )
+                                    if ( *it == index_removed )
                                         found = it;
-                                    else if ( *it > indexRemoved )
+                                    else if ( *it > index_removed )
                                         --(*it);
                                 }
                                 if ( found != sel.end() )
@@ -6458,1064 +6487,1064 @@ namespace RareEdit
                             }
                         }
 
-                        if constexpr ( hasElementMovedOp<Route> )
+                        if constexpr ( has_element_moved_op<route> )
                         {
                             if ( !ref.empty() )
                             {
-                                std::size_t sizeRemoved = std::size(removalIndexes);
-                                std::size_t collectionIndex = static_cast<std::size_t>(removalIndexes[sizeRemoved-1]);
-                                std::size_t moveDistance = 1;
-                                for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(sizeRemoved)-1; i>0; --i )
+                                std::size_t size_removed = std::size(removal_indexes);
+                                std::size_t collection_index = static_cast<std::size_t>(removal_indexes[size_removed-1]);
+                                std::size_t move_distance = 1;
+                                for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(size_removed)-1; i>0; --i )
                                 {
-                                    for ( std::size_t j=removalIndexes[static_cast<std::size_t>(i)]; j<removalIndexes[static_cast<std::size_t>(i-1)]-1; ++j )
+                                    for ( std::size_t j=removal_indexes[static_cast<std::size_t>(i)]; j<removal_indexes[static_cast<std::size_t>(i-1)]-1; ++j )
                                     {
-                                        notifyElementMoved(user, Route{keys}, collectionIndex+moveDistance, collectionIndex);
-                                        ++collectionIndex;
+                                        notify_element_moved(user, route{keys}, collection_index+move_distance, collection_index);
+                                        ++collection_index;
                                     }
-                                    ++moveDistance;
+                                    ++move_distance;
                                 }
-                                for ( ; collectionIndex < std::size(ref); ++collectionIndex )
-                                    notifyElementMoved(user, Route{keys}, collectionIndex+moveDistance, collectionIndex);
+                                for ( ; collection_index < std::size(ref); ++collection_index )
+                                    notify_element_moved(user, route{keys}, collection_index+move_distance, collection_index);
                             }
                         }
-                        if constexpr ( hasSelections && hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_selections && has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::RemoveL:
+                case op::remove_l:
                 {
-                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<value_type> &&
-                        !RareTs::is_optional_v<value_type> && !std::is_same_v<std::string, value_type> && requires{ref.erase(ref.begin());} )
+                    if constexpr ( !std::is_void_v<element_type> && !RareTs::is_static_array_v<Value_type> &&
+                        !RareTs::is_optional_v<Value_type> && !std::is_same_v<std::string, Value_type> && requires{ref.erase(ref.begin());} )
                     {
-                        std::size_t removalCount = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        auto removalIndexes = readIndexes<index_type>(offset, removalCount);
-                        for ( std::size_t i=0; i<removalCount; ++i )
+                        std::size_t removal_count = static_cast<std::size_t>(read_index<index_type>(offset));
+                        auto removal_indexes = read_indexes<index_type>(offset, removal_count);
+                        for ( std::size_t i=0; i<removal_count; ++i )
                         {
-                            if constexpr ( hasElementRemovedOp<Route> )
-                                notifyElementRemoved(user, Route{keys}, static_cast<std::size_t>(removalIndexes[i]));
+                            if constexpr ( has_element_removed_op<route> )
+                                notify_element_removed(user, route{keys}, static_cast<std::size_t>(removal_indexes[i]));
 
-                            ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removalIndexes[i])));
-                            if constexpr ( hasAttachedData )
+                            ref.erase(std::next(ref.begin(), static_cast<std::ptrdiff_t>(removal_indexes[i])));
+                            if constexpr ( has_attached_data )
                             {
-                                auto & attachedData = getAttachedData<Pathway...>();
-                                attachedData.erase(std::next(attachedData.begin(), static_cast<std::ptrdiff_t>(removalIndexes[i])));
+                                auto & attached_data = get_attached_data<Pathway...>();
+                                attached_data.erase(std::next(attached_data.begin(), static_cast<std::ptrdiff_t>(removal_indexes[i])));
                             }
                         }
-                        if constexpr ( hasElementMovedOp<Route> )
+                        if constexpr ( has_element_moved_op<route> )
                         {
                             if ( !ref.empty() )
                             {
-                                std::size_t sizeRemoved = std::size(removalIndexes);
-                                std::size_t collectionIndex = static_cast<std::size_t>(removalIndexes[sizeRemoved-1]);
-                                std::size_t moveDistance = 1;
-                                for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(sizeRemoved)-1; i>0; --i )
+                                std::size_t size_removed = std::size(removal_indexes);
+                                std::size_t collection_index = static_cast<std::size_t>(removal_indexes[size_removed-1]);
+                                std::size_t move_distance = 1;
+                                for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(size_removed)-1; i>0; --i )
                                 {
-                                    for ( std::size_t j=removalIndexes[static_cast<std::size_t>(i)];
-                                        j<removalIndexes[static_cast<std::size_t>(i-1)]-1; ++j )
+                                    for ( std::size_t j=removal_indexes[static_cast<std::size_t>(i)];
+                                        j<removal_indexes[static_cast<std::size_t>(i-1)]-1; ++j )
                                     {
-                                        notifyElementMoved(user, Route{keys}, collectionIndex+moveDistance, collectionIndex);
-                                        ++collectionIndex;
+                                        notify_element_moved(user, route{keys}, collection_index+move_distance, collection_index);
+                                        ++collection_index;
                                     }
-                                    ++moveDistance;
+                                    ++move_distance;
                                 }
-                                for ( ; collectionIndex < std::size(ref); ++collectionIndex )
-                                    notifyElementMoved(user, Route{keys}, collectionIndex+moveDistance, collectionIndex);
+                                for ( ; collection_index < std::size(ref); ++collection_index )
+                                    notify_element_moved(user, route{keys}, collection_index+move_distance, collection_index);
                             }
                         }
 
-                        clearSel(getSelections<Pathway...>());
-                        if constexpr ( hasSelections && hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        clear_sel(get_selections<Pathway...>());
+                        if constexpr ( has_selections && has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::Sort:
+                case op::sort:
                 {
-                    if constexpr ( RareTs::is_specialization_v<value_type, std::vector> )
+                    if constexpr ( RareTs::is_specialization_v<Value_type, std::vector> )
                     {
-                        std::size_t count = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        auto sourceIndexes = readIndexes<index_type>(offset, count);
+                        std::size_t count = static_cast<std::size_t>(read_index<index_type>(offset));
+                        auto source_indexes = read_indexes<index_type>(offset, count);
                             
-                        redoSort(ref, sourceIndexes);
-                        if constexpr ( hasAttachedData )
-                            redoSort(getAttachedData<Pathway...>(), sourceIndexes);
+                        redo_sort(ref, source_indexes);
+                        if constexpr ( has_attached_data )
+                            redo_sort(get_attached_data<Pathway...>(), source_indexes);
 
-                        if constexpr ( hasElementMovedOp<Route> )
+                        if constexpr ( has_element_moved_op<route> )
                         {
                             for ( std::size_t i=0; i<count; ++i )
                             {
-                                if ( i != sourceIndexes[i] )
-                                    notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(sourceIndexes[i]), static_cast<std::size_t>(i));
+                                if ( i != source_indexes[i] )
+                                    notify_element_moved(user, route{keys}, static_cast<std::size_t>(source_indexes[i]), static_cast<std::size_t>(i));
                             }
                         }
 
-                        if constexpr ( hasSelections )
+                        if constexpr ( has_selections )
                         {
-                            auto & sel = getSelections<Pathway...>();
-                            sel_type newSel{};
+                            auto & sel = get_selections<Pathway...>();
+                            sel_type new_sel{};
                             for ( std::size_t i=0; i<count; ++i )
                             {
-                                if ( std::find(sel.begin(), sel.end(), sourceIndexes[i]) != sel.end() )
-                                    RareTs::append(newSel, static_cast<index_type>(i));
+                                if ( std::find(sel.begin(), sel.end(), source_indexes[i]) != sel.end() )
+                                    RareTs::append(new_sel, static_cast<index_type>(i));
                             }
 
-                            std::swap(sel, newSel);
-                            if constexpr ( hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            std::swap(sel, new_sel);
+                            if constexpr ( has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
                     }
                 }
                 break;
-                case Op::SortDesc:
+                case op::sort_desc:
                 {
-                    if constexpr ( RareTs::is_specialization_v<value_type, std::vector> )
+                    if constexpr ( RareTs::is_specialization_v<Value_type, std::vector> )
                     {
-                        std::size_t count = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        auto sourceIndexes = readIndexes<index_type>(offset, count);
+                        std::size_t count = static_cast<std::size_t>(read_index<index_type>(offset));
+                        auto source_indexes = read_indexes<index_type>(offset, count);
                             
-                        redoSort(ref, sourceIndexes);
-                        if constexpr ( hasAttachedData )
-                            redoSort(getAttachedData<Pathway...>(), sourceIndexes);
+                        redo_sort(ref, source_indexes);
+                        if constexpr ( has_attached_data )
+                            redo_sort(get_attached_data<Pathway...>(), source_indexes);
 
-                        if constexpr ( hasElementMovedOp<Route> )
+                        if constexpr ( has_element_moved_op<route> )
                         {
                             for ( std::size_t i=0; i<count; ++i )
                             {
-                                if ( i != sourceIndexes[i] )
-                                    notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(sourceIndexes[i]), static_cast<std::size_t>(i));
+                                if ( i != source_indexes[i] )
+                                    notify_element_moved(user, route{keys}, static_cast<std::size_t>(source_indexes[i]), static_cast<std::size_t>(i));
                             }
                         }
 
-                        if constexpr ( hasSelections )
+                        if constexpr ( has_selections )
                         {
-                            auto & sel = getSelections<Pathway...>();
-                            sel_type newSel {};
+                            auto & sel = get_selections<Pathway...>();
+                            sel_type new_sel {};
                             for ( std::size_t i=0; i<count; ++i )
                             {
-                                if ( std::find(sel.begin(), sel.end(), sourceIndexes[i]) != sel.end() )
-                                    RareTs::append(newSel, static_cast<index_type>(i));
+                                if ( std::find(sel.begin(), sel.end(), source_indexes[i]) != sel.end() )
+                                    RareTs::append(new_sel, static_cast<index_type>(i));
                             }
-                            std::swap(sel, newSel);
-                            if constexpr ( hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            std::swap(sel, new_sel);
+                            if constexpr ( has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
                     }
                 }
                 break;
-                case Op::Swap:
+                case op::swap:
                 {
-                    if constexpr ( hasMoveOps )
+                    if constexpr ( has_move_ops )
                     {
-                        auto firstIndex = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        auto secondIndex = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        if ( firstIndex != secondIndex && firstIndex < std::size(ref) && secondIndex < std::size(ref) )
+                        auto first_index = static_cast<std::size_t>(read_index<index_type>(offset));
+                        auto second_index = static_cast<std::size_t>(read_index<index_type>(offset));
+                        if ( first_index != second_index && first_index < std::size(ref) && second_index < std::size(ref) )
                         {
-                            std::swap(ref[firstIndex], ref[secondIndex]);
-                            if constexpr ( hasAttachedData )
-                                mirrorSwapTo(getAttachedData<Pathway...>(), firstIndex, secondIndex);
+                            std::swap(ref[first_index], ref[second_index]);
+                            if constexpr ( has_attached_data )
+                                mirror_swap_to(get_attached_data<Pathway...>(), first_index, second_index);
 
-                            mirrorSwapToSelection(getSelections<Pathway...>(), firstIndex, secondIndex);
-                            if constexpr ( hasElementMovedOp<Route> )
+                            mirror_swap_to_selection(get_selections<Pathway...>(), first_index, second_index);
+                            if constexpr ( has_element_moved_op<route> )
                             {
-                                notifyElementMoved(user, Route{keys}, firstIndex, secondIndex);
-                                notifyElementMoved(user, Route{keys}, secondIndex, firstIndex);
+                                notify_element_moved(user, route{keys}, first_index, second_index);
+                                notify_element_moved(user, route{keys}, second_index, first_index);
                             }
-                            if constexpr ( hasSelections && hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            if constexpr ( has_selections && has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
                     }
                 }
                 break;
-                case Op::MoveUp:
+                case op::move_up:
                 {
-                    if constexpr ( hasMoveOps )
+                    if constexpr ( has_move_ops )
                     {
-                        auto movedIndex = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        if ( movedIndex > 0 && movedIndex < std::size(ref) )
+                        auto moved_index = static_cast<std::size_t>(read_index<index_type>(offset));
+                        if ( moved_index > 0 && moved_index < std::size(ref) )
                         {
-                            std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex-1)]);
-                            if constexpr ( hasAttachedData )
-                                mirrorSwapTo(getAttachedData<Pathway...>(), movedIndex, movedIndex-1);
+                            std::swap(ref[static_cast<std::size_t>(moved_index)], ref[static_cast<std::size_t>(moved_index-1)]);
+                            if constexpr ( has_attached_data )
+                                mirror_swap_to(get_attached_data<Pathway...>(), moved_index, moved_index-1);
 
-                            mirrorSwapToSelection(getSelections<Pathway...>(), movedIndex, movedIndex-1);
-                            if constexpr ( hasElementMovedOp<Route> )
+                            mirror_swap_to_selection(get_selections<Pathway...>(), moved_index, moved_index-1);
+                            if constexpr ( has_element_moved_op<route> )
                             {
-                                notifyElementMoved(user, Route{keys}, movedIndex, movedIndex-1);
-                                notifyElementMoved(user, Route{keys}, movedIndex-1, movedIndex);
+                                notify_element_moved(user, route{keys}, moved_index, moved_index-1);
+                                notify_element_moved(user, route{keys}, moved_index-1, moved_index);
                             }
-                            if constexpr ( hasSelections && hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            if constexpr ( has_selections && has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
                     }
                 }
                 break;
-                case Op::MoveUpN:
+                case op::move_up_n:
                 {
-                    if constexpr ( hasMoveOps )
+                    if constexpr ( has_move_ops )
                     {
-                        std::size_t nextAvailable = 0;
-                        auto count = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        auto movedIndexes = readIndexes<index_type>(offset, count);
+                        std::size_t next_available = 0;
+                        auto count = static_cast<std::size_t>(read_index<index_type>(offset));
+                        auto moved_indexes = read_indexes<index_type>(offset, count);
                         for ( std::size_t i=0; i<count; ++i )
                         {
-                            auto movedIndex = static_cast<std::size_t>(movedIndexes[i]);
-                            if ( movedIndex > nextAvailable && static_cast<std::size_t>(movedIndex) < std::size(ref) )
+                            auto moved_index = static_cast<std::size_t>(moved_indexes[i]);
+                            if ( moved_index > next_available && static_cast<std::size_t>(moved_index) < std::size(ref) )
                             {
-                                std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex-1)]);
-                                if constexpr ( hasAttachedData )
-                                    mirrorSwapTo(getAttachedData<Pathway...>(), movedIndex, movedIndex-1);
+                                std::swap(ref[static_cast<std::size_t>(moved_index)], ref[static_cast<std::size_t>(moved_index-1)]);
+                                if constexpr ( has_attached_data )
+                                    mirror_swap_to(get_attached_data<Pathway...>(), moved_index, moved_index-1);
 
-                                mirrorSwapToSelection(getSelections<Pathway...>(), movedIndex, movedIndex-1);
+                                mirror_swap_to_selection(get_selections<Pathway...>(), moved_index, moved_index-1);
                             }
-                            else if ( movedIndex == nextAvailable )
-                                ++nextAvailable;
+                            else if ( moved_index == next_available )
+                                ++next_available;
                         }
 
-                        if constexpr ( hasElementMovedOp<Route> )
+                        if constexpr ( has_element_moved_op<route> )
                         {
-                            nextAvailable = 0;
-                            std::size_t blockSize = 1;
-                            for ( std::size_t i=0; i<std::size(movedIndexes); ++i )
+                            next_available = 0;
+                            std::size_t block_size = 1;
+                            for ( std::size_t i=0; i<std::size(moved_indexes); ++i )
                             {
-                                if ( movedIndexes[i] > nextAvailable && static_cast<std::size_t>(movedIndexes[i]) < std::size(ref) )
+                                if ( moved_indexes[i] > next_available && static_cast<std::size_t>(moved_indexes[i]) < std::size(ref) )
                                 {
-                                    if ( i+1 < std::size(movedIndexes) && movedIndexes[i]+1 == movedIndexes[i+1] )
-                                        ++blockSize;
+                                    if ( i+1 < std::size(moved_indexes) && moved_indexes[i]+1 == moved_indexes[i+1] )
+                                        ++block_size;
                                     else
                                     {
-                                        notifyElementMoved(user, Route{keys}, movedIndexes[i]-blockSize, movedIndexes[i]);
-                                        blockSize = 1;
+                                        notify_element_moved(user, route{keys}, moved_indexes[i]-block_size, moved_indexes[i]);
+                                        block_size = 1;
                                     }
-                                    notifyElementMoved(user, Route{keys}, movedIndexes[i], movedIndexes[i]-1);
+                                    notify_element_moved(user, route{keys}, moved_indexes[i], moved_indexes[i]-1);
                                 }
-                                else if ( movedIndexes[i] == nextAvailable )
-                                    ++nextAvailable;
+                                else if ( moved_indexes[i] == next_available )
+                                    ++next_available;
                             }
                         }
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::MoveUpL:
+                case op::move_up_l:
                 {
-                    if constexpr ( hasSelections && hasMoveOps )
+                    if constexpr ( has_selections && has_move_ops )
                     {
-                        auto & sel = getSelections<Pathway...>();
+                        auto & sel = get_selections<Pathway...>();
 
-                        auto movedIndexes = sel; // Copy so it can be sorted without changing selections
-                        std::sort(movedIndexes.begin(), movedIndexes.end());
+                        auto moved_indexes = sel; // Copy so it can be sorted without changing selections
+                        std::sort(moved_indexes.begin(), moved_indexes.end());
                 
-                        std::size_t nextAvailable = 0;
-                        for ( auto movedIndex : movedIndexes )
+                        std::size_t next_available = 0;
+                        for ( auto moved_index : moved_indexes )
                         {
-                            if ( movedIndex > nextAvailable && static_cast<std::size_t>(movedIndex) < std::size(ref) )
+                            if ( moved_index > next_available && static_cast<std::size_t>(moved_index) < std::size(ref) )
                             {
-                                std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex)-1]);
-                                if constexpr ( hasAttachedData )
-                                    mirrorSwapTo(getAttachedData<Pathway...>(), movedIndex, static_cast<std::size_t>(movedIndex)-1);
+                                std::swap(ref[static_cast<std::size_t>(moved_index)], ref[static_cast<std::size_t>(moved_index)-1]);
+                                if constexpr ( has_attached_data )
+                                    mirror_swap_to(get_attached_data<Pathway...>(), moved_index, static_cast<std::size_t>(moved_index)-1);
 
-                                mirrorSwapToSelection(sel, movedIndex, static_cast<std::size_t>(movedIndex)-1);
-                                nextAvailable = movedIndex;
+                                mirror_swap_to_selection(sel, moved_index, static_cast<std::size_t>(moved_index)-1);
+                                next_available = moved_index;
                             }
-                            else if ( movedIndex == nextAvailable )
-                                ++nextAvailable;
+                            else if ( moved_index == next_available )
+                                ++next_available;
                         }
 
-                        if constexpr ( hasElementMovedOp<Route> )
+                        if constexpr ( has_element_moved_op<route> )
                         {
-                            nextAvailable = 0;
-                            std::size_t blockSize = 1;
-                            for ( std::size_t i=0; i<std::size(movedIndexes); ++i )
+                            next_available = 0;
+                            std::size_t block_size = 1;
+                            for ( std::size_t i=0; i<std::size(moved_indexes); ++i )
                             {
-                                if ( movedIndexes[i] > nextAvailable && static_cast<std::size_t>(movedIndexes[i]) < std::size(ref) )
+                                if ( moved_indexes[i] > next_available && static_cast<std::size_t>(moved_indexes[i]) < std::size(ref) )
                                 {
-                                    if ( i+1 < std::size(movedIndexes) && movedIndexes[i]+1 == movedIndexes[i+1] )
-                                        ++blockSize;
+                                    if ( i+1 < std::size(moved_indexes) && moved_indexes[i]+1 == moved_indexes[i+1] )
+                                        ++block_size;
                                     else
                                     {
-                                        notifyElementMoved(user, Route{keys}, movedIndexes[i]-blockSize, movedIndexes[i]);
-                                        blockSize = 1;
+                                        notify_element_moved(user, route{keys}, moved_indexes[i]-block_size, moved_indexes[i]);
+                                        block_size = 1;
                                     }
-                                    notifyElementMoved(user, Route{keys}, movedIndexes[i], movedIndexes[i]-1);
+                                    notify_element_moved(user, route{keys}, moved_indexes[i], moved_indexes[i]-1);
                                 }
-                                else if ( movedIndexes[i] == nextAvailable )
-                                    ++nextAvailable;
+                                else if ( moved_indexes[i] == next_available )
+                                    ++next_available;
                             }
                         }
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::MoveTop:
+                case op::move_top:
                 {
-                    if constexpr ( hasMoveOps )
+                    if constexpr ( has_move_ops )
                     {
-                        auto movedIndex = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        if ( movedIndex > 0 && movedIndex < std::size(ref) )
+                        auto moved_index = static_cast<std::size_t>(read_index<index_type>(offset));
+                        if ( moved_index > 0 && moved_index < std::size(ref) )
                         {
-                            auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(movedIndex));
+                            auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(moved_index));
                             std::rotate(ref.begin(), it, it+1);
-                            if constexpr ( hasAttachedData )
-                                mirrorRotationTo(getAttachedData<Pathway...>(), 0, movedIndex, movedIndex+1);
+                            if constexpr ( has_attached_data )
+                                mirror_rotation_to(get_attached_data<Pathway...>(), 0, moved_index, moved_index+1);
 
-                            mirrorRotationToSelection(getSelections<Pathway...>(), 0, movedIndex, movedIndex+1);
-                            if constexpr ( hasElementMovedOp<Route> )
+                            mirror_rotation_to_selection(get_selections<Pathway...>(), 0, moved_index, moved_index+1);
+                            if constexpr ( has_element_moved_op<route> )
                             {
-                                notifyElementMoved(user, Route{keys}, movedIndex, 0);
-                                for ( std::size_t i=0; i<static_cast<std::size_t>(movedIndex); ++i )
-                                    notifyElementMoved(user, Route{keys}, i, i+1);
+                                notify_element_moved(user, route{keys}, moved_index, 0);
+                                for ( std::size_t i=0; i<static_cast<std::size_t>(moved_index); ++i )
+                                    notify_element_moved(user, route{keys}, i, i+1);
                             }
-                            if constexpr ( hasSelections && hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            if constexpr ( has_selections && has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
                     }
                 }
                 break;
-                case Op::MoveTopN:
+                case op::move_top_n:
                 {
-                    if constexpr ( hasMoveOps )
+                    if constexpr ( has_move_ops )
                     {
-                        auto & sel = getSelections<Pathway...>();
-                        auto count = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        auto movedIndexes = readIndexes<index_type>(offset, count);
+                        auto & sel = get_selections<Pathway...>();
+                        auto count = static_cast<std::size_t>(read_index<index_type>(offset));
+                        auto moved_indexes = read_indexes<index_type>(offset, count);
 
                         std::size_t size = std::size(ref);
-                        std::vector<std::size_t> trackedIndexes {};
-                        if constexpr ( hasElementMovedOp<Route> )
+                        std::vector<std::size_t> tracked_indexes {};
+                        if constexpr ( has_element_moved_op<route> )
                         {
-                            trackedIndexes.assign(size, 0);
-                            std::iota(trackedIndexes.begin(), trackedIndexes.end(), 0);
+                            tracked_indexes.assign(size, 0);
+                            std::iota(tracked_indexes.begin(), tracked_indexes.end(), 0);
                         }
 
-                        std::ptrdiff_t insertionIndex = 0;
-                        for ( auto i : movedIndexes )
+                        std::ptrdiff_t insertion_index = 0;
+                        for ( auto i : moved_indexes )
                         {
-                            if ( static_cast<std::ptrdiff_t>(i) > insertionIndex && static_cast<std::size_t>(i) < size )
+                            if ( static_cast<std::ptrdiff_t>(i) > insertion_index && static_cast<std::size_t>(i) < size )
                             {
                                 auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
-                                std::rotate(std::next(ref.begin(), insertionIndex), it, it+1);
-                                if constexpr ( hasAttachedData )
-                                    mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(insertionIndex), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1);
+                                std::rotate(std::next(ref.begin(), insertion_index), it, it+1);
+                                if constexpr ( has_attached_data )
+                                    mirror_rotation_to(get_attached_data<Pathway...>(), static_cast<std::size_t>(insertion_index), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1);
 
-                                mirrorRotationToSelection(sel, static_cast<std::size_t>(insertionIndex), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1);
-                                if constexpr ( hasElementMovedOp<Route> )
-                                    mirrorRotationTo(trackedIndexes, insertionIndex, i, i+1);
+                                mirror_rotation_to_selection(sel, static_cast<std::size_t>(insertion_index), static_cast<std::size_t>(i), static_cast<std::size_t>(i)+1);
+                                if constexpr ( has_element_moved_op<route> )
+                                    mirror_rotation_to(tracked_indexes, insertion_index, i, i+1);
                             }
-                            ++insertionIndex;
+                            ++insertion_index;
                         }
 
-                        if constexpr ( hasElementMovedOp<Route> )
+                        if constexpr ( has_element_moved_op<route> )
                         {
                             for ( std::size_t i=0; i<size; ++i )
                             {
-                                if ( i != trackedIndexes[i] )
-                                    notifyElementMoved(user, Route{keys}, trackedIndexes[i], i);
+                                if ( i != tracked_indexes[i] )
+                                    notify_element_moved(user, route{keys}, tracked_indexes[i], i);
                             }
                         }
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::MoveTopL:
+                case op::move_top_l:
                 {
-                    if constexpr ( hasSelections && hasMoveOps )
+                    if constexpr ( has_selections && has_move_ops )
                     {
-                        auto & sel = getSelections<Pathway...>();
-                        sel_type prevSel {};
-                        readSelections(events, offset, prevSel);
-                        std::sort(prevSel.begin(), prevSel.end());
+                        auto & sel = get_selections<Pathway...>();
+                        sel_type prev_sel {};
+                        read_selections(events, offset, prev_sel);
+                        std::sort(prev_sel.begin(), prev_sel.end());
 
                         std::size_t size = std::size(ref);
-                        std::vector<std::size_t> trackedIndexes {};
-                        if constexpr ( hasElementMovedOp<Route> )
+                        std::vector<std::size_t> tracked_indexes {};
+                        if constexpr ( has_element_moved_op<route> )
                         {
-                            trackedIndexes.assign(size, 0);
-                            std::iota(trackedIndexes.begin(), trackedIndexes.end(), 0);
+                            tracked_indexes.assign(size, 0);
+                            std::iota(tracked_indexes.begin(), tracked_indexes.end(), 0);
                         }
 
-                        std::ptrdiff_t insertionIndex = 0;
-                        for ( auto i : prevSel )
+                        std::ptrdiff_t insertion_index = 0;
+                        for ( auto i : prev_sel )
                         {
-                            if ( static_cast<std::ptrdiff_t>(i) > insertionIndex && static_cast<std::size_t>(i) < size )
+                            if ( static_cast<std::ptrdiff_t>(i) > insertion_index && static_cast<std::size_t>(i) < size )
                             {
                                 auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
-                                std::rotate(std::next(ref.begin(), insertionIndex), it, it+1);
-                                if constexpr ( hasAttachedData )
-                                    mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(insertionIndex), i, static_cast<std::size_t>(i)+1);
+                                std::rotate(std::next(ref.begin(), insertion_index), it, it+1);
+                                if constexpr ( has_attached_data )
+                                    mirror_rotation_to(get_attached_data<Pathway...>(), static_cast<std::size_t>(insertion_index), i, static_cast<std::size_t>(i)+1);
 
-                                mirrorRotationToSelection(sel, static_cast<std::size_t>(insertionIndex), i, static_cast<std::size_t>(i)+1);
-                                if constexpr ( hasElementMovedOp<Route> )
-                                    mirrorRotationTo(trackedIndexes, insertionIndex, i, i+1);
+                                mirror_rotation_to_selection(sel, static_cast<std::size_t>(insertion_index), i, static_cast<std::size_t>(i)+1);
+                                if constexpr ( has_element_moved_op<route> )
+                                    mirror_rotation_to(tracked_indexes, insertion_index, i, i+1);
                             }
-                            ++insertionIndex;
+                            ++insertion_index;
                         }
 
-                        if constexpr ( hasElementMovedOp<Route> )
+                        if constexpr ( has_element_moved_op<route> )
                         {
                             for ( std::size_t i=0; i<size; ++i )
                             {
-                                if ( i != trackedIndexes[i] )
-                                    notifyElementMoved(user, Route{keys}, trackedIndexes[i], i);
+                                if ( i != tracked_indexes[i] )
+                                    notify_element_moved(user, route{keys}, tracked_indexes[i], i);
                             }
                         }
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::MoveDown:
+                case op::move_down:
                 {
-                    if constexpr ( hasMoveOps )
+                    if constexpr ( has_move_ops )
                     {
-                        auto movedIndex = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        if ( movedIndex+1 < std::size(ref) )
+                        auto moved_index = static_cast<std::size_t>(read_index<index_type>(offset));
+                        if ( moved_index+1 < std::size(ref) )
                         {
-                            std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex+1)]);
-                            if constexpr ( hasAttachedData )
-                                mirrorSwapTo(getAttachedData<Pathway...>(), movedIndex, movedIndex+1);
+                            std::swap(ref[static_cast<std::size_t>(moved_index)], ref[static_cast<std::size_t>(moved_index+1)]);
+                            if constexpr ( has_attached_data )
+                                mirror_swap_to(get_attached_data<Pathway...>(), moved_index, moved_index+1);
 
-                            mirrorSwapToSelection(getSelections<Pathway...>(), movedIndex, movedIndex+1);
-                            if constexpr ( hasElementMovedOp<Route> )
+                            mirror_swap_to_selection(get_selections<Pathway...>(), moved_index, moved_index+1);
+                            if constexpr ( has_element_moved_op<route> )
                             {
-                                notifyElementMoved(user, Route{keys}, movedIndex, movedIndex+1);
-                                notifyElementMoved(user, Route{keys}, movedIndex+1, movedIndex);
+                                notify_element_moved(user, route{keys}, moved_index, moved_index+1);
+                                notify_element_moved(user, route{keys}, moved_index+1, moved_index);
                             }
-                            if constexpr ( hasSelections && hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            if constexpr ( has_selections && has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
                     }
                 }
                 break;
-                case Op::MoveDownN:
+                case op::move_down_n:
                 {
-                    if constexpr ( hasMoveOps )
+                    if constexpr ( has_move_ops )
                     {
                         auto size = std::size(ref);
                         if ( size > 0 )
                         {
                             auto limit = size;
-                            auto count = static_cast<std::size_t>(readIndex<index_type>(offset));
-                            auto movedIndexes = readIndexes<index_type>(offset, count);
+                            auto count = static_cast<std::size_t>(read_index<index_type>(offset));
+                            auto moved_indexes = read_indexes<index_type>(offset, count);
                             for ( std::size_t i=0; i<count; ++i )
                             {
-                                auto movedIndex = movedIndexes[i];
-                                if ( static_cast<std::size_t>(movedIndex)+1 < limit )
+                                auto moved_index = moved_indexes[i];
+                                if ( static_cast<std::size_t>(moved_index)+1 < limit )
                                 {
-                                    std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex)+1]);
-                                    if constexpr ( hasAttachedData )
-                                        mirrorSwapTo(getAttachedData<Pathway...>(), movedIndex, static_cast<std::size_t>(movedIndex)+1);
+                                    std::swap(ref[static_cast<std::size_t>(moved_index)], ref[static_cast<std::size_t>(moved_index)+1]);
+                                    if constexpr ( has_attached_data )
+                                        mirror_swap_to(get_attached_data<Pathway...>(), moved_index, static_cast<std::size_t>(moved_index)+1);
 
-                                    mirrorSwapToSelection(getSelections<Pathway...>(), movedIndex, static_cast<std::size_t>(movedIndex)+1);
-                                    limit = static_cast<std::size_t>(movedIndex)+1;
+                                    mirror_swap_to_selection(get_selections<Pathway...>(), moved_index, static_cast<std::size_t>(moved_index)+1);
+                                    limit = static_cast<std::size_t>(moved_index)+1;
                                 }
                                 else if ( limit > 0 )
                                     --limit;
                             }
 
-                            if constexpr ( hasElementMovedOp<Route> )
+                            if constexpr ( has_element_moved_op<route> )
                             {
                                 limit = size;
-                                std::size_t blockSize = 1;
+                                std::size_t block_size = 1;
                                 for ( std::size_t i=0; i<count; ++i )
                                 {
-                                    if ( static_cast<std::size_t>(movedIndexes[i])+1 < limit )
+                                    if ( static_cast<std::size_t>(moved_indexes[i])+1 < limit )
                                     {
-                                        if ( i+1 < count && movedIndexes[i]-1 == movedIndexes[i+1] )
-                                            ++blockSize;
+                                        if ( i+1 < count && moved_indexes[i]-1 == moved_indexes[i+1] )
+                                            ++block_size;
                                         else
                                         {
-                                            notifyElementMoved(user, Route{keys}, movedIndexes[i]+blockSize, movedIndexes[i]);
-                                            blockSize = 1;
+                                            notify_element_moved(user, route{keys}, moved_indexes[i]+block_size, moved_indexes[i]);
+                                            block_size = 1;
                                         }
-                                        notifyElementMoved(user, Route{keys}, movedIndexes[i], movedIndexes[i]+1);
-                                        limit = movedIndexes[i]+1;
+                                        notify_element_moved(user, route{keys}, moved_indexes[i], moved_indexes[i]+1);
+                                        limit = moved_indexes[i]+1;
                                     }
                                     else if ( limit > 0 )
                                         --limit;
                                 }
                             }
-                            if constexpr ( hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            if constexpr ( has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
                     }
                 }
                 break;
-                case Op::MoveDownL:
+                case op::move_down_l:
                 {
-                    if constexpr ( hasSelections && hasMoveOps )
+                    if constexpr ( has_selections && has_move_ops )
                     {
-                        auto & sel = getSelections<Pathway...>();
-                        sel_type prevSel {};
-                        readSelections(events, offset, prevSel);
+                        auto & sel = get_selections<Pathway...>();
+                        sel_type prev_sel {};
+                        read_selections(events, offset, prev_sel);
 
-                        auto movedIndexes = prevSel; // Copy so it can be sorted without changing selections
-                        std::sort(movedIndexes.begin(), movedIndexes.end(), std::greater<index_type>{});
-                        std::size_t count = std::size(movedIndexes);
+                        auto moved_indexes = prev_sel; // Copy so it can be sorted without changing selections
+                        std::sort(moved_indexes.begin(), moved_indexes.end(), std::greater<index_type>{});
+                        std::size_t count = std::size(moved_indexes);
 
                         auto size = std::size(ref);
                         if ( size > 0 )
                         {
                             auto limit = size;
-                            for ( auto movedIndex : movedIndexes )
+                            for ( auto moved_index : moved_indexes )
                             {
-                                if ( static_cast<std::size_t>(movedIndex)+1 < limit )
+                                if ( static_cast<std::size_t>(moved_index)+1 < limit )
                                 {
-                                    std::swap(ref[static_cast<std::size_t>(movedIndex)], ref[static_cast<std::size_t>(movedIndex)+1]);
-                                    if constexpr ( hasAttachedData )
-                                        mirrorSwapTo(getAttachedData<Pathway...>(), movedIndex, static_cast<std::size_t>(movedIndex)+1);
+                                    std::swap(ref[static_cast<std::size_t>(moved_index)], ref[static_cast<std::size_t>(moved_index)+1]);
+                                    if constexpr ( has_attached_data )
+                                        mirror_swap_to(get_attached_data<Pathway...>(), moved_index, static_cast<std::size_t>(moved_index)+1);
 
-                                    mirrorSwapToSelection(sel, movedIndex, static_cast<std::size_t>(movedIndex)+1);
-                                    limit = static_cast<std::size_t>(movedIndex)+1;
+                                    mirror_swap_to_selection(sel, moved_index, static_cast<std::size_t>(moved_index)+1);
+                                    limit = static_cast<std::size_t>(moved_index)+1;
                                 }
                                 else if ( limit > 0 )
                                     --limit;
                             }
 
-                            if constexpr ( hasElementMovedOp<Route> )
+                            if constexpr ( has_element_moved_op<route> )
                             {
                                 limit = size;
-                                std::size_t blockSize = 1;
+                                std::size_t block_size = 1;
                                 for ( std::size_t i=0; i<count; ++i )
                                 {
-                                    if ( static_cast<std::size_t>(movedIndexes[i])+1 < limit )
+                                    if ( static_cast<std::size_t>(moved_indexes[i])+1 < limit )
                                     {
-                                        if ( i+1 < count && movedIndexes[i]-1 == movedIndexes[i+1] )
-                                            ++blockSize;
+                                        if ( i+1 < count && moved_indexes[i]-1 == moved_indexes[i+1] )
+                                            ++block_size;
                                         else
                                         {
-                                            notifyElementMoved(user, Route{keys}, movedIndexes[i]+blockSize, movedIndexes[i]);
-                                            blockSize = 1;
+                                            notify_element_moved(user, route{keys}, moved_indexes[i]+block_size, moved_indexes[i]);
+                                            block_size = 1;
                                         }
-                                        notifyElementMoved(user, Route{keys}, movedIndexes[i], movedIndexes[i]+1);
-                                        limit = movedIndexes[i]+1;
+                                        notify_element_moved(user, route{keys}, moved_indexes[i], moved_indexes[i]+1);
+                                        limit = moved_indexes[i]+1;
                                     }
                                     else if ( limit > 0 )
                                         --limit;
                                 }
                             }
-                            if constexpr ( hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            if constexpr ( has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
                     }
                 }
                 break;
-                case Op::MoveBottom:
+                case op::move_bottom:
                 {
-                    if constexpr ( hasMoveOps )
+                    if constexpr ( has_move_ops )
                     {
-                        auto movedIndex = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        if ( static_cast<std::size_t>(movedIndex)+1 < std::size(ref) )
+                        auto moved_index = static_cast<std::size_t>(read_index<index_type>(offset));
+                        if ( static_cast<std::size_t>(moved_index)+1 < std::size(ref) )
                         {
-                            auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(movedIndex));
+                            auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(moved_index));
                             std::rotate(it, it+1, ref.end());
-                            if constexpr ( hasAttachedData )
-                                mirrorRotationTo(getAttachedData<Pathway...>(), movedIndex, movedIndex+1, std::size(ref));
+                            if constexpr ( has_attached_data )
+                                mirror_rotation_to(get_attached_data<Pathway...>(), moved_index, moved_index+1, std::size(ref));
 
-                            mirrorRotationToSelection(getSelections<Pathway...>(), movedIndex, movedIndex+1, std::size(ref));
-                            if constexpr ( hasElementMovedOp<Route> )
+                            mirror_rotation_to_selection(get_selections<Pathway...>(), moved_index, moved_index+1, std::size(ref));
+                            if constexpr ( has_element_moved_op<route> )
                             {
-                                notifyElementMoved(user, Route{keys}, movedIndex, std::size(ref)-1);
-                                for ( std::size_t i=movedIndex+1; i<std::size(ref); ++i )
-                                    notifyElementMoved(user, Route{keys}, i, i-1);
+                                notify_element_moved(user, route{keys}, moved_index, std::size(ref)-1);
+                                for ( std::size_t i=moved_index+1; i<std::size(ref); ++i )
+                                    notify_element_moved(user, route{keys}, i, i-1);
                             }
-                            if constexpr ( hasSelections && hasSelChangeOp )
-                                notifySelectionsChanged(user,Route{keys});
+                            if constexpr ( has_selections && has_sel_change_op )
+                                notify_selections_changed(user,route{keys});
                         }
                     }
                 }
                 break;
-                case Op::MoveBottomN:
+                case op::move_bottom_n:
                 {
-                    if constexpr ( hasMoveOps )
+                    if constexpr ( has_move_ops )
                     {
-                        auto & sel = getSelections<Pathway...>();
-                        auto count = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        auto movedIndexes = readIndexes<index_type>(offset, count);
+                        auto & sel = get_selections<Pathway...>();
+                        auto count = static_cast<std::size_t>(read_index<index_type>(offset));
+                        auto moved_indexes = read_indexes<index_type>(offset, count);
 
                         std::size_t size = std::size(ref);
-                        std::vector<std::size_t> trackedIndexes {};
-                        if constexpr ( hasElementMovedOp<Route> )
+                        std::vector<std::size_t> tracked_indexes {};
+                        if constexpr ( has_element_moved_op<route> )
                         {
-                            trackedIndexes.assign(size, 0);
-                            std::iota(trackedIndexes.begin(), trackedIndexes.end(), 0);
+                            tracked_indexes.assign(size, 0);
+                            std::iota(tracked_indexes.begin(), tracked_indexes.end(), 0);
                         }
 
-                        std::ptrdiff_t insertionIndex = static_cast<std::ptrdiff_t>(size);
-                        for ( auto i : movedIndexes )
+                        std::ptrdiff_t insertion_index = static_cast<std::ptrdiff_t>(size);
+                        for ( auto i : moved_indexes )
                         {
-                            if ( i >= 0 && static_cast<std::ptrdiff_t>(i)+1 < insertionIndex )
+                            if ( i >= 0 && static_cast<std::ptrdiff_t>(i)+1 < insertion_index )
                             {
                                 auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
-                                std::rotate(it, it+1, std::next(ref.begin(), insertionIndex));
-                                if constexpr ( hasAttachedData )
-                                    mirrorRotationTo(getAttachedData<Pathway...>(), i, static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
+                                std::rotate(it, it+1, std::next(ref.begin(), insertion_index));
+                                if constexpr ( has_attached_data )
+                                    mirror_rotation_to(get_attached_data<Pathway...>(), i, static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertion_index));
 
-                                mirrorRotationToSelection(sel, i, static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
-                                if constexpr ( hasElementMovedOp<Route> )
-                                    mirrorRotationTo(trackedIndexes, i, i+1, insertionIndex);
+                                mirror_rotation_to_selection(sel, i, static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertion_index));
+                                if constexpr ( has_element_moved_op<route> )
+                                    mirror_rotation_to(tracked_indexes, i, i+1, insertion_index);
                             }
-                            --insertionIndex;
+                            --insertion_index;
                         }
 
-                        if constexpr ( hasElementMovedOp<Route> )
+                        if constexpr ( has_element_moved_op<route> )
                         {
                             for ( std::size_t i=0; i<size; ++i )
                             {
-                                if ( i != trackedIndexes[i] )
-                                    notifyElementMoved(user, Route{keys}, trackedIndexes[i], i);
+                                if ( i != tracked_indexes[i] )
+                                    notify_element_moved(user, route{keys}, tracked_indexes[i], i);
                             }
                         }
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::MoveBottomL:
+                case op::move_bottom_l:
                 {
-                    if constexpr ( hasSelections && hasMoveOps )
+                    if constexpr ( has_selections && has_move_ops )
                     {
-                        auto & sel = getSelections<Pathway...>();
-                        sel_type prevSel {};
-                        readSelections(events, offset, prevSel);
-                        auto movedIndexes = prevSel;
-                        std::sort(movedIndexes.begin(), movedIndexes.end(), std::greater<index_type>{});
+                        auto & sel = get_selections<Pathway...>();
+                        sel_type prev_sel {};
+                        read_selections(events, offset, prev_sel);
+                        auto moved_indexes = prev_sel;
+                        std::sort(moved_indexes.begin(), moved_indexes.end(), std::greater<index_type>{});
                             
                         std::size_t size = std::size(ref);
-                        std::vector<std::size_t> trackedIndexes {};
-                        if constexpr ( hasElementMovedOp<Route> )
+                        std::vector<std::size_t> tracked_indexes {};
+                        if constexpr ( has_element_moved_op<route> )
                         {
-                            trackedIndexes.assign(size, 0);
-                            std::iota(trackedIndexes.begin(), trackedIndexes.end(), 0);
+                            tracked_indexes.assign(size, 0);
+                            std::iota(tracked_indexes.begin(), tracked_indexes.end(), 0);
                         }
 
-                        std::ptrdiff_t insertionIndex = static_cast<std::ptrdiff_t>(size);
-                        for ( auto i : movedIndexes )
+                        std::ptrdiff_t insertion_index = static_cast<std::ptrdiff_t>(size);
+                        for ( auto i : moved_indexes )
                         {
-                            if ( i >= 0 && static_cast<std::ptrdiff_t>(i)+1 < insertionIndex )
+                            if ( i >= 0 && static_cast<std::ptrdiff_t>(i)+1 < insertion_index )
                             {
                                 auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
-                                std::rotate(it, it+1, std::next(ref.begin(), insertionIndex));
-                                if constexpr ( hasAttachedData )
-                                    mirrorRotationTo(getAttachedData<Pathway...>(), i, static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
+                                std::rotate(it, it+1, std::next(ref.begin(), insertion_index));
+                                if constexpr ( has_attached_data )
+                                    mirror_rotation_to(get_attached_data<Pathway...>(), i, static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertion_index));
 
-                                mirrorRotationToSelection(sel, i, static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
-                                if constexpr ( hasElementMovedOp<Route> )
-                                    mirrorRotationTo(trackedIndexes, i, i+1, insertionIndex);
+                                mirror_rotation_to_selection(sel, i, static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertion_index));
+                                if constexpr ( has_element_moved_op<route> )
+                                    mirror_rotation_to(tracked_indexes, i, i+1, insertion_index);
                             }
-                            --insertionIndex;
+                            --insertion_index;
                         }
 
-                        if constexpr ( hasElementMovedOp<Route> )
+                        if constexpr ( has_element_moved_op<route> )
                         {
                             for ( std::size_t i=0; i<size; ++i )
                             {
-                                if ( i != trackedIndexes[i] )
-                                    notifyElementMoved(user, Route{keys}, trackedIndexes[i], i);
+                                if ( i != tracked_indexes[i] )
+                                    notify_element_moved(user, route{keys}, tracked_indexes[i], i);
                             }
                         }
-                        if constexpr ( hasSelChangeOp )
-                            notifySelectionsChanged(user, Route{keys});
+                        if constexpr ( has_sel_change_op )
+                            notify_selections_changed(user, route{keys});
                     }
                 }
                 break;
-                case Op::MoveTo:
+                case op::move_to:
                 {
-                    if constexpr ( hasMoveOps )
+                    if constexpr ( has_move_ops )
                     {
-                        auto indexMovedTo = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        auto movedIndex = static_cast<std::size_t>(readIndex<index_type>(offset));
+                        auto index_moved_to = static_cast<std::size_t>(read_index<index_type>(offset));
+                        auto moved_index = static_cast<std::size_t>(read_index<index_type>(offset));
                             
-                        auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(movedIndex));
-                        auto target = std::next(ref.begin(), static_cast<std::ptrdiff_t>(indexMovedTo));
-                        if ( indexMovedTo < movedIndex && movedIndex < std::size(ref) )
+                        auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(moved_index));
+                        auto target = std::next(ref.begin(), static_cast<std::ptrdiff_t>(index_moved_to));
+                        if ( index_moved_to < moved_index && moved_index < std::size(ref) )
                         {
                             std::rotate(target, it, it+1);
-                            if constexpr ( hasAttachedData )
-                                mirrorRotationTo(getAttachedData<Pathway...>(), indexMovedTo, movedIndex, movedIndex+1);
+                            if constexpr ( has_attached_data )
+                                mirror_rotation_to(get_attached_data<Pathway...>(), index_moved_to, moved_index, moved_index+1);
 
-                            mirrorRotationToSelection(getSelections<Pathway...>(), indexMovedTo, movedIndex, movedIndex+1);
-                            if constexpr ( hasElementMovedOp<Route> )
+                            mirror_rotation_to_selection(get_selections<Pathway...>(), index_moved_to, moved_index, moved_index+1);
+                            if constexpr ( has_element_moved_op<route> )
                             {
-                                notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(indexMovedTo));
-                                for ( std::size_t i=static_cast<std::size_t>(indexMovedTo); i<static_cast<std::size_t>(movedIndex); ++i )
-                                    notifyElementMoved(user, Route{keys}, i, i+1);
+                                notify_element_moved(user, route{keys}, static_cast<std::size_t>(moved_index), static_cast<std::size_t>(index_moved_to));
+                                for ( std::size_t i=static_cast<std::size_t>(index_moved_to); i<static_cast<std::size_t>(moved_index); ++i )
+                                    notify_element_moved(user, route{keys}, i, i+1);
                             }
-                            if constexpr ( hasSelections && hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            if constexpr ( has_selections && has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
-                        else if ( indexMovedTo > movedIndex && indexMovedTo < std::size(ref) )
+                        else if ( index_moved_to > moved_index && index_moved_to < std::size(ref) )
                         {
                             std::rotate(it, it+1, target+1);
-                            if constexpr ( hasAttachedData )
-                                mirrorRotationTo(getAttachedData<Pathway...>(), movedIndex, movedIndex+1, indexMovedTo+1);
+                            if constexpr ( has_attached_data )
+                                mirror_rotation_to(get_attached_data<Pathway...>(), moved_index, moved_index+1, index_moved_to+1);
 
-                            mirrorRotationToSelection(getSelections<Pathway...>(), movedIndex, movedIndex+1, indexMovedTo+1);
-                            if constexpr ( hasElementMovedOp<Route> )
+                            mirror_rotation_to_selection(get_selections<Pathway...>(), moved_index, moved_index+1, index_moved_to+1);
+                            if constexpr ( has_element_moved_op<route> )
                             {
-                                notifyElementMoved(user, Route{keys}, static_cast<std::size_t>(movedIndex), static_cast<std::size_t>(indexMovedTo));
-                                for ( std::size_t i=static_cast<std::size_t>(movedIndex)+1; i<static_cast<std::size_t>(indexMovedTo)+1; ++i )
-                                    notifyElementMoved(user, Route{keys}, i, i-1);
+                                notify_element_moved(user, route{keys}, static_cast<std::size_t>(moved_index), static_cast<std::size_t>(index_moved_to));
+                                for ( std::size_t i=static_cast<std::size_t>(moved_index)+1; i<static_cast<std::size_t>(index_moved_to)+1; ++i )
+                                    notify_element_moved(user, route{keys}, i, i-1);
                             }
-                            if constexpr ( hasSelections && hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            if constexpr ( has_selections && has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
                     }
                 }
                 break;
-                case Op::MoveToN:
+                case op::move_to_n:
                 {
-                    if constexpr ( hasMoveOps )
+                    if constexpr ( has_move_ops )
                     {
-                        auto & sel = getSelections<Pathway...>();
-                        auto indexMovedTo = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        auto countMovedIndexes = static_cast<std::size_t>(readIndex<index_type>(offset));
-                        auto movedIndexes = readIndexes<index_type>(offset, countMovedIndexes);
+                        auto & sel = get_selections<Pathway...>();
+                        auto index_moved_to = static_cast<std::size_t>(read_index<index_type>(offset));
+                        auto count_moved_indexes = static_cast<std::size_t>(read_index<index_type>(offset));
+                        auto moved_indexes = read_indexes<index_type>(offset, count_moved_indexes);
 
                         auto size = std::size(ref);
-                        if ( !std::empty(movedIndexes) )
+                        if ( !std::empty(moved_indexes) )
                         {
-                            std::size_t countValidIndexes = 0;
-                            for ( auto movedIndex : movedIndexes )
+                            std::size_t count_valid_indexes = 0;
+                            for ( auto moved_index : moved_indexes )
                             {
-                                if ( movedIndex >= 0 && static_cast<std::size_t>(movedIndex) < std::size(ref) )
-                                    ++countValidIndexes;
+                                if ( moved_index >= 0 && static_cast<std::size_t>(moved_index) < std::size(ref) )
+                                    ++count_valid_indexes;
                             }
-                            if ( countValidIndexes == 0 )
+                            if ( count_valid_indexes == 0 )
                                 return;
 
-                            std::vector<std::size_t> trackedIndexes {};
-                            if constexpr ( hasElementMovedOp<Route> )
+                            std::vector<std::size_t> tracked_indexes {};
+                            if constexpr ( has_element_moved_op<route> )
                             {
-                                trackedIndexes.assign(size, 0);
-                                std::iota(trackedIndexes.begin(), trackedIndexes.end(), 0);
+                                tracked_indexes.assign(size, 0);
+                                std::iota(tracked_indexes.begin(), tracked_indexes.end(), 0);
                             }
 
-                            if ( static_cast<std::size_t>(indexMovedTo) + countValidIndexes >= size ) // Operation collapses to moveToEnd
+                            if ( static_cast<std::size_t>(index_moved_to) + count_valid_indexes >= size ) // Operation collapses to move_to_end
                             {
-                                std::ptrdiff_t insertionIndex = static_cast<std::ptrdiff_t>(size);
-                                for ( auto mit = movedIndexes.rbegin(); mit != movedIndexes.rend(); ++mit ) // movedIndexes sorted least to greatest, so reverse read
+                                std::ptrdiff_t insertion_index = static_cast<std::ptrdiff_t>(size);
+                                for ( auto mit = moved_indexes.rbegin(); mit != moved_indexes.rend(); ++mit ) // moved_indexes sorted least to greatest, so reverse read
                                 {
                                     auto i = *mit;
-                                    if ( i >= 0 && static_cast<std::ptrdiff_t>(i)+1 < insertionIndex )
+                                    if ( i >= 0 && static_cast<std::ptrdiff_t>(i)+1 < insertion_index )
                                     {
                                         auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
-                                        std::rotate(it, it+1, std::next(ref.begin(), insertionIndex));
-                                        if constexpr ( hasAttachedData )
-                                            mirrorRotationTo(getAttachedData<Pathway...>(), i, static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
+                                        std::rotate(it, it+1, std::next(ref.begin(), insertion_index));
+                                        if constexpr ( has_attached_data )
+                                            mirror_rotation_to(get_attached_data<Pathway...>(), i, static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertion_index));
 
-                                        mirrorRotationToSelection(sel, i, static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
-                                        if constexpr ( hasElementMovedOp<Route> )
-                                            mirrorRotationTo(trackedIndexes, i, i+1, static_cast<std::size_t>(insertionIndex));
+                                        mirror_rotation_to_selection(sel, i, static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertion_index));
+                                        if constexpr ( has_element_moved_op<route> )
+                                            mirror_rotation_to(tracked_indexes, i, i+1, static_cast<std::size_t>(insertion_index));
                                     }
-                                    --insertionIndex;
+                                    --insertion_index;
                                 }
                             }
-                            else // Non-collapsed moveTo operation
+                            else // Non-collapsed move_to operation
                             {
-                                std::size_t minValidIndex = 0;
-                                std::size_t maxValidIndex = 0;
-                                for ( std::size_t i=0; i<std::size(movedIndexes); ++i )
+                                std::size_t min_valid_index = 0;
+                                std::size_t max_valid_index = 0;
+                                for ( std::size_t i=0; i<std::size(moved_indexes); ++i )
                                 {
-                                    if ( movedIndexes[i] >= 0 )
+                                    if ( moved_indexes[i] >= 0 )
                                     {
-                                        minValidIndex = static_cast<std::size_t>(movedIndexes[i]);
+                                        min_valid_index = static_cast<std::size_t>(moved_indexes[i]);
                                         break;
                                     }
                                 }
-                                for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(std::size(movedIndexes))-1; i>=0; --i )
+                                for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(std::size(moved_indexes))-1; i>=0; --i )
                                 {
-                                    if ( static_cast<std::ptrdiff_t>(movedIndexes[static_cast<std::size_t>(i)]) < static_cast<std::ptrdiff_t>(size) )
+                                    if ( static_cast<std::ptrdiff_t>(moved_indexes[static_cast<std::size_t>(i)]) < static_cast<std::ptrdiff_t>(size) )
                                     {
-                                        maxValidIndex = static_cast<std::size_t>(movedIndexes[static_cast<std::size_t>(i)]);
+                                        max_valid_index = static_cast<std::size_t>(moved_indexes[static_cast<std::size_t>(i)]);
                                         break;
                                     }
                                 }
 
-                                std::size_t leftChunkSize = minValidIndex < static_cast<std::size_t>(indexMovedTo) ? 1 : 0;
-                                std::size_t rightChunkSize = maxValidIndex >= static_cast<std::size_t>(indexMovedTo) ? 1 : 0;
-                                std::size_t leftChunkFirst = minValidIndex;
-                                std::size_t rightChunkFirst = maxValidIndex;
+                                std::size_t left_chunk_size = min_valid_index < static_cast<std::size_t>(index_moved_to) ? 1 : 0;
+                                std::size_t right_chunk_size = max_valid_index >= static_cast<std::size_t>(index_moved_to) ? 1 : 0;
+                                std::size_t left_chunk_first = min_valid_index;
+                                std::size_t right_chunk_first = max_valid_index;
 
-                                for ( std::size_t i=0; i+1<std::size(movedIndexes) && movedIndexes[i+1] < indexMovedTo; ++i )
+                                for ( std::size_t i=0; i+1<std::size(moved_indexes) && moved_indexes[i+1] < index_moved_to; ++i )
                                 {
-                                    // rotate left chunk together with element[movedIndexes[i+1]]
-                                    auto leftStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
-                                    auto leftEnd = std::next(leftStart, static_cast<std::ptrdiff_t>(leftChunkSize));
-                                    std::rotate(leftStart, leftEnd, std::next(ref.begin(), static_cast<std::ptrdiff_t>(movedIndexes[i+1])));
-                                    if constexpr ( hasAttachedData )
-                                        mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]);
+                                    // rotate left chunk together with element[moved_indexes[i+1]]
+                                    auto left_start = std::next(ref.begin(), static_cast<std::ptrdiff_t>(left_chunk_first));
+                                    auto left_end = std::next(left_start, static_cast<std::ptrdiff_t>(left_chunk_size));
+                                    std::rotate(left_start, left_end, std::next(ref.begin(), static_cast<std::ptrdiff_t>(moved_indexes[i+1])));
+                                    if constexpr ( has_attached_data )
+                                        mirror_rotation_to(get_attached_data<Pathway...>(), left_chunk_first, left_chunk_first+left_chunk_size, moved_indexes[i+1]);
 
-                                    mirrorRotationToSelection(sel, leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]);
-                                    if constexpr ( hasElementMovedOp<Route> )
-                                        mirrorRotationTo(trackedIndexes, leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]);
-                                    leftChunkFirst = static_cast<std::size_t>(movedIndexes[i+1])-leftChunkSize;
-                                    ++leftChunkSize;
+                                    mirror_rotation_to_selection(sel, left_chunk_first, left_chunk_first+left_chunk_size, moved_indexes[i+1]);
+                                    if constexpr ( has_element_moved_op<route> )
+                                        mirror_rotation_to(tracked_indexes, left_chunk_first, left_chunk_first+left_chunk_size, moved_indexes[i+1]);
+                                    left_chunk_first = static_cast<std::size_t>(moved_indexes[i+1])-left_chunk_size;
+                                    ++left_chunk_size;
                                 }
-                                for ( std::size_t i=std::size(movedIndexes)-1; i>0 && movedIndexes[i-1] >= indexMovedTo; --i )
+                                for ( std::size_t i=std::size(moved_indexes)-1; i>0 && moved_indexes[i-1] >= index_moved_to; --i )
                                 {
-                                    // rotate right chunk together with element[movedIndexes[i-1]]
-                                    auto rightStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(rightChunkFirst));
-                                    auto rightEnd = std::next(rightStart, static_cast<std::ptrdiff_t>(rightChunkSize));
-                                    std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(movedIndexes[i-1])+1), rightStart, rightEnd);
-                                    if constexpr ( hasAttachedData )
-                                        mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(movedIndexes[i-1])+1, rightChunkFirst, rightChunkFirst+rightChunkSize);
+                                    // rotate right chunk together with element[moved_indexes[i-1]]
+                                    auto right_start = std::next(ref.begin(), static_cast<std::ptrdiff_t>(right_chunk_first));
+                                    auto right_end = std::next(right_start, static_cast<std::ptrdiff_t>(right_chunk_size));
+                                    std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(moved_indexes[i-1])+1), right_start, right_end);
+                                    if constexpr ( has_attached_data )
+                                        mirror_rotation_to(get_attached_data<Pathway...>(), static_cast<std::size_t>(moved_indexes[i-1])+1, right_chunk_first, right_chunk_first+right_chunk_size);
 
-                                    mirrorRotationToSelection(sel, static_cast<std::size_t>(movedIndexes[i-1])+1, rightChunkFirst, rightChunkFirst+rightChunkSize);
-                                    if constexpr ( hasElementMovedOp<Route> )
-                                        mirrorRotationTo(trackedIndexes, movedIndexes[i-1]+1, rightChunkFirst, rightChunkFirst+rightChunkSize);
-                                    rightChunkFirst = static_cast<std::size_t>(movedIndexes[i-1]);
-                                    ++rightChunkSize;
+                                    mirror_rotation_to_selection(sel, static_cast<std::size_t>(moved_indexes[i-1])+1, right_chunk_first, right_chunk_first+right_chunk_size);
+                                    if constexpr ( has_element_moved_op<route> )
+                                        mirror_rotation_to(tracked_indexes, moved_indexes[i-1]+1, right_chunk_first, right_chunk_first+right_chunk_size);
+                                    right_chunk_first = static_cast<std::size_t>(moved_indexes[i-1]);
+                                    ++right_chunk_size;
                                 }
-                                if ( leftChunkFirst+leftChunkSize != rightChunkFirst && leftChunkSize > 0 && rightChunkSize > 0 ) // Need to combine the chunks then rotate combined to final position
+                                if ( left_chunk_first+left_chunk_size != right_chunk_first && left_chunk_size > 0 && right_chunk_size > 0 ) // Need to combine the chunks then rotate combined to final position
                                 {
-                                    std::size_t leftDistance = leftChunkFirst < static_cast<std::size_t>(indexMovedTo) ? static_cast<std::size_t>(indexMovedTo)-leftChunkFirst : leftChunkFirst-static_cast<std::size_t>(indexMovedTo);
-                                    std::size_t rightDistance = rightChunkFirst < static_cast<std::size_t>(indexMovedTo)+leftChunkSize ? static_cast<std::size_t>(indexMovedTo)+leftChunkSize-rightChunkFirst : rightChunkFirst-static_cast<std::size_t>(indexMovedTo)-leftChunkSize;
-                                    if ( rightDistance < leftDistance ) // Right chunk closer to target, move left up to right
+                                    std::size_t left_distance = left_chunk_first < static_cast<std::size_t>(index_moved_to) ? static_cast<std::size_t>(index_moved_to)-left_chunk_first : left_chunk_first-static_cast<std::size_t>(index_moved_to);
+                                    std::size_t right_distance = right_chunk_first < static_cast<std::size_t>(index_moved_to)+left_chunk_size ? static_cast<std::size_t>(index_moved_to)+left_chunk_size-right_chunk_first : right_chunk_first-static_cast<std::size_t>(index_moved_to)-left_chunk_size;
+                                    if ( right_distance < left_distance ) // Right chunk closer to target, move left up to right
                                     {
-                                        auto leftStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
-                                        auto leftEnd = std::next(leftStart, static_cast<std::ptrdiff_t>(leftChunkSize));
-                                        std::rotate(leftStart, leftEnd, std::next(ref.begin(), static_cast<std::ptrdiff_t>(rightChunkFirst)));
-                                        if constexpr ( hasAttachedData )
-                                            mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst);
+                                        auto left_start = std::next(ref.begin(), static_cast<std::ptrdiff_t>(left_chunk_first));
+                                        auto left_end = std::next(left_start, static_cast<std::ptrdiff_t>(left_chunk_size));
+                                        std::rotate(left_start, left_end, std::next(ref.begin(), static_cast<std::ptrdiff_t>(right_chunk_first)));
+                                        if constexpr ( has_attached_data )
+                                            mirror_rotation_to(get_attached_data<Pathway...>(), left_chunk_first, left_chunk_first+left_chunk_size, right_chunk_first);
 
-                                        mirrorRotationToSelection(sel, leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst);
-                                        if constexpr ( hasElementMovedOp<Route> )
-                                            mirrorRotationTo(trackedIndexes, leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst);
-                                        leftChunkFirst = rightChunkFirst-leftChunkSize;
+                                        mirror_rotation_to_selection(sel, left_chunk_first, left_chunk_first+left_chunk_size, right_chunk_first);
+                                        if constexpr ( has_element_moved_op<route> )
+                                            mirror_rotation_to(tracked_indexes, left_chunk_first, left_chunk_first+left_chunk_size, right_chunk_first);
+                                        left_chunk_first = right_chunk_first-left_chunk_size;
                                     }
                                     else // Left chunk closer to target, move right up to left
                                     {
-                                        auto rightStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(rightChunkFirst));
-                                        auto rightEnd = std::next(rightStart, static_cast<std::ptrdiff_t>(rightChunkSize));
-                                        std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst+leftChunkSize)), rightStart, rightEnd);
-                                        if constexpr ( hasAttachedData )
-                                            mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize);
+                                        auto right_start = std::next(ref.begin(), static_cast<std::ptrdiff_t>(right_chunk_first));
+                                        auto right_end = std::next(right_start, static_cast<std::ptrdiff_t>(right_chunk_size));
+                                        std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(left_chunk_first+left_chunk_size)), right_start, right_end);
+                                        if constexpr ( has_attached_data )
+                                            mirror_rotation_to(get_attached_data<Pathway...>(), left_chunk_first+left_chunk_size, right_chunk_first, right_chunk_first+right_chunk_size);
 
-                                        mirrorRotationToSelection(sel, leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize);
-                                        if constexpr ( hasElementMovedOp<Route> )
-                                            mirrorRotationTo(trackedIndexes, leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize);
-                                        rightChunkFirst = leftChunkFirst+leftChunkSize;
+                                        mirror_rotation_to_selection(sel, left_chunk_first+left_chunk_size, right_chunk_first, right_chunk_first+right_chunk_size);
+                                        if constexpr ( has_element_moved_op<route> )
+                                            mirror_rotation_to(tracked_indexes, left_chunk_first+left_chunk_size, right_chunk_first, right_chunk_first+right_chunk_size);
+                                        right_chunk_first = left_chunk_first+left_chunk_size;
                                     }
                                 }
-                                if ( leftChunkFirst < static_cast<std::size_t>(indexMovedTo) ) // Rotate combined chunk rightwards to final position
+                                if ( left_chunk_first < static_cast<std::size_t>(index_moved_to) ) // Rotate combined chunk rightwards to final position
                                 {
-                                    auto chunkStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
-                                    auto chunkEnd = std::next(chunkStart, static_cast<std::ptrdiff_t>(countValidIndexes));
-                                    std::rotate(chunkStart, chunkEnd, std::next(chunkEnd, static_cast<std::ptrdiff_t>(static_cast<std::size_t>(indexMovedTo)-leftChunkFirst)));
-                                    if constexpr ( hasAttachedData )
-                                        mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst, leftChunkFirst+countValidIndexes, leftChunkFirst+countValidIndexes+static_cast<std::size_t>(indexMovedTo)-leftChunkFirst);
+                                    auto chunk_start = std::next(ref.begin(), static_cast<std::ptrdiff_t>(left_chunk_first));
+                                    auto chunk_end = std::next(chunk_start, static_cast<std::ptrdiff_t>(count_valid_indexes));
+                                    std::rotate(chunk_start, chunk_end, std::next(chunk_end, static_cast<std::ptrdiff_t>(static_cast<std::size_t>(index_moved_to)-left_chunk_first)));
+                                    if constexpr ( has_attached_data )
+                                        mirror_rotation_to(get_attached_data<Pathway...>(), left_chunk_first, left_chunk_first+count_valid_indexes, left_chunk_first+count_valid_indexes+static_cast<std::size_t>(index_moved_to)-left_chunk_first);
 
-                                    mirrorRotationToSelection(sel, leftChunkFirst, leftChunkFirst+countValidIndexes, leftChunkFirst+countValidIndexes+static_cast<std::size_t>(indexMovedTo)-leftChunkFirst);
-                                    if constexpr ( hasElementMovedOp<Route> )
-                                        mirrorRotationTo(trackedIndexes, leftChunkFirst, leftChunkFirst+countValidIndexes, leftChunkFirst+countValidIndexes+static_cast<std::size_t>(indexMovedTo)-leftChunkFirst);
+                                    mirror_rotation_to_selection(sel, left_chunk_first, left_chunk_first+count_valid_indexes, left_chunk_first+count_valid_indexes+static_cast<std::size_t>(index_moved_to)-left_chunk_first);
+                                    if constexpr ( has_element_moved_op<route> )
+                                        mirror_rotation_to(tracked_indexes, left_chunk_first, left_chunk_first+count_valid_indexes, left_chunk_first+count_valid_indexes+static_cast<std::size_t>(index_moved_to)-left_chunk_first);
                                 }
-                                else if ( leftChunkFirst > static_cast<std::size_t>(indexMovedTo) ) // Rotate combined chunk leftwards to final position
+                                else if ( left_chunk_first > static_cast<std::size_t>(index_moved_to) ) // Rotate combined chunk leftwards to final position
                                 {
-                                    auto chunkStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
-                                    auto chunkEnd = std::next(chunkStart, static_cast<std::ptrdiff_t>(countValidIndexes));
-                                    std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(indexMovedTo)), chunkStart, chunkEnd);
-                                    if constexpr ( hasAttachedData )
-                                        mirrorRotationTo(getAttachedData<Pathway...>(), indexMovedTo, leftChunkFirst, leftChunkFirst+countValidIndexes);
+                                    auto chunk_start = std::next(ref.begin(), static_cast<std::ptrdiff_t>(left_chunk_first));
+                                    auto chunk_end = std::next(chunk_start, static_cast<std::ptrdiff_t>(count_valid_indexes));
+                                    std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(index_moved_to)), chunk_start, chunk_end);
+                                    if constexpr ( has_attached_data )
+                                        mirror_rotation_to(get_attached_data<Pathway...>(), index_moved_to, left_chunk_first, left_chunk_first+count_valid_indexes);
 
-                                    mirrorRotationToSelection(sel, indexMovedTo, leftChunkFirst, leftChunkFirst+countValidIndexes);
-                                    if constexpr ( hasElementMovedOp<Route> )
-                                        mirrorRotationTo(trackedIndexes, indexMovedTo, leftChunkFirst, leftChunkFirst+countValidIndexes);
+                                    mirror_rotation_to_selection(sel, index_moved_to, left_chunk_first, left_chunk_first+count_valid_indexes);
+                                    if constexpr ( has_element_moved_op<route> )
+                                        mirror_rotation_to(tracked_indexes, index_moved_to, left_chunk_first, left_chunk_first+count_valid_indexes);
                                 }
                             }
                     
-                            if constexpr ( hasElementMovedOp<Route> )
+                            if constexpr ( has_element_moved_op<route> )
                             {
                                 for ( std::size_t i=0; i<size; ++i )
                                 {
-                                    if ( i != trackedIndexes[i] )
-                                        notifyElementMoved(user, Route{keys}, trackedIndexes[i], i);
+                                    if ( i != tracked_indexes[i] )
+                                        notify_element_moved(user, route{keys}, tracked_indexes[i], i);
                                 }
                             }
-                            if constexpr ( hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            if constexpr ( has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
                     }
                 }
                 break;
-                case Op::MoveToL:
+                case op::move_to_l:
                 {
-                    if constexpr ( hasSelections && hasMoveOps )
+                    if constexpr ( has_selections && has_move_ops )
                     {
-                        auto indexMovedTo = static_cast<std::size_t>(readIndex<index_type>(offset));
+                        auto index_moved_to = static_cast<std::size_t>(read_index<index_type>(offset));
                             
-                        auto & sel = getSelections<Pathway...>();
-                        sel_type prevSel {};
-                        readSelections(events, offset, prevSel);
-                        auto movedIndexes = prevSel; // Copy so it can be sorted without changing selections
-                        std::sort(movedIndexes.begin(), movedIndexes.end());
+                        auto & sel = get_selections<Pathway...>();
+                        sel_type prev_sel {};
+                        read_selections(events, offset, prev_sel);
+                        auto moved_indexes = prev_sel; // Copy so it can be sorted without changing selections
+                        std::sort(moved_indexes.begin(), moved_indexes.end());
 
                         auto size = std::size(ref);
-                        if ( !std::empty(movedIndexes) )
+                        if ( !std::empty(moved_indexes) )
                         {
-                            std::size_t countValidIndexes = 0;
-                            for ( auto movedIndex : movedIndexes )
+                            std::size_t count_valid_indexes = 0;
+                            for ( auto moved_index : moved_indexes )
                             {
-                                if ( movedIndex >= 0 && static_cast<std::size_t>(movedIndex) < std::size(ref) )
-                                    ++countValidIndexes;
+                                if ( moved_index >= 0 && static_cast<std::size_t>(moved_index) < std::size(ref) )
+                                    ++count_valid_indexes;
                             }
-                            if ( countValidIndexes == 0 )
+                            if ( count_valid_indexes == 0 )
                                 return;
 
-                            std::vector<std::size_t> trackedIndexes {};
-                            if constexpr ( hasElementMovedOp<Route> )
+                            std::vector<std::size_t> tracked_indexes {};
+                            if constexpr ( has_element_moved_op<route> )
                             {
-                                trackedIndexes.assign(size, 0);
-                                std::iota(trackedIndexes.begin(), trackedIndexes.end(), 0);
+                                tracked_indexes.assign(size, 0);
+                                std::iota(tracked_indexes.begin(), tracked_indexes.end(), 0);
                             }
 
-                            if ( static_cast<std::size_t>(indexMovedTo) + countValidIndexes >= size ) // Operation collapses to moveToEnd
+                            if ( static_cast<std::size_t>(index_moved_to) + count_valid_indexes >= size ) // Operation collapses to move_to_end
                             {
-                                std::ptrdiff_t insertionIndex = static_cast<std::ptrdiff_t>(size);
-                                for ( auto mit = movedIndexes.rbegin(); mit != movedIndexes.rend(); ++mit ) // movedIndexes sorted least to greatest, so reverse read
+                                std::ptrdiff_t insertion_index = static_cast<std::ptrdiff_t>(size);
+                                for ( auto mit = moved_indexes.rbegin(); mit != moved_indexes.rend(); ++mit ) // moved_indexes sorted least to greatest, so reverse read
                                 {
                                     auto i = *mit;
-                                    if ( i >= 0 && static_cast<std::ptrdiff_t>(i)+1 < insertionIndex )
+                                    if ( i >= 0 && static_cast<std::ptrdiff_t>(i)+1 < insertion_index )
                                     {
                                         auto it = std::next(ref.begin(), static_cast<std::ptrdiff_t>(i));
-                                        std::rotate(it, it+1, std::next(ref.begin(), insertionIndex));
-                                        if constexpr ( hasAttachedData )
-                                            mirrorRotationTo(getAttachedData<Pathway...>(), i, static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
+                                        std::rotate(it, it+1, std::next(ref.begin(), insertion_index));
+                                        if constexpr ( has_attached_data )
+                                            mirror_rotation_to(get_attached_data<Pathway...>(), i, static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertion_index));
 
-                                        mirrorRotationToSelection(sel, i, static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertionIndex));
+                                        mirror_rotation_to_selection(sel, i, static_cast<std::size_t>(i)+1, static_cast<std::size_t>(insertion_index));
 
-                                        if constexpr ( hasElementMovedOp<Route> )
-                                            mirrorRotationTo(trackedIndexes, i, i+1, static_cast<std::size_t>(insertionIndex));
+                                        if constexpr ( has_element_moved_op<route> )
+                                            mirror_rotation_to(tracked_indexes, i, i+1, static_cast<std::size_t>(insertion_index));
                                     }
-                                    --insertionIndex;
+                                    --insertion_index;
                                 }
                             }
-                            else // Non-collapsed moveTo operation
+                            else // Non-collapsed move_to operation
                             {
-                                std::size_t minValidIndex = 0;
-                                std::size_t maxValidIndex = 0;
-                                for ( std::size_t i=0; i<std::size(movedIndexes); ++i )
+                                std::size_t min_valid_index = 0;
+                                std::size_t max_valid_index = 0;
+                                for ( std::size_t i=0; i<std::size(moved_indexes); ++i )
                                 {
-                                    if ( movedIndexes[i] >= 0 )
+                                    if ( moved_indexes[i] >= 0 )
                                     {
-                                        minValidIndex = static_cast<std::size_t>(movedIndexes[i]);
+                                        min_valid_index = static_cast<std::size_t>(moved_indexes[i]);
                                         break;
                                     }
                                 }
-                                for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(std::size(movedIndexes))-1; i>=0; --i )
+                                for ( std::ptrdiff_t i=static_cast<std::ptrdiff_t>(std::size(moved_indexes))-1; i>=0; --i )
                                 {
-                                    if ( static_cast<std::ptrdiff_t>(movedIndexes[static_cast<std::size_t>(i)]) < static_cast<std::ptrdiff_t>(size) )
+                                    if ( static_cast<std::ptrdiff_t>(moved_indexes[static_cast<std::size_t>(i)]) < static_cast<std::ptrdiff_t>(size) )
                                     {
-                                        maxValidIndex = static_cast<std::size_t>(movedIndexes[static_cast<std::size_t>(i)]);
+                                        max_valid_index = static_cast<std::size_t>(moved_indexes[static_cast<std::size_t>(i)]);
                                         break;
                                     }
                                 }
 
-                                std::size_t leftChunkSize = minValidIndex < static_cast<std::size_t>(indexMovedTo) ? 1 : 0;
-                                std::size_t rightChunkSize = maxValidIndex >= static_cast<std::size_t>(indexMovedTo) ? 1 : 0;
-                                std::size_t leftChunkFirst = minValidIndex;
-                                std::size_t rightChunkFirst = maxValidIndex;
+                                std::size_t left_chunk_size = min_valid_index < static_cast<std::size_t>(index_moved_to) ? 1 : 0;
+                                std::size_t right_chunk_size = max_valid_index >= static_cast<std::size_t>(index_moved_to) ? 1 : 0;
+                                std::size_t left_chunk_first = min_valid_index;
+                                std::size_t right_chunk_first = max_valid_index;
 
-                                for ( std::size_t i=0; i+1<std::size(movedIndexes) && movedIndexes[i+1] < indexMovedTo; ++i )
+                                for ( std::size_t i=0; i+1<std::size(moved_indexes) && moved_indexes[i+1] < index_moved_to; ++i )
                                 {
-                                    // rotate left chunk together with element[movedIndexes[i+1]]
-                                    auto leftStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
-                                    auto leftEnd = std::next(leftStart, static_cast<std::ptrdiff_t>(leftChunkSize));
-                                    std::rotate(leftStart, leftEnd, std::next(ref.begin(), static_cast<std::ptrdiff_t>(movedIndexes[i+1])));
-                                    if constexpr ( hasAttachedData )
-                                        mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]);
+                                    // rotate left chunk together with element[moved_indexes[i+1]]
+                                    auto left_start = std::next(ref.begin(), static_cast<std::ptrdiff_t>(left_chunk_first));
+                                    auto left_end = std::next(left_start, static_cast<std::ptrdiff_t>(left_chunk_size));
+                                    std::rotate(left_start, left_end, std::next(ref.begin(), static_cast<std::ptrdiff_t>(moved_indexes[i+1])));
+                                    if constexpr ( has_attached_data )
+                                        mirror_rotation_to(get_attached_data<Pathway...>(), left_chunk_first, left_chunk_first+left_chunk_size, moved_indexes[i+1]);
 
-                                    mirrorRotationToSelection(sel, leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]);
-                                    if constexpr ( hasElementMovedOp<Route> )
-                                        mirrorRotationTo(trackedIndexes, leftChunkFirst, leftChunkFirst+leftChunkSize, movedIndexes[i+1]);
-                                    leftChunkFirst = static_cast<std::size_t>(movedIndexes[i+1])-leftChunkSize;
-                                    ++leftChunkSize;
+                                    mirror_rotation_to_selection(sel, left_chunk_first, left_chunk_first+left_chunk_size, moved_indexes[i+1]);
+                                    if constexpr ( has_element_moved_op<route> )
+                                        mirror_rotation_to(tracked_indexes, left_chunk_first, left_chunk_first+left_chunk_size, moved_indexes[i+1]);
+                                    left_chunk_first = static_cast<std::size_t>(moved_indexes[i+1])-left_chunk_size;
+                                    ++left_chunk_size;
                                 }
-                                for ( std::size_t i=std::size(movedIndexes)-1; i>0 && movedIndexes[i-1] >= indexMovedTo; --i )
+                                for ( std::size_t i=std::size(moved_indexes)-1; i>0 && moved_indexes[i-1] >= index_moved_to; --i )
                                 {
-                                    // rotate right chunk together with element[movedIndexes[i-1]]
-                                    auto rightStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(rightChunkFirst));
-                                    auto rightEnd = std::next(rightStart, static_cast<std::ptrdiff_t>(rightChunkSize));
-                                    std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(movedIndexes[i-1])+1), rightStart, rightEnd);
-                                    if constexpr ( hasAttachedData )
-                                        mirrorRotationTo(getAttachedData<Pathway...>(), static_cast<std::size_t>(movedIndexes[i-1])+1, rightChunkFirst, rightChunkFirst+rightChunkSize);
+                                    // rotate right chunk together with element[moved_indexes[i-1]]
+                                    auto right_start = std::next(ref.begin(), static_cast<std::ptrdiff_t>(right_chunk_first));
+                                    auto right_end = std::next(right_start, static_cast<std::ptrdiff_t>(right_chunk_size));
+                                    std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(moved_indexes[i-1])+1), right_start, right_end);
+                                    if constexpr ( has_attached_data )
+                                        mirror_rotation_to(get_attached_data<Pathway...>(), static_cast<std::size_t>(moved_indexes[i-1])+1, right_chunk_first, right_chunk_first+right_chunk_size);
 
-                                    mirrorRotationToSelection(sel, static_cast<std::size_t>(movedIndexes[i-1])+1, rightChunkFirst, rightChunkFirst+rightChunkSize);
-                                    if constexpr ( hasElementMovedOp<Route> )
-                                        mirrorRotationTo(trackedIndexes, movedIndexes[i-1]+1, rightChunkFirst, rightChunkFirst+rightChunkSize);
-                                    rightChunkFirst = static_cast<std::size_t>(movedIndexes[i-1]);
-                                    ++rightChunkSize;
+                                    mirror_rotation_to_selection(sel, static_cast<std::size_t>(moved_indexes[i-1])+1, right_chunk_first, right_chunk_first+right_chunk_size);
+                                    if constexpr ( has_element_moved_op<route> )
+                                        mirror_rotation_to(tracked_indexes, moved_indexes[i-1]+1, right_chunk_first, right_chunk_first+right_chunk_size);
+                                    right_chunk_first = static_cast<std::size_t>(moved_indexes[i-1]);
+                                    ++right_chunk_size;
                                 }
-                                if ( leftChunkFirst+leftChunkSize != rightChunkFirst && leftChunkSize > 0 && rightChunkSize > 0 ) // Need to combine the chunks then rotate combined to final position
+                                if ( left_chunk_first+left_chunk_size != right_chunk_first && left_chunk_size > 0 && right_chunk_size > 0 ) // Need to combine the chunks then rotate combined to final position
                                 {
-                                    std::size_t leftDistance = leftChunkFirst < static_cast<std::size_t>(indexMovedTo) ? static_cast<std::size_t>(indexMovedTo)-leftChunkFirst : leftChunkFirst-static_cast<std::size_t>(indexMovedTo);
-                                    std::size_t rightDistance = rightChunkFirst < static_cast<std::size_t>(indexMovedTo)+leftChunkSize ? static_cast<std::size_t>(indexMovedTo)+leftChunkSize-rightChunkFirst : rightChunkFirst-static_cast<std::size_t>(indexMovedTo)-leftChunkSize;
-                                    if ( rightDistance < leftDistance ) // Right chunk closer to target, move left up to right
+                                    std::size_t left_distance = left_chunk_first < static_cast<std::size_t>(index_moved_to) ? static_cast<std::size_t>(index_moved_to)-left_chunk_first : left_chunk_first-static_cast<std::size_t>(index_moved_to);
+                                    std::size_t right_distance = right_chunk_first < static_cast<std::size_t>(index_moved_to)+left_chunk_size ? static_cast<std::size_t>(index_moved_to)+left_chunk_size-right_chunk_first : right_chunk_first-static_cast<std::size_t>(index_moved_to)-left_chunk_size;
+                                    if ( right_distance < left_distance ) // Right chunk closer to target, move left up to right
                                     {
-                                        auto leftStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
-                                        auto leftEnd = std::next(leftStart, static_cast<std::ptrdiff_t>(leftChunkSize));
-                                        std::rotate(leftStart, leftEnd, std::next(ref.begin(), static_cast<std::ptrdiff_t>(rightChunkFirst)));
-                                        if constexpr ( hasAttachedData )
-                                            mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst);
+                                        auto left_start = std::next(ref.begin(), static_cast<std::ptrdiff_t>(left_chunk_first));
+                                        auto left_end = std::next(left_start, static_cast<std::ptrdiff_t>(left_chunk_size));
+                                        std::rotate(left_start, left_end, std::next(ref.begin(), static_cast<std::ptrdiff_t>(right_chunk_first)));
+                                        if constexpr ( has_attached_data )
+                                            mirror_rotation_to(get_attached_data<Pathway...>(), left_chunk_first, left_chunk_first+left_chunk_size, right_chunk_first);
 
-                                        mirrorRotationToSelection(sel, leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst);
-                                        if constexpr ( hasElementMovedOp<Route> )
-                                            mirrorRotationTo(trackedIndexes, leftChunkFirst, leftChunkFirst+leftChunkSize, rightChunkFirst);
-                                        leftChunkFirst = rightChunkFirst-leftChunkSize;
+                                        mirror_rotation_to_selection(sel, left_chunk_first, left_chunk_first+left_chunk_size, right_chunk_first);
+                                        if constexpr ( has_element_moved_op<route> )
+                                            mirror_rotation_to(tracked_indexes, left_chunk_first, left_chunk_first+left_chunk_size, right_chunk_first);
+                                        left_chunk_first = right_chunk_first-left_chunk_size;
                                     }
                                     else // Left chunk closer to target, move right up to left
                                     {
-                                        auto rightStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(rightChunkFirst));
-                                        auto rightEnd = std::next(rightStart, static_cast<std::ptrdiff_t>(rightChunkSize));
-                                        std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst+leftChunkSize)), rightStart, rightEnd);
-                                        if constexpr ( hasAttachedData )
-                                            mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize);
+                                        auto right_start = std::next(ref.begin(), static_cast<std::ptrdiff_t>(right_chunk_first));
+                                        auto right_end = std::next(right_start, static_cast<std::ptrdiff_t>(right_chunk_size));
+                                        std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(left_chunk_first+left_chunk_size)), right_start, right_end);
+                                        if constexpr ( has_attached_data )
+                                            mirror_rotation_to(get_attached_data<Pathway...>(), left_chunk_first+left_chunk_size, right_chunk_first, right_chunk_first+right_chunk_size);
 
-                                        mirrorRotationToSelection(sel, leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize);
-                                        if constexpr ( hasElementMovedOp<Route> )
-                                            mirrorRotationTo(trackedIndexes, leftChunkFirst+leftChunkSize, rightChunkFirst, rightChunkFirst+rightChunkSize);
-                                        rightChunkFirst = leftChunkFirst+leftChunkSize;
+                                        mirror_rotation_to_selection(sel, left_chunk_first+left_chunk_size, right_chunk_first, right_chunk_first+right_chunk_size);
+                                        if constexpr ( has_element_moved_op<route> )
+                                            mirror_rotation_to(tracked_indexes, left_chunk_first+left_chunk_size, right_chunk_first, right_chunk_first+right_chunk_size);
+                                        right_chunk_first = left_chunk_first+left_chunk_size;
                                     }
                                 }
-                                if ( leftChunkFirst < static_cast<std::size_t>(indexMovedTo) ) // Rotate combined chunk rightwards to final position
+                                if ( left_chunk_first < static_cast<std::size_t>(index_moved_to) ) // Rotate combined chunk rightwards to final position
                                 {
-                                    auto chunkStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
-                                    auto chunkEnd = std::next(chunkStart, static_cast<std::ptrdiff_t>(countValidIndexes));
-                                    std::rotate(chunkStart, chunkEnd, std::next(chunkEnd, static_cast<std::ptrdiff_t>(static_cast<std::size_t>(indexMovedTo)-leftChunkFirst)));
-                                    if constexpr ( hasAttachedData )
-                                        mirrorRotationTo(getAttachedData<Pathway...>(), leftChunkFirst, leftChunkFirst+countValidIndexes, leftChunkFirst+countValidIndexes+static_cast<std::size_t>(indexMovedTo)-leftChunkFirst);
+                                    auto chunk_start = std::next(ref.begin(), static_cast<std::ptrdiff_t>(left_chunk_first));
+                                    auto chunk_end = std::next(chunk_start, static_cast<std::ptrdiff_t>(count_valid_indexes));
+                                    std::rotate(chunk_start, chunk_end, std::next(chunk_end, static_cast<std::ptrdiff_t>(static_cast<std::size_t>(index_moved_to)-left_chunk_first)));
+                                    if constexpr ( has_attached_data )
+                                        mirror_rotation_to(get_attached_data<Pathway...>(), left_chunk_first, left_chunk_first+count_valid_indexes, left_chunk_first+count_valid_indexes+static_cast<std::size_t>(index_moved_to)-left_chunk_first);
 
-                                    mirrorRotationToSelection(sel, leftChunkFirst, leftChunkFirst+countValidIndexes, leftChunkFirst+countValidIndexes+static_cast<std::size_t>(indexMovedTo)-leftChunkFirst);
-                                    if constexpr ( hasElementMovedOp<Route> )
-                                        mirrorRotationTo(trackedIndexes, leftChunkFirst, leftChunkFirst+countValidIndexes, leftChunkFirst+countValidIndexes+static_cast<std::size_t>(indexMovedTo)-leftChunkFirst);
+                                    mirror_rotation_to_selection(sel, left_chunk_first, left_chunk_first+count_valid_indexes, left_chunk_first+count_valid_indexes+static_cast<std::size_t>(index_moved_to)-left_chunk_first);
+                                    if constexpr ( has_element_moved_op<route> )
+                                        mirror_rotation_to(tracked_indexes, left_chunk_first, left_chunk_first+count_valid_indexes, left_chunk_first+count_valid_indexes+static_cast<std::size_t>(index_moved_to)-left_chunk_first);
                                 }
-                                else if ( leftChunkFirst > static_cast<std::size_t>(indexMovedTo) ) // Rotate combined chunk leftwards to final position
+                                else if ( left_chunk_first > static_cast<std::size_t>(index_moved_to) ) // Rotate combined chunk leftwards to final position
                                 {
-                                    auto chunkStart = std::next(ref.begin(), static_cast<std::ptrdiff_t>(leftChunkFirst));
-                                    auto chunkEnd = std::next(chunkStart, static_cast<std::ptrdiff_t>(countValidIndexes));
-                                    std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(indexMovedTo)), chunkStart, chunkEnd);
-                                    if constexpr ( hasAttachedData )
-                                        mirrorRotationTo(getAttachedData<Pathway...>(), indexMovedTo, leftChunkFirst, leftChunkFirst+countValidIndexes);
+                                    auto chunk_start = std::next(ref.begin(), static_cast<std::ptrdiff_t>(left_chunk_first));
+                                    auto chunk_end = std::next(chunk_start, static_cast<std::ptrdiff_t>(count_valid_indexes));
+                                    std::rotate(std::next(ref.begin(), static_cast<std::ptrdiff_t>(index_moved_to)), chunk_start, chunk_end);
+                                    if constexpr ( has_attached_data )
+                                        mirror_rotation_to(get_attached_data<Pathway...>(), index_moved_to, left_chunk_first, left_chunk_first+count_valid_indexes);
 
-                                    mirrorRotationToSelection(sel, indexMovedTo, leftChunkFirst, leftChunkFirst+countValidIndexes);
-                                    if constexpr ( hasElementMovedOp<Route> )
-                                        mirrorRotationTo(trackedIndexes, indexMovedTo, leftChunkFirst, leftChunkFirst+countValidIndexes);
+                                    mirror_rotation_to_selection(sel, index_moved_to, left_chunk_first, left_chunk_first+count_valid_indexes);
+                                    if constexpr ( has_element_moved_op<route> )
+                                        mirror_rotation_to(tracked_indexes, index_moved_to, left_chunk_first, left_chunk_first+count_valid_indexes);
                                 }
                             }
                     
-                            if constexpr ( hasElementMovedOp<Route> )
+                            if constexpr ( has_element_moved_op<route> )
                             {
                                 for ( std::size_t i=0; i<size; ++i )
                                 {
-                                    if ( i != trackedIndexes[i] )
-                                        notifyElementMoved(user, Route{keys}, trackedIndexes[i], i);
+                                    if ( i != tracked_indexes[i] )
+                                        notify_element_moved(user, route{keys}, tracked_indexes[i], i);
                                 }
                             }
-                            if constexpr ( hasSelChangeOp )
-                                notifySelectionsChanged(user, Route{keys});
+                            if constexpr ( has_sel_change_op )
+                                notify_selections_changed(user, route{keys});
                         }
                     }
                 }
@@ -7523,642 +7552,681 @@ namespace RareEdit
             }
         }
 
-        template <class U, bool Undo, bool AfterSel = false, class Member = void, std::size_t ... MemberIndexes, class Keys = std::tuple<>, class ... Pathway>
-        void processEventRef(U & t, std::size_t & offset, std::optional<std::size_t> & secondaryOffset, std::uint8_t op,
-            std::index_sequence<MemberIndexes...>, Keys keys = std::tuple{}, type_tags<Pathway...> = {})
+        template <class U, bool Undo, bool After_sel = false, class Member = void, std::size_t ... Member_indexes, class Keys = std::tuple<>, class ... Pathway>
+        void process_event_ref(U & t, std::size_t & offset, std::optional<std::size_t> & secondary_offset, std::uint8_t operation,
+            std::index_sequence<Member_indexes...>, Keys keys = std::tuple{}, type_tags<Pathway...> = {})
         {
-            constexpr bool hasSel = hasSelections<Pathway...>();
+            constexpr bool has_sel = has_selections<Pathway...>();
             using index_type = index_type_t<default_index_type, Member>;
             std::uint8_t value = events[offset++];
 
-            switch ( PathOp(value & std::uint8_t(PathOp::HighBits)) )
+            switch ( path_op(value & std::uint8_t(path_op::high_bits)) )
             {
-                case PathOp::SelBranch:
-                    if constexpr ( hasSel && requires{t[0];} )
+                case path_op::sel_branch:
+                    if constexpr ( has_sel && requires{t[0];} )
                     {
-                        std::size_t selBranchStartOffset = offset;
-                        auto & selData = getSelections<Pathway...>();
-                        for ( auto & sel : selData )
+                        std::size_t sel_branch_start_offset = offset;
+                        auto & sel_data = get_selections<Pathway...>();
+                        for ( auto & sel : sel_data )
                         {
-                            using U2 = std::remove_cvref_t<decltype(t[0])>;
-                            processEventRef<U2, Undo, true, Member>( // sel is prepended since sels are always before first PathIndex
-                                t[static_cast<std::size_t>(sel)], offset, secondaryOffset, op, std::make_index_sequence<reflectedMemberCount<U2>()>(),
-                                std::tuple_cat(std::tuple<index_type>{sel}, keys), type_tags<Pathway..., PathIndex<0>>{});
+                            using elem = std::remove_cvref_t<decltype(t[0])>;
+                            process_event_ref<elem, Undo, true, Member>( // sel is prepended since sels are always before first path_index
+                                t[static_cast<std::size_t>(sel)], offset, secondary_offset, operation, std::make_index_sequence<reflected_member_count<elem>()>(),
+                                std::tuple_cat(std::tuple<index_type>{sel}, keys), type_tags<Pathway..., path_index<0>>{});
 
-                            offset = selBranchStartOffset;
+                            offset = sel_branch_start_offset;
                         }
                     }
                     break;
-                case PathOp::LeafSelBranch:
+                case path_op::leaf_sel_branch:
                     if constexpr ( sizeof...(Pathway) == 0 && Undo )
-                        processUndoEvent<std::remove_cvref_t<U>, void>(op, offset, secondaryOffset, t, keys);
+                        process_undo_event<std::remove_cvref_t<U>, void>(operation, offset, secondary_offset, t, keys);
                     else if constexpr ( sizeof...(Pathway) == 0 && !Undo )
-                        processRedoEvent<std::remove_cvref_t<U>, void>(op, offset, secondaryOffset, t, keys);
-                    else if constexpr ( hasSel && requires{t[0];} )
+                        process_redo_event<std::remove_cvref_t<U>, void>(operation, offset, secondary_offset, t, keys);
+                    else if constexpr ( has_sel && requires{t[0];} )
                     {
                         using element_type = std::remove_cvref_t<RareTs::element_type_t<std::remove_cvref_t<U>>>;
                         
-                        std::size_t selBranchStartOffset = offset;
-                        auto & selData = getSelections<Pathway...>();
-                        for ( auto & sel : selData )
+                        std::size_t sel_branch_start_offset = offset;
+                        auto & sel_data = get_selections<Pathway...>();
+                        for ( auto & sel : sel_data )
                         {
                             if constexpr ( Undo )
                             {
-                                processUndoEvent<element_type, Member, Pathway..., PathIndex<0>>(
-                                    op, offset, secondaryOffset, t[static_cast<std::size_t>(sel)], std::tuple_cat(std::tuple<index_type>{sel}, keys));
+                                process_undo_event<element_type, Member, Pathway..., path_index<0>>(
+                                    operation, offset, secondary_offset, t[static_cast<std::size_t>(sel)], std::tuple_cat(std::tuple<index_type>{sel}, keys));
                             }
                             else
                             {
-                                processRedoEvent<element_type, Member, Pathway..., PathIndex<0>>(
-                                    op, offset, secondaryOffset, t[static_cast<std::size_t>(sel)], std::tuple_cat(std::tuple<index_type>{sel}, keys));
+                                process_redo_event<element_type, Member, Pathway..., path_index<0>>(
+                                    operation, offset, secondary_offset, t[static_cast<std::size_t>(sel)], std::tuple_cat(std::tuple<index_type>{sel}, keys));
                             }
 
-                            offset = selBranchStartOffset;
+                            offset = sel_branch_start_offset;
                         }
                     }
                     break;
-                case PathOp::Branch:
+                case path_op::branch:
                 {
                     if constexpr ( RareTs::is_static_array_v<U> || RareTs::is_specialization_v<U, std::vector> ) // Branch to index
                     {
                         index_type index {};
                         if constexpr ( std::is_same_v<index_type, uint6_t> )
-                            index = static_cast<uint6_t>(value & std::uint8_t(PathOp::LowBits));
+                            index = static_cast<uint6_t>(value & std::uint8_t(path_op::low_bits));
                         else
-                            index = readIndex<index_type>(offset);
+                            index = read_index<index_type>(offset);
                         
-                        using U2 = std::remove_cvref_t<decltype(std::declval<U>()[0])>;
-                        processEventRef<U2, Undo, AfterSel, Member>(
-                            t[static_cast<std::size_t>(index)], offset, secondaryOffset, op, std::make_index_sequence<reflectedMemberCount<U2>()>(),
-                            std::tuple_cat(keys, std::tuple{index}), type_tags<Pathway..., PathIndex<std::tuple_size_v<Keys>>>{});
+                        using elem = std::remove_cvref_t<decltype(std::declval<U>()[0])>;
+                        process_event_ref<elem, Undo, After_sel, Member>(
+                            t[static_cast<std::size_t>(index)], offset, secondary_offset, operation, std::make_index_sequence<reflected_member_count<elem>()>(),
+                            std::tuple_cat(keys, std::tuple{index}), type_tags<Pathway..., path_index<std::tuple_size_v<Keys>>>{});
                     }
                     else if constexpr ( RareTs::is_macro_reflected_v<U> ) // Branch to field
                     {
-                        (void)((MemberIndexes == std::size_t(value & std::uint8_t(PathOp::LowBits)) ?
-                            (processEventRef<std::remove_cvref_t<typename RareTs::Member<U, MemberIndexes>::type>, Undo, AfterSel, RareTs::Member<U, MemberIndexes>>(
-                                RareTs::Member<U, MemberIndexes>::value(t), offset, secondaryOffset, op,
-                                std::make_index_sequence<reflectedMemberCount<std::remove_cvref_t<typename RareTs::Member<U, MemberIndexes>::type>>()>(),
-                                keys, type_tags<Pathway..., PathMember<MemberIndexes>>{}), true) : false) || ...);
+                        (void)((Member_indexes == std::size_t(value & std::uint8_t(path_op::low_bits)) ?
+                            (process_event_ref<std::remove_cvref_t<typename RareTs::Member<U, Member_indexes>::type>, Undo, After_sel, RareTs::Member<U, Member_indexes>>(
+                                RareTs::Member<U, Member_indexes>::value(t), offset, secondary_offset, operation,
+                                std::make_index_sequence<reflected_member_count<std::remove_cvref_t<typename RareTs::Member<U, Member_indexes>::type>>()>(),
+                                keys, type_tags<Pathway..., path_member<Member_indexes>>{}), true) : false) || ...);
 
-                        //RareTs::Members<U>::at(std::size_t(value & std::uint8_t(PathOp::LowBits)), t, [&](auto member, auto & ref) {
-                        //    using U2 = std::remove_cvref_t<typename decltype(member)::type>;
-                        //    processEventRef<U2, Undo, AfterSel, decltype(member)>(
-                        //        ref, offset, secondaryOffset, op, std::make_index_sequence<reflectedMemberCount<U2>()>(),
-                        //        keys, type_tags<Pathway..., PathMember<decltype(member)::index>>{});
+                        //RareTs::Members<U>::at(std::size_t(value & std::uint8_t(path_op::low_bits)), t, [&](auto member, auto & ref) {
+                        //    using elem = std::remove_cvref_t<typename decltype(member)::type>;
+                        //    process_event_ref<U2, Undo, After_sel, decltype(member)>(
+                        //        ref, offset, secondary_offset, operation, std::make_index_sequence<reflected_member_count<elem>()>(),
+                        //        keys, type_tags<Pathway..., path_member<decltype(member)::index>>{});
                         //});
                     }
                 }
                 break;
-                case PathOp::LeafBranch:
+                case path_op::leaf_branch:
                 {
                     if constexpr ( RareTs::is_static_array_v<U> || RareTs::is_specialization_v<U, std::vector>  ) // Op on index
                     {
-                        using PathIdx = PathIndex<std::tuple_size_v<Keys>>;
+                        using path_idx = path_index<std::tuple_size_v<Keys>>;
                         index_type index {};
                         if constexpr ( std::is_same_v<index_type, uint6_t> )
-                            index = uint6_t(value & std::uint8_t(PathOp::LowBits));
+                            index = uint6_t(value & std::uint8_t(path_op::low_bits));
                         else
-                            index = readIndex<index_type>(offset);
+                            index = read_index<index_type>(offset);
 
                         if constexpr ( Undo )
                         {
-                            processUndoEvent<std::remove_cvref_t<RareTs::element_type_t<std::remove_cvref_t<U>>>, Member, Pathway..., PathIdx>(
-                                op, offset, secondaryOffset, t[static_cast<std::size_t>(index)], std::tuple_cat(keys, std::tuple{index}));
+                            process_undo_event<std::remove_cvref_t<RareTs::element_type_t<std::remove_cvref_t<U>>>, Member, Pathway..., path_idx>(
+                                operation, offset, secondary_offset, t[static_cast<std::size_t>(index)], std::tuple_cat(keys, std::tuple{index}));
                         }
                         else
                         {
-                            processRedoEvent<std::remove_cvref_t<RareTs::element_type_t<std::remove_cvref_t<U>>>, Member, Pathway..., PathIdx>(
-                                op, offset, secondaryOffset, t[static_cast<std::size_t>(index)], std::tuple_cat(keys, std::tuple{index}));
+                            process_redo_event<std::remove_cvref_t<RareTs::element_type_t<std::remove_cvref_t<U>>>, Member, Pathway..., path_idx>(
+                                operation, offset, secondary_offset, t[static_cast<std::size_t>(index)], std::tuple_cat(keys, std::tuple{index}));
                         }
                     }
                     else if constexpr ( RareTs::is_macro_reflected_v<U> ) // Op on field
                     {
-                        std::size_t fieldIndex = std::size_t(value & std::uint8_t(PathOp::LowBits));
+                        std::size_t field_index = std::size_t(value & std::uint8_t(path_op::low_bits));
                         if constexpr ( Undo )
                         {
-                            (void)((MemberIndexes == fieldIndex ?
-                                (processUndoEvent<std::remove_cvref_t<typename RareTs::Member<U, MemberIndexes>::type>,
-                                    RareTs::Member<U, MemberIndexes>, Pathway..., PathMember<RareTs::Member<U, MemberIndexes>::index>>(
-                                    op, offset, secondaryOffset, RareTs::Member<U, MemberIndexes>::value(t), keys), true) : false) || ...);
+                            (void)((Member_indexes == field_index ?
+                                (process_undo_event<std::remove_cvref_t<typename RareTs::Member<U, Member_indexes>::type>,
+                                    RareTs::Member<U, Member_indexes>, Pathway..., path_member<RareTs::Member<U, Member_indexes>::index>>(
+                                    operation, offset, secondary_offset, RareTs::Member<U, Member_indexes>::value(t), keys), true) : false) || ...);
                         }
                         else
                         {
-                            (void)((MemberIndexes == fieldIndex ?
-                                (processRedoEvent<std::remove_cvref_t<typename RareTs::Member<U, MemberIndexes>::type>,
-                                    RareTs::Member<U, MemberIndexes>, Pathway..., PathMember<RareTs::Member<U, MemberIndexes>::index>>(
-                                    op, offset, secondaryOffset, RareTs::Member<U, MemberIndexes>::value(t), keys), true) : false) || ...);
+                            (void)((Member_indexes == field_index ?
+                                (process_redo_event<std::remove_cvref_t<typename RareTs::Member<U, Member_indexes>::type>,
+                                    RareTs::Member<U, Member_indexes>, Pathway..., path_member<RareTs::Member<U, Member_indexes>::index>>(
+                                    operation, offset, secondary_offset, RareTs::Member<U, Member_indexes>::value(t), keys), true) : false) || ...);
                         }
 
                         //if constexpr ( Undo ) {
-                        //    RareTs::Members<U>::at(std::size_t(value & std::uint8_t(PathOp::LowBits)), t, [&](auto member, auto & ref) {
-                        //        processUndoEvent<std::remove_cvref_t<typename decltype(member)::type>, decltype(member), Pathway..., PathMember<decltype(member)::index>>(
-                        //            op, offset, secondaryOffset, ref, keys);
+                        //    RareTs::Members<U>::at(std::size_t(value & std::uint8_t(path_op::low_bits)), t, [&](auto member, auto & ref) {
+                        //        process_undo_event<std::remove_cvref_t<typename decltype(member)::type>, decltype(member), Pathway..., path_member<decltype(member)::index>>(
+                        //            operation, offset, secondary_offset, ref, keys);
                         //    });
                         //} else {
-                        //    RareTs::Members<U>::at(std::size_t(value & std::uint8_t(PathOp::LowBits)), t, [&](auto member, auto & ref) {
-                        //        processRedoEvent<std::remove_cvref_t<typename decltype(member)::type>, decltype(member), Pathway..., PathMember<decltype(member)::index>>(
-                        //            op, offset, secondaryOffset, ref, keys);
+                        //    RareTs::Members<U>::at(std::size_t(value & std::uint8_t(path_op::low_bits)), t, [&](auto member, auto & ref) {
+                        //        process_redo_event<std::remove_cvref_t<typename decltype(member)::type>, decltype(member), Pathway..., path_member<decltype(member)::index>>(
+                        //            operation, offset, secondary_offset, ref, keys);
                         //    });
                         //}
                     }
                 }
                 break;
                 default:
-                    throw std::runtime_error("Invalid PathOp detected");
+                    throw std::runtime_error("Invalid path_op detected");
             }
         }
 
-        void undoEvent(std::size_t eventIndex)
+        void undo_event(std::size_t event_index)
         {
-            if ( eventIndex >= eventOffsets.size() )
+            if ( event_index >= event_offsets.size() )
                 return;
             
-            std::size_t offset = eventOffsets[eventIndex];
-            std::optional<std::size_t> secondaryOffset {}; // For selection ops with multiple callbacks/bifurcated offsets
-            std::uint8_t op = events[offset];
+            std::size_t offset = event_offsets[event_index];
+            std::optional<std::size_t> secondary_offset {}; // For selection ops with multiple callbacks/bifurcated offsets
+            std::uint8_t operation = events[offset];
             ++offset;
             
-            processEventRef<T, true>(t, offset, secondaryOffset, op, std::make_index_sequence<reflectedMemberCount<T>()>(), std::tuple{}, type_tags<>{});
+            process_event_ref<T, true>(t, offset, secondary_offset, operation, std::make_index_sequence<reflected_member_count<T>()>(), std::tuple{}, type_tags<>{});
         }
 
-        void redoEvent(std::size_t eventIndex)
+        void redo_event(std::size_t event_index)
         {
-            if ( eventIndex >= eventOffsets.size() )
+            if ( event_index >= event_offsets.size() )
                 return;
             
-            std::optional<std::size_t> secondaryOffset {}; // For selection ops with multiple callbacks/bifurcated offsets
-            std::size_t offset = eventOffsets[eventIndex];
-            std::uint8_t op = events[offset];
+            std::optional<std::size_t> secondary_offset {}; // For selection ops with multiple callbacks/bifurcated offsets
+            std::size_t offset = event_offsets[event_index];
+            std::uint8_t operation = events[offset];
             ++offset;
             
-            processEventRef<T, false>(t, offset, secondaryOffset, op, std::make_index_sequence<reflectedMemberCount<T>()>(), std::tuple{}, type_tags<>{});
+            process_event_ref<T, false>(t, offset, secondary_offset, operation, std::make_index_sequence<reflected_member_count<T>()>(), std::tuple{}, type_tags<>{});
         }
     };
 
-    struct NoUserData { friend constexpr bool operator==(NoUserData, NoUserData) noexcept { return false; } };
+    struct no_user_data { friend constexpr bool operator==(no_user_data, no_user_data) noexcept { return false; } };
 
-    template <class Data, class User, class UserData = NoUserData>
+    template <class Data, class User, class User_data = no_user_data>
     requires RareTs::is_macro_reflected_v<Data> && std::is_object_v<User>
-    class Tracked;
+    class tracked;
 
-    template <class T, class User, class ActionUserData, class Editor>
-    class EditRoot : private Agent<T, User, Editor>, public edit_members<Agent<T, User, Editor>, typename decltype(defaultIndexType<T>())::type, T, T>
+    template <class T, class User, class Action_user_data, class Editor>
+    class modifier_root : private agent<T, User, Editor>, public edit_members_t<agent<T, User, Editor>, typename decltype(def_index_type<T>())::type, T, T>
     {
-        EditRoot(T & t, User & user) :
-            Agent<T, User, Editor>(t, user),
-            edit_members<Agent<T, User, Editor>, typename decltype(defaultIndexType<T>())::type, T, T>{(Agent<T, User, Editor>&)*this, std::tuple{}} {}
+        modifier_root(T & t, User & user) :
+            agent<T, User, Editor>(t, user),
+            edit_members_t<agent<T, User, Editor>, typename decltype(def_index_type<T>())::type, T, T>{(agent<T, User, Editor>&)*this, std::tuple{}} {}
 
-        friend class Tracked<T, User, ActionUserData>;
-        friend struct Agent<T, User, Editor>;
+        friend class tracked<T, User, Action_user_data>;
+        friend struct agent<T, User, Editor>;
 
     public:
-        using default_index_type = typename Agent<T, User, Editor>::default_index_type;
+        using default_index_type = typename agent<T, User, Editor>::default_index_type;
 
         void assign(const T & value) {
             std::tuple keys {}; // No keys/array indexes as this is the root
-            Agent<T, User, Editor>::template set<>(value, keys);
-            Agent<T, User, Editor>::selections.clear();
-            Agent<T, User, Editor>::initAttachedData();
+            agent<T, User, Editor>::template set<>(value, keys);
+            agent<T, User, Editor>::selections.clear();
+            agent<T, User, Editor>::init_attached_data();
         }
     };
     
-    template <typename T, typename PathToElem,
-    typename EditorType = typename PathToElem::editor_type,
-    typename ReadEditPair = decltype(std::declval<EditorType>().editFromPath(PathToElem{}))>
-    class TrackedElement;
+    template <typename T, typename Path_to_elem,
+        typename Editor_type = typename Path_to_elem::editor_type,
+        typename Read_edit_pair = decltype(std::declval<typename Path_to_elem::editor_type>().edit_from_path(Path_to_elem{}))>
+    class tracked_element;
 
     template <class Tracked>
-    class Editor // If moved-from, or maybe created with createSharedAction the action shouldn't be auto-submitted, allowing for brushing
-    {            // However... it should be ensured that there is only ever one such action
-                 // Maybe it's an optional contained within this class and a derefable wrapper for that including a bool is returned?
+    class editor
+    {
         Tracked* parent = nullptr;
 
         using tracked_type = Tracked;
-        template <typename, typename, typename, typename> friend class TrackedElement;
+        template <typename, typename, typename, typename> friend class tracked_element;
 
     public:
-        Editor(Tracked* parent) : parent(parent) {
+        editor(Tracked* parent) : parent(parent) {
             if ( parent != nullptr )
-                parent->actionReferenceCount++;
+                parent->action_reference_count++;
         }
-        Editor(Editor && other) noexcept { std::swap(parent, other.parent); }
-        ~Editor() {
-            if ( parent != nullptr && --(parent->actionReferenceCount) == 0 )
-                parent->submitAction();
+        editor(editor && other) noexcept { std::swap(parent, other.parent); }
+        ~editor() {
+            if ( parent != nullptr && --(parent->action_reference_count) == 0 )
+                parent->submit_action();
         }
-        auto & operator*() noexcept { return parent->editable; }
-        auto operator->() noexcept { return &parent->editable; }
+        constexpr auto & operator*() noexcept { return parent->mod_root; }
+        constexpr auto operator->() noexcept { return &(parent->mod_root); }
 
         template <class Keys, class ... Pathway>
-        auto editFromPath(PathTaggedKeys<Keys, type_tags<Pathway...>, Editor<Tracked>> path)
+        auto edit_from_path(path_tagged_keys<Keys, type_tags<Pathway...>, editor<Tracked>> path)
         {
-            auto & agent = (Agent<typename Tracked::data_type, typename Tracked::user_type, Editor> &)parent->editable;
-            return agent.template editorFromPath<Pathway...>(**this, static_cast<typename Tracked::data_type &>(*parent), path);
+            auto & edit_agent = (agent<typename Tracked::data_type, typename Tracked::user_type, editor> &)parent->mod_root;
+            return edit_agent.template editor_from_path<Pathway...>(parent->mod_root, parent->data, path);
         }
     };
     
     template <class Usr>
-    using AfterActionOp = decltype(std::declval<Usr>().afterAction(std::size_t(0)));
+    using after_action_op = decltype(std::declval<Usr>().after_action(std::size_t(0)));
 
-    enum class ActionStatus {
-        Unknown = 0,
-        Undoable = 1,
-        ElidedRedo = 2,
-        Redoable = 3
+    enum class action_status {
+        unknown = 0,
+        undoable = 1,
+        elided_redo = 2,
+        redoable = 3
     };
 
-    struct DataChangeEvent {
-        Op op {};
+    struct data_change_event {
+        op operation {};
         std::string summary {};
         std::vector<std::string> breakdown {};
-        constexpr bool isSelChangeEvent() const { return isSelChangeOp(op); }
+        constexpr bool is_sel_change_event() const { return is_sel_change_op(operation); }
     };
 
-    template <class ActionUserData>
-    struct RenderAction {
-        ActionStatus actionStatus {};
-        std::size_t elisionCount = 0;
-        std::vector<DataChangeEvent> changeEvents {};
-        std::size_t byteCount = 0;
-        ActionUserData userData {};
+    template <class Action_user_data = no_user_data>
+    struct rendered_action {
+        action_status status {};
+        std::size_t elision_count = 0;
+        std::vector<data_change_event> change_events {};
+        std::size_t byte_count = 0;
+        Action_user_data user_data {};
 
-        constexpr bool isElisionMarker() const { return actionStatus == ActionStatus::ElidedRedo && elisionCount > 0; }
-        constexpr bool isElided() const { return actionStatus == ActionStatus::ElidedRedo && elisionCount == 0; }
-        constexpr bool isUndoable() const { return actionStatus == ActionStatus::Undoable; }
-        constexpr bool isRedoable() const { return actionStatus == ActionStatus::Redoable; }
-        constexpr bool isSelChangeAction() const {
-            for ( auto event : changeEvents )
+        constexpr bool is_elision_marker() const { return status == action_status::elided_redo && elision_count > 0; }
+        constexpr bool is_elided() const { return status == action_status::elided_redo && elision_count == 0; }
+        constexpr bool is_undoable() const { return status == action_status::undoable; }
+        constexpr bool is_redoable() const { return status == action_status::redoable; }
+        constexpr bool is_sel_change_action() const {
+            for ( const auto & event : change_events )
             {
-                if ( !event.isSelChangeEvent() )
+                if ( !event.is_sel_change_event() )
                     return false;
             }
             return true;
         }
     };
 
-    template <class UserData = NoUserData>
-    struct Action : UserData
+    template <class User_data = no_user_data>
+    struct action_record : User_data
     {
-        std::size_t firstEventIndex;
+        std::size_t first_event_index;
         
-        constexpr Action(std::size_t firstEventIndex) noexcept : firstEventIndex(firstEventIndex) {}
-        constexpr Action(std::size_t firstEventIndex, const UserData & userData) noexcept : UserData(userData), firstEventIndex(firstEventIndex) {}
+        constexpr action_record(std::size_t first_event_index) noexcept : first_event_index(first_event_index) {}
+        constexpr action_record(std::size_t first_event_index, const User_data & user_data) noexcept : User_data(user_data), first_event_index(first_event_index) {}
     };
 
-    template <class Data, class User, class UserData>
+    template <class Data, class User, class User_data>
     requires RareTs::is_macro_reflected_v<Data> && std::is_object_v<User>
-    class Tracked : Data
+    class tracked
     {
+        friend class editor<tracked>;
+
+        Data data;
+
         using data_type = Data;
         using user_type = User;
-        using edit_root = EditRoot<Data, User, UserData, Editor<Tracked>>;
+        using mod_root_type = modifier_root<Data, User, User_data, editor<tracked>>;
 
-        static constexpr std::uint64_t flagElidedRedos    = 0x8000000000000000ull;
-        static constexpr std::uint64_t maskElidedRedoSize = 0x7FFFFFFFFFFFFFFFull; // The total size of this elided redo branch, including sub-branches
+        static constexpr std::uint64_t flag_elided_redos     = 0x8000000000000000ull;
+        static constexpr std::uint64_t mask_elided_redo_size = 0x7FFFFFFFFFFFFFFFull; // The total size of this elided redo branch, including sub-branches
 
-        edit_root editable;
+        mod_root_type mod_root;
+        agent<Data, User, editor<tracked>> & history = static_cast<agent<Data, User, editor<tracked>> &>(mod_root);
 
-        UserData pendingActionUserData {}; // The user data that will be associated with the next action to be added
-        std::size_t pendingActionStart = 0; // Index of the first data-change event for the next action to be added
-        std::vector<Action<UserData>> actions; // Contains the index of the first data-change event for action[i] and any user-data
-        int actionReferenceCount = 0; // Referencing counting for the current action, new actions can only be created when the old action is closed
-        std::uint64_t redoCount = 0; // How many undos have occured since the last user-action/how many redos are available
-        std::uint64_t redoSize = 0; // The size of the range including the redoable actions (includes elided redos)
+        User_data pending_action_user_data {}; // The user data that will be associated with the next action to be added
+        std::size_t pending_action_start = 0; // Index of the first data-change event for the next action to be added
+        std::vector<action_record<User_data>> actions; // Contains the index of the first data-change event for action[i] and any user-data
+        int action_reference_count = 0; // Referencing counting for the current action, new actions can only be created when the old action is closed
+        std::uint64_t redo_count = 0; // How many undos have occured since the last user-action/how many redos are available
+        std::uint64_t redo_size = 0; // The size of the range including the redoable actions (includes elided redos)
 
-        friend class Editor<Tracked>;
+        template <typename Usr> static constexpr bool has_after_action_op = RareTs::op_exists_v<after_action_op, Usr>;
 
-        template <typename Usr> static constexpr bool hasAfterActionOp = RareTs::op_exists_v<AfterActionOp, Usr>;
-
-        void submitAction()
+        void elide_redos()
         {
-            if ( pendingActionStart < editable.eventOffsets.size() ) // Action is not empty
+            if ( redo_count == 0 )
+                throw std::logic_error("Redos cannot be elided when there are no redos");
+            
+            actions.push_back({redo_size | flag_elided_redos, pending_action_user_data});
+            redo_count = 0;
+            redo_size = 0;
+        }
+
+        void submit_action()
+        {
+            if ( pending_action_start < mod_root.event_offsets.size() ) // Action is not empty
             {
-                if ( redoCount > 0 )
-                    elideRedos();
+                if ( redo_count > 0 )
+                    elide_redos();
 
-                actions.push_back({pendingActionStart, pendingActionUserData});
-                pendingActionStart = editable.eventOffsets.size();
+                actions.push_back({pending_action_start, pending_action_user_data});
+                pending_action_start = mod_root.event_offsets.size();
 
-                if constexpr ( hasAfterActionOp<user_type> )
-                    static_cast<Agent<Data, User, Editor<Tracked>> &>(editable).user.afterAction(actions.size()-1); // Notify
+                if constexpr ( has_after_action_op<user_type> )
+                    static_cast<agent<Data, User, editor<tracked>> &>(mod_root).user.after_action(actions.size()-1); // Notify
             }
         }
+
+    public:
+
+        const mod_root_type & view; // Used to view selections data (and potentially other info associated with particular data paths)
+        tracked(User* user) : mod_root(this->data, *user), view(mod_root) {}
+        tracked(User & user) : mod_root(this->data, user), view(mod_root) {}
+
+        const Data & read = data; // A read only version of the user data
+        constexpr const Data & operator*() const noexcept { return read; }
+        constexpr const Data* operator->() const noexcept { return &this->data; }
 
     protected:
 
-        void elideRedos()
+        void replace_pending_action_user_data(User_data user_data)
         {
-            if ( redoCount == 0 )
-                throw std::logic_error("Redos cannot be elided when there are no redos");
-            
-            actions.push_back({redoSize | flagElidedRedos, pendingActionUserData});
-            redoCount = 0;
-            redoSize = 0;
+            std::swap(user_data, pending_action_user_data);
         }
 
-        auto createAction(UserData userData = {})
+        struct pather
         {
-            if ( actionReferenceCount == 0 || UserData{} == pendingActionUserData )
-                std::swap(userData, pendingActionUserData);
-
-            return Editor<Tracked>{this};
-        }
-
-        void replacePendingActionUserData(UserData userData)
-        {
-            std::swap(userData, pendingActionUserData);
-        }
-
-        static inline Editor<Tracked> root {nullptr}; // Represents the root of the data structure, used by client code to create paths
+            constexpr mod_root_type & operator*() noexcept;
+            constexpr mod_root_type* operator->() noexcept;
+        };
+        static inline pather root {}; // Represents the root of the data structure, used by client code to create paths
 
     public:
-        const edit_root & view; // Used to view selections data (and potentially other info associated with particular data paths)
-        Tracked(User* user) : editable(*this, *user), view(editable) {}
-        Tracked(User & user) : editable(*this, user), view(editable) {}
 
-        const Data & read = (const Data &)*this; // A read only version of the user data
-        Agent<Data, User, Editor<Tracked>> & history = static_cast<Agent<Data, User, Editor<Tracked>> &>(editable);
-        constexpr const Data & operator*() const noexcept { return read; }
-        constexpr const Data* operator->() const noexcept { return this; }
-
-        auto operator()(UserData userData = {})
+        auto create_action(User_data user_data = {})
         {
-            if ( actionReferenceCount == 0 || UserData{} == pendingActionUserData )
-                std::swap(userData, pendingActionUserData);
+            if ( action_reference_count == 0 || User_data{} == pending_action_user_data )
+                std::swap(user_data, pending_action_user_data);
 
-            return Editor<Tracked>{this};
+            return editor<tracked>{this};
+        }
+
+        auto operator()(User_data user_data = {})
+        {
+            if ( action_reference_count == 0 || User_data{} == pending_action_user_data )
+                std::swap(user_data, pending_action_user_data);
+
+            return editor<tracked>{this};
         };
 
-        void clearHistory()
+        void clear_history()
         {
-            if ( actionReferenceCount != 0 )
+            if ( action_reference_count != 0 )
                 throw std::logic_error("Cannot clear history while an action is active");
 
-            pendingActionUserData = {};
-            pendingActionStart = 0;
+            pending_action_user_data = {};
+            pending_action_start = 0;
             history.clear();
-            redoCount = 0;
-            redoSize = 0;
+            redo_count = 0;
+            redo_size = 0;
             actions.clear();
         }
 
-        std::size_t trimHistory(std::size_t newFirstAction) // Trims history so it starts at newFirstAction, returns corrected newFirstAction
+        std::size_t trim_history(std::size_t new_first_action) // Trims history so it starts at new_first_action, returns corrected new_first_action
         {
-            if ( actionReferenceCount != 0 || redoCount > 0 )
+            if ( action_reference_count != 0 || redo_count > 0 )
                 throw std::logic_error("Cannot trim history while an action is active or redos are present");
 
-            if ( newFirstAction >= actions.size() )
+            if ( new_first_action >= actions.size() )
             {
-                clearHistory(); // Clear everything
+                clear_history(); // Clear everything
                 return 0;
             }
-            else if ( newFirstAction == 0 || actions.empty() )
+            else if ( new_first_action == 0 || actions.empty() )
                 return 0; // Nothing to clear
 
             for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(actions.size()) - 1; i > 0; )
             {
-                if ( (actions[static_cast<std::size_t>(i)].firstEventIndex & flagElidedRedos) == flagElidedRedos ) // Elided
+                if ( (actions[static_cast<std::size_t>(i)].first_event_index & flag_elided_redos) == flag_elided_redos ) // Elided
                 {
-                    i -= static_cast<std::ptrdiff_t>((actions[static_cast<std::size_t>(i)].firstEventIndex & maskElidedRedoSize)+1); // Skip over elided actions
+                    i -= static_cast<std::ptrdiff_t>((actions[static_cast<std::size_t>(i)].first_event_index & mask_elided_redo_size)+1); // Skip over elided actions
                     if ( i <= 0 )
-                        return 0; // Nothing to clear before the given "newFirstAction" that wasn't elided
+                        return 0; // Nothing to clear before the given "new_first_action" that wasn't elided
                 }
-                else if ( i > static_cast<std::ptrdiff_t>(newFirstAction) ) // Non-elided, haven't yet reached newFirstAction
-                    --i; // Keep moving towards newFirstAction
+                else if ( i > static_cast<std::ptrdiff_t>(new_first_action) ) // Non-elided, haven't yet reached new_first_action
+                    --i; // Keep moving towards new_first_action
                 else // Reached or passed newFirstAction
                 {
                     if ( i <= 0 )
                         return 0; // Nothing to clear before the given "newFirstAction" that wasn't elided
                     else
                     {
-                        newFirstAction = static_cast<std::size_t>(i); // Fix newFirstAction to the last action that wasn't elided
+                        new_first_action = static_cast<std::size_t>(i); // Fix newFirstAction to the last action that wasn't elided
                         break;
                     }
                 }
             }
 
-            std::size_t firstEventIndex = actions[newFirstAction].firstEventIndex;
-            std::size_t countEventIndexesTrimmed = history.trim(firstEventIndex);
-            actions.erase(actions.begin(), std::next(actions.begin(), static_cast<std::ptrdiff_t>(newFirstAction)));
+            std::size_t first_event_index = actions[new_first_action].first_event_index;
+            std::size_t count_event_indexes_trimmed = history.trim(first_event_index);
+            actions.erase(actions.begin(), std::next(actions.begin(), static_cast<std::ptrdiff_t>(new_first_action)));
             for ( auto & action : actions )
             {
-                if ( (action.firstEventIndex & flagElidedRedos) != flagElidedRedos )
-                    action.firstEventIndex -= countEventIndexesTrimmed;
+                if ( (action.first_event_index & flag_elided_redos) != flag_elided_redos )
+                    action.first_event_index -= count_event_indexes_trimmed;
             }
 
-            pendingActionStart = editable.eventOffsets.size();
-            return newFirstAction;
+            pending_action_start = mod_root.event_offsets.size();
+            return new_first_action;
         }
 
-        std::uint64_t trimHistoryToSize(std::uint64_t maxSize) // Returns the new size
+        std::uint64_t trim_history_to_size(std::uint64_t max_size) // Returns the new size
         {
-            if ( actionReferenceCount != 0 || redoCount > 0 )
+            if ( action_reference_count != 0 || redo_count > 0 )
                 throw std::logic_error("Cannot trim history while an action is active or redos are present");
 
-            if ( maxSize == 0 )
+            if ( max_size == 0 )
             {
-                clearHistory(); // Clear everything
+                clear_history(); // Clear everything
                 return 0;
             }
             else if ( actions.empty() ) // Nothing to trim
                 return 0;
             
-            std::size_t totalActions = actions.size();
-            std::uint64_t totalSize = 0;
+            std::size_t total_actions = actions.size();
+            std::uint64_t total_size = 0;
             for ( std::ptrdiff_t i = static_cast<std::ptrdiff_t>(actions.size()) - 1; i > 0; )
             {
-                if ( (actions[static_cast<std::size_t>(i)].firstEventIndex & flagElidedRedos) == flagElidedRedos ) // Elided
+                if ( (actions[static_cast<std::size_t>(i)].first_event_index & flag_elided_redos) == flag_elided_redos ) // Elided
                 {
-                    std::uint64_t countElided = (actions[static_cast<std::size_t>(i)].firstEventIndex & maskElidedRedoSize);
-                    std::uint64_t nextSize = totalSize + 8 + 8*countElided;
-                    std::ptrdiff_t nextI = i - static_cast<std::ptrdiff_t>(countElided+1); // Next after elided actions
-                    for ( std::ptrdiff_t j=i; j>nextI; --j )
+                    std::uint64_t count_elided = (actions[static_cast<std::size_t>(i)].first_event_index & mask_elided_redo_size);
+                    std::uint64_t next_size = total_size + 8 + 8*count_elided;
+                    std::ptrdiff_t next_i = i - static_cast<std::ptrdiff_t>(count_elided+1); // Next after elided actions
+                    for ( std::ptrdiff_t j=i; j>next_i; --j )
                     {
-                        std::size_t actionIndex = static_cast<std::size_t>(j);
-                        std::size_t currActionStart = actions[actionIndex].firstEventIndex;
-                        if ( (currActionStart & flagElidedRedos) == flagElidedRedos )
+                        std::size_t action_index = static_cast<std::size_t>(j);
+                        std::size_t curr_action_start = actions[action_index].first_event_index;
+                        if ( (curr_action_start & flag_elided_redos) == flag_elided_redos )
                             continue; // No events to count for this action
                         
-                        std::size_t nextActionStart = flagElidedRedos;
-                        for ( std::size_t k=1; (nextActionStart & flagElidedRedos) == flagElidedRedos; ++k ) // Find the next event that isn't an elision marker
-                            nextActionStart = actionIndex+k<totalActions ? (actions[actionIndex+k].firstEventIndex) : editable.eventOffsets.size();
+                        std::size_t next_action_start = flag_elided_redos;
+                        for ( std::size_t k=1; (next_action_start & flag_elided_redos) == flag_elided_redos; ++k ) // Find the next event that isn't an elision marker
+                            next_action_start = action_index+k<total_actions ? (actions[action_index+k].first_event_index) : mod_root.event_offsets.size();
 
-                        auto [firstEventStart, unusedFirstEventEnd] = editable.getEventOffsetRange(currActionStart);
-                        auto [unusedLastEventStart, lastEventEnd] = editable.getEventOffsetRange(nextActionStart-1);
-                        nextSize += lastEventEnd-firstEventStart;
+                        auto [first_event_start, unused_first_event_end] = mod_root.get_event_offset_range(curr_action_start);
+                        auto [unused_last_event_start, last_event_end] = mod_root.get_event_offset_range(next_action_start-1);
+                        next_size += last_event_end-first_event_start;
                     }
-                    if ( nextSize > maxSize ) // i is the correct target
+                    if ( next_size > max_size ) // i is the correct target
                     {
-                        trimHistory(static_cast<std::size_t>(i));
-                        return totalSize;
+                        trim_history(static_cast<std::size_t>(i));
+                        return total_size;
                     }
                     else
                     {
-                        i = nextI;
-                        totalSize = nextSize;
+                        i = next_i;
+                        total_size = next_size;
                     }
                 }
-                else // Non-elided, haven't yet reached maxSize
+                else // Non-elided, haven't yet reached max_size
                 {
-                    std::size_t actionIndex = static_cast<std::size_t>(i);
-                    std::uint64_t nextSize = totalSize + 8;
-                    std::size_t currActionStart = actions[actionIndex].firstEventIndex;
-                    if ( (currActionStart & flagElidedRedos) == flagElidedRedos )
+                    std::size_t action_index = static_cast<std::size_t>(i);
+                    std::uint64_t next_size = total_size + 8;
+                    std::size_t curr_action_start = actions[action_index].first_event_index;
+                    if ( (curr_action_start & flag_elided_redos) == flag_elided_redos )
                         continue; // No events to count for this action
                         
-                    std::size_t nextActionStart = flagElidedRedos;
-                    for ( std::size_t j=1; (nextActionStart & flagElidedRedos) == flagElidedRedos; ++j ) // Find the next event that isn't an elision marker
-                        nextActionStart = actionIndex+j<totalActions ? (actions[actionIndex+j].firstEventIndex) : editable.eventOffsets.size();
+                    std::size_t next_action_start = flag_elided_redos;
+                    for ( std::size_t j=1; (next_action_start & flag_elided_redos) == flag_elided_redos; ++j ) // Find the next event that isn't an elision marker
+                        next_action_start = action_index+j<total_actions ? (actions[action_index+j].first_event_index) : mod_root.event_offsets.size();
 
-                    auto [firstEventStart, unusedFirstEventEnd] = editable.getEventOffsetRange(currActionStart);
-                    auto [unusedLastEventStart, lastEventEnd] = editable.getEventOffsetRange(nextActionStart-1);
-                    nextSize += lastEventEnd-firstEventStart;
+                    auto [first_event_start, unused_first_event_end] = mod_root.get_event_offset_range(curr_action_start);
+                    auto [unused_last_event_start, last_event_end] = mod_root.get_event_offset_range(next_action_start-1);
+                    next_size += last_event_end-first_event_start;
 
-                    if ( nextSize > maxSize )
+                    if ( next_size > max_size )
                     {
-                        trimHistory(static_cast<std::size_t>(i));
-                        return totalSize;
+                        trim_history(static_cast<std::size_t>(i));
+                        return total_size;
                     }
                     else
                     {
-                        totalSize = nextSize;
+                        total_size = next_size;
                         --i;
                     }
                 }
             }
-            return totalSize;
+            return total_size;
         }
 
         // Initializes the stored data with the given input, this initialization is tracked of initTracked is true
         // If there's an active action or any stored actions a logic_error will be thrown
-        template <bool initTracked = false>
-        void initData(auto && data)
+        template <bool Init_tracked = false>
+        void init_data(auto && data)
         {
             if ( !actions.empty() )
                 throw std::logic_error("Cannot init an object that already has history!");
-            else if ( actionReferenceCount > 0 )
+            else if ( action_reference_count > 0 )
                 throw std::logic_error("Cannot init an object that already has an active action!");
 
-            if constexpr ( initTracked )
-                createAction()->assign(data);
+            if constexpr ( Init_tracked )
+            {
+                auto action = create_action();
+                auto keys = std::tuple{};
+                history.selections.clear();
+                if constexpr ( requires { std::swap(this->data, data); } )
+                    std::swap(this->data, data);
+                else // If say, a const reference was passed to init_data, swap is not possible, use assignment
+                    this->data = data;
+                
+                history.init_attached_data();
+                history.record_initialization(keys);
+            }
             else
             {
                 history.selections.clear();
-                if constexpr ( requires { std::swap((Data&)*this, data); } )
-                    std::swap((Data&)*this, data);
-                else // If say, a const reference was passed to initData, swap is not possible, use assignment
-                    ((Data&)*this) = data;
+                if constexpr ( requires { std::swap(this->data, data); } )
+                    std::swap(this->data, data);
+                else // If say, a const reference was passed to init_data, swap is not possible, use assignment
+                    this->data = data;
                 
-                history.initAttachedData();
+                history.init_attached_data();
             }
         }
 
-        static constexpr std::size_t noAction = std::numeric_limits<std::size_t>::max();
-
-        std::size_t undoAction()
+        void record_init() // Creates an action recording the initialization of an object which has already occured
         {
-            if ( redoSize >= actions.size() )
-                return noAction;
+            if ( !actions.empty() )
+                throw std::logic_error("Cannot record initialization of an object that already has history!");
+            else if ( action_reference_count > 0 )
+                throw std::logic_error("Cannot record initialization of an object that already has an active action!");
+            
+            auto action = create_action();
+            auto keys = std::tuple{};
+            history.record_initialization(keys);
+        }
 
-            std::size_t totalActions = actions.size();
-            std::uint64_t actionIndex = totalActions-redoSize-1;
+        static constexpr std::size_t no_action = std::numeric_limits<std::size_t>::max();
 
-            while ( (actions[actionIndex].firstEventIndex & flagElidedRedos) == flagElidedRedos ) // Find the next unelided action
+        std::size_t undo_action()
+        {
+            if ( redo_size >= actions.size() )
+                return no_action;
+
+            std::size_t total_actions = actions.size();
+            std::uint64_t action_index = total_actions-redo_size-1;
+
+            while ( (actions[action_index].first_event_index & flag_elided_redos) == flag_elided_redos ) // Find the next unelided action
             {
-                auto redoGap = ((actions[actionIndex].firstEventIndex & maskElidedRedoSize)+1);
-                if ( redoGap <= actionIndex )
-                    actionIndex -= redoGap;
+                auto redo_gap = ((actions[action_index].first_event_index & mask_elided_redo_size)+1);
+                if ( redo_gap <= action_index )
+                    action_index -= redo_gap;
                 else
-                    return noAction; // Every prior action was elided, nothing to undo
+                    return no_action; // Every prior action was elided, nothing to undo
             }
 
-            std::int64_t actionEventStart = static_cast<std::int64_t>(actions[actionIndex].firstEventIndex);
-            std::int64_t nextActionStart = static_cast<std::size_t>(actionIndex)<totalActions-1 ?
-                static_cast<std::int64_t>(actions[actionIndex+1].firstEventIndex) :
-                static_cast<std::int64_t>(editable.eventOffsets.size());
+            std::int64_t action_event_start = static_cast<std::int64_t>(actions[action_index].first_event_index);
+            std::int64_t next_action_start = static_cast<std::size_t>(action_index)<total_actions-1 ?
+                static_cast<std::int64_t>(actions[action_index+1].first_event_index) :
+                static_cast<std::int64_t>(mod_root.event_offsets.size());
             
-            auto & agent = (Agent<Data, User, Editor<Tracked>> &)editable;
-            for ( std::int64_t i=nextActionStart-1; i>=actionEventStart; i-- )
-                agent.undoEvent(std::uint64_t(i));
+            auto & edit_agent = (agent<Data, User, editor<tracked>> &)mod_root;
+            for ( std::int64_t i=next_action_start-1; i>=action_event_start; i-- )
+                edit_agent.undo_event(std::uint64_t(i));
 
-            redoCount++;
-            redoSize = totalActions-actionIndex;
-            return actionIndex;
+            redo_count++;
+            redo_size = total_actions-action_index;
+            return action_index;
         }
 
-        std::size_t redoAction()
+        std::size_t redo_action()
         {
-            if ( redoCount == 0 )
-                return noAction;
+            if ( redo_count == 0 )
+                return no_action;
 
-            std::size_t totalActions = actions.size();
-            std::uint64_t actionIndex = totalActions-redoSize;
+            std::size_t total_actions = actions.size();
+            std::uint64_t action_index = total_actions-redo_size;
             
-            std::uint64_t actionEventStart = actions[actionIndex].firstEventIndex;
-            std::uint64_t nextActionStart = flagElidedRedos;
-            for ( std::size_t i=1; actionIndex+i<totalActions; ++i )
+            std::uint64_t action_event_start = actions[action_index].first_event_index;
+            std::uint64_t next_action_start = flag_elided_redos;
+            for ( std::size_t i=1; action_index+i<total_actions; ++i )
             {
-                if ( (actions[actionIndex+i].firstEventIndex & flagElidedRedos) != flagElidedRedos )
+                if ( (actions[action_index+i].first_event_index & flag_elided_redos) != flag_elided_redos )
                 {
-                    nextActionStart = actions[actionIndex+i].firstEventIndex;
+                    next_action_start = actions[action_index+i].first_event_index;
                     break;
                 }
             }
-            if ( nextActionStart == flagElidedRedos )
-                nextActionStart = editable.eventOffsets.size();
+            if ( next_action_start == flag_elided_redos )
+                next_action_start = mod_root.event_offsets.size();
             
-            auto & agent = (Agent<Data, User, Editor<Tracked>> &)editable;
-            for ( auto i=actionEventStart; i<nextActionStart; i++ )
-                agent.redoEvent(i);
+            auto & edit_agent = (agent<Data, User, editor<tracked>> &)mod_root;
+            for ( auto i=action_event_start; i<next_action_start; i++ )
+                edit_agent.redo_event(i);
 
-            redoCount--;
-            if ( redoCount == 0 )
-                redoSize = 0;
+            redo_count--;
+            if ( redo_count == 0 )
+                redo_size = 0;
             else
             {
-                auto checkActionIndex = totalActions-1;
-                std::size_t unelidedCount = 0;
-                while ( unelidedCount < redoCount )
+                auto check_action_index = total_actions-1;
+                std::size_t unelided_count = 0;
+                while ( unelided_count < redo_count )
                 {
-                    if ( (actions[checkActionIndex].firstEventIndex & flagElidedRedos) == flagElidedRedos )
-                        checkActionIndex -= ((actions[checkActionIndex].firstEventIndex & maskElidedRedoSize)+1);
+                    if ( (actions[check_action_index].first_event_index & flag_elided_redos) == flag_elided_redos )
+                        check_action_index -= ((actions[check_action_index].first_event_index & mask_elided_redo_size)+1);
                     else
                     {
-                        ++unelidedCount;
-                        --checkActionIndex;
+                        ++unelided_count;
+                        --check_action_index;
                     }
                 }
-                redoSize = totalActions-checkActionIndex-1;
+                redo_size = total_actions-check_action_index-1;
             }
-            return actionIndex;
+            return action_index;
         }
 
-        std::size_t getPendingActionIndex() // The index the current action will be if it's submitted
+        std::size_t total_actions() // Includes undoable, redoable, elided, and pending actions
         {
-            return redoCount > 0 ? actions.size()+1 : actions.size();
+            return actions.size();
         }
 
-        std::size_t getCursorIndex() // One after the index of the last action which hasn't been undone
+        std::size_t get_pending_action_index() // The index the current action will be if it's submitted
         {
-            return actions.size()-redoSize;
+            return redo_count > 0 ? actions.size()+1 : actions.size();
         }
 
-        std::size_t previousCursorIndex() // One after the index of the most recent un-elided action before the current cursor
+        std::size_t get_cursor_index() // One after the index of the last action which hasn't been undone
         {
-            for ( auto i = static_cast<std::ptrdiff_t>(getCursorIndex())-2; i>=0; --i )
+            return actions.size()-redo_size;
+        }
+
+        std::size_t previous_cursor_index() // One after the index of the most recent un-elided action before the current cursor
+        {
+            for ( auto i = static_cast<std::ptrdiff_t>(get_cursor_index())-2; i>=0; --i )
             {
-                if ( (actions[static_cast<std::size_t>(i)].firstEventIndex & flagElidedRedos) == flagElidedRedos )
-                    i -= static_cast<std::ptrdiff_t>(actions[static_cast<std::size_t>(i)].firstEventIndex & maskElidedRedoSize);
+                if ( (actions[static_cast<std::size_t>(i)].first_event_index & flag_elided_redos) == flag_elided_redos )
+                    i -= static_cast<std::ptrdiff_t>(actions[static_cast<std::size_t>(i)].first_event_index & mask_elided_redo_size);
                 else
                     return static_cast<std::size_t>(i)+1;
             }
             return 0;
         }
 
-        const UserData & getActionUserData(std::size_t actionIndex) const
+        const User_data & get_action_user_data(std::size_t action_index) const
         {
-            return (UserData &)(actions[actionIndex]);
+            return (User_data &)(actions[action_index]);
         }
+
+    private:
 
         auto & put(std::ostream & os, auto && value) const
         {
@@ -8167,22 +8235,22 @@ namespace RareEdit
         }
 
         template <class type, class member_type>
-        auto & putValue(std::ostream & os, std::size_t & offset) const
+        auto & put_value(std::ostream & os, std::size_t & offset) const
         {
             if constexpr ( std::is_array_v<type> )
             {
                 type t {};
-                editable.template readValue<type, member_type>(offset, t);
+                mod_root.template read_value<type, member_type>(offset, t);
                 os << Json::out<Json::Statics::Excluded, RareTs::NoNote, 0, Json::Output::twoSpaces, type>(t);
             }
             else
-                os << Json::out(editable.template readValue<type, member_type>(offset));
+                os << Json::out(mod_root.template read_value<type, member_type>(offset));
 
             return *this;
         }
 
         template <class type, class member_type>
-        auto & putValues(std::ostream & os, std::size_t & offset, std::size_t size) const
+        auto & put_values(std::ostream & os, std::size_t & offset, std::size_t size) const
         {
             os << "{";
             if constexpr ( std::is_array_v<type> )
@@ -8190,33 +8258,33 @@ namespace RareEdit
                 for ( std::size_t i=0; i<size; ++i )
                 {
                     type t {};
-                    editable.template readValue<type, member_type>(offset, t);
+                    mod_root.template read_value<type, member_type>(offset, t);
                     os << (i>0 ? ", " : "") << Json::out(t);
                 }
             }
             else
             {
                 for ( std::size_t i=0; i<size; ++i )
-                    os << (i>0 ? ", " : "") << Json::out(editable.template readValue<type, member_type>(offset));
+                    os << (i>0 ? ", " : "") << Json::out(mod_root.template read_value<type, member_type>(offset));
             }
             os << "}";
             return *this;
         }
 
         template <class index_type>
-        auto & putIndex(std::ostream & os, std::size_t & offset) const
+        auto & put_index(std::ostream & os, std::size_t & offset) const
         {
-            os << (RareTs::promote_char_t<index_type>)editable.template readIndex<index_type>(offset);
+            os << (RareTs::promote_char_t<index_type>)mod_root.template read_index<index_type>(offset);
             return *this;
         }
 
         template <class index_type>
-        auto & putIndexes(std::ostream & os, std::size_t & offset, std::size_t size) const
+        auto & put_indexes(std::ostream & os, std::size_t & offset, std::size_t size) const
         {
             os << "{";
             if ( size > 0 )
             {
-                auto indexes = editable.template readIndexes<index_type>(offset, size);
+                auto indexes = mod_root.template read_indexes<index_type>(offset, size);
                 for ( std::size_t i=0; i<size; ++i )
                     os << (i>0 ? ", " : "") << (RareTs::promote_char_t<index_type>)indexes[i];
             }
@@ -8225,306 +8293,309 @@ namespace RareEdit
         }
 
         template <class type, class member_type>
-        void printEventOp(std::ostream & os, std::size_t & offset, Op op) const
+        void print_event_op(std::ostream & os, std::size_t & offset, op operation) const
         {
             using element = RareTs::element_type_t<std::remove_cvref_t<type>>;
-            using index_type = index_type_t<typename edit_root::default_index_type, member_type>;
-            switch ( op )
+            using index_type = index_type_t<typename mod_root_type::default_index_type, member_type>;
+            switch ( operation )
             {
-                case Op::Reset: // .reset() // prevValue
-                    put(os, ".reset() // ").template putValue<type, member_type>(os, offset);
+                case op::init: // .init() // value
+                    put(os, ".init(").template put_value<type, member_type>(os, offset).put(os, ")");
                     break;
-                case Op::Reserve: // .reserve(size)
-                    put(os, ".reserve(").template putIndex<index_type>(os, offset).put(os, ")");
+                case op::reset: // .reset() // prev_value
+                    put(os, ".reset() // ").template put_value<type, member_type>(os, offset);
                     break;
-                case Op::Trim: // .trim()
+                case op::reserve: // .reserve(size)
+                    put(os, ".reserve(").template put_index<index_type>(os, offset).put(os, ")");
+                    break;
+                case op::trim: // .trim()
                     put(os, ".trim()");
                     break;
-                case Op::Assign: // .assign(size, value) // prevValue
+                case op::assign: // .assign(size, value) // prev_value
                     if constexpr ( !std::is_void_v<element> )
-                        put(os, ".assign(").template putIndex<index_type>(os, offset).template putValue<element, member_type>(os, offset).put(os, ") // ").template putValue<type, member_type>(os, offset);
+                        put(os, ".assign(").template put_index<index_type>(os, offset).template put_value<element, member_type>(os, offset).put(os, ") // ").template put_value<type, member_type>(os, offset);
                     break;
-                case Op::AssignDefault: // .assign(size, {}) // prevValue
-                    put(os, ".assign(").template putIndex<index_type>(os, offset).put(os, ", {}) // ").template putValue<type, member_type>(os, offset);
+                case op::assign_default: // .assign(size, {}) // prev_value
+                    put(os, ".assign(").template put_index<index_type>(os, offset).put(os, ", {}) // ").template put_value<type, member_type>(os, offset);
                     break;
-                case Op::ClearSelections: // .clearSelections() // size, selIndexes
+                case op::clear_selections: // .clear_selections() // size, sel_indexes
                 {
-                    auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".clearSelections() // ").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size);
+                    auto size = static_cast<std::size_t>(mod_root.template read_index<index_type>(offset));
+                    put(os, ".clear_selections() // ").put(os, size).put(os, ", ").template put_indexes<index_type>(os, offset, size);
                 }
                 break;
-                case Op::SelectAll: // .selectAll() // size, selIndexes
+                case op::select_all: // .select_all() // size, sel_indexes
                 {
-                    auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".selectAll() // ").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size);
+                    auto size = static_cast<std::size_t>(mod_root.template read_index<index_type>(offset));
+                    put(os, ".select_all() // ").put(os, size).put(os, ", ").template put_indexes<index_type>(os, offset, size);
                 }
                 break;
-                case Op::Select: // .select(index)
-                    put(os, ".select(").template putIndex<index_type>(os, offset).put(os, ")");
+                case op::select: // .select(index)
+                    put(os, ".select(").template put_index<index_type>(os, offset).put(os, ")");
                     break;
-                case Op::SelectN: // .selectN(size, selIndexes)
+                case op::select_n: // .selectN(size, sel_indexes)
                 {
-                    auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".selectN(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
+                    auto size = static_cast<std::size_t>(mod_root.template read_index<index_type>(offset));
+                    put(os, ".select_n(").put(os, size).put(os, ", ").template put_indexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
-                case Op::Deselect: // .deselect(index)
-                    put(os, ".deselect(").template putIndex<index_type>(os, offset).put(os, ")");
+                case op::deselect: // .deselect(index)
+                    put(os, ".deselect(").template put_index<index_type>(os, offset).put(os, ")");
                     break;
-                case Op::DeselectN:
+                case op::deselect_n:
                 {
-                    auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".deselectN(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
+                    auto size = static_cast<std::size_t>(mod_root.template read_index<index_type>(offset));
+                    put(os, ".deselect_n(").put(os, size).put(os, ", ").template put_indexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
-                case Op::ToggleSelection:
-                    put(os, ".toggelSel(").template putIndex<index_type>(os, offset).put(os, ")");
+                case op::toggle_selection:
+                    put(os, ".toggel_sel(").template put_index<index_type>(os, offset).put(os, ")");
                     break;
-                case Op::ToggleSelectionN:
+                case op::toggle_selection_n:
                 {
-                    auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".toggleSelN(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
+                    auto size = static_cast<std::size_t>(mod_root.template read_index<index_type>(offset));
+                    put(os, ".toggle_sel_n(").put(os, size).put(os, ", ").template put_indexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
-                case Op::SortSelections:
+                case op::sort_selections:
                 {
-                    auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".sortSel(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
+                    auto size = static_cast<std::size_t>(mod_root.template read_index<index_type>(offset));
+                    put(os, ".sort_sel(").put(os, size).put(os, ", ").template put_indexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
-                case Op::SortSelectionsDesc:
+                case op::sort_selections_desc:
                 {
-                    auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".sortSelDesc(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
+                    auto size = static_cast<std::size_t>(mod_root.template read_index<index_type>(offset));
+                    put(os, ".sort_sel_desc(").put(os, size).put(os, ", ").template put_indexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
-                case Op::Set:
-                    put(os, " = ").template putValue<type, member_type>(os, offset).put(os, " // ").template putValue<type, member_type>(os, offset);
+                case op::set:
+                    put(os, " = ").template put_value<type, member_type>(os, offset).put(os, " // ").template put_value<type, member_type>(os, offset);
                     break;
-                case Op::SetN:
+                case op::set_n:
                 if constexpr ( !std::is_void_v<element> )
                 {
-                    std::size_t size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".setN(").template putIndex<index_type>(os, offset).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")").put(os, " = ").template putValue<type, member_type>(os, offset)
-                        .put(os, ") // ").template putValues<type, member_type>(os, offset, size);
+                    std::size_t size = static_cast<std::size_t>(mod_root.template read_index<index_type>(offset));
+                    put(os, ".set_n(").template put_index<index_type>(os, offset).put(os, ", ").template put_indexes<index_type>(os, offset, size).put(os, ")").put(os, " = ").template put_value<type, member_type>(os, offset)
+                        .put(os, ") // ").template put_values<type, member_type>(os, offset, size);
                 }
                 break;
-                case Op::SetL:
-                    put(os, " = ").template putValue<type, member_type>(os, offset);
+                case op::set_l:
+                    put(os, " = ").template put_value<type, member_type>(os, offset);
                     break;
-                case Op::Append:
+                case op::append:
                 if constexpr ( RareTs::is_specialization_v<type, std::vector> )
-                    put(os, ".append(").template putValue<std::remove_cvref_t<decltype(std::declval<type>()[0])>, member_type>(os, offset).put(os, ")");
+                    put(os, ".append(").template put_value<std::remove_cvref_t<decltype(std::declval<type>()[0])>, member_type>(os, offset).put(os, ")");
                 break;
-                case Op::AppendN:
-                if constexpr ( RareTs::is_specialization_v<type, std::vector> )
-                {
-                    std::size_t size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".appendN(").put(os, size).put(os, ", ").template putValues<element, member_type>(os, offset, size).put(os, ")");
-                }
-                break;
-                case Op::Insert:
-                if constexpr ( RareTs::is_specialization_v<type, std::vector> )
-                    put(os, ".insert(").template putIndex<index_type>(os, offset).put(os, ", ").template putValue<std::remove_cvref_t<decltype(std::declval<type>()[0])>, member_type>(os, offset).put(os, ")");
-                break;
-                case Op::InsertN:
+                case op::append_n:
                 if constexpr ( RareTs::is_specialization_v<type, std::vector> )
                 {
-                    std::size_t size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".insertN(").template putIndex<index_type>(os, offset).put(os, ", ").put(os, size).put(os, ", ").template putValues<element, member_type>(os, offset, size).put(os, ")");
+                    std::size_t size = static_cast<std::size_t>(mod_root.template read_index<index_type>(offset));
+                    put(os, ".append_n(").put(os, size).put(os, ", ").template put_values<element, member_type>(os, offset, size).put(os, ")");
                 }
                 break;
-                case Op::Remove:
+                case op::insert:
                 if constexpr ( RareTs::is_specialization_v<type, std::vector> )
-                    put(os, ".remove(").template putIndex<index_type>(os, offset).put(os, ") // {").template putValue<std::remove_cvref_t<decltype(std::declval<type>()[0])>, member_type>(os, offset).put(os, ")");
+                    put(os, ".insert(").template put_index<index_type>(os, offset).put(os, ", ").template put_value<std::remove_cvref_t<decltype(std::declval<type>()[0])>, member_type>(os, offset).put(os, ")");
                 break;
-                case Op::RemoveN:
-                if constexpr ( RareTs::is_specialization_v<type, std::vector> )
-                {
-                    std::size_t count = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".removeN(").template putIndexes<index_type>(os, offset, count).put(os, ") // ").template putIndexes<index_type>(os, offset, count);
-                }
-                break;
-                case Op::RemoveL:
+                case op::insert_n:
                 if constexpr ( RareTs::is_specialization_v<type, std::vector> )
                 {
-                    std::size_t count = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".removeL() // ").put(os, count).put(os, ", ").template putIndexes<index_type>(os, offset, count).put(os, ") // ").template putValues<element, member_type>(os, offset, count);
+                    std::size_t size = static_cast<std::size_t>(mod_root.template read_index<index_type>(offset));
+                    put(os, ".insert_n(").template put_index<index_type>(os, offset).put(os, ", ").put(os, size).put(os, ", ").template put_values<element, member_type>(os, offset, size).put(os, ")");
                 }
                 break;
-                case Op::Sort:
+                case op::remove:
+                if constexpr ( RareTs::is_specialization_v<type, std::vector> )
+                    put(os, ".remove(").template put_index<index_type>(os, offset).put(os, ") // {").template put_value<std::remove_cvref_t<decltype(std::declval<type>()[0])>, member_type>(os, offset).put(os, ")");
+                break;
+                case op::remove_n:
+                if constexpr ( RareTs::is_specialization_v<type, std::vector> )
                 {
-                    std::size_t count = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".sort() // ").put(os, count).template putIndexes<index_type>(os, offset, count);
+                    std::size_t count = static_cast<std::size_t>(mod_root.template read_index<index_type>(offset));
+                    put(os, ".remove_n(").template put_indexes<index_type>(os, offset, count).put(os, ") // ").template put_indexes<index_type>(os, offset, count);
                 }
                 break;
-                case Op::SortDesc:
+                case op::remove_l:
+                if constexpr ( RareTs::is_specialization_v<type, std::vector> )
                 {
-                    std::size_t count = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".sortDesc() // ").put(os, count).template putIndexes<index_type>(os, offset, count);
+                    std::size_t count = static_cast<std::size_t>(mod_root.template read_index<index_type>(offset));
+                    put(os, ".remove_l() // ").put(os, count).put(os, ", ").template put_indexes<index_type>(os, offset, count).put(os, ") // ").template put_values<element, member_type>(os, offset, count);
                 }
                 break;
-                case Op::Swap:
-                    put(os, ".swap(").template putIndex<index_type>(os, offset).put(os, ", ").template putIndex<index_type>(os, offset).put(os, ")");
-                    break;
-                case Op::MoveUp:
-                    put(os, ".moveUp(").template putIndex<index_type>(os, offset).put(os, ")");
-                    break;
-                case Op::MoveUpN:
+                case op::sort:
                 {
-                    auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".moveUpN(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
+                    std::size_t count = static_cast<std::size_t>(mod_root.template read_index<index_type>(offset));
+                    put(os, ".sort() // ").put(os, count).template put_indexes<index_type>(os, offset, count);
                 }
                 break;
-                case Op::MoveUpL:
-                    put(os, ".moveSelectionsUp()");
-                    break;
-                case Op::MoveTop:
-                    put(os, ".moveTop(").template putIndex<index_type>(os, offset).put(os, ")");
-                    break;
-                case Op::MoveTopN:
+                case op::sort_desc:
                 {
-                    auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".moveTopN(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
+                    std::size_t count = static_cast<std::size_t>(mod_root.template read_index<index_type>(offset));
+                    put(os, ".sort_desc() // ").put(os, count).template put_indexes<index_type>(os, offset, count);
                 }
                 break;
-                case Op::MoveTopL:
-                    put(os, ".moveSelectionsTop()");
+                case op::swap:
+                    put(os, ".swap(").template put_index<index_type>(os, offset).put(os, ", ").template put_index<index_type>(os, offset).put(os, ")");
                     break;
-                case Op::MoveDown:
-                    put(os, ".moveDown(").template putIndex<index_type>(os, offset).put(os, ")");
+                case op::move_up:
+                    put(os, ".move_up(").template put_index<index_type>(os, offset).put(os, ")");
                     break;
-                case Op::MoveDownN:
+                case op::move_up_n:
                 {
-                    auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".moveDownN(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
+                    auto size = static_cast<std::size_t>(mod_root.template read_index<index_type>(offset));
+                    put(os, ".move_up_n(").put(os, size).put(os, ", ").template put_indexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
-                case Op::MoveDownL:
-                    put(os, ".moveSelectionsDown()");
+                case op::move_up_l:
+                    put(os, ".move_selections_up()");
                     break;
-                case Op::MoveBottom:
-                    put(os, ".moveBottom(").template putIndex<index_type>(os, offset).put(os, ")");
+                case op::move_top:
+                    put(os, ".move_top(").template put_index<index_type>(os, offset).put(os, ")");
                     break;
-                case Op::MoveBottomN:
+                case op::move_top_n:
                 {
-                    auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".moveBottomN(").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
+                    auto size = static_cast<std::size_t>(mod_root.template read_index<index_type>(offset));
+                    put(os, ".move_top_n(").put(os, size).put(os, ", ").template put_indexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
-                case Op::MoveBottomL:
-                    put(os, ".moveSelectionsBottom()");
+                case op::move_top_l:
+                    put(os, ".move_selections_top()");
                     break;
-                case Op::MoveTo:
-                    put(os, ".moveTo(").template putIndex<index_type>(os, offset).put(os, ", ").template putIndex<index_type>(os, offset).put(os, ")");
+                case op::move_down:
+                    put(os, ".move_down(").template put_index<index_type>(os, offset).put(os, ")");
                     break;
-                case Op::MoveToN:
+                case op::move_down_n:
                 {
-                    auto target = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    auto size = static_cast<std::size_t>(editable.template readIndex<index_type>(offset));
-                    put(os, ".moveToN(").put(os, target).put(os, ", ").put(os, size).put(os, ", ").template putIndexes<index_type>(os, offset, size).put(os, ")");
+                    auto size = static_cast<std::size_t>(mod_root.template read_index<index_type>(offset));
+                    put(os, ".move_down_n(").put(os, size).put(os, ", ").template put_indexes<index_type>(os, offset, size).put(os, ")");
                 }
                 break;
-                case Op::MoveToL:
-                    put(os, ".moveSelectionsTo(").template putIndex<index_type>(os, offset).put(os, ")");
+                case op::move_down_l:
+                    put(os, ".move_selections_down()");
+                    break;
+                case op::move_bottom:
+                    put(os, ".move_bottom(").template put_index<index_type>(os, offset).put(os, ")");
+                    break;
+                case op::move_bottom_n:
+                {
+                    auto size = static_cast<std::size_t>(mod_root.template read_index<index_type>(offset));
+                    put(os, ".move_bottom_n(").put(os, size).put(os, ", ").template put_indexes<index_type>(os, offset, size).put(os, ")");
+                }
+                break;
+                case op::move_bottom_l:
+                    put(os, ".move_selections_bottom()");
+                    break;
+                case op::move_to:
+                    put(os, ".move_to(").template put_index<index_type>(os, offset).put(os, ", ").template put_index<index_type>(os, offset).put(os, ")");
+                    break;
+                case op::move_to_n:
+                {
+                    auto target = static_cast<std::size_t>(mod_root.template read_index<index_type>(offset));
+                    auto size = static_cast<std::size_t>(mod_root.template read_index<index_type>(offset));
+                    put(os, ".move_to_n(").put(os, target).put(os, ", ").put(os, size).put(os, ", ").template put_indexes<index_type>(os, offset, size).put(os, ")");
+                }
+                break;
+                case op::move_to_l:
+                    put(os, ".move_selections_to(").template put_index<index_type>(os, offset).put(os, ")");
                     break;
             }
         }
 
         template <class U, class Member = void, std::size_t ... Is>
-        void printEvent(std::ostream & os, std::size_t & offset, std::uint8_t op, std::index_sequence<Is...>) const
+        void print_event(std::ostream & os, std::size_t & offset, std::uint8_t operation, std::index_sequence<Is...>) const
         {
-            using base_index_type = index_type_t<typename edit_root::default_index_type, Member>;
-            std::uint8_t value = editable.events[offset];
+            using base_index_type = index_type_t<typename mod_root_type::default_index_type, Member>;
+            std::uint8_t value = mod_root.events[offset];
             ++offset;
             
-            switch ( PathOp(value & std::uint8_t(PathOp::HighBits)) )
+            switch ( path_op(value & std::uint8_t(path_op::high_bits)) )
             {
-                case PathOp::SelBranch:
+                case path_op::sel_branch:
                     if constexpr ( RareTs::is_static_array_v<U> || RareTs::is_specialization_v<U, std::vector> )
                     {
                         os << "[{sel}]";
                         using element_type = RareTs::element_type_t<std::remove_cvref_t<U>>;
-                        constexpr bool isLeaf = !RareTs::is_reflected_v<element_type> && std::is_void_v<RareTs::element_type_t<element_type>>;
-                        if constexpr ( isLeaf )
-                            printEventOp<element_type, Member>(os, offset, Op(op));
+                        constexpr bool is_leaf = !RareTs::is_reflected_v<element_type> && std::is_void_v<RareTs::element_type_t<element_type>>;
+                        if constexpr ( is_leaf )
+                            print_event_op<element_type, Member>(os, offset, op(operation));
                         else
-                            printEvent<std::remove_cvref_t<decltype(std::declval<U>()[0])>, Member>(os, offset, op, std::make_index_sequence<reflectedMemberCount<std::remove_cvref_t<decltype(std::declval<U>()[0])>>()>());
+                            print_event<std::remove_cvref_t<decltype(std::declval<U>()[0])>, Member>(os, offset, operation, std::make_index_sequence<reflected_member_count<std::remove_cvref_t<decltype(std::declval<U>()[0])>>()>());
                     }
                     break;
-                case PathOp::LeafSelBranch:
+                case path_op::leaf_sel_branch:
                     if constexpr ( std::is_same_v<std::remove_cvref_t<Data>, std::remove_cvref_t<U>> ) // Root
-                        printEventOp<U, Member>(os, offset, Op(op));
+                        print_event_op<U, Member>(os, offset, op(operation));
                     else if constexpr ( RareTs::is_static_array_v<U> || RareTs::is_specialization_v<U, std::vector> )
                     {
                         os << "[{sel}]";
                         using element_type = RareTs::element_type_t<std::remove_cvref_t<U>>;
-                        printEventOp<element_type, Member>(os, offset, Op(op));
+                        print_event_op<element_type, Member>(os, offset, op(operation));
                     }
                     break;
-                case PathOp::Branch:
+                case path_op::branch:
                 {
                     if constexpr ( RareTs::is_static_array_v<U> || RareTs::is_specialization_v<U, std::vector> ) // Branch to index
                     {
                         base_index_type index {};
                         if constexpr ( std::is_same_v<uint6_t, base_index_type> )
-                            index = static_cast<base_index_type>(value & std::uint8_t(PathOp::LowBits));
+                            index = static_cast<base_index_type>(value & std::uint8_t(path_op::low_bits));
                         else
-                            index = editable.template readIndex<base_index_type>(offset);
+                            index = mod_root.template read_index<base_index_type>(offset);
 
                         os << '[' << static_cast<std::size_t>(index) << ']';
-                        printEvent<std::remove_cvref_t<decltype(std::declval<U>()[0])>, Member>(os, offset, op, std::make_index_sequence<reflectedMemberCount<std::remove_cvref_t<decltype(std::declval<U>()[0])>>()>());
+                        print_event<std::remove_cvref_t<decltype(std::declval<U>()[0])>, Member>(os, offset, operation, std::make_index_sequence<reflected_member_count<std::remove_cvref_t<decltype(std::declval<U>()[0])>>()>());
                     }
                     else if constexpr ( RareTs::is_optional_v<U> ) // Deref into optional
                     {
-                        printEvent<typename U::value_type, Member>(os, offset, op, std::make_index_sequence<reflectedMemberCount<std::remove_cvref_t<typename U::value_type>>()>());
+                        print_event<typename U::value_type, Member>(os, offset, operation, std::make_index_sequence<reflected_member_count<std::remove_cvref_t<typename U::value_type>>()>());
                     }
                     else if constexpr ( RareTs::is_macro_reflected_v<U> ) // Branch to field
                     {
-                        std::size_t memberIndex = std::size_t(value & std::uint8_t(PathOp::LowBits));
+                        std::size_t member_index = std::size_t(value & std::uint8_t(path_op::low_bits));
                         (void)(
-                            (Is == memberIndex ? (
+                            (Is == member_index ? (
                                 os << "." << RareTs::Member<U, Is>::name,
-                                printEvent<std::remove_cvref_t<typename RareTs::Member<U, Is>::type>, RareTs::Member<U, Is>>(os, offset, op, std::make_index_sequence<reflectedMemberCount<std::remove_cvref_t<typename RareTs::Member<U, Is>::type>>()>()),
+                                print_event<std::remove_cvref_t<typename RareTs::Member<U, Is>::type>, RareTs::Member<U, Is>>(os, offset, operation, std::make_index_sequence<reflected_member_count<std::remove_cvref_t<typename RareTs::Member<U, Is>::type>>()>()),
                                 true) : true) && ...
                         );
 
-                        //RareTs::Members<U>::at(std::size_t(value & std::uint8_t(PathOp::LowBits)), [&](auto member) {
+                        //RareTs::Members<U>::at(std::size_t(value & std::uint8_t(path_op::low_bits)), [&](auto member) {
                         //    os << "." << member.name;
-                        //    printEvent<std::remove_cvref_t<typename decltype(member)::type>, decltype(member)>(os, offset, op, std::make_index_sequence<reflectedMemberCount<U>()>());
+                        //    print_event<std::remove_cvref_t<typename decltype(member)::type>, decltype(member)>(os, offset, operation, std::make_index_sequence<reflected_member_count<U>()>());
                         //});
                     }
                 }
                 break;
-                case PathOp::LeafBranch:
+                case path_op::leaf_branch:
                 {
                     if constexpr ( RareTs::is_static_array_v<U> || RareTs::is_specialization_v<U, std::vector> ) // Op on index
                     {
                         base_index_type index {};
                         if constexpr ( std::is_same_v<uint6_t, base_index_type> )
-                            index = static_cast<base_index_type>(value & std::uint8_t(PathOp::LowBits));
+                            index = static_cast<base_index_type>(value & std::uint8_t(path_op::low_bits));
                         else
-                            index = editable.template readIndex<base_index_type>(offset);
+                            index = mod_root.template read_index<base_index_type>(offset);
 
                         os << "[" << static_cast<std::size_t>(index) << "]";
-                        printEventOp<RareTs::element_type_t<std::remove_cvref_t<U>>, Member>(os, offset, Op(op));
+                        print_event_op<RareTs::element_type_t<std::remove_cvref_t<U>>, Member>(os, offset, op(operation));
                     }
                     else if constexpr ( RareTs::is_optional_v<U> ) // Operate on optional
                     {
-                        printEventOp<typename U::value_type, Member>(os, offset, Op(op));
+                        print_event_op<typename U::value_type, Member>(os, offset, op(operation));
                     }
                     else if constexpr ( RareTs::is_reflected_v<U> ) // Op on field
                     {
-                        std::size_t memberIndex = std::size_t(value & std::uint8_t(PathOp::LowBits));
+                        std::size_t member_index = std::size_t(value & std::uint8_t(path_op::low_bits));
                         (void)(
-                            (Is == memberIndex ? (
+                            (Is == member_index ? (
                                 os << "." << RareTs::Member<U, Is>::name,
-                                printEventOp<typename RareTs::Member<U, Is>::type, RareTs::Member<U, Is>>(os, offset, Op(op)),
+                                print_event_op<typename RareTs::Member<U, Is>::type, RareTs::Member<U, Is>>(os, offset, op(operation)),
                                 true) : true) && ...
                         );
-                        //RareTs::Members<U>::at(memberIndex, [&](auto member) {
+                        //RareTs::Members<U>::at(member_index, [&](auto member) {
                         //    os << "." << member.name;
-                        //    printEventOp<typename decltype(member)::type, decltype(member)>(os, offset, Op(value));
+                        //    print_event_op<typename decltype(member)::type, decltype(member)>(os, offset, Op(value));
                         //});
                     }
                 }
@@ -8533,51 +8604,53 @@ namespace RareEdit
             }
         }
 
+    public:
+
         template <class U, class Member = void>
-        void printEvent(std::ostream & os, std::size_t & offset) const
+        void print_event(std::ostream & os, std::size_t & offset) const
         {
-            std::uint8_t op = editable.events[offset];
+            std::uint8_t operation = mod_root.events[offset];
             ++offset;
-            printEvent<U, Member>(os, offset, op, std::make_index_sequence<reflectedMemberCount<U>()>());
+            print_event<U, Member>(os, offset, operation, std::make_index_sequence<reflected_member_count<U>()>());
         }
 
-        void printChangeHistory(std::ostream & os) const
+        void print_change_history(std::ostream & os) const
         {
-            std::size_t totalActions = actions.size();
-            for ( std::size_t actionIndex=0; actionIndex<totalActions; ++actionIndex )
+            std::size_t total_actions = actions.size();
+            for ( std::size_t action_index=0; action_index<total_actions; ++action_index )
             {
-                std::size_t currActionStart = actions[actionIndex].firstEventIndex;
-                if ( (currActionStart & flagElidedRedos) == flagElidedRedos )
+                std::size_t curr_action_start = actions[action_index].first_event_index;
+                if ( (curr_action_start & flag_elided_redos) == flag_elided_redos )
                 {
-                    auto elisionCount = currActionStart & maskElidedRedoSize;
-                    os << "Action[" << actionIndex << "] marks the previous " << elisionCount << " action(s) as elided redos\n";
+                    auto elision_count = curr_action_start & mask_elided_redo_size;
+                    os << "Action[" << action_index << "] marks the previous " << elision_count << " action(s) as elided redos\n";
                     continue;
                 }
 
-                std::size_t nextActionStart = flagElidedRedos;
-                for ( std::size_t i=1; (nextActionStart & flagElidedRedos) == flagElidedRedos; ++i ) // Find the next event that isn't an elision marker
-                    nextActionStart = actionIndex+i<totalActions ? (actions[actionIndex+i].firstEventIndex) : editable.eventOffsets.size();
+                std::size_t next_action_start = flag_elided_redos;
+                for ( std::size_t i=1; (next_action_start & flag_elided_redos) == flag_elided_redos; ++i ) // Find the next event that isn't an elision marker
+                    next_action_start = action_index+i<total_actions ? (actions[action_index+i].first_event_index) : mod_root.event_offsets.size();
 
-                if ( currActionStart == nextActionStart )
+                if ( curr_action_start == next_action_start )
                 {
-                    os << "Action[" << actionIndex << "] is blank\n";
+                    os << "Action[" << action_index << "] is blank\n";
                     continue;
                 }
 
-                os << "Action[" << actionIndex << "] contains events [" << currActionStart << ", " << nextActionStart << ")\n";
-                for ( std::size_t eventIndex = currActionStart; eventIndex < nextActionStart; ++eventIndex )
+                os << "Action[" << action_index << "] contains events [" << curr_action_start << ", " << next_action_start << ")\n";
+                for ( std::size_t event_index = curr_action_start; event_index < next_action_start; ++event_index )
                 {
-                    auto [eventOffset, byteEnd] = editable.getEventOffsetRange(eventIndex);
+                    auto [event_offset, byte_end] = mod_root.get_event_offset_range(event_index);
 
-                    os << "  [" << std::setw(2) << eventIndex << ','
-                        << std::setw(3) << eventOffset << ','
-                        << std::setw(2) << (byteEnd-editable.eventOffsets[eventIndex]) << "] " << std::hex << std::uppercase;
-                    for ( std::size_t i=eventOffset; i<byteEnd; ++i )
-                        os << (editable.events[i] <= 0xF ? "0" : "") << int(editable.events[i]) << ' ';
+                    os << "  [" << std::setw(2) << event_index << ','
+                        << std::setw(3) << event_offset << ','
+                        << std::setw(2) << (byte_end-mod_root.event_offsets[event_index]) << "] " << std::hex << std::uppercase;
+                    for ( std::size_t i=event_offset; i<byte_end; ++i )
+                        os << (mod_root.events[i] <= 0xF ? "0" : "") << int(mod_root.events[i]) << ' ';
                     os << std::nouppercase << std::dec;
 
                     os << " // edit";
-                    printEvent<Data>(os, eventOffset);
+                    print_event<Data>(os, event_offset);
                     os << '\n';
                 }
                 os << '\n';
@@ -8585,106 +8658,147 @@ namespace RareEdit
         }
 
         template <class U, class Member = void>
-        void renderEvent(DataChangeEvent & dataChangeEvent, std::size_t & offset) const
+        void render_event(data_change_event & data_change_event, std::size_t & offset) const
         {
-            std::uint8_t op = editable.events[offset];
+            std::uint8_t operation = mod_root.events[offset];
             ++offset;
             std::stringstream ss {};
-            printEvent<U, Member>(ss, offset, op, std::make_index_sequence<reflectedMemberCount<U>()>());
-            dataChangeEvent.op = Op(op);
-            dataChangeEvent.summary += ss.str();
-        }
+            print_event<U, Member>(ss, offset, operation, std::make_index_sequence<reflected_member_count<U>()>());
+            data_change_event.operation = op(operation);
+            data_change_event.summary += ss.str();
+        }   
 
-        void renderAction(std::size_t actionIndex, RenderAction<UserData> & action, bool includeEvents = false) const
+        void render_action(std::size_t action_index, rendered_action<User_data> & action, bool include_events = false) const
         {
-            action.userData = (UserData &)(actions[actionIndex]);
-            action.byteCount = 8;
-            action.changeEvents = {};
-            std::size_t totalActions = actions.size();
-            std::size_t currActionStart = actions[actionIndex].firstEventIndex;
-            if ( (currActionStart & flagElidedRedos) == flagElidedRedos )
+            action.user_data = (User_data &)(actions[action_index]);
+            action.byte_count = 8;
+            action.change_events = {};
+            std::size_t total_actions = actions.size();
+            std::size_t curr_action_start = actions[action_index].first_event_index;
+            if ( (curr_action_start & flag_elided_redos) == flag_elided_redos )
             {
-                auto elisionCount = currActionStart & maskElidedRedoSize;
-                action.actionStatus = ActionStatus::ElidedRedo;
-                action.elisionCount = elisionCount;
+                action.status = action_status::elided_redo;
+                action.elision_count = curr_action_start & mask_elided_redo_size;
                 return;
             }
 
-            std::size_t nextActionStart = flagElidedRedos;
-            for ( std::size_t i=1; (nextActionStart & flagElidedRedos) == flagElidedRedos; ++i ) // Find the next event that isn't an elision marker
-                nextActionStart = actionIndex+i<totalActions ? (actions[actionIndex+i].firstEventIndex) : editable.eventOffsets.size();
+            std::size_t next_action_start = flag_elided_redos;
+            for ( std::size_t i=1; (next_action_start & flag_elided_redos) == flag_elided_redos; ++i ) // Find the next event that isn't an elision marker
+                next_action_start = action_index+i<total_actions ? (actions[action_index+i].first_event_index) : mod_root.event_offsets.size();
             
-            auto [firstEventStart, unusedFirstEventEnd] = editable.getEventOffsetRange(currActionStart);
-            auto [unusedLastEventStart, lastEventEnd] = editable.getEventOffsetRange(nextActionStart-1);
-            action.byteCount += (nextActionStart-currActionStart)*8+(lastEventEnd-firstEventStart);
-            action.actionStatus = actionIndex < totalActions-redoSize ? ActionStatus::Undoable : ActionStatus::Redoable;
-            if ( includeEvents )
+            auto [first_event_start, unused_first_event_end] = mod_root.get_event_offset_range(curr_action_start);
+            auto [unused_last_event_start, last_event_end] = mod_root.get_event_offset_range(next_action_start-1);
+            action.byte_count += (next_action_start-curr_action_start)*8+(last_event_end-first_event_start);
+            action.status = action_index < total_actions-redo_size ? action_status::undoable : action_status::redoable;
+            if ( include_events )
             {
-                for ( std::size_t eventIndex = currActionStart; eventIndex < nextActionStart; ++eventIndex )
+                for ( std::size_t event_index = curr_action_start; event_index < next_action_start; ++event_index )
                 {
-                    for ( std::size_t i=1; (nextActionStart & flagElidedRedos) == flagElidedRedos; ++i ) // Find the next event that isn't an elision marker
-                        nextActionStart = actionIndex+i<totalActions ? (actions[actionIndex+i].firstEventIndex) : editable.eventOffsets.size();
+                    for ( std::size_t i=1; (next_action_start & flag_elided_redos) == flag_elided_redos; ++i ) // Find the next event that isn't an elision marker
+                        next_action_start = action_index+i<total_actions ? (actions[action_index+i].first_event_index) : mod_root.event_offsets.size();
 
-                    if ( currActionStart == nextActionStart )
+                    if ( curr_action_start == next_action_start )
                         return;
 
-                    auto [eventOffset, byteEnd] = editable.getEventOffsetRange(eventIndex);
-                    DataChangeEvent & dataChangeEvent = action.changeEvents.emplace_back();
+                    auto [event_offset, byte_end] = mod_root.get_event_offset_range(event_index);
+                    data_change_event & event = action.change_events.emplace_back();
 
-                    dataChangeEvent.summary += "edit";
-                    renderEvent<Data>(dataChangeEvent, eventOffset);
+                    event.summary += "edit";
+                    render_event<Data>(event, event_offset);
                 }
             }
         }
 
-        std::vector<RenderAction<UserData>> renderChangeHistory(bool includeEvents = false) const
+        std::vector<rendered_action<User_data>> render_change_history(bool include_events = false) const
         {
-            std::vector<RenderAction<UserData>> rendering {};
-            std::size_t totalActions = actions.size();
-            for ( std::size_t actionIndex=0; actionIndex<totalActions; ++actionIndex )
+            std::vector<rendered_action<User_data>> rendering {};
+            std::size_t total_actions = actions.size();
+            for ( std::size_t action_index=0; action_index<total_actions; ++action_index )
             {
-                RenderAction<UserData> & action = rendering.emplace_back();
+                rendered_action<User_data> & action = rendering.emplace_back();
 
-                renderAction(actionIndex, action, includeEvents);
-                if ( action.actionStatus == ActionStatus::ElidedRedo && action.elisionCount > 0 )
+                render_action(action_index, action, include_events);
+                if ( action.status == action_status::elided_redo && action.elision_count > 0 )
                 {
-                    std::size_t first = static_cast<std::size_t>(static_cast<std::ptrdiff_t>(actionIndex)-static_cast<std::ptrdiff_t>(action.elisionCount));
-                    for ( std::size_t i=first; i<actionIndex; ++i )
-                        rendering[i].actionStatus = ActionStatus::ElidedRedo;
+                    std::size_t first = static_cast<std::size_t>(static_cast<std::ptrdiff_t>(action_index)-static_cast<std::ptrdiff_t>(action.elision_count));
+                    for ( std::size_t i=first; i<action_index; ++i )
+                        rendering[i].status = action_status::elided_redo;
                 }
             }
             return rendering;
         }
 
-        REFLECT(Tracked, flagElidedRedos, maskElidedRedoSize, editable, pendingActionUserData, pendingActionStart,
-            actions, actionReferenceCount, redoCount, redoSize, history)
+        REFLECT(tracked, flag_elided_redos, mask_elided_redo_size, mod_root, pending_action_user_data, pending_action_start,
+            actions, action_reference_count, redo_count, redo_size, history)
     };
 
-    template <typename T, typename PathToElem, typename EditorType, typename ReadEditPair>
-    class TrackedElement : public ReadEditPair
+    template <typename T, typename Path_to_elem, typename Editor_type, typename Read_edit_pair>
+    class tracked_element : public Read_edit_pair
     {
-        using keys_type = typename PathToElem::keys;
-        using tracked_type = typename EditorType::tracked_type;
+        using keys_type = typename Path_to_elem::keys;
+        using tracked_type = typename Editor_type::tracked_type;
 
-        TrackedElement(EditorType action, keys_type keys)
-            : ReadEditPair{action.editFromPath(PathToElem{keys})}, action(std::move(action)), view(ReadEditPair::edit) {}
+        tracked_element(Editor_type action, keys_type keys)
+            : Read_edit_pair{action.edit_from_path(Path_to_elem{keys})}, action(std::move(action)), view(Read_edit_pair::edit) {}
 
     public:
 
-        EditorType action;
-        const ReadEditPair::edit_type & view;
+        Editor_type action;
+        const Read_edit_pair::edit_type & view;
 
-        TrackedElement(tracked_type* tracked, keys_type keys) : TrackedElement(tracked->operator()(), keys) {}
+        tracked_element(tracked_type* tracked, keys_type keys) : tracked_element(tracked->operator()(), keys) {}
 
-        template <class ... Ts> TrackedElement(TrackedElement<Ts...>* parentElement, keys_type keys)
-            : TrackedElement(parentElement->action.parent->operator()(), keys) {}
+        template <class ... Ts> tracked_element(tracked_element<Ts...>* parent_element, keys_type keys)
+            : tracked_element(parent_element->action.parent->operator()(), keys) {}
     
-        TrackedElement(TrackedElement && other)
-            : ReadEditPair{std::move((ReadEditPair &)other)}, action(std::move(other.action)) {}
+        tracked_element(tracked_element && other)
+            : Read_edit_pair{std::move((Read_edit_pair &)other)}, action(std::move(other.action)) {}
 
-        constexpr const T* operator->() const { return &(ReadEditPair::read); }
-        constexpr auto operator()() { return &(ReadEditPair::edit); }
+        constexpr const T* operator->() const { return &(Read_edit_pair::read); }
+        constexpr auto operator()() { return &(Read_edit_pair::edit); }
     };
+
+    template <class Data, class User_data = no_user_data>
+    requires RareTs::is_macro_reflected_v<Data>
+    struct simple_tracked : nf_hist::tracked<Data, simple_tracked<Data, User_data>, User_data>
+    {
+        simple_tracked(bool track_init = false) : tracked<Data, simple_tracked<Data, User_data>, User_data>(this) {
+            if ( track_init )
+                tracked<Data, simple_tracked<Data, User_data>, User_data>::record_init();
+        }
+        simple_tracked(Data && data, bool track_init = false) : tracked<Data, simple_tracked<Data, User_data>, User_data>(this) {
+            if ( track_init )
+                tracked<Data, simple_tracked<Data, User_data>, User_data>::init_data<true>(std::forward<Data>(data)); 
+            else
+                tracked<Data, simple_tracked<Data, User_data>, User_data>::init_data<false>(std::forward<Data>(data)); 
+       }
+    };
+
+    template <class Data, class User_data = no_user_data>
+    requires RareTs::is_macro_reflected_v<Data>
+    auto make_tracked(Data && data) {
+        return simple_tracked<Data, User_data>(std::forward<Data>(data));
+    }
 }
+
+// Nascent Form C++
+namespace nf
+{
+    // Pull commonly used identifiers into the top-level nf namespace
+    using nf_hist::index_size;
+    using nf_hist::attach_data;
+
+    using nf_hist::editor;
+    using nf_hist::tracked;
+    using nf_hist::tracked_element;
+    using nf_hist::simple_tracked;
+    using nf_hist::make_tracked;
+
+    using nf_hist::rendered_action;
+    using nf_hist::action_status;
+
+    using nf_hist::make_path;
+};
+#define NF_PATH(...) nf::make_path<decltype(__VA_ARGS__)>
 
 #endif
