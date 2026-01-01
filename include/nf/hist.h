@@ -856,7 +856,7 @@ namespace nf_hist
 
             template <std::size_t... Is> static constexpr auto array_op_typer(std::index_sequence<Is...>) -> Sub_element<
                 Agent, Default_index_type, Root_data, T, std::tuple<std::tuple_element_t<Is, Keys>..., index_type>, Pathway..., path_index<sizeof...(Is)>> { return {}; }
-            template <std::size_t... Is> static constexpr auto sub_array_op_typer(std::index_sequence<Is...>) -> editable<
+            template <std::size_t... Is> static constexpr auto sub_array_op_typer(std::index_sequence<Is...>) -> typename editable<
                 Agent, Default_index_type, Root_data, RareTs::element_type_t<T>, std::tuple<std::tuple_element_t<Is, Keys>..., index_type>, Sub_element, Pathway..., path_index<sizeof...(Is)>>::array { return {}; }
 
         protected:
@@ -8748,7 +8748,7 @@ namespace nf_hist
     public:
 
         Editor_type action;
-        const Read_edit_pair::edit_type & view;
+        const typename Read_edit_pair::edit_type & view;
 
         tracked_element(tracked_type* tracked, keys_type keys) : tracked_element(tracked->operator()(), keys) {}
 
@@ -8772,9 +8772,9 @@ namespace nf_hist
         }
         simple_tracked(Data && data, bool track_init = false) : tracked<Data, simple_tracked<Data, User_data>, User_data>(this) {
             if ( track_init )
-                tracked<Data, simple_tracked<Data, User_data>, User_data>::init_data<true>(std::forward<Data>(data)); 
+                tracked<Data, simple_tracked<Data, User_data>, User_data>::template init_data<true>(std::forward<Data>(data)); 
             else
-                tracked<Data, simple_tracked<Data, User_data>, User_data>::init_data<false>(std::forward<Data>(data)); 
+                tracked<Data, simple_tracked<Data, User_data>, User_data>::template init_data<false>(std::forward<Data>(data)); 
        }
     };
 
