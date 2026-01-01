@@ -18,7 +18,7 @@
 #include "reflect.h"
 #include "json.h"
 
-// Nascent Form C++: data history library
+// Nf C++: data history library
 namespace nf_hist
 {
     using RareTs::type_tags;
@@ -8781,7 +8781,7 @@ namespace nf_hist
     }
 }
 
-// Nascent Form C++
+// Nf C++
 namespace nf
 {
     // Pull commonly used identifiers into the top-level nf namespace
