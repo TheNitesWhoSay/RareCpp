@@ -597,55 +597,55 @@ namespace editor_cumulative
     
     TEST(op_misc, init)
     {
-        auto bDefaultValues = std::vector{2, 3};
-        auto dDefaultValues = std::vector{5, 6};
+        auto b_default_values = std::vector{2, 3};
+        auto d_default_values = std::vector{5, 6};
         Track_init_op obj {};
         EXPECT_EQ(1, obj->a);
-        EXPECT_EQ(bDefaultValues, obj->b);
+        EXPECT_EQ(b_default_values, obj->b);
         EXPECT_EQ(4, obj->c);
-        EXPECT_EQ(dDefaultValues, obj->d);
+        EXPECT_EQ(d_default_values, obj->d);
         EXPECT_EQ(0, obj.total_actions());
 
         obj.record_init();
         EXPECT_EQ(1, obj->a);
-        EXPECT_EQ(bDefaultValues, obj->b);
+        EXPECT_EQ(b_default_values, obj->b);
         EXPECT_EQ(4, obj->c);
-        EXPECT_EQ(dDefaultValues, obj->d);
+        EXPECT_EQ(d_default_values, obj->d);
         EXPECT_EQ(1, obj.total_actions());
 
         obj.undo_action();
         EXPECT_EQ(1, obj->a);
-        EXPECT_EQ(bDefaultValues, obj->b);
+        EXPECT_EQ(b_default_values, obj->b);
         EXPECT_EQ(4, obj->c);
-        EXPECT_EQ(dDefaultValues, obj->d);
+        EXPECT_EQ(d_default_values, obj->d);
         EXPECT_EQ(1, obj.total_actions());
 
         obj.redo_action();
         EXPECT_EQ(1, obj->a);
-        EXPECT_EQ(bDefaultValues, obj->b);
+        EXPECT_EQ(b_default_values, obj->b);
         EXPECT_EQ(4, obj->c);
-        EXPECT_EQ(dDefaultValues, obj->d);
+        EXPECT_EQ(d_default_values, obj->d);
         EXPECT_EQ(1, obj.total_actions());
 
         obj.clear_history();
         EXPECT_EQ(1, obj->a);
-        EXPECT_EQ(bDefaultValues, obj->b);
+        EXPECT_EQ(b_default_values, obj->b);
         EXPECT_EQ(4, obj->c);
-        EXPECT_EQ(dDefaultValues, obj->d);
+        EXPECT_EQ(d_default_values, obj->d);
         EXPECT_EQ(0, obj.total_actions());
 
-        auto bReinitValues = std::vector{8, 9};
-        auto dReinitValues = std::vector{11, 12};
+        auto b_reinit_values = std::vector{8, 9};
+        auto d_reinit_value = std::vector{11, 12};
         Track_init_op_data reinit{};
         reinit.a = 7;
-        reinit.b = bReinitValues;
+        reinit.b = b_reinit_values;
         reinit.c = 10;
-        reinit.d = dReinitValues;
+        reinit.d = d_reinit_value;
         obj.init_data<true>(reinit);
         EXPECT_EQ(7, obj->a);
-        EXPECT_EQ(bReinitValues, obj->b);
+        EXPECT_EQ(b_reinit_values, obj->b);
         EXPECT_EQ(10, obj->c);
-        EXPECT_EQ(dReinitValues, obj->d);
+        EXPECT_EQ(d_reinit_value, obj->d);
         EXPECT_EQ(1, obj.total_actions());
     }
 
