@@ -1,6 +1,6 @@
-// MIT License, Copyright (c) 2025 Justin F https://github.com/TheNitesWhoSay/RareCpp/blob/master/LICENSE
-#ifndef EDITOR_H
-#define EDITOR_H
+// MIT License, Copyright (c) 2025-2026 Justin F https://github.com/TheNitesWhoSay/RareCpp/blob/master/LICENSE
+#ifndef NFHIST_H
+#define NFHIST_H
 #include <algorithm>
 #include <bitset>
 #include <cstddef>
@@ -15,8 +15,8 @@
 #include <type_traits>
 #include <unordered_set>
 #include <vector>
-#include "reflect.h"
-#include "json.h"
+#include "../rarecpp/reflect.h"
+#include "../rarecpp/json.h"
 
 // Nf C++: data history library
 namespace nf_hist

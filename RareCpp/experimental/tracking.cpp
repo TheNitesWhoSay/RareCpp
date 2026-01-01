@@ -1,4 +1,4 @@
-#include <rarecpp/editor.h>
+#include <nf/hist.h>
 #include <rarecpp/json.h>
 #include <rarecpp/reflect.h>
 #include <cstdint>

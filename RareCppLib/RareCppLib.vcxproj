@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\rarecpp\editor.h" />
+    <ClInclude Include="..\include\nf\hist.h" />
     <ClInclude Include="..\include\rarecpp\json.h" />
     <ClInclude Include="..\include\rarecpp\reflect.h" />
     <ClInclude Include="..\include\rarecpp\string_buffer.h" />
