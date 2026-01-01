@@ -15,8 +15,12 @@
 #include <type_traits>
 #include <unordered_set>
 #include <vector>
+#ifndef REFLECT_H // This check, while normally redundant to have here, helps the file work on godbolt
 #include "../rarecpp/reflect.h"
+#endif
+#ifndef JSON_H // This check, while normally redundant to have here, helps the file work on godbolt
 #include "../rarecpp/json.h"
+#endif
 
 // Nf C++: data history library
 namespace nf_hist
