@@ -1,4 +1,4 @@
-#include <rarecpp/editor.h>
+#include <nf/hist.h>
 #include <rarecpp/json.h>
 #include <rarecpp/reflect.h>
 #include <gtest/gtest.h>
@@ -6,10 +6,8 @@
 #include <unordered_set>
 #include <vector>
 
-namespace AttachDataTest
+namespace attach_data_test
 {
-
-using namespace RareEdit;
 
 struct Attachment
 {
@@ -18,848 +16,848 @@ struct Attachment
 
 struct Data
 {
-    NOTE(vec, AttachData<Attachment>)
+    NOTE(vec, nf::attach_data<Attachment>)
     std::vector<int> vec {};
 
     REFLECT(Data, vec)
 };
 
-struct EditData : Tracked<Data, EditData>
+struct Edit_data : nf::tracked<Data, Edit_data>
 {
-    std::vector<int> integrityCheck {};
-    const std::vector<Attachment> & attachedData;
+    std::vector<int> integrity_check {};
+    const std::vector<Attachment> & attached_data;
 
-    EditData() : Tracked{this}, attachedData(view.vec.readAttachedData()) {}
+    Edit_data() : tracked{this}, attached_data(view.vec.read_attached_data()) {}
 
-    using vec_path = PATH(root->vec);
+    using vec_path = NF_PATH(root->vec);
 
-    void elementAdded(vec_path, std::size_t index)
+    void element_added(vec_path, std::size_t index)
     {
         const char c = char(read.vec[index]) + 'a';
-        view.vec.attachedData(index).rendered = std::string(&c, 1);
-        integrityCheck.push_back(0);
+        view.vec.attached_data(index).rendered = std::string(&c, 1);
+        integrity_check.push_back(0);
     }
 
-    void elementRemoved(vec_path, std::size_t index)
+    void element_removed(vec_path, std::size_t index)
     {
-        integrityCheck.erase(std::next(integrityCheck.begin(), static_cast<std::ptrdiff_t>(index)));
+        integrity_check.erase(std::next(integrity_check.begin(), static_cast<std::ptrdiff_t>(index)));
     }
 
-    bool sizeIs(std::size_t size)
+    bool size_is(std::size_t size)
     {
         return read.vec.size() == size &&
-            view.vec.readAttachedData().size() == size &&
-            integrityCheck.size() == size;
+            view.vec.read_attached_data().size() == size &&
+            integrity_check.size() == size;
     }
 };
 
-TEST(AttachData, Reset)
+TEST(attach_data, reset)
 {
-    EditData obj {};
+    Edit_data obj {};
     obj()->vec = std::vector{0, 1, 2};
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
     obj()->vec.reset();
-    EXPECT_TRUE(obj.sizeIs(0));
+    EXPECT_TRUE(obj.size_is(0));
 
-    obj.undoAction();
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.undo_action();
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.redoAction();
-    EXPECT_TRUE(obj.sizeIs(0));
+    obj.redo_action();
+    EXPECT_TRUE(obj.size_is(0));
 }
 
-TEST(AttachData, Assign)
+TEST(attach_data, assign)
 {
-    EditData obj {};
+    Edit_data obj {};
     obj()->vec = std::vector{0, 1, 2};
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
     obj()->vec.assign(2, 3);
-    EXPECT_TRUE(obj.sizeIs(2));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "d");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "d");
+    EXPECT_TRUE(obj.size_is(2));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "d");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "d");
 
-    obj.undoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.undo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.redoAction();
-    EXPECT_TRUE(obj.sizeIs(2));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "d");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "d");
+    obj.redo_action();
+    EXPECT_TRUE(obj.size_is(2));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "d");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "d");
 }
 
-TEST(AttachData, AssignDefault)
+TEST(attach_data, assign_default)
 {
-    EditData obj {};
+    Edit_data obj {};
     obj()->vec = std::vector{0, 1, 2};
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj()->vec.assignDefault(2);
-    EXPECT_TRUE(obj.sizeIs(2));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "a");
+    obj()->vec.assign_default(2);
+    EXPECT_TRUE(obj.size_is(2));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "a");
 
-    obj.undoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.undo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.redoAction();
-    EXPECT_TRUE(obj.sizeIs(2));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "a");
+    obj.redo_action();
+    EXPECT_TRUE(obj.size_is(2));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "a");
 }
 
-TEST(AttachData, Set)
+TEST(attach_data, set)
 {
-    EditData obj {};
+    Edit_data obj {};
     obj()->vec = std::vector{0, 1, 2};
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.undoAction();
-    EXPECT_TRUE(obj.sizeIs(0));
+    obj.undo_action();
+    EXPECT_TRUE(obj.size_is(0));
 
-    obj.redoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.redo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 }
 
-TEST(AttachData, Append)
+TEST(attach_data, append)
 {
-    EditData obj {};
+    Edit_data obj {};
     obj()->vec = std::vector{0, 1, 2};
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
     obj()->vec.append(3);
-    EXPECT_TRUE(obj.sizeIs(4));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[3].rendered.c_str(), "d");
+    EXPECT_TRUE(obj.size_is(4));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[3].rendered.c_str(), "d");
 
-    obj.undoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.undo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.redoAction();
-    EXPECT_TRUE(obj.sizeIs(4));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[3].rendered.c_str(), "d");
+    obj.redo_action();
+    EXPECT_TRUE(obj.size_is(4));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[3].rendered.c_str(), "d");
 }
 
-TEST(AttachData, AppendN)
+TEST(attach_data, append_n)
 {
-    EditData obj {};
+    Edit_data obj {};
     obj()->vec = std::vector{0, 1, 2};
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
     obj()->vec.append(std::vector{3, 4});
-    EXPECT_TRUE(obj.sizeIs(5));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[3].rendered.c_str(), "d");
-    EXPECT_STREQ(obj.attachedData[4].rendered.c_str(), "e");
+    EXPECT_TRUE(obj.size_is(5));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[3].rendered.c_str(), "d");
+    EXPECT_STREQ(obj.attached_data[4].rendered.c_str(), "e");
 
-    obj.undoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.undo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.redoAction();
-    EXPECT_TRUE(obj.sizeIs(5));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[3].rendered.c_str(), "d");
-    EXPECT_STREQ(obj.attachedData[4].rendered.c_str(), "e");
+    obj.redo_action();
+    EXPECT_TRUE(obj.size_is(5));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[3].rendered.c_str(), "d");
+    EXPECT_STREQ(obj.attached_data[4].rendered.c_str(), "e");
 }
 
-TEST(AttachData, Insert)
+TEST(attach_data, insert)
 {
-    EditData obj {};
+    Edit_data obj {};
     obj()->vec = std::vector{0, 1, 2};
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
     obj()->vec.insert(1, 3);
-    EXPECT_TRUE(obj.sizeIs(4));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "d");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[3].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(4));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "d");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[3].rendered.c_str(), "c");
 
-    obj.undoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.undo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.redoAction();
-    EXPECT_TRUE(obj.sizeIs(4));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "d");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[3].rendered.c_str(), "c");
+    obj.redo_action();
+    EXPECT_TRUE(obj.size_is(4));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "d");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[3].rendered.c_str(), "c");
 }
 
-TEST(AttachData, InsertN)
+TEST(attach_data, insert_n)
 {
-    EditData obj {};
+    Edit_data obj {};
     obj()->vec = std::vector{0, 1, 2};
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
     obj()->vec.insert(1, std::vector{3, 4});
-    EXPECT_TRUE(obj.sizeIs(5));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "d");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "e");
-    EXPECT_STREQ(obj.attachedData[3].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[4].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(5));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "d");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "e");
+    EXPECT_STREQ(obj.attached_data[3].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[4].rendered.c_str(), "c");
 
-    obj.undoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.undo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.redoAction();
-    EXPECT_TRUE(obj.sizeIs(5));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "d");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "e");
-    EXPECT_STREQ(obj.attachedData[3].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[4].rendered.c_str(), "c");
+    obj.redo_action();
+    EXPECT_TRUE(obj.size_is(5));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "d");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "e");
+    EXPECT_STREQ(obj.attached_data[3].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[4].rendered.c_str(), "c");
 }
 
-TEST(AttachData, Remove)
+TEST(attach_data, remove)
 {
-    EditData obj {};
+    Edit_data obj {};
     obj()->vec = std::vector{0, 1, 2};
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
     obj()->vec.remove(1);
-    EXPECT_TRUE(obj.sizeIs(2));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(2));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "c");
 
-    obj.undoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.undo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.redoAction();
-    EXPECT_TRUE(obj.sizeIs(2));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "c");
+    obj.redo_action();
+    EXPECT_TRUE(obj.size_is(2));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "c");
 }
 
-TEST(AttachData, RemoveN)
+TEST(attach_data, remove_n)
 {
-    EditData obj {};
+    Edit_data obj {};
     obj()->vec = std::vector{0, 1, 2};
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
     obj()->vec.remove(std::vector<std::size_t>{1, 2});
-    EXPECT_TRUE(obj.sizeIs(1));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
+    EXPECT_TRUE(obj.size_is(1));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
 
-    obj.undoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.undo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.redoAction();
-    EXPECT_TRUE(obj.sizeIs(1));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
+    obj.redo_action();
+    EXPECT_TRUE(obj.size_is(1));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
 }
 
-TEST(AttachData, RemoveL)
+TEST(attach_data, remove_l)
 {
-    EditData obj {};
+    Edit_data obj {};
     obj()->vec = std::vector{0, 1, 2};
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
     obj()->vec.select(std::vector<std::size_t>{1, 2});
-    obj()->vec.removeSelection();
-    EXPECT_TRUE(obj.sizeIs(1));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
+    obj()->vec.remove_selection();
+    EXPECT_TRUE(obj.size_is(1));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
 
-    obj.undoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.undo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.redoAction();
-    EXPECT_TRUE(obj.sizeIs(1));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
+    obj.redo_action();
+    EXPECT_TRUE(obj.size_is(1));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
 }
 
-TEST(AttachData, Sort)
+TEST(attach_data, sort)
 {
-    EditData obj {};
+    Edit_data obj {};
     obj()->vec = std::vector{2, 0, 1};
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "b");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "b");
 
     obj()->vec.sort();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.undoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "b");
+    obj.undo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "b");
 
-    obj.redoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.redo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 }
 
-TEST(AttachData, SortDesc)
+TEST(attach_data, sort_desc)
 {
-    EditData obj {};
+    Edit_data obj {};
     obj()->vec = std::vector{1, 0, 2};
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj()->vec.sortDesc();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "a");
+    obj()->vec.sort_desc();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "a");
 
-    obj.undoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.undo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.redoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "a");
+    obj.redo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "a");
 }
 
-TEST(AttachData, Swap)
+TEST(attach_data, swap)
 {
-    EditData obj {};
+    Edit_data obj {};
     obj()->vec = std::vector{0, 1, 2};
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
     obj()->vec.swap(1, 2);
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "b");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "b");
 
-    obj.undoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.undo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.redoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "b");
+    obj.redo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "b");
 }
 
-TEST(AttachData, MoveUp)
+TEST(attach_data, move_up)
 {
-    EditData obj {};
+    Edit_data obj {};
     obj()->vec = std::vector{0, 1, 2};
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj()->vec.moveUp(2);
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "b");
+    obj()->vec.move_up(2);
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "b");
 
-    obj.undoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.undo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.redoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "b");
+    obj.redo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "b");
 }
 
-TEST(AttachData, MoveUpN)
+TEST(attach_data, move_up_n)
 {
-    EditData obj {};
+    Edit_data obj {};
     obj()->vec = std::vector{0, 1, 2};
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj()->vec.moveUp(std::vector<std::size_t>{1, 2});
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "a");
+    obj()->vec.move_up(std::vector<std::size_t>{1, 2});
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "a");
 
-    obj.undoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.undo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.redoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "a");
+    obj.redo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "a");
 }
 
-TEST(AttachData, MoveUpL)
+TEST(attach_data, move_up_l)
 {
-    EditData obj {};
+    Edit_data obj {};
     obj()->vec = std::vector{0, 1, 2};
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
     obj()->vec.select(std::vector<std::size_t>{1, 2});
-    obj()->vec.moveSelectionsUp();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "a");
+    obj()->vec.move_selections_up();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "a");
 
-    obj.undoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.undo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.redoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "a");
+    obj.redo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "a");
 }
 
-TEST(AttachData, MoveTop)
+TEST(attach_data, move_top)
 {
-    EditData obj {};
+    Edit_data obj {};
     obj()->vec = std::vector{0, 1, 2};
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj()->vec.moveTop(1);
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj()->vec.move_top(1);
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.undoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.undo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.redoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.redo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 }
 
-TEST(AttachData, MoveTopN)
+TEST(attach_data, move_top_n)
 {
-    EditData obj {};
+    Edit_data obj {};
     obj()->vec = std::vector{0, 1, 2};
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj()->vec.moveTop(std::vector<std::size_t>{1, 2});
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "a");
+    obj()->vec.move_top(std::vector<std::size_t>{1, 2});
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "a");
 
-    obj.undoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.undo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.redoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "a");
+    obj.redo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "a");
 }
 
-TEST(AttachData, MoveTopL)
+TEST(attach_data, move_top_l)
 {
-    EditData obj {};
+    Edit_data obj {};
     obj()->vec = std::vector{0, 1, 2};
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
     obj()->vec.select(std::vector<std::size_t>{1, 2});
-    obj()->vec.moveSelectionsTop();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "a");
+    obj()->vec.move_selections_top();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "a");
 
-    obj.undoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.undo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.redoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "a");
+    obj.redo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "a");
 }
 
-TEST(AttachData, MoveDown)
+TEST(attach_data, move_down)
 {
-    EditData obj {};
+    Edit_data obj {};
     obj()->vec = std::vector{0, 1, 2};
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj()->vec.moveDown(1);
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "b");
+    obj()->vec.move_down(1);
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "b");
 
-    obj.undoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.undo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.redoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "b");
+    obj.redo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "b");
 }
 
-TEST(AttachData, MoveDownN)
+TEST(attach_data, move_down_n)
 {
-    EditData obj {};
+    Edit_data obj {};
     obj()->vec = std::vector{0, 1, 2};
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj()->vec.moveDown(std::vector<std::size_t>{0, 1});
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "b");
+    obj()->vec.move_down(std::vector<std::size_t>{0, 1});
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "b");
 
-    obj.undoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.undo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.redoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "b");
+    obj.redo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "b");
 }
 
-TEST(AttachData, MoveDownL)
+TEST(attach_data, move_down_l)
 {
-    EditData obj {};
+    Edit_data obj {};
     obj()->vec = std::vector{0, 1, 2};
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
     obj()->vec.select(std::vector<std::size_t>{0, 1});
-    obj()->vec.moveSelectionsDown();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "b");
+    obj()->vec.move_selections_down();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "b");
 
-    obj.undoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.undo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.redoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "b");
+    obj.redo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "b");
 }
 
-TEST(AttachData, MoveBottom)
+TEST(attach_data, move_bottom)
 {
-    EditData obj {};
+    Edit_data obj {};
     obj()->vec = std::vector{0, 1, 2};
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj()->vec.moveBottom(1);
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "b");
+    obj()->vec.move_bottom(1);
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "b");
 
-    obj.undoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.undo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.redoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "b");
+    obj.redo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "b");
 }
 
-TEST(AttachData, MoveBottomN)
+TEST(attach_data, move_bottom_n)
 {
-    EditData obj {};
+    Edit_data obj {};
     obj()->vec = std::vector{0, 1, 2};
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj()->vec.moveBottom(std::vector<std::size_t>{0, 1});
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "b");
+    obj()->vec.move_bottom(std::vector<std::size_t>{0, 1});
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "b");
 
-    obj.undoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.undo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.redoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "b");
+    obj.redo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "b");
 }
 
-TEST(AttachData, MoveBottomL)
+TEST(attach_data, move_bottom_l)
 {
-    EditData obj {};
+    Edit_data obj {};
     obj()->vec = std::vector{0, 1, 2};
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
     obj()->vec.select(std::vector<std::size_t>{0, 1});
-    obj()->vec.moveSelectionsBottom();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "b");
+    obj()->vec.move_selections_bottom();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "b");
 
-    obj.undoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.undo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.redoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "b");
+    obj.redo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "b");
 }
 
-TEST(AttachData, MoveTo)
+TEST(attach_data, move_to)
 {
-    EditData obj {};
+    Edit_data obj {};
     obj()->vec = std::vector{0, 1, 2};
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj()->vec.moveTo(1, 2);
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "b");
+    obj()->vec.move_to(1, 2);
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "b");
 
-    obj.undoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.undo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.redoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "b");
+    obj.redo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "b");
 }
 
-TEST(AttachData, MoveToN)
+TEST(attach_data, move_to_n)
 {
-    EditData obj {};
+    Edit_data obj {};
     obj()->vec = std::vector{0, 1, 2};
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj()->vec.moveTo(std::vector<std::size_t>{1, 2}, 0);
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "a");
+    obj()->vec.move_to(std::vector<std::size_t>{1, 2}, 0);
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "a");
 
-    obj.undoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.undo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.redoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "a");
+    obj.redo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "a");
 }
 
-TEST(AttachData, MoveToL)
+TEST(attach_data, move_to_l)
 {
-    EditData obj {};
+    Edit_data obj {};
     obj()->vec = std::vector{0, 1, 2};
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
     obj()->vec.select(std::vector<std::size_t>{1, 2});
-    obj()->vec.moveSelectionsTo(0);
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "a");
+    obj()->vec.move_selections_to(0);
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "a");
 
-    obj.undoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "a");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "c");
+    obj.undo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "a");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "c");
 
-    obj.redoAction();
-    EXPECT_TRUE(obj.sizeIs(3));
-    EXPECT_STREQ(obj.attachedData[0].rendered.c_str(), "b");
-    EXPECT_STREQ(obj.attachedData[1].rendered.c_str(), "c");
-    EXPECT_STREQ(obj.attachedData[2].rendered.c_str(), "a");
+    obj.redo_action();
+    EXPECT_TRUE(obj.size_is(3));
+    EXPECT_STREQ(obj.attached_data[0].rendered.c_str(), "b");
+    EXPECT_STREQ(obj.attached_data[1].rendered.c_str(), "c");
+    EXPECT_STREQ(obj.attached_data[2].rendered.c_str(), "a");
 }
 
-TEST(AttachData, Init)
+TEST(attach_data, init)
 {
-    EditData obj {};
-    obj.initData(Data {
+    Edit_data obj {};
+    obj.init_data(Data {
         .vec {0, 0, 0, 0}
     });
-    EXPECT_EQ(4, obj.view.vec.readAttachedData().size());
+    EXPECT_EQ(4, obj.view.vec.read_attached_data().size());
 }
 
 }

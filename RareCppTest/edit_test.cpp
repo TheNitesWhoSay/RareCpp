@@ -1,14 +1,12 @@
-#include <rarecpp/editor.h>
+#include <nf/hist.h>
 #include <rarecpp/json.h>
 #include <rarecpp/reflect.h>
 #include <gtest/gtest.h>
 #include <cstdint>
 #include <vector>
 
-namespace EditorCumulative
+namespace editor_cumulative
 {
-    using namespace RareEdit;
-    
     struct Simple
     {
         int a = 0;
@@ -16,461 +14,461 @@ namespace EditorCumulative
         REFLECT(Simple, a)
     };
 
-    struct SimpleEditor : Tracked<Simple, SimpleEditor>
+    struct Simple_editor : nf::tracked<Simple, Simple_editor>
     {
-        SimpleEditor() : Tracked{this} {}
+        Simple_editor() : tracked{this} {}
 
         void act()
         {
-            createAction()->a = 0;
+            create_action()->a = 0;
         }
     };
 
-    TEST(UndoRedoElision, Unmodified)
+    TEST(undo_redo_elision, unmodified)
     {
-        SimpleEditor obj {};
-        auto check = RareTs::whitebox((Tracked<Simple, SimpleEditor> &)obj);
+        Simple_editor obj {};
+        auto check = RareTs::whitebox((nf::tracked<Simple, Simple_editor> &)obj);
 
-        EXPECT_EQ(check.redoCount, 0);
-        EXPECT_EQ(check.redoSize, 0);
+        EXPECT_EQ(check.redo_count, 0);
+        EXPECT_EQ(check.redo_size, 0);
         EXPECT_TRUE(check.actions.empty());
     }
 
-    TEST(UndoRedoElision, A)
+    TEST(undo_redo_elision, a)
     {
-        SimpleEditor obj {};
-        auto check = RareTs::whitebox((Tracked<Simple, SimpleEditor> &)obj);
+        Simple_editor obj {};
+        auto check = RareTs::whitebox((nf::tracked<Simple, Simple_editor> &)obj);
         obj.act();
 
-        EXPECT_EQ(check.redoCount, 0);
-        EXPECT_EQ(check.redoSize, 0);
+        EXPECT_EQ(check.redo_count, 0);
+        EXPECT_EQ(check.redo_size, 0);
         EXPECT_EQ(check.actions.size(), 1);
-        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
+        EXPECT_EQ(check.actions[0].first_event_index, 0);
     }
 
-    TEST(UndoRedoElision, AU)
+    TEST(undo_redo_elision, au)
     {
-        SimpleEditor obj {};
-        auto check = RareTs::whitebox((Tracked<Simple, SimpleEditor> &)obj);
+        Simple_editor obj {};
+        auto check = RareTs::whitebox((nf::tracked<Simple, Simple_editor> &)obj);
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
 
-        EXPECT_EQ(check.redoCount, 1);
-        EXPECT_EQ(check.redoSize, 1);
+        EXPECT_EQ(check.redo_count, 1);
+        EXPECT_EQ(check.redo_size, 1);
         EXPECT_EQ(check.actions.size(), 1);
-        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
+        EXPECT_EQ(check.actions[0].first_event_index, 0);
     }
 
-    TEST(UndoRedoElision, AUA)
+    TEST(undo_redo_elision, aua)
     {
-        SimpleEditor obj {};
-        auto check = RareTs::whitebox((Tracked<Simple, SimpleEditor> &)obj);
+        Simple_editor obj {};
+        auto check = RareTs::whitebox((nf::tracked<Simple, Simple_editor> &)obj);
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
         obj.act();
 
-        EXPECT_EQ(check.redoCount, 0);
-        EXPECT_EQ(check.redoSize, 0);
+        EXPECT_EQ(check.redo_count, 0);
+        EXPECT_EQ(check.redo_size, 0);
         EXPECT_EQ(check.actions.size(), 3);
-        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
-        EXPECT_EQ(check.actions[1].firstEventIndex, check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actions[2].firstEventIndex, 1);
+        EXPECT_EQ(check.actions[0].first_event_index, 0);
+        EXPECT_EQ(check.actions[1].first_event_index, check.flag_elided_redos | 1);
+        EXPECT_EQ(check.actions[2].first_event_index, 1);
     }
 
-    TEST(UndoRedoElision, AUR)
+    TEST(undo_redo_elision, aur)
     {
-        SimpleEditor obj {};
-        auto check = RareTs::whitebox((Tracked<Simple, SimpleEditor> &)obj);
+        Simple_editor obj {};
+        auto check = RareTs::whitebox((nf::tracked<Simple, Simple_editor> &)obj);
         obj.act();
-        obj.undoAction();
-        obj.redoAction();
+        obj.undo_action();
+        obj.redo_action();
 
-        EXPECT_EQ(check.redoCount, 0);
-        EXPECT_EQ(check.redoSize, 0);
+        EXPECT_EQ(check.redo_count, 0);
+        EXPECT_EQ(check.redo_size, 0);
         EXPECT_EQ(check.actions.size(), 1);
-        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
+        EXPECT_EQ(check.actions[0].first_event_index, 0);
     }
 
-    TEST(UndoRedoElision, AA)
+    TEST(undo_redo_elision, aa)
     {
-        SimpleEditor obj {};
-        auto check = RareTs::whitebox((Tracked<Simple, SimpleEditor> &)obj);
+        Simple_editor obj {};
+        auto check = RareTs::whitebox((nf::tracked<Simple, Simple_editor> &)obj);
         obj.act();
         obj.act();
 
-        EXPECT_EQ(check.redoCount, 0);
-        EXPECT_EQ(check.redoSize, 0);
+        EXPECT_EQ(check.redo_count, 0);
+        EXPECT_EQ(check.redo_size, 0);
         EXPECT_EQ(check.actions.size(), 2);
-        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
-        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
+        EXPECT_EQ(check.actions[0].first_event_index, 0);
+        EXPECT_EQ(check.actions[1].first_event_index, 1);
     }
 
-    TEST(UndoRedoElision, AAU)
+    TEST(undo_redo_elision, aau)
     {
-        SimpleEditor obj {};
-        auto check = RareTs::whitebox((Tracked<Simple, SimpleEditor> &)obj);
+        Simple_editor obj {};
+        auto check = RareTs::whitebox((nf::tracked<Simple, Simple_editor> &)obj);
         obj.act();
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
 
-        EXPECT_EQ(check.redoCount, 1);
-        EXPECT_EQ(check.redoSize, 1);
+        EXPECT_EQ(check.redo_count, 1);
+        EXPECT_EQ(check.redo_size, 1);
         EXPECT_EQ(check.actions.size(), 2);
-        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
-        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
+        EXPECT_EQ(check.actions[0].first_event_index, 0);
+        EXPECT_EQ(check.actions[1].first_event_index, 1);
     }
 
-    TEST(UndoRedoElision, AAUA)
+    TEST(undo_redo_elision, aaua)
     {
-        SimpleEditor obj {};
-        auto check = RareTs::whitebox((Tracked<Simple, SimpleEditor> &)obj);
+        Simple_editor obj {};
+        auto check = RareTs::whitebox((nf::tracked<Simple, Simple_editor> &)obj);
         obj.act();
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
         obj.act();
 
-        EXPECT_EQ(check.redoCount, 0);
-        EXPECT_EQ(check.redoSize, 0);
+        EXPECT_EQ(check.redo_count, 0);
+        EXPECT_EQ(check.redo_size, 0);
         EXPECT_EQ(check.actions.size(), 4);
-        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
-        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
-        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
+        EXPECT_EQ(check.actions[0].first_event_index, 0);
+        EXPECT_EQ(check.actions[1].first_event_index, 1);
+        EXPECT_EQ(check.actions[2].first_event_index, check.flag_elided_redos | 1);
+        EXPECT_EQ(check.actions[3].first_event_index, 2);
     }
 
-    TEST(UndoRedoElision, AAUAU)
+    TEST(undo_redo_elision, aauau)
     {
-        SimpleEditor obj {};
-        auto check = RareTs::whitebox((Tracked<Simple, SimpleEditor> &)obj);
+        Simple_editor obj {};
+        auto check = RareTs::whitebox((nf::tracked<Simple, Simple_editor> &)obj);
         obj.act();
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
 
-        EXPECT_EQ(check.redoCount, 1);
-        EXPECT_EQ(check.redoSize, 1);
+        EXPECT_EQ(check.redo_count, 1);
+        EXPECT_EQ(check.redo_size, 1);
         EXPECT_EQ(check.actions.size(), 4);
-        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
-        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
-        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
+        EXPECT_EQ(check.actions[0].first_event_index, 0);
+        EXPECT_EQ(check.actions[1].first_event_index, 1);
+        EXPECT_EQ(check.actions[2].first_event_index, check.flag_elided_redos | 1);
+        EXPECT_EQ(check.actions[3].first_event_index, 2);
     }
 
-    TEST(UndoRedoElision, AAUAUU)
+    TEST(undo_redo_elision, aauauu)
     {
-        SimpleEditor obj {};
-        auto check = RareTs::whitebox((Tracked<Simple, SimpleEditor> &)obj);
+        Simple_editor obj {};
+        auto check = RareTs::whitebox((nf::tracked<Simple, Simple_editor> &)obj);
         obj.act();
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
         obj.act();
-        obj.undoAction();
-        obj.undoAction();
+        obj.undo_action();
+        obj.undo_action();
 
-        EXPECT_EQ(check.redoCount, 2);
-        EXPECT_EQ(check.redoSize, 4);
+        EXPECT_EQ(check.redo_count, 2);
+        EXPECT_EQ(check.redo_size, 4);
         EXPECT_EQ(check.actions.size(), 4);
-        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
-        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
-        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
+        EXPECT_EQ(check.actions[0].first_event_index, 0);
+        EXPECT_EQ(check.actions[1].first_event_index, 1);
+        EXPECT_EQ(check.actions[2].first_event_index, check.flag_elided_redos | 1);
+        EXPECT_EQ(check.actions[3].first_event_index, 2);
     }
 
-    TEST(UndoRedoElision, AAUAUUA)
+    TEST(undo_redo_elision, aauauua)
     {
-        SimpleEditor obj {};
-        auto check = RareTs::whitebox((Tracked<Simple, SimpleEditor> &)obj);
+        Simple_editor obj {};
+        auto check = RareTs::whitebox((nf::tracked<Simple, Simple_editor> &)obj);
         obj.act();
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
         obj.act();
-        obj.undoAction();
-        obj.undoAction();
+        obj.undo_action();
+        obj.undo_action();
         obj.act();
 
-        EXPECT_EQ(check.redoCount, 0);
-        EXPECT_EQ(check.redoSize, 0);
+        EXPECT_EQ(check.redo_count, 0);
+        EXPECT_EQ(check.redo_size, 0);
         EXPECT_EQ(check.actions.size(), 6);
-        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
-        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
-        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
-        EXPECT_EQ(check.actions[4].firstEventIndex, check.flagElidedRedos | 4);
-        EXPECT_EQ(check.actions[5].firstEventIndex, 3);
+        EXPECT_EQ(check.actions[0].first_event_index, 0);
+        EXPECT_EQ(check.actions[1].first_event_index, 1);
+        EXPECT_EQ(check.actions[2].first_event_index, check.flag_elided_redos | 1);
+        EXPECT_EQ(check.actions[3].first_event_index, 2);
+        EXPECT_EQ(check.actions[4].first_event_index, check.flag_elided_redos | 4);
+        EXPECT_EQ(check.actions[5].first_event_index, 3);
     }
 
-    TEST(UndoRedoElision, AAUAUA)
+    TEST(undo_redo_elision, aauaua)
     {
-        SimpleEditor obj {};
-        auto check = RareTs::whitebox((Tracked<Simple, SimpleEditor> &)obj);
+        Simple_editor obj {};
+        auto check = RareTs::whitebox((nf::tracked<Simple, Simple_editor> &)obj);
         obj.act();
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
         obj.act();
 
-        EXPECT_EQ(check.redoCount, 0);
-        EXPECT_EQ(check.redoSize, 0);
+        EXPECT_EQ(check.redo_count, 0);
+        EXPECT_EQ(check.redo_size, 0);
         EXPECT_EQ(check.actions.size(), 6);
-        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
-        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
-        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
-        EXPECT_EQ(check.actions[4].firstEventIndex, check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actions[5].firstEventIndex, 3);
+        EXPECT_EQ(check.actions[0].first_event_index, 0);
+        EXPECT_EQ(check.actions[1].first_event_index, 1);
+        EXPECT_EQ(check.actions[2].first_event_index, check.flag_elided_redos | 1);
+        EXPECT_EQ(check.actions[3].first_event_index, 2);
+        EXPECT_EQ(check.actions[4].first_event_index, check.flag_elided_redos | 1);
+        EXPECT_EQ(check.actions[5].first_event_index, 3);
     }
 
-    TEST(UndoRedoElision, AAUAUAU)
+    TEST(undo_redo_elision, aauauau)
     {
-        SimpleEditor obj {};
-        auto check = RareTs::whitebox((Tracked<Simple, SimpleEditor> &)obj);
+        Simple_editor obj {};
+        auto check = RareTs::whitebox((nf::tracked<Simple, Simple_editor> &)obj);
         obj.act();
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
 
-        EXPECT_EQ(check.redoCount, 1);
-        EXPECT_EQ(check.redoSize, 1);
+        EXPECT_EQ(check.redo_count, 1);
+        EXPECT_EQ(check.redo_size, 1);
         EXPECT_EQ(check.actions.size(), 6);
-        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
-        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
-        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
-        EXPECT_EQ(check.actions[4].firstEventIndex, check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actions[5].firstEventIndex, 3);
+        EXPECT_EQ(check.actions[0].first_event_index, 0);
+        EXPECT_EQ(check.actions[1].first_event_index, 1);
+        EXPECT_EQ(check.actions[2].first_event_index, check.flag_elided_redos | 1);
+        EXPECT_EQ(check.actions[3].first_event_index, 2);
+        EXPECT_EQ(check.actions[4].first_event_index, check.flag_elided_redos | 1);
+        EXPECT_EQ(check.actions[5].first_event_index, 3);
     }
 
-    TEST(UndoRedoElision, AAUAUAUU)
+    TEST(undo_redo_elision, aauauauu)
     {
-        SimpleEditor obj {};
-        auto check = RareTs::whitebox((Tracked<Simple, SimpleEditor> &)obj);
+        Simple_editor obj {};
+        auto check = RareTs::whitebox((nf::tracked<Simple, Simple_editor> &)obj);
         obj.act();
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
         obj.act();
-        obj.undoAction();
-        obj.undoAction();
+        obj.undo_action();
+        obj.undo_action();
 
-        EXPECT_EQ(check.redoCount, 2);
-        EXPECT_EQ(check.redoSize, 6);
+        EXPECT_EQ(check.redo_count, 2);
+        EXPECT_EQ(check.redo_size, 6);
         EXPECT_EQ(check.actions.size(), 6);
-        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
-        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
-        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
-        EXPECT_EQ(check.actions[4].firstEventIndex, check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actions[5].firstEventIndex, 3);
+        EXPECT_EQ(check.actions[0].first_event_index, 0);
+        EXPECT_EQ(check.actions[1].first_event_index, 1);
+        EXPECT_EQ(check.actions[2].first_event_index, check.flag_elided_redos | 1);
+        EXPECT_EQ(check.actions[3].first_event_index, 2);
+        EXPECT_EQ(check.actions[4].first_event_index, check.flag_elided_redos | 1);
+        EXPECT_EQ(check.actions[5].first_event_index, 3);
     }
 
-    TEST(UndoRedoElision, AAUAUAUUA)
+    TEST(undo_redo_elision, aauauauua)
     {
-        SimpleEditor obj {};
-        auto check = RareTs::whitebox((Tracked<Simple, SimpleEditor> &)obj);
+        Simple_editor obj {};
+        auto check = RareTs::whitebox((nf::tracked<Simple, Simple_editor> &)obj);
         obj.act();
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
         obj.act();
-        obj.undoAction();
-        obj.undoAction();
+        obj.undo_action();
+        obj.undo_action();
         obj.act();
 
-        EXPECT_EQ(check.redoCount, 0);
-        EXPECT_EQ(check.redoSize, 0);
+        EXPECT_EQ(check.redo_count, 0);
+        EXPECT_EQ(check.redo_size, 0);
         EXPECT_EQ(check.actions.size(), 8);
-        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
-        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
-        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
-        EXPECT_EQ(check.actions[4].firstEventIndex, check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actions[5].firstEventIndex, 3);
-        EXPECT_EQ(check.actions[6].firstEventIndex, check.flagElidedRedos | 6);
-        EXPECT_EQ(check.actions[7].firstEventIndex, 4);
+        EXPECT_EQ(check.actions[0].first_event_index, 0);
+        EXPECT_EQ(check.actions[1].first_event_index, 1);
+        EXPECT_EQ(check.actions[2].first_event_index, check.flag_elided_redos | 1);
+        EXPECT_EQ(check.actions[3].first_event_index, 2);
+        EXPECT_EQ(check.actions[4].first_event_index, check.flag_elided_redos | 1);
+        EXPECT_EQ(check.actions[5].first_event_index, 3);
+        EXPECT_EQ(check.actions[6].first_event_index, check.flag_elided_redos | 6);
+        EXPECT_EQ(check.actions[7].first_event_index, 4);
     }
 
-    TEST(UndoRedoElision, AAUAA)
+    TEST(undo_redo_elision, aauaa)
     {
-        SimpleEditor obj {};
-        auto check = RareTs::whitebox((Tracked<Simple, SimpleEditor> &)obj);
+        Simple_editor obj {};
+        auto check = RareTs::whitebox((nf::tracked<Simple, Simple_editor> &)obj);
         obj.act();
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
         obj.act();
         obj.act();
 
-        EXPECT_EQ(check.redoCount, 0);
-        EXPECT_EQ(check.redoSize, 0);
+        EXPECT_EQ(check.redo_count, 0);
+        EXPECT_EQ(check.redo_size, 0);
         EXPECT_EQ(check.actions.size(), 5);
-        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
-        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
-        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
-        EXPECT_EQ(check.actions[4].firstEventIndex, 3);
+        EXPECT_EQ(check.actions[0].first_event_index, 0);
+        EXPECT_EQ(check.actions[1].first_event_index, 1);
+        EXPECT_EQ(check.actions[2].first_event_index, check.flag_elided_redos | 1);
+        EXPECT_EQ(check.actions[3].first_event_index, 2);
+        EXPECT_EQ(check.actions[4].first_event_index, 3);
     }
 
-    TEST(UndoRedoElision, AAUAAU)
+    TEST(undo_redo_elision, aauaau)
     {
-        SimpleEditor obj {};
-        auto check = RareTs::whitebox((Tracked<Simple, SimpleEditor> &)obj);
+        Simple_editor obj {};
+        auto check = RareTs::whitebox((nf::tracked<Simple, Simple_editor> &)obj);
         obj.act();
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
         obj.act();
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
 
-        EXPECT_EQ(check.redoCount, 1);
-        EXPECT_EQ(check.redoSize, 1);
+        EXPECT_EQ(check.redo_count, 1);
+        EXPECT_EQ(check.redo_size, 1);
         EXPECT_EQ(check.actions.size(), 5);
-        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
-        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
-        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
-        EXPECT_EQ(check.actions[4].firstEventIndex, 3);
+        EXPECT_EQ(check.actions[0].first_event_index, 0);
+        EXPECT_EQ(check.actions[1].first_event_index, 1);
+        EXPECT_EQ(check.actions[2].first_event_index, check.flag_elided_redos | 1);
+        EXPECT_EQ(check.actions[3].first_event_index, 2);
+        EXPECT_EQ(check.actions[4].first_event_index, 3);
     }
 
-    TEST(UndoRedoElision, AAUAAUA)
+    TEST(undo_redo_elision, aauaaua)
     {
-        SimpleEditor obj {};
-        auto check = RareTs::whitebox((Tracked<Simple, SimpleEditor> &)obj);
+        Simple_editor obj {};
+        auto check = RareTs::whitebox((nf::tracked<Simple, Simple_editor> &)obj);
         obj.act();
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
         obj.act();
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
         obj.act();
 
-        EXPECT_EQ(check.redoCount, 0);
-        EXPECT_EQ(check.redoSize, 0);
+        EXPECT_EQ(check.redo_count, 0);
+        EXPECT_EQ(check.redo_size, 0);
         EXPECT_EQ(check.actions.size(), 7);
-        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
-        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
-        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
-        EXPECT_EQ(check.actions[4].firstEventIndex, 3);
-        EXPECT_EQ(check.actions[5].firstEventIndex, check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actions[6].firstEventIndex, 4);
+        EXPECT_EQ(check.actions[0].first_event_index, 0);
+        EXPECT_EQ(check.actions[1].first_event_index, 1);
+        EXPECT_EQ(check.actions[2].first_event_index, check.flag_elided_redos | 1);
+        EXPECT_EQ(check.actions[3].first_event_index, 2);
+        EXPECT_EQ(check.actions[4].first_event_index, 3);
+        EXPECT_EQ(check.actions[5].first_event_index, check.flag_elided_redos | 1);
+        EXPECT_EQ(check.actions[6].first_event_index, 4);
     }
 
-    TEST(UndoRedoElision, AAUAAUAU)
+    TEST(undo_redo_elision, aauaauau)
     {
-        SimpleEditor obj {};
-        auto check = RareTs::whitebox((Tracked<Simple, SimpleEditor> &)obj);
+        Simple_editor obj {};
+        auto check = RareTs::whitebox((nf::tracked<Simple, Simple_editor> &)obj);
         obj.act();
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
         obj.act();
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
 
-        EXPECT_EQ(check.redoCount, 1);
-        EXPECT_EQ(check.redoSize, 1);
+        EXPECT_EQ(check.redo_count, 1);
+        EXPECT_EQ(check.redo_size, 1);
         EXPECT_EQ(check.actions.size(), 7);
-        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
-        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
-        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
-        EXPECT_EQ(check.actions[4].firstEventIndex, 3);
-        EXPECT_EQ(check.actions[5].firstEventIndex, check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actions[6].firstEventIndex, 4);
+        EXPECT_EQ(check.actions[0].first_event_index, 0);
+        EXPECT_EQ(check.actions[1].first_event_index, 1);
+        EXPECT_EQ(check.actions[2].first_event_index, check.flag_elided_redos | 1);
+        EXPECT_EQ(check.actions[3].first_event_index, 2);
+        EXPECT_EQ(check.actions[4].first_event_index, 3);
+        EXPECT_EQ(check.actions[5].first_event_index, check.flag_elided_redos | 1);
+        EXPECT_EQ(check.actions[6].first_event_index, 4);
     }
 
-    TEST(UndoRedoElision, AAUAAUAUU)
+    TEST(undo_redo_elision, aauaauauu)
     {
-        SimpleEditor obj {};
-        auto check = RareTs::whitebox((Tracked<Simple, SimpleEditor> &)obj);
+        Simple_editor obj {};
+        auto check = RareTs::whitebox((nf::tracked<Simple, Simple_editor> &)obj);
         obj.act();
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
         obj.act();
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
         obj.act();
-        obj.undoAction();
-        obj.undoAction();
+        obj.undo_action();
+        obj.undo_action();
 
-        EXPECT_EQ(check.redoCount, 2);
-        EXPECT_EQ(check.redoSize, 4);
+        EXPECT_EQ(check.redo_count, 2);
+        EXPECT_EQ(check.redo_size, 4);
         EXPECT_EQ(check.actions.size(), 7);
-        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
-        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
-        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
-        EXPECT_EQ(check.actions[4].firstEventIndex, 3);
-        EXPECT_EQ(check.actions[5].firstEventIndex, check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actions[6].firstEventIndex, 4);
+        EXPECT_EQ(check.actions[0].first_event_index, 0);
+        EXPECT_EQ(check.actions[1].first_event_index, 1);
+        EXPECT_EQ(check.actions[2].first_event_index, check.flag_elided_redos | 1);
+        EXPECT_EQ(check.actions[3].first_event_index, 2);
+        EXPECT_EQ(check.actions[4].first_event_index, 3);
+        EXPECT_EQ(check.actions[5].first_event_index, check.flag_elided_redos | 1);
+        EXPECT_EQ(check.actions[6].first_event_index, 4);
     }
 
-    TEST(UndoRedoElision, AAUAAUAUUU)
+    TEST(undo_redo_elision, aauaauauuu)
     {
-        SimpleEditor obj {};
-        auto check = RareTs::whitebox((Tracked<Simple, SimpleEditor> &)obj);
+        Simple_editor obj {};
+        auto check = RareTs::whitebox((nf::tracked<Simple, Simple_editor> &)obj);
         obj.act();
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
         obj.act();
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
         obj.act();
-        obj.undoAction();
-        obj.undoAction();
-        obj.undoAction();
+        obj.undo_action();
+        obj.undo_action();
+        obj.undo_action();
 
-        EXPECT_EQ(check.redoCount, 3);
-        EXPECT_EQ(check.redoSize, 7);
+        EXPECT_EQ(check.redo_count, 3);
+        EXPECT_EQ(check.redo_size, 7);
         EXPECT_EQ(check.actions.size(), 7);
-        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
-        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
-        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
-        EXPECT_EQ(check.actions[4].firstEventIndex, 3);
-        EXPECT_EQ(check.actions[5].firstEventIndex, check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actions[6].firstEventIndex, 4);
+        EXPECT_EQ(check.actions[0].first_event_index, 0);
+        EXPECT_EQ(check.actions[1].first_event_index, 1);
+        EXPECT_EQ(check.actions[2].first_event_index, check.flag_elided_redos | 1);
+        EXPECT_EQ(check.actions[3].first_event_index, 2);
+        EXPECT_EQ(check.actions[4].first_event_index, 3);
+        EXPECT_EQ(check.actions[5].first_event_index, check.flag_elided_redos | 1);
+        EXPECT_EQ(check.actions[6].first_event_index, 4);
     }
 
-    TEST(UndoRedoElision, AAUAAUAUUUA)
+    TEST(undo_redo_elision, aauaauauuua)
     {
-        SimpleEditor obj {};
-        auto check = RareTs::whitebox((Tracked<Simple, SimpleEditor> &)obj);
+        Simple_editor obj {};
+        auto check = RareTs::whitebox((nf::tracked<Simple, Simple_editor> &)obj);
         obj.act();
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
         obj.act();
         obj.act();
-        obj.undoAction();
+        obj.undo_action();
         obj.act();
-        obj.undoAction();
-        obj.undoAction();
-        obj.undoAction();
+        obj.undo_action();
+        obj.undo_action();
+        obj.undo_action();
         obj.act();
 
-        EXPECT_EQ(check.redoCount, 0);
-        EXPECT_EQ(check.redoSize, 0);
+        EXPECT_EQ(check.redo_count, 0);
+        EXPECT_EQ(check.redo_size, 0);
         EXPECT_EQ(check.actions.size(), 9);
-        EXPECT_EQ(check.actions[0].firstEventIndex, 0);
-        EXPECT_EQ(check.actions[1].firstEventIndex, 1);
-        EXPECT_EQ(check.actions[2].firstEventIndex, check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actions[3].firstEventIndex, 2);
-        EXPECT_EQ(check.actions[4].firstEventIndex, 3);
-        EXPECT_EQ(check.actions[5].firstEventIndex, check.flagElidedRedos | 1);
-        EXPECT_EQ(check.actions[6].firstEventIndex, 4);
-        EXPECT_EQ(check.actions[7].firstEventIndex, check.flagElidedRedos | 7);
-        EXPECT_EQ(check.actions[8].firstEventIndex, 5);
+        EXPECT_EQ(check.actions[0].first_event_index, 0);
+        EXPECT_EQ(check.actions[1].first_event_index, 1);
+        EXPECT_EQ(check.actions[2].first_event_index, check.flag_elided_redos | 1);
+        EXPECT_EQ(check.actions[3].first_event_index, 2);
+        EXPECT_EQ(check.actions[4].first_event_index, 3);
+        EXPECT_EQ(check.actions[5].first_event_index, check.flag_elided_redos | 1);
+        EXPECT_EQ(check.actions[6].first_event_index, 4);
+        EXPECT_EQ(check.actions[7].first_event_index, check.flag_elided_redos | 7);
+        EXPECT_EQ(check.actions[8].first_event_index, 5);
     }
 
-    NOTE(CumulativeTest, IndexSize<std::uint32_t>)
-    struct CumulativeTest
+    NOTE(Cumulative_test, nf::index_size<std::uint32_t>)
+    struct Cumulative_test
     {
         struct Bar
         {
@@ -499,21 +497,21 @@ namespace EditorCumulative
         std::string b = "asdf";
         std::vector<int> c {};
         Bar bar;
-        std::vector<Bar> barVec {}; NOTE(barVec, IndexSize<std::uint16_t>)
-        int intRay[5] {};
-        int mdIntRay[2][3] {};
-        std::vector<Trig> trigs {}; NOTE(trigs, IndexSize<std::uint16_t>)
+        std::vector<Bar> bar_vec {}; NOTE(bar_vec, nf::index_size<std::uint16_t>)
+        int int_ray[5] {};
+        int md_int_ray[2][3] {};
+        std::vector<Trig> trigs {}; NOTE(trigs, nf::index_size<std::uint16_t>)
 
-        REFLECT_NOTED(CumulativeTest, a, b, c, bar, barVec, intRay, mdIntRay, trigs)
+        REFLECT_NOTED(Cumulative_test, a, b, c, bar, bar_vec, int_ray, md_int_ray, trigs)
     };
 
-    struct TracedCumulativeTest : Tracked<CumulativeTest, TracedCumulativeTest>
+    struct Traced_cumulative_test : nf::tracked<Cumulative_test, Traced_cumulative_test>
     {
-        TracedCumulativeTest() : Tracked{this} {}
+        Traced_cumulative_test() : tracked{this} {}
 
-        void takeAction()
+        void take_action()
         {
-            auto edit = createAction();
+            auto edit = create_action();
             edit->a = 12;
             edit->b = "qwerty";
             edit->c.append(5);
@@ -521,68 +519,139 @@ namespace EditorCumulative
             edit->c.append(7);
             edit->bar.decimal = 2.2f;
             edit->bar.integer = 1;
-            createBar(EditorCumulative::CumulativeTest::Bar{1, 2.2f, {3, 4}});
-            createBar(EditorCumulative::CumulativeTest::Bar{3, 4.4f, {3, 4, 5}});
-            edit->barVec[0].ints.append(8);
-            edit->barVec[0].ints.append(9);
-            edit->barVec[0].ints.append(10);
-            edit->barVec[1].ints.append(8);
-            edit->barVec[1].ints.append(9);
-            edit->barVec[1].ints.append(10);
-            edit->intRay[2] = 5;
-            edit->intRay.select({1, 2, 4});
-            edit->intRay.selection() = 6;
-            edit->mdIntRay[1][2] = 23;
-            edit->trigs.append(EditorCumulative::CumulativeTest::Trig{});
-            edit->trigs.append(EditorCumulative::CumulativeTest::Trig{});
+            create_bar(editor_cumulative::Cumulative_test::Bar{1, 2.2f, {3, 4}});
+            create_bar(editor_cumulative::Cumulative_test::Bar{3, 4.4f, {3, 4, 5}});
+            edit->bar_vec[0].ints.append(8);
+            edit->bar_vec[0].ints.append(9);
+            edit->bar_vec[0].ints.append(10);
+            edit->bar_vec[1].ints.append(8);
+            edit->bar_vec[1].ints.append(9);
+            edit->bar_vec[1].ints.append(10);
+            edit->int_ray[2] = 5;
+            edit->int_ray.select({1, 2, 4});
+            edit->int_ray.selection() = 6;
+            edit->md_int_ray[1][2] = 23;
+            edit->trigs.append(editor_cumulative::Cumulative_test::Trig{});
+            edit->trigs.append(editor_cumulative::Cumulative_test::Trig{});
             edit->trigs[0].conditions[3].type = uint8_t(12);
             edit->trigs.select({0, 1});
             edit->trigs.selection().conditions[0].type = uint8_t(11);
         }
 
-        void createBar(const EditorCumulative::CumulativeTest::Bar & newBar)
+        void create_bar(const editor_cumulative::Cumulative_test::Bar & new_bar)
         {
-            auto edit = createAction();
-            edit->barVec.append(newBar);
+            auto edit = create_action();
+            edit->bar_vec.append(new_bar);
         }
 
         void act()
         {
-            createAction();
+            create_action();
         }
     };
 
-    TEST(EditTest, Cumulative)
+    TEST(edit_test, cumulative)
     {
-        TracedCumulativeTest myObj {};
+        Traced_cumulative_test my_obj {};
         
-        myObj.takeAction();
-        myObj.createBar({});
+        my_obj.take_action();
+        my_obj.create_bar({});
 
-        std::stringstream endState {};
-        endState << Json::out(*myObj);
-        EXPECT_STREQ(endState.str().c_str(), "{\"a\":12,\"b\":\"qwerty\",\"c\":[5,6,7],\"bar\":{\"integer\":1,\"decimal\":2.2,\"ints\":[]},"
-            "\"barVec\":[{\"integer\":1,\"decimal\":2.2,\"ints\":[3,4,8,9,10]},{\"integer\":3,\"decimal\":4.4,\"ints\":[3,4,5,8,9,10]},"
-            "{\"integer\":0,\"decimal\":0,\"ints\":[]}],\"intRay\":[0,6,6,0,6],\"mdIntRay\":[[0,0,0],[0,0,23]],\"trigs\":["
+        std::stringstream end_state {};
+        end_state << Json::out(*my_obj);
+        EXPECT_STREQ(end_state.str().c_str(), "{\"a\":12,\"b\":\"qwerty\",\"c\":[5,6,7],\"bar\":{\"integer\":1,\"decimal\":2.2,\"ints\":[]},"
+            "\"bar_vec\":[{\"integer\":1,\"decimal\":2.2,\"ints\":[3,4,8,9,10]},{\"integer\":3,\"decimal\":4.4,\"ints\":[3,4,5,8,9,10]},"
+            "{\"integer\":0,\"decimal\":0,\"ints\":[]}],\"int_ray\":[0,6,6,0,6],\"md_int_ray\":[[0,0,0],[0,0,23]],\"trigs\":["
             "{\"conditions\":[{\"type\":11},{\"type\":0},{\"type\":0},{\"type\":12}]},"
             "{\"conditions\":[{\"type\":11},{\"type\":0},{\"type\":0},{\"type\":0}]}]}");
     }
 
-    struct TrackDoOpData
+    struct Track_init_op_data
+    {
+        int a = 1;
+        std::vector<int> b {2, 3};
+        int c;
+        std::vector<int> d;
+
+        Track_init_op_data() : c(4), d{5, 6} {}
+
+        REFLECT(Track_init_op_data, a, b, c, d)
+    };
+
+    struct Track_init_op : nf::tracked<Track_init_op_data, Track_init_op>
+    {
+        Track_init_op() : tracked{this} {}
+    };
+
+    struct Track_do_op_data
     {
         std::vector<int> ints;
 
-        REFLECT(TrackDoOpData, ints)
+        REFLECT(Track_do_op_data, ints)
     };
 
-    struct TrackDoOp : Tracked<TrackDoOpData, TrackDoOp>
+    struct Track_do_op : nf::tracked<Track_do_op_data, Track_do_op>
     {
-        TrackDoOp() : Tracked{this} {}
+        Track_do_op() : tracked{this} {}
     };
     
-    TEST(OpDo, Reset)
+    TEST(op_misc, init)
     {
-        TrackDoOp obj {};
+        auto b_default_values = std::vector{2, 3};
+        auto d_default_values = std::vector{5, 6};
+        Track_init_op obj {};
+        EXPECT_EQ(1, obj->a);
+        EXPECT_EQ(b_default_values, obj->b);
+        EXPECT_EQ(4, obj->c);
+        EXPECT_EQ(d_default_values, obj->d);
+        EXPECT_EQ(0, obj.total_actions());
+
+        obj.record_init();
+        EXPECT_EQ(1, obj->a);
+        EXPECT_EQ(b_default_values, obj->b);
+        EXPECT_EQ(4, obj->c);
+        EXPECT_EQ(d_default_values, obj->d);
+        EXPECT_EQ(1, obj.total_actions());
+
+        obj.undo_action();
+        EXPECT_EQ(1, obj->a);
+        EXPECT_EQ(b_default_values, obj->b);
+        EXPECT_EQ(4, obj->c);
+        EXPECT_EQ(d_default_values, obj->d);
+        EXPECT_EQ(1, obj.total_actions());
+
+        obj.redo_action();
+        EXPECT_EQ(1, obj->a);
+        EXPECT_EQ(b_default_values, obj->b);
+        EXPECT_EQ(4, obj->c);
+        EXPECT_EQ(d_default_values, obj->d);
+        EXPECT_EQ(1, obj.total_actions());
+
+        obj.clear_history();
+        EXPECT_EQ(1, obj->a);
+        EXPECT_EQ(b_default_values, obj->b);
+        EXPECT_EQ(4, obj->c);
+        EXPECT_EQ(d_default_values, obj->d);
+        EXPECT_EQ(0, obj.total_actions());
+
+        auto b_reinit_values = std::vector{8, 9};
+        auto d_reinit_value = std::vector{11, 12};
+        Track_init_op_data reinit{};
+        reinit.a = 7;
+        reinit.b = b_reinit_values;
+        reinit.c = 10;
+        reinit.d = d_reinit_value;
+        obj.init_data<true>(reinit);
+        EXPECT_EQ(7, obj->a);
+        EXPECT_EQ(b_reinit_values, obj->b);
+        EXPECT_EQ(10, obj->c);
+        EXPECT_EQ(d_reinit_value, obj->d);
+        EXPECT_EQ(1, obj.total_actions());
+    }
+
+    TEST(op_do, reset)
+    {
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         obj()->ints = std::vector<int>{0, 1, 2, 3, 4};
         EXPECT_EQ(5, obj->ints.size());
@@ -590,17 +659,17 @@ namespace EditorCumulative
         EXPECT_EQ(0, obj->ints.size());
     }
 
-    TEST(OpDo, Reserve)
+    TEST(op_do, reserve)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         std::size_t capacity = obj->ints.capacity();
         obj()->ints.reserve(capacity+1);
         EXPECT_EQ(capacity+1, obj->ints.capacity());
     }
 
-    TEST(OpDo, Trim)
+    TEST(op_do, trim)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         std::size_t capacity = obj->ints.capacity();
         obj()->ints.reserve(capacity+1);
         EXPECT_EQ(capacity+1, obj->ints.capacity());
@@ -608,9 +677,9 @@ namespace EditorCumulative
         EXPECT_EQ(0, obj->ints.capacity());
     }
 
-    TEST(OpDo, Assign)
+    TEST(op_do, assign)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         obj()->ints.assign(5, 3);
         EXPECT_EQ(5, obj->ints.size());
@@ -618,40 +687,40 @@ namespace EditorCumulative
             EXPECT_EQ(3, i);
     }
 
-    TEST(OpDo, AssignDefault)
+    TEST(op_do, assign_default)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
-        obj()->ints.assignDefault(10);
+        obj()->ints.assign_default(10);
         EXPECT_EQ(10, obj->ints.size());
     }
 
-    TEST(OpDo, ClearSelection)
+    TEST(op_do, clear_selection)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 1};
         EXPECT_EQ(2, obj->ints.size());
         EXPECT_EQ(0, obj.view.ints.sel().size());
         obj()->ints.select(1);
         EXPECT_EQ(std::vector<std::size_t>{1}, obj.view.ints.sel());
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         EXPECT_EQ(0, obj.view.ints.sel().size());
     }
 
-    TEST(OpDo, SelectAll)
+    TEST(op_do, select_all)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{22, 33};
         EXPECT_EQ(2, obj->ints.size());
         EXPECT_EQ(0, obj.view.ints.sel().size());
-        obj()->ints.selectAll();
+        obj()->ints.select_all();
         const auto expected = std::vector<std::size_t>{0, 1};
         EXPECT_EQ(expected, obj.view.ints.sel());
     }
 
-    TEST(OpDo, Select)
+    TEST(op_do, select)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{22, 33};
         EXPECT_EQ(2, obj->ints.size());
         EXPECT_EQ(0, obj.view.ints.sel().size());
@@ -659,9 +728,9 @@ namespace EditorCumulative
         EXPECT_EQ(std::vector<std::size_t>{1}, obj.view.ints.sel());
     }
 
-    TEST(OpDo, SelectN)
+    TEST(op_do, select_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 1, 2, 3, 4};
         EXPECT_EQ(5, obj->ints.size());
         EXPECT_EQ(0, obj.view.ints.sel().size());
@@ -674,9 +743,9 @@ namespace EditorCumulative
         EXPECT_EQ(expected, obj.view.ints.sel());
     }
 
-    TEST(OpDo, Deselect)
+    TEST(op_do, deselect)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 1, 2, 3, 4};
         obj()->ints.select(std::vector<std::size_t>{2, 4, 0, 1});
         EXPECT_EQ(5, obj->ints.size());
@@ -686,9 +755,9 @@ namespace EditorCumulative
         EXPECT_EQ(expected, obj.view.ints.sel());
     }
 
-    TEST(OpDo, DeselectN)
+    TEST(op_do, deselect_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 1, 2, 3, 4};
         obj()->ints.select(std::vector<std::size_t>{2, 4, 0, 1});
         EXPECT_EQ(5, obj->ints.size());
@@ -698,69 +767,69 @@ namespace EditorCumulative
         EXPECT_EQ(expected, obj.view.ints.sel());
     }
 
-    TEST(OpDo, ToggleSelection)
+    TEST(op_do, toggle_selection)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 1, 2, 3, 4};
         EXPECT_EQ(5, obj->ints.size());
-        obj()->ints.toggleSelected(2);
-        obj()->ints.toggleSelected(4);
-        obj()->ints.toggleSelected(0);
-        obj()->ints.toggleSelected(3);
+        obj()->ints.toggle_selected(2);
+        obj()->ints.toggle_selected(4);
+        obj()->ints.toggle_selected(0);
+        obj()->ints.toggle_selected(3);
         EXPECT_EQ(4, obj.view.ints.sel().size());
         auto expected = std::vector<std::size_t>{2, 4, 0, 3};
         EXPECT_EQ(expected, obj.view.ints.sel());
-        obj()->ints.toggleSelected(4);
-        obj()->ints.toggleSelected(2);
+        obj()->ints.toggle_selected(4);
+        obj()->ints.toggle_selected(2);
         EXPECT_EQ(2, obj.view.ints.sel().size());
         expected = {0, 3};
         EXPECT_EQ(expected, obj.view.ints.sel());
     }
 
-    TEST(OpDo, ToggleSelectionN)
+    TEST(op_do, toggle_selection_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 1, 2, 3, 4};
         EXPECT_EQ(5, obj->ints.size());
-        obj()->ints.toggleSelected(std::vector<std::size_t>{2, 4, 0, 3});
+        obj()->ints.toggle_selected(std::vector<std::size_t>{2, 4, 0, 3});
         EXPECT_EQ(4, obj.view.ints.sel().size());
         auto expected = std::vector<std::size_t>{2, 4, 0, 3};
         EXPECT_EQ(expected, obj.view.ints.sel());
-        obj()->ints.toggleSelected(std::vector<std::size_t>{4, 2});
+        obj()->ints.toggle_selected(std::vector<std::size_t>{4, 2});
         EXPECT_EQ(2, obj.view.ints.sel().size());
         expected = {0, 3};
         EXPECT_EQ(expected, obj.view.ints.sel());
     }
 
-    TEST(OpDo, SortSelections)
+    TEST(op_do, sort_selections)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 1, 2, 3, 4};
         EXPECT_EQ(5, obj->ints.size());
         auto selection = std::vector<std::size_t>{2, 4, 0, 3};
         obj()->ints.select(selection);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj()->ints.sortSelection();
+        obj()->ints.sort_selection();
         const auto expected = std::vector<std::size_t>{0, 2, 3, 4};
         EXPECT_EQ(expected, obj.view.ints.sel());
     }
 
-    TEST(OpDo, SortSelectionsDesc)
+    TEST(op_do, sort_selections_desc)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 1, 2, 3, 4};
         EXPECT_EQ(5, obj->ints.size());
         auto selection = std::vector<std::size_t>{2, 4, 0, 3};
         obj()->ints.select(selection);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj()->ints.sortSelectionDescending();
+        obj()->ints.sort_selection_descending();
         const auto expected = std::vector<std::size_t>{4, 3, 2, 0};
         EXPECT_EQ(expected, obj.view.ints.sel());
     }
 
-    TEST(OpDo, Set)
+    TEST(op_do, set)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         auto values = std::vector{0, 1, 2, 3, 4};
         obj()->ints = values;
@@ -771,9 +840,9 @@ namespace EditorCumulative
         EXPECT_EQ(values, obj->ints);
     }
 
-    TEST(OpDo, SetN)
+    TEST(op_do, set_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         const auto values = std::vector{0, 1, 2, 3, 4, 5};
         obj()->ints = values;
@@ -783,9 +852,9 @@ namespace EditorCumulative
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpDo, SetL)
+    TEST(op_do, set_l)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         const auto values = std::vector{0, 1, 2, 3, 4, 5};
         obj()->ints = values;
@@ -796,81 +865,81 @@ namespace EditorCumulative
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpDo, PlusEq)
+    TEST(op_do, plus_eq_)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints.append(2);
         EXPECT_EQ(obj->ints, std::vector{2});
         obj()->ints[0] += 3;
         EXPECT_EQ(obj->ints, std::vector{5});
     }
 
-    TEST(OpDo, MinusEq)
+    TEST(op_do, minus_eq_)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints.append(7);
         EXPECT_EQ(obj->ints, std::vector{7});
         obj()->ints[0] -= 2;
         EXPECT_EQ(obj->ints, std::vector{5});
     }
 
-    TEST(OpDo, MultEq)
+    TEST(op_do, mult_eq_)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints.append(2);
         EXPECT_EQ(obj->ints, std::vector{2});
         obj()->ints[0] *= 2;
         EXPECT_EQ(obj->ints, std::vector{4});
     }
 
-    TEST(OpDo, DivEq)
+    TEST(op_do, div_eq_)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints.append(4);
         EXPECT_EQ(obj->ints, std::vector{4});
         obj()->ints[0] /= 2;
         EXPECT_EQ(obj->ints, std::vector{2});
     }
 
-    TEST(OpDo, ModEq)
+    TEST(op_do, mod_eq_)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints.append(5);
         EXPECT_EQ(obj->ints, std::vector{5});
         obj()->ints[0] %= 2;
         EXPECT_EQ(obj->ints, std::vector{1});
     }
 
-    TEST(OpDo, XorEq)
+    TEST(op_do, xor_eq_)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints.append(0b01);
         EXPECT_EQ(obj->ints, std::vector{0b01});
         obj()->ints[0] ^= 0b11;
         EXPECT_EQ(obj->ints, std::vector{0b10});
     }
 
-    TEST(OpDo, AndEq)
+    TEST(op_do, and_eq_)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints.append(0b101);
         EXPECT_EQ(obj->ints, std::vector{0b101});
         obj()->ints[0] &= 0b011;
         EXPECT_EQ(obj->ints, std::vector{0b001});
     }
 
-    TEST(OpDo, OrEq)
+    TEST(op_do, or_eq_)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints.append(0b00);
         EXPECT_EQ(obj->ints, std::vector{0b00});
         obj()->ints[0] |= 0b11;
         EXPECT_EQ(obj->ints, std::vector{0b11});
     }
 
-    TEST(OpDo, Append)
+    TEST(op_do, append)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         obj()->ints.append(12);
         EXPECT_EQ(std::vector{12}, obj->ints);
@@ -879,18 +948,18 @@ namespace EditorCumulative
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpDo, AppendN)
+    TEST(op_do, append_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         auto values = std::vector{12, 13};
         obj()->ints.append(values);
         EXPECT_EQ(values, obj->ints);
     }
 
-    TEST(OpDo, Insert)
+    TEST(op_do, insert)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         obj()->ints = std::vector{0, 1, 2, 3, 4};
         obj()->ints.insert(4, 11);
@@ -901,9 +970,9 @@ namespace EditorCumulative
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpDo, InsertN)
+    TEST(op_do, insert_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         obj()->ints = std::vector{0, 1, 2, 3, 4};
         obj()->ints.insert(2, std::vector{11, 12, 13});
@@ -911,9 +980,9 @@ namespace EditorCumulative
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpDo, Remove)
+    TEST(op_do, remove)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         const auto values = std::vector{0, 11, 22, 33, 44};
         obj()->ints = values;
@@ -923,9 +992,9 @@ namespace EditorCumulative
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpDo, RemoveN)
+    TEST(op_do, remove_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         auto values = std::vector{0, 11, 22, 33, 44};
         obj()->ints = values;
@@ -935,22 +1004,22 @@ namespace EditorCumulative
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpDo, RemoveL)
+    TEST(op_do, remove_l)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         auto values = std::vector{0, 11, 22, 33, 44};
         obj()->ints = values;
         EXPECT_EQ(values, obj->ints);
         obj()->ints.select(std::vector<std::size_t>{1, 3});
-        obj()->ints.removeSelection();
+        obj()->ints.remove_selection();
         auto expected = std::vector{0, 22, 44};
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpDo, Sort)
+    TEST(op_do, sort)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         auto values = std::vector{1, 9, 2, 8, 3, 7, 11, 5, 6, 4, 22};
         obj()->ints = values;
@@ -960,617 +1029,617 @@ namespace EditorCumulative
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpDo, SortDesc)
+    TEST(op_do, sort_desc)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         auto values = std::vector{1, 9, 2, 8, 3, 7, 11, 5, 6, 4, 22};
         obj()->ints = values;
         EXPECT_EQ(values, obj->ints);
-        obj()->ints.sortDesc();
+        obj()->ints.sort_desc();
         const auto expected = std::vector{22, 11, 9, 8, 7, 6, 5, 4, 3, 2, 1};
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpDo, Swap)
+    TEST(op_do, swap)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.swap(0, 8);
         auto expected = std::vector{88, 11, 22, 33, 44, 55, 66, 77, 0};
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpDo, MoveUp)
+    TEST(op_do, move_up)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveUp(4);
+        obj()->ints.move_up(4);
         auto expected = std::vector{0, 11, 22, 44, 33, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj()->ints.moveUp(0);
+        obj()->ints.move_up(0);
         EXPECT_EQ(expected, obj->ints);
-        obj()->ints.moveUp(8);
+        obj()->ints.move_up(8);
         expected = std::vector{0, 11, 22, 44, 33, 55, 66, 88, 77};
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpDo, MoveUpN)
+    TEST(op_do, move_up_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveUp(std::vector<std::size_t>{3, 4, 6});
+        obj()->ints.move_up(std::vector<std::size_t>{3, 4, 6});
         auto expected = std::vector{0, 11, 33, 44, 22, 66, 55, 77, 88};
         EXPECT_EQ(expected, obj->ints);
 
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveUp(std::vector<std::size_t>{6, 4, 3});
+        obj()->ints.move_up(std::vector<std::size_t>{6, 4, 3});
         EXPECT_EQ(expected, obj->ints);
 
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveUp(std::vector<std::size_t>{0, 8});
+        obj()->ints.move_up(std::vector<std::size_t>{0, 8});
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 88, 77};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveUp(std::vector<std::size_t>{0, 1});
+        obj()->ints.move_up(std::vector<std::size_t>{0, 1});
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveUp(std::vector<std::size_t>{1, 0});
+        obj()->ints.move_up(std::vector<std::size_t>{1, 0});
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpDo, MoveUpL)
+    TEST(op_do, move_up_l)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{3, 4, 6});
-        obj()->ints.moveSelectionsUp();
+        obj()->ints.move_selections_up();
         auto expected = std::vector{0, 11, 33, 44, 22, 66, 55, 77, 88};
         EXPECT_EQ(expected, obj->ints);
 
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{6, 4, 3});
-        obj()->ints.moveSelectionsUp();
+        obj()->ints.move_selections_up();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{0, 8});
-        obj()->ints.moveSelectionsUp();
+        obj()->ints.move_selections_up();
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 88, 77};
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{0, 1});
-        obj()->ints.moveSelectionsUp();
+        obj()->ints.move_selections_up();
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{1, 0});
-        obj()->ints.moveSelectionsUp();
+        obj()->ints.move_selections_up();
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpDo, MoveTop)
+    TEST(op_do, move_top)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTop(4);
+        obj()->ints.move_top(4);
         auto expected = std::vector{44, 0, 11, 22, 33, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTop(0);
+        obj()->ints.move_top(0);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
 
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTop(8);
+        obj()->ints.move_top(8);
         expected = std::vector{88, 0, 11, 22, 33, 44, 55, 66, 77};
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpDo, MoveTopN)
+    TEST(op_do, move_top_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTop(std::vector<std::size_t>{0, 2, 4, 5, 7});
+        obj()->ints.move_top(std::vector<std::size_t>{0, 2, 4, 5, 7});
         auto expected = std::vector{0, 22, 44, 55, 77, 11, 33, 66, 88};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTop(std::vector<std::size_t>{0, 8});
+        obj()->ints.move_top(std::vector<std::size_t>{0, 8});
         expected = std::vector{0, 88, 11, 22, 33, 44, 55, 66, 77};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTop(std::vector<std::size_t>{8, 0});
+        obj()->ints.move_top(std::vector<std::size_t>{8, 0});
         expected = std::vector{0, 88, 11, 22, 33, 44, 55, 66, 77};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTop(std::vector<std::size_t>{0, 1});
+        obj()->ints.move_top(std::vector<std::size_t>{0, 1});
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTop(std::vector<std::size_t>{1, 0});
+        obj()->ints.move_top(std::vector<std::size_t>{1, 0});
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpDo, MoveTopL)
+    TEST(op_do, move_top_l)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{0, 2, 4, 5, 7});
-        obj()->ints.moveSelectionsTop();
+        obj()->ints.move_selections_top();
         auto expected = std::vector{0, 22, 44, 55, 77, 11, 33, 66, 88};
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{0, 8});
-        obj()->ints.moveSelectionsTop();
+        obj()->ints.move_selections_top();
         expected = std::vector{0, 88, 11, 22, 33, 44, 55, 66, 77};
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{8, 0});
-        obj()->ints.moveSelectionsTop();
+        obj()->ints.move_selections_top();
         expected = std::vector{0, 88, 11, 22, 33, 44, 55, 66, 77};
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{0, 1});
-        obj()->ints.moveSelectionsTop();
+        obj()->ints.move_selections_top();
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{1, 0});
-        obj()->ints.moveSelectionsTop();
+        obj()->ints.move_selections_top();
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpDo, MoveDown)
+    TEST(op_do, move_down)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveDown(4);
+        obj()->ints.move_down(4);
         auto expected = std::vector{0, 11, 22, 33, 55, 44, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
 
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveDown(0);
+        obj()->ints.move_down(0);
         expected = std::vector{11, 0, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
 
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveDown(8);
+        obj()->ints.move_down(8);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpDo, MoveDownN)
+    TEST(op_do, move_down_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveDown(std::vector<std::size_t>{3, 4, 6});
+        obj()->ints.move_down(std::vector<std::size_t>{3, 4, 6});
         auto expected = std::vector{0, 11, 22, 55, 33, 44, 77, 66, 88};
         EXPECT_EQ(expected, obj->ints);
 
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveDown(std::vector<std::size_t>{6, 4, 3});
+        obj()->ints.move_down(std::vector<std::size_t>{6, 4, 3});
         EXPECT_EQ(expected, obj->ints);
 
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveDown(std::vector<std::size_t>{0, 8});
+        obj()->ints.move_down(std::vector<std::size_t>{0, 8});
         expected = std::vector{11, 0, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveDown(std::vector<std::size_t>{7, 8});
+        obj()->ints.move_down(std::vector<std::size_t>{7, 8});
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveDown(std::vector<std::size_t>{8, 7});
+        obj()->ints.move_down(std::vector<std::size_t>{8, 7});
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpDo, MoveDownL)
+    TEST(op_do, move_down_l)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{3, 4, 6});
-        obj()->ints.moveSelectionsDown();
+        obj()->ints.move_selections_down();
         auto expected = std::vector{0, 11, 22, 55, 33, 44, 77, 66, 88};
         EXPECT_EQ(expected, obj->ints);
 
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{6, 4, 3});
-        obj()->ints.moveSelectionsDown();
+        obj()->ints.move_selections_down();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{0, 8});
-        obj()->ints.moveSelectionsDown();
+        obj()->ints.move_selections_down();
         expected = std::vector{11, 0, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{7, 8});
-        obj()->ints.moveSelectionsDown();
+        obj()->ints.move_selections_down();
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{8, 7});
-        obj()->ints.moveSelectionsDown();
+        obj()->ints.move_selections_down();
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpDo, MoveBottom)
+    TEST(op_do, move_bottom)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveBottom(4);
+        obj()->ints.move_bottom(4);
         auto expected = std::vector{0, 11, 22, 33, 55, 66, 77, 88, 44};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveBottom(0);
+        obj()->ints.move_bottom(0);
         expected = std::vector{11, 22, 33, 44, 55, 66, 77, 88, 0};
         EXPECT_EQ(expected, obj->ints);
 
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveBottom(8);
+        obj()->ints.move_bottom(8);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpDo, MoveBottomN)
+    TEST(op_do, move_bottom_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveBottom(std::vector<std::size_t>{0, 2, 4, 5, 7});
+        obj()->ints.move_bottom(std::vector<std::size_t>{0, 2, 4, 5, 7});
         auto expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveBottom(std::vector<std::size_t>{0, 8});
+        obj()->ints.move_bottom(std::vector<std::size_t>{0, 8});
         expected = std::vector{11, 22, 33, 44, 55, 66, 77, 0, 88};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveBottom(std::vector<std::size_t>{8, 0});
+        obj()->ints.move_bottom(std::vector<std::size_t>{8, 0});
         expected = std::vector{11, 22, 33, 44, 55, 66, 77, 0, 88};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveBottom(std::vector<std::size_t>{7, 8});
+        obj()->ints.move_bottom(std::vector<std::size_t>{7, 8});
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveBottom(std::vector<std::size_t>{8, 7});
+        obj()->ints.move_bottom(std::vector<std::size_t>{8, 7});
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpDo, MoveBottomL)
+    TEST(op_do, move_bottom_l)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{0, 2, 4, 5, 7});
-        obj()->ints.moveSelectionsBottom();
+        obj()->ints.move_selections_bottom();
         auto expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
         EXPECT_EQ(expected, obj->ints);
 
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{0, 8});
-        obj()->ints.moveSelectionsBottom();
+        obj()->ints.move_selections_bottom();
         expected = std::vector{11, 22, 33, 44, 55, 66, 77, 0, 88};
         EXPECT_EQ(expected, obj->ints);
 
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{8, 0});
-        obj()->ints.moveSelectionsBottom();
+        obj()->ints.move_selections_bottom();
         expected = std::vector{11, 22, 33, 44, 55, 66, 77, 0, 88};
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{7, 8});
-        obj()->ints.moveSelectionsBottom();
+        obj()->ints.move_selections_bottom();
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{8, 7});
-        obj()->ints.moveSelectionsBottom();
+        obj()->ints.move_selections_bottom();
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpDo, MoveTo)
+    TEST(op_do, move_to)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTo(4, 6);
+        obj()->ints.move_to(4, 6);
         auto expected = std::vector{0, 11, 22, 33, 55, 66, 44, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTo(0, 0);
+        obj()->ints.move_to(0, 0);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTo(8, 8);
+        obj()->ints.move_to(8, 8);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTo(0, 1);
+        obj()->ints.move_to(0, 1);
         expected = std::vector{11, 0, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTo(1, 0);
+        obj()->ints.move_to(1, 0);
         expected = std::vector{11, 0, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTo(8, 7);
+        obj()->ints.move_to(8, 7);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 88, 77};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTo(7, 8);
+        obj()->ints.move_to(7, 8);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 88, 77};
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpDo, MoveToN)
+    TEST(op_do, move_to_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 2, 4, 5, 7}, 0);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 2, 4, 5, 7}, 0);
         auto expected = std::vector{0, 22, 44, 55, 77, 11, 33, 66, 88};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 2, 4, 5, 7}, 1);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 2, 4, 5, 7}, 1);
         expected = std::vector{11, 0, 22, 44, 55, 77, 33, 66, 88};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 2, 4, 5, 7}, 2);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 2, 4, 5, 7}, 2);
         expected = std::vector{11, 33, 0, 22, 44, 55, 77, 66, 88};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 2, 4, 5, 7}, 3);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 2, 4, 5, 7}, 3);
         expected = std::vector{11, 33, 66, 0, 22, 44, 55, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 2, 4, 5, 7}, 4);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 2, 4, 5, 7}, 4);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 2, 4, 5, 7}, 5);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 2, 4, 5, 7}, 5);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 2, 4, 5, 7}, 6);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 2, 4, 5, 7}, 6);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 2, 4, 5, 7}, 7);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 2, 4, 5, 7}, 7);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 2, 4, 5, 7}, 8);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 2, 4, 5, 7}, 8);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 1}, 0);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 1}, 0);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTo(std::vector<std::size_t>{1, 0}, 0);
+        obj()->ints.move_to(std::vector<std::size_t>{1, 0}, 0);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 1, 3}, 0);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 1, 3}, 0);
         expected = std::vector{0, 11, 33, 22, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTo(std::vector<std::size_t>{3, 1, 0}, 0);
+        obj()->ints.move_to(std::vector<std::size_t>{3, 1, 0}, 0);
         expected = std::vector{0, 11, 33, 22, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTo(std::vector<std::size_t>{7, 8}, 8);
+        obj()->ints.move_to(std::vector<std::size_t>{7, 8}, 8);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTo(std::vector<std::size_t>{8, 7}, 8);
+        obj()->ints.move_to(std::vector<std::size_t>{8, 7}, 8);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTo(std::vector<std::size_t>{5, 7, 8}, 8);
+        obj()->ints.move_to(std::vector<std::size_t>{5, 7, 8}, 8);
         expected = std::vector{0, 11, 22, 33, 44, 66, 55, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        obj()->ints.moveTo(std::vector<std::size_t>{8, 7, 5}, 8);
+        obj()->ints.move_to(std::vector<std::size_t>{8, 7, 5}, 8);
         expected = std::vector{0, 11, 22, 33, 44, 66, 55, 77, 88};
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpDo, MoveToL)
+    TEST(op_do, move_to_l)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{0, 2, 4, 5, 7});
-        obj()->ints.moveSelectionsTo(0);
+        obj()->ints.move_selections_to(0);
         auto expected = std::vector{0, 22, 44, 55, 77, 11, 33, 66, 88};
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{0, 2, 4, 5, 7});
-        obj()->ints.moveSelectionsTo(1);
+        obj()->ints.move_selections_to(1);
         expected = std::vector{11, 0, 22, 44, 55, 77, 33, 66, 88};
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{0, 2, 4, 5, 7});
-        obj()->ints.moveSelectionsTo(2);
+        obj()->ints.move_selections_to(2);
         expected = std::vector{11, 33, 0, 22, 44, 55, 77, 66, 88};
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{0, 2, 4, 5, 7});
-        obj()->ints.moveSelectionsTo(3);
+        obj()->ints.move_selections_to(3);
         expected = std::vector{11, 33, 66, 0, 22, 44, 55, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{0, 2, 4, 5, 7});
-        obj()->ints.moveSelectionsTo(4);
+        obj()->ints.move_selections_to(4);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{0, 2, 4, 5, 7});
-        obj()->ints.moveSelectionsTo(5);
+        obj()->ints.move_selections_to(5);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{0, 2, 4, 5, 7});
-        obj()->ints.moveSelectionsTo(6);
+        obj()->ints.move_selections_to(6);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{0, 2, 4, 5, 7});
-        obj()->ints.moveSelectionsTo(7);
+        obj()->ints.move_selections_to(7);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{0, 2, 4, 5, 7});
-        obj()->ints.moveSelectionsTo(8);
+        obj()->ints.move_selections_to(8);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{0, 1});
-        obj()->ints.moveSelectionsTo(0);
+        obj()->ints.move_selections_to(0);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{1, 0});
-        obj()->ints.moveSelectionsTo(0);
+        obj()->ints.move_selections_to(0);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{0, 1, 3});
-        obj()->ints.moveSelectionsTo(0);
+        obj()->ints.move_selections_to(0);
         expected = std::vector{0, 11, 33, 22, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{3, 1, 0});
-        obj()->ints.moveSelectionsTo(0);
+        obj()->ints.move_selections_to(0);
         expected = std::vector{0, 11, 33, 22, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{7, 8});
-        obj()->ints.moveSelectionsTo(8);
+        obj()->ints.move_selections_to(8);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{8, 7});
-        obj()->ints.moveSelectionsTo(8);
+        obj()->ints.move_selections_to(8);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{5, 7, 8});
-        obj()->ints.moveSelectionsTo(8);
+        obj()->ints.move_selections_to(8);
         expected = std::vector{0, 11, 22, 33, 44, 66, 55, 77, 88};
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints.select(std::vector<std::size_t>{8, 7, 5});
-        obj()->ints.moveSelectionsTo(8);
+        obj()->ints.move_selections_to(8);
         expected = std::vector{0, 11, 22, 33, 44, 66, 55, 77, 88};
         EXPECT_EQ(expected, obj->ints);
     }
 
 
 
-    TEST(OpUndoRedo, Reset)
+    TEST(op_undo_redo, reset)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         auto values = std::vector<int>{0, 1, 2, 3, 4};
         obj()->ints = values;
@@ -1578,43 +1647,43 @@ namespace EditorCumulative
         obj()->ints.reset();
         EXPECT_EQ(0, obj->ints.size());
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(0, obj->ints.size());
     }
 
-    TEST(OpUndoRedo, Reserve)
+    TEST(op_undo_redo, reserve)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         std::size_t capacity = obj->ints.capacity();
         obj()->ints.reserve(capacity+1);
         EXPECT_EQ(capacity+1, obj->ints.capacity());
 
-        obj.undoAction(); // Undo is a trim/shrink_to_fit
+        obj.undo_action(); // Undo is a trim/shrink_to_fit
         EXPECT_EQ(0, obj->ints.capacity());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(capacity+1, obj->ints.capacity());
     }
 
-    TEST(OpUndoRedo, Trim)
+    TEST(op_undo_redo, trim)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         std::size_t capacity = obj->ints.capacity();
         obj()->ints.reserve(capacity+1);
         EXPECT_EQ(capacity+1, obj->ints.capacity());
         obj()->ints.trim();
         EXPECT_EQ(0, obj->ints.capacity());
 
-        obj.undoAction(); // Undo is a no-op
+        obj.undo_action(); // Undo is a no-op
         EXPECT_EQ(0, obj->ints.capacity());
-        obj.redoAction(); // Trimming again after a no-op undo results in no change
+        obj.redo_action(); // Trimming again after a no-op undo results in no change
         EXPECT_EQ(0, obj->ints.capacity());
     }
 
-    TEST(OpUndoRedo, Assign)
+    TEST(op_undo_redo, assign)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector<int>{3, 4, 5};
         EXPECT_EQ(3, obj->ints.size());
         obj()->ints.assign(5, 3);
@@ -1622,78 +1691,78 @@ namespace EditorCumulative
         for ( auto i : obj->ints )
             EXPECT_EQ(3, i);
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(3, obj->ints.size());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(5, obj->ints.size());
         for ( auto i : obj->ints )
             EXPECT_EQ(3, i);
     }
 
-    TEST(OpUndoRedo, AssignDefault)
+    TEST(op_undo_redo, assign_default)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
-        obj()->ints.assignDefault(10);
+        obj()->ints.assign_default(10);
         EXPECT_EQ(10, obj->ints.size());
         
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(0, obj->ints.size());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(10, obj->ints.size());
     }
 
-    TEST(OpUndoRedo, ClearSelection)
+    TEST(op_undo_redo, clear_selection)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 1};
         EXPECT_EQ(2, obj->ints.size());
         EXPECT_EQ(0, obj.view.ints.sel().size());
         obj()->ints.select(1);
         EXPECT_EQ(std::vector<std::size_t>{1}, obj.view.ints.sel());
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         EXPECT_EQ(0, obj.view.ints.sel().size());
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(std::vector<std::size_t>{1}, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(0, obj.view.ints.sel().size());
     }
 
-    TEST(OpUndoRedo, SelectAll)
+    TEST(op_undo_redo, select_all)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{22, 33};
         EXPECT_EQ(2, obj->ints.size());
         EXPECT_EQ(0, obj.view.ints.sel().size());
-        obj()->ints.selectAll();
+        obj()->ints.select_all();
         const auto expected = std::vector<std::size_t>{0, 1};
         EXPECT_EQ(expected, obj.view.ints.sel());
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(0, obj.view.ints.sel().size());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj.view.ints.sel());
     }
 
-    TEST(OpUndoRedo, Select)
+    TEST(op_undo_redo, select)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{22, 33};
         EXPECT_EQ(2, obj->ints.size());
         EXPECT_EQ(0, obj.view.ints.sel().size());
         obj()->ints.select(1);
         EXPECT_EQ(std::vector<std::size_t>{1}, obj.view.ints.sel());
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(0, obj.view.ints.sel().size());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(std::vector<std::size_t>{1}, obj.view.ints.sel());
     }
 
-    TEST(OpUndoRedo, SelectN)
+    TEST(op_undo_redo, select_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 1, 2, 3, 4};
         EXPECT_EQ(5, obj->ints.size());
         EXPECT_EQ(0, obj.view.ints.sel().size());
@@ -1705,15 +1774,15 @@ namespace EditorCumulative
         const auto expected = std::vector<std::size_t>{2, 4, 0, 1};
         EXPECT_EQ(expected, obj.view.ints.sel());
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj.view.ints.sel());
     }
 
-    TEST(OpUndoRedo, Deselect)
+    TEST(op_undo_redo, deselect)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 1, 2, 3, 4};
         const auto selection = std::vector<std::size_t>{2, 4, 0, 1};
         obj()->ints.select(selection);
@@ -1723,15 +1792,15 @@ namespace EditorCumulative
         const auto expected = std::vector<std::size_t>{2, 0, 1};
         EXPECT_EQ(expected, obj.view.ints.sel());
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj.view.ints.sel());
     }
 
-    TEST(OpUndoRedo, DeselectN)
+    TEST(op_undo_redo, deselect_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 1, 2, 3, 4};
         const auto selection = std::vector<std::size_t>{2, 4, 0, 1};
         obj()->ints.select(selection);
@@ -1741,102 +1810,102 @@ namespace EditorCumulative
         const auto expected = std::vector<std::size_t>{0, 1};
         EXPECT_EQ(expected, obj.view.ints.sel());
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj.view.ints.sel());
     }
 
-    TEST(OpUndoRedo, ToggleSelection)
+    TEST(op_undo_redo, toggle_selection)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 1, 2, 3, 4};
         EXPECT_EQ(5, obj->ints.size());
-        obj()->ints.toggleSelected(2);
-        obj()->ints.toggleSelected(4);
-        obj()->ints.toggleSelected(0);
-        obj()->ints.toggleSelected(3);
+        obj()->ints.toggle_selected(2);
+        obj()->ints.toggle_selected(4);
+        obj()->ints.toggle_selected(0);
+        obj()->ints.toggle_selected(3);
         EXPECT_EQ(4, obj.view.ints.sel().size());
         auto expected = std::vector<std::size_t>{2, 4, 0, 3};
         EXPECT_EQ(expected, obj.view.ints.sel());
-        obj()->ints.toggleSelected(4);
-        obj()->ints.toggleSelected(2);
+        obj()->ints.toggle_selected(4);
+        obj()->ints.toggle_selected(2);
         EXPECT_EQ(2, obj.view.ints.sel().size());
         expected = {0, 3};
         EXPECT_EQ(expected, obj.view.ints.sel());
         
-        obj.undoAction();
-        obj.undoAction();
+        obj.undo_action();
+        obj.undo_action();
         expected = std::vector<std::size_t>{2, 4, 0, 3};
         EXPECT_EQ(expected, obj.view.ints.sel());
-        obj.redoAction();
-        obj.redoAction();
+        obj.redo_action();
+        obj.redo_action();
         expected = std::vector<std::size_t>{0, 3};
         EXPECT_EQ(expected, obj.view.ints.sel());
     }
 
-    TEST(OpUndoRedo, ToggleSelectionN)
+    TEST(op_undo_redo, toggle_selection_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 1, 2, 3, 4};
         EXPECT_EQ(5, obj->ints.size());
-        obj()->ints.toggleSelected(std::vector<std::size_t>{2, 4, 0, 3});
+        obj()->ints.toggle_selected(std::vector<std::size_t>{2, 4, 0, 3});
         EXPECT_EQ(4, obj.view.ints.sel().size());
         auto expected = std::vector<std::size_t>{2, 4, 0, 3};
         EXPECT_EQ(expected, obj.view.ints.sel());
-        obj()->ints.toggleSelected(std::vector<std::size_t>{4, 2});
+        obj()->ints.toggle_selected(std::vector<std::size_t>{4, 2});
         EXPECT_EQ(2, obj.view.ints.sel().size());
         expected = {0, 3};
         EXPECT_EQ(expected, obj.view.ints.sel());
 
-        obj.undoAction();
+        obj.undo_action();
         expected = std::vector<std::size_t>{2, 4, 0, 3};
         EXPECT_EQ(expected, obj.view.ints.sel());
 
-        obj.redoAction();
+        obj.redo_action();
         expected = std::vector<std::size_t>{0, 3};
         EXPECT_EQ(expected, obj.view.ints.sel());
     }
 
-    TEST(OpUndoRedo, SortSelections)
+    TEST(op_undo_redo, sort_selections)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 1, 2, 3, 4};
         EXPECT_EQ(5, obj->ints.size());
         auto selection = std::vector<std::size_t>{2, 4, 0, 3};
         obj()->ints.select(selection);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj()->ints.sortSelection();
+        obj()->ints.sort_selection();
         const auto expected = std::vector<std::size_t>{0, 2, 3, 4};
         EXPECT_EQ(expected, obj.view.ints.sel());
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj.view.ints.sel());
     }
 
-    TEST(OpUndoRedo, SortSelectionsDesc)
+    TEST(op_undo_redo, sort_selections_desc)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints = std::vector{0, 1, 2, 3, 4};
         EXPECT_EQ(5, obj->ints.size());
         auto selection = std::vector<std::size_t>{2, 4, 0, 3};
         obj()->ints.select(selection);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj()->ints.sortSelectionDescending();
+        obj()->ints.sort_selection_descending();
         const auto expected = std::vector<std::size_t>{4, 3, 2, 0};
         EXPECT_EQ(expected, obj.view.ints.sel());
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj.view.ints.sel());
     }
 
-    TEST(OpUndoRedo, Set)
+    TEST(op_undo_redo, set)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         const auto values = std::vector{0, 1, 2, 3, 4};
         obj()->ints = values;
@@ -1845,15 +1914,15 @@ namespace EditorCumulative
         const auto expected = std::vector{0, 1, 22, 3, 4};
         EXPECT_EQ(expected, obj->ints);
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpUndoRedo, SetN)
+    TEST(op_undo_redo, set_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         const auto values = std::vector{0, 1, 2, 3, 4, 5};
         obj()->ints = values;
@@ -1862,15 +1931,15 @@ namespace EditorCumulative
         const auto expected = std::vector{0, 33, 2, 33, 4, 33};
         EXPECT_EQ(expected, obj->ints);
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpUndoRedo, SetL)
+    TEST(op_undo_redo, set_l)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         const auto values = std::vector{0, 1, 2, 3, 4, 5};
         obj()->ints = values;
@@ -1880,127 +1949,127 @@ namespace EditorCumulative
         const auto expected = std::vector{0, 33, 2, 33, 4, 33};
         EXPECT_EQ(expected, obj->ints);
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
     }
     
-    TEST(OpUndoRedo, PlusEq)
+    TEST(op_undo_redo, plus_eq_)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints.append(2);
         EXPECT_EQ(obj->ints, std::vector{2});
         obj()->ints[0] += 3;
         EXPECT_EQ(obj->ints, std::vector{5});
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(obj->ints, std::vector{2});
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(obj->ints, std::vector{5});
     }
 
-    TEST(OpUndoRedo, MinusEq)
+    TEST(op_undo_redo, minus_eq_)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints.append(7);
         EXPECT_EQ(obj->ints, std::vector{7});
         obj()->ints[0] -= 2;
         EXPECT_EQ(obj->ints, std::vector{5});
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(obj->ints, std::vector{7});
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(obj->ints, std::vector{5});
     }
 
-    TEST(OpUndoRedo, MultEq)
+    TEST(op_undo_redo, mult_eq_)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints.append(2);
         EXPECT_EQ(obj->ints, std::vector{2});
         obj()->ints[0] *= 2;
         EXPECT_EQ(obj->ints, std::vector{4});
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(obj->ints, std::vector{2});
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(obj->ints, std::vector{4});
     }
 
-    TEST(OpUndoRedo, DivEq)
+    TEST(op_undo_redo, div_eq_)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints.append(4);
         EXPECT_EQ(obj->ints, std::vector{4});
         obj()->ints[0] /= 2;
         EXPECT_EQ(obj->ints, std::vector{2});
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(obj->ints, std::vector{4});
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(obj->ints, std::vector{2});
     }
 
-    TEST(OpUndoRedo, ModEq)
+    TEST(op_undo_redo, mod_eq_)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints.append(5);
         EXPECT_EQ(obj->ints, std::vector{5});
         obj()->ints[0] %= 2;
         EXPECT_EQ(obj->ints, std::vector{1});
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(obj->ints, std::vector{5});
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(obj->ints, std::vector{1});
     }
 
-    TEST(OpUndoRedo, XorEq)
+    TEST(op_undo_redo, xor_eq_)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints.append(0b01);
         EXPECT_EQ(obj->ints, std::vector{0b01});
         obj()->ints[0] ^= 0b11;
         EXPECT_EQ(obj->ints, std::vector{0b10});
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(obj->ints, std::vector{0b01});
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(obj->ints, std::vector{0b10});
     }
 
-    TEST(OpUndoRedo, AndEq)
+    TEST(op_undo_redo, and_eq_)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints.append(0b101);
         EXPECT_EQ(obj->ints, std::vector{0b101});
         obj()->ints[0] &= 0b011;
         EXPECT_EQ(obj->ints, std::vector{0b001});
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(obj->ints, std::vector{0b101});
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(obj->ints, std::vector{0b001});
     }
 
-    TEST(OpUndoRedo, OrEq)
+    TEST(op_undo_redo, or_eq_)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         obj()->ints.append(0b00);
         EXPECT_EQ(obj->ints, std::vector{0b00});
         obj()->ints[0] |= 0b11;
         EXPECT_EQ(obj->ints, std::vector{0b11});
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(obj->ints, std::vector{0b00});
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(obj->ints, std::vector{0b11});
     }
 
-    TEST(OpUndoRedo, Append)
+    TEST(op_undo_redo, append)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         obj()->ints.append(12);
         EXPECT_EQ(std::vector{12}, obj->ints);
@@ -2008,47 +2077,47 @@ namespace EditorCumulative
         auto expected = std::vector{12, 13};
         EXPECT_EQ(expected, obj->ints);
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(std::vector{12}, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpUndoRedo, AppendN)
+    TEST(op_undo_redo, append_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         auto values = std::vector{12, 13};
         obj()->ints.append(values);
         EXPECT_EQ(values, obj->ints);
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(0, obj->ints.size());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(values, obj->ints);
     }
 
-    TEST(OpUndoRedo, Insert)
+    TEST(op_undo_redo, insert)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         obj()->ints = std::vector{0, 1, 2, 3, 4};
         obj()->ints.insert(4, 11);
-        auto firstExpected = std::vector{0, 1, 2, 3, 11, 4};
-        EXPECT_EQ(firstExpected, obj->ints);
+        auto first_expected = std::vector{0, 1, 2, 3, 11, 4};
+        EXPECT_EQ(first_expected, obj->ints);
         obj()->ints.insert(1, 22);
-        auto secondExpected = std::vector{0, 22, 1, 2, 3, 11, 4};
-        EXPECT_EQ(secondExpected, obj->ints);
+        auto second_expected = std::vector{0, 22, 1, 2, 3, 11, 4};
+        EXPECT_EQ(second_expected, obj->ints);
 
-        obj.undoAction();
-        EXPECT_EQ(firstExpected, obj->ints);
-        obj.redoAction();
-        EXPECT_EQ(secondExpected, obj->ints);
+        obj.undo_action();
+        EXPECT_EQ(first_expected, obj->ints);
+        obj.redo_action();
+        EXPECT_EQ(second_expected, obj->ints);
     }
 
-    TEST(OpUndoRedo, InsertN)
+    TEST(op_undo_redo, insert_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         auto values = std::vector{0, 1, 2, 3, 4};
         obj()->ints = values;
@@ -2057,15 +2126,15 @@ namespace EditorCumulative
         auto expected = std::vector{0, 1, 11, 12, 13, 2, 3, 4};
         EXPECT_EQ(expected, obj->ints);
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpUndoRedo, Remove)
+    TEST(op_undo_redo, remove)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         const auto values = std::vector{0, 11, 22, 33, 44};
         obj()->ints = values;
@@ -2074,16 +2143,16 @@ namespace EditorCumulative
         const auto expected = std::vector{0, 11, 33, 44};
         EXPECT_EQ(expected, obj->ints);
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
 
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpUndoRedo, RemoveN)
+    TEST(op_undo_redo, remove_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         auto values = std::vector{0, 11, 22, 33, 44};
         obj()->ints = values;
@@ -2094,40 +2163,40 @@ namespace EditorCumulative
         auto expected = std::vector{11, 33};
         EXPECT_EQ(expected, obj->ints);
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
         
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         EXPECT_EQ(0, obj.view.ints.sel().size());
     }
 
-    TEST(OpUndoRedo, RemoveL)
+    TEST(op_undo_redo, remove_l)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         const auto values = std::vector{0, 11, 22, 33, 44};
         obj()->ints = values;
         EXPECT_EQ(values, obj->ints);
         const auto selection = std::vector<std::size_t>{1, 3};
         obj()->ints.select(selection);
-        obj()->ints.removeSelection();
+        obj()->ints.remove_selection();
         const auto expected = std::vector{0, 22, 44};
         EXPECT_EQ(expected, obj->ints);
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
 
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         EXPECT_EQ(0, obj.view.ints.sel().size());
     }
 
-    TEST(OpUndoRedo, Sort)
+    TEST(op_undo_redo, sort)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         auto values = std::vector{1, 9, 2, 8, 3, 7, 11, 5, 6, 4, 22};
         obj()->ints = values;
@@ -2136,32 +2205,32 @@ namespace EditorCumulative
         const auto expected = std::vector{1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 22};
         EXPECT_EQ(expected, obj->ints);
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpUndoRedo, SortDesc)
+    TEST(op_undo_redo, sort_desc)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         auto values = std::vector{1, 9, 2, 8, 3, 7, 11, 5, 6, 4, 22};
         obj()->ints = values;
         EXPECT_EQ(values, obj->ints);
-        obj()->ints.sortDesc();
+        obj()->ints.sort_desc();
         const auto expected = std::vector{22, 11, 9, 8, 7, 6, 5, 4, 3, 2, 1};
         EXPECT_EQ(expected, obj->ints);
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpUndoRedo, Swap)
+    TEST(op_undo_redo, swap)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto first = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints = first;
         EXPECT_EQ(first, obj->ints);
@@ -2170,1003 +2239,1003 @@ namespace EditorCumulative
         const auto second = std::vector{88, 11, 22, 33, 44, 55, 66, 77, 0};
         EXPECT_EQ(second, obj->ints);
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(first, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(second, obj->ints);
     }
 
-    TEST(OpUndoRedo, MoveUp)
+    TEST(op_undo_redo, move_up)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto first = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints = first;
         EXPECT_EQ(first, obj->ints);
 
-        obj()->ints.moveUp(4);
+        obj()->ints.move_up(4);
         const auto second = std::vector{0, 11, 22, 44, 33, 55, 66, 77, 88};
         EXPECT_EQ(second, obj->ints);
 
-        obj()->ints.moveUp(0);
+        obj()->ints.move_up(0);
         EXPECT_EQ(second, obj->ints);
 
-        obj()->ints.moveUp(8);
+        obj()->ints.move_up(8);
         const auto third = std::vector{0, 11, 22, 44, 33, 55, 66, 88, 77};
         EXPECT_EQ(third, obj->ints);
 
-        obj.undoAction(); // Undo moveUp(8)
+        obj.undo_action(); // Undo move_up(8)
         EXPECT_EQ(second, obj->ints);
-        obj.undoAction(); // Undo moveUp(0)
+        obj.undo_action(); // Undo move_up(0)
         EXPECT_EQ(second, obj->ints);
-        obj.undoAction(); // Undo moveUp(4)
+        obj.undo_action(); // Undo move_up(4)
         EXPECT_EQ(first, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(second, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(second, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(third, obj->ints);
     }
 
-    TEST(OpUndoRedo, MoveUpN)
+    TEST(op_undo_redo, move_up_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto values = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints = values;
-        obj()->ints.moveUp(std::vector<std::size_t>{3, 4, 6});
+        obj()->ints.move_up(std::vector<std::size_t>{3, 4, 6});
         auto expected = std::vector{0, 11, 33, 44, 22, 66, 55, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
 
         obj()->ints = values;
-        obj()->ints.moveUp(std::vector<std::size_t>{6, 4, 3});
+        obj()->ints.move_up(std::vector<std::size_t>{6, 4, 3});
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
 
         obj()->ints = values;
-        obj()->ints.moveUp(std::vector<std::size_t>{0, 8});
+        obj()->ints.move_up(std::vector<std::size_t>{0, 8});
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 88, 77};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveUp(std::vector<std::size_t>{0, 1});
+        obj()->ints.move_up(std::vector<std::size_t>{0, 1});
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveUp(std::vector<std::size_t>{1, 0});
+        obj()->ints.move_up(std::vector<std::size_t>{1, 0});
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpUndoRedo, MoveUpL)
+    TEST(op_undo_redo, move_up_l)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto values = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{3, 4, 6});
-        obj()->ints.moveSelectionsUp();
+        obj()->ints.move_selections_up();
         auto expected = std::vector{0, 11, 33, 44, 22, 66, 55, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
 
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{6, 4, 3});
-        obj()->ints.moveSelectionsUp();
+        obj()->ints.move_selections_up();
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{0, 8});
-        obj()->ints.moveSelectionsUp();
+        obj()->ints.move_selections_up();
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 88, 77};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{0, 1});
-        obj()->ints.moveSelectionsUp();
+        obj()->ints.move_selections_up();
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{1, 0});
-        obj()->ints.moveSelectionsUp();
+        obj()->ints.move_selections_up();
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpUndoRedo, MoveTop)
+    TEST(op_undo_redo, move_top)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto values = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints = values;
-        obj()->ints.moveTop(4);
+        obj()->ints.move_top(4);
         auto expected = std::vector{44, 0, 11, 22, 33, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveTop(0);
+        obj()->ints.move_top(0);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveTop(8);
+        obj()->ints.move_top(8);
         expected = std::vector{88, 0, 11, 22, 33, 44, 55, 66, 77};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpUndoRedo, MoveTopN)
+    TEST(op_undo_redo, move_top_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto values = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints = values;
-        obj()->ints.moveTop(std::vector<std::size_t>{0, 2, 4, 5, 7});
+        obj()->ints.move_top(std::vector<std::size_t>{0, 2, 4, 5, 7});
         auto expected = std::vector{0, 22, 44, 55, 77, 11, 33, 66, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveTop(std::vector<std::size_t>{0, 1, 2, 4, 5, 7});
+        obj()->ints.move_top(std::vector<std::size_t>{0, 1, 2, 4, 5, 7});
         expected = std::vector{0, 11, 22, 44, 55, 77, 33, 66, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveTop(std::vector<std::size_t>{0, 8});
+        obj()->ints.move_top(std::vector<std::size_t>{0, 8});
         expected = std::vector{0, 88, 11, 22, 33, 44, 55, 66, 77};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveTop(std::vector<std::size_t>{8, 0});
+        obj()->ints.move_top(std::vector<std::size_t>{8, 0});
         expected = std::vector{0, 88, 11, 22, 33, 44, 55, 66, 77};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveTop(std::vector<std::size_t>{0, 1});
+        obj()->ints.move_top(std::vector<std::size_t>{0, 1});
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveTop(std::vector<std::size_t>{1, 0});
+        obj()->ints.move_top(std::vector<std::size_t>{1, 0});
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpUndoRedo, MoveTopL)
+    TEST(op_undo_redo, move_top_l)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto values = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{0, 2, 4, 5, 7});
-        obj()->ints.moveSelectionsTop();
+        obj()->ints.move_selections_top();
         auto expected = std::vector{0, 22, 44, 55, 77, 11, 33, 66, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{0, 8});
-        obj()->ints.moveSelectionsTop();
+        obj()->ints.move_selections_top();
         expected = std::vector{0, 88, 11, 22, 33, 44, 55, 66, 77};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{8, 0});
-        obj()->ints.moveSelectionsTop();
+        obj()->ints.move_selections_top();
         expected = std::vector{0, 88, 11, 22, 33, 44, 55, 66, 77};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{0, 1});
-        obj()->ints.moveSelectionsTop();
+        obj()->ints.move_selections_top();
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{1, 0});
-        obj()->ints.moveSelectionsTop();
+        obj()->ints.move_selections_top();
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpUndoRedo, MoveDown)
+    TEST(op_undo_redo, move_down)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto values = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints = values;
-        obj()->ints.moveDown(4);
+        obj()->ints.move_down(4);
         auto expected = std::vector{0, 11, 22, 33, 55, 44, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveDown(0);
+        obj()->ints.move_down(0);
         expected = std::vector{11, 0, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveDown(8);
+        obj()->ints.move_down(8);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpUndoRedo, MoveDownN)
+    TEST(op_undo_redo, move_down_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto values = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints = values;
-        obj()->ints.moveDown(std::vector<std::size_t>{3, 4, 6});
+        obj()->ints.move_down(std::vector<std::size_t>{3, 4, 6});
         auto expected = std::vector{0, 11, 22, 55, 33, 44, 77, 66, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveDown(std::vector<std::size_t>{6, 4, 3});
+        obj()->ints.move_down(std::vector<std::size_t>{6, 4, 3});
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveDown(std::vector<std::size_t>{0, 8});
+        obj()->ints.move_down(std::vector<std::size_t>{0, 8});
         expected = std::vector{11, 0, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveDown(std::vector<std::size_t>{7, 8});
+        obj()->ints.move_down(std::vector<std::size_t>{7, 8});
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveDown(std::vector<std::size_t>{8, 7});
+        obj()->ints.move_down(std::vector<std::size_t>{8, 7});
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpUndoRedo, MoveDownL)
+    TEST(op_undo_redo, move_down_l)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto values = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{3, 4, 6});
-        obj()->ints.moveSelectionsDown();
+        obj()->ints.move_selections_down();
         auto expected = std::vector{0, 11, 22, 55, 33, 44, 77, 66, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
 
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{6, 4, 3});
-        obj()->ints.moveSelectionsDown();
+        obj()->ints.move_selections_down();
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{0, 8});
-        obj()->ints.moveSelectionsDown();
+        obj()->ints.move_selections_down();
         expected = std::vector{11, 0, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{7, 8});
-        obj()->ints.moveSelectionsDown();
+        obj()->ints.move_selections_down();
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{8, 7});
-        obj()->ints.moveSelectionsDown();
+        obj()->ints.move_selections_down();
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpUndoRedo, MoveBottom)
+    TEST(op_undo_redo, move_bottom)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto values = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints = values;
-        obj()->ints.moveBottom(4);
+        obj()->ints.move_bottom(4);
         auto expected = std::vector{0, 11, 22, 33, 55, 66, 77, 88, 44};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveBottom(0);
+        obj()->ints.move_bottom(0);
         expected = std::vector{11, 22, 33, 44, 55, 66, 77, 88, 0};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveBottom(8);
+        obj()->ints.move_bottom(8);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpUndoRedo, MoveBottomN)
+    TEST(op_undo_redo, move_bottom_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto values = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints = values;
-        obj()->ints.moveBottom(std::vector<std::size_t>{0, 2, 4, 5, 7});
+        obj()->ints.move_bottom(std::vector<std::size_t>{0, 2, 4, 5, 7});
         auto expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveBottom(std::vector<std::size_t>{0, 8});
+        obj()->ints.move_bottom(std::vector<std::size_t>{0, 8});
         expected = std::vector{11, 22, 33, 44, 55, 66, 77, 0, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveBottom(std::vector<std::size_t>{8, 0});
+        obj()->ints.move_bottom(std::vector<std::size_t>{8, 0});
         expected = std::vector{11, 22, 33, 44, 55, 66, 77, 0, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveBottom(std::vector<std::size_t>{7, 8});
+        obj()->ints.move_bottom(std::vector<std::size_t>{7, 8});
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveBottom(std::vector<std::size_t>{8, 7});
+        obj()->ints.move_bottom(std::vector<std::size_t>{8, 7});
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpUndoRedo, MoveBottomL)
+    TEST(op_undo_redo, move_bottom_l)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto values = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{0, 2, 4, 5, 7});
-        obj()->ints.moveSelectionsBottom();
+        obj()->ints.move_selections_bottom();
         auto expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
 
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{0, 8});
-        obj()->ints.moveSelectionsBottom();
+        obj()->ints.move_selections_bottom();
         expected = std::vector{11, 22, 33, 44, 55, 66, 77, 0, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
 
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{8, 0});
-        obj()->ints.moveSelectionsBottom();
+        obj()->ints.move_selections_bottom();
         expected = std::vector{11, 22, 33, 44, 55, 66, 77, 0, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{7, 8});
-        obj()->ints.moveSelectionsBottom();
+        obj()->ints.move_selections_bottom();
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{8, 7});
-        obj()->ints.moveSelectionsBottom();
+        obj()->ints.move_selections_bottom();
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpUndoRedo, MoveTo)
+    TEST(op_undo_redo, move_to)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto values = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints = values;
-        obj()->ints.moveTo(4, 6);
+        obj()->ints.move_to(4, 6);
         auto expected = std::vector{0, 11, 22, 33, 55, 66, 44, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveTo(0, 0);
+        obj()->ints.move_to(0, 0);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveTo(8, 8);
+        obj()->ints.move_to(8, 8);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveTo(0, 1);
+        obj()->ints.move_to(0, 1);
         expected = std::vector{11, 0, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveTo(1, 0);
+        obj()->ints.move_to(1, 0);
         expected = std::vector{11, 0, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveTo(8, 7);
+        obj()->ints.move_to(8, 7);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 88, 77};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveTo(7, 8);
+        obj()->ints.move_to(7, 8);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 88, 77};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpUndoRedo, MoveToN)
+    TEST(op_undo_redo, move_to_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto values = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints = values;
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 2, 4, 5, 7}, 0);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 2, 4, 5, 7}, 0);
         auto expected = std::vector{0, 22, 44, 55, 77, 11, 33, 66, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 2, 4, 5, 7}, 1);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 2, 4, 5, 7}, 1);
         expected = std::vector{11, 0, 22, 44, 55, 77, 33, 66, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 2, 4, 5, 7}, 2);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 2, 4, 5, 7}, 2);
         expected = std::vector{11, 33, 0, 22, 44, 55, 77, 66, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 2, 4, 5, 7}, 3);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 2, 4, 5, 7}, 3);
         expected = std::vector{11, 33, 66, 0, 22, 44, 55, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 2, 4, 5, 7}, 4);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 2, 4, 5, 7}, 4);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 2, 4, 5, 7}, 5);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 2, 4, 5, 7}, 5);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 2, 4, 5, 7}, 6);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 2, 4, 5, 7}, 6);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 2, 4, 5, 7}, 7);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 2, 4, 5, 7}, 7);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 2, 4, 5, 7}, 8);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 2, 4, 5, 7}, 8);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 1}, 0);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 1}, 0);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveTo(std::vector<std::size_t>{1, 0}, 0);
+        obj()->ints.move_to(std::vector<std::size_t>{1, 0}, 0);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 1, 3}, 0);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 1, 3}, 0);
         expected = std::vector{0, 11, 33, 22, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveTo(std::vector<std::size_t>{3, 1, 0}, 0);
+        obj()->ints.move_to(std::vector<std::size_t>{3, 1, 0}, 0);
         expected = std::vector{0, 11, 33, 22, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveTo(std::vector<std::size_t>{7, 8}, 8);
+        obj()->ints.move_to(std::vector<std::size_t>{7, 8}, 8);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveTo(std::vector<std::size_t>{8, 7}, 8);
+        obj()->ints.move_to(std::vector<std::size_t>{8, 7}, 8);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveTo(std::vector<std::size_t>{5, 7, 8}, 8);
+        obj()->ints.move_to(std::vector<std::size_t>{5, 7, 8}, 8);
         expected = std::vector{0, 11, 22, 33, 44, 66, 55, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
         obj()->ints = values;
-        obj()->ints.moveTo(std::vector<std::size_t>{8, 7, 5}, 8);
+        obj()->ints.move_to(std::vector<std::size_t>{8, 7, 5}, 8);
         expected = std::vector{0, 11, 22, 33, 44, 66, 55, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
     }
 
-    TEST(OpUndoRedo, MoveToL)
+    TEST(op_undo_redo, move_to_l)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto values = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{0, 2, 4, 5, 7});
-        obj()->ints.moveSelectionsTo(0);
+        obj()->ints.move_selections_to(0);
         auto expected = std::vector{0, 22, 44, 55, 77, 11, 33, 66, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{0, 2, 4, 5, 7});
-        obj()->ints.moveSelectionsTo(1);
+        obj()->ints.move_selections_to(1);
         expected = std::vector{11, 0, 22, 44, 55, 77, 33, 66, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{0, 2, 4, 5, 7});
-        obj()->ints.moveSelectionsTo(2);
+        obj()->ints.move_selections_to(2);
         expected = std::vector{11, 33, 0, 22, 44, 55, 77, 66, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{0, 2, 4, 5, 7});
-        obj()->ints.moveSelectionsTo(3);
+        obj()->ints.move_selections_to(3);
         expected = std::vector{11, 33, 66, 0, 22, 44, 55, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{0, 2, 4, 5, 7});
-        obj()->ints.moveSelectionsTo(4);
+        obj()->ints.move_selections_to(4);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{0, 2, 4, 5, 7});
-        obj()->ints.moveSelectionsTo(5);
+        obj()->ints.move_selections_to(5);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{0, 2, 4, 5, 7});
-        obj()->ints.moveSelectionsTo(6);
+        obj()->ints.move_selections_to(6);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{0, 2, 4, 5, 7});
-        obj()->ints.moveSelectionsTo(7);
+        obj()->ints.move_selections_to(7);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{0, 2, 4, 5, 7});
-        obj()->ints.moveSelectionsTo(8);
+        obj()->ints.move_selections_to(8);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{0, 1});
-        obj()->ints.moveSelectionsTo(0);
+        obj()->ints.move_selections_to(0);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{1, 0});
-        obj()->ints.moveSelectionsTo(0);
+        obj()->ints.move_selections_to(0);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{0, 1, 3});
-        obj()->ints.moveSelectionsTo(0);
+        obj()->ints.move_selections_to(0);
         expected = std::vector{0, 11, 33, 22, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{3, 1, 0});
-        obj()->ints.moveSelectionsTo(0);
+        obj()->ints.move_selections_to(0);
         expected = std::vector{0, 11, 33, 22, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{7, 8});
-        obj()->ints.moveSelectionsTo(8);
+        obj()->ints.move_selections_to(8);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{8, 7});
-        obj()->ints.moveSelectionsTo(8);
+        obj()->ints.move_selections_to(8);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{5, 7, 8});
-        obj()->ints.moveSelectionsTo(8);
+        obj()->ints.move_selections_to(8);
         expected = std::vector{0, 11, 22, 33, 44, 66, 55, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         obj()->ints.select(std::vector<std::size_t>{8, 7, 5});
-        obj()->ints.moveSelectionsTo(8);
+        obj()->ints.move_selections_to(8);
         expected = std::vector{0, 11, 22, 33, 44, 66, 55, 77, 88};
         EXPECT_EQ(expected, obj->ints);
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
     }
 
 
 
-    TEST(OpSelSync, Reset)
+    TEST(op_sel_sync, reset)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         auto values = std::vector<int>{0, 1, 2, 3, 4};
         obj()->ints = values;
@@ -3177,17 +3246,17 @@ namespace EditorCumulative
         EXPECT_EQ(0, obj->ints.size());
         EXPECT_EQ(0, obj.view.ints.sel().size());
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(0, obj->ints.size());
         EXPECT_EQ(0, obj.view.ints.sel().size());
     }
 
-    TEST(OpSelSync, Assign)
+    TEST(op_sel_sync, assign)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         const auto values = std::vector{0, 1, 2, 3, 4};
         obj()->ints = values;
@@ -3199,39 +3268,39 @@ namespace EditorCumulative
             EXPECT_EQ(3, i);
         EXPECT_EQ(0, obj.view.ints.sel().size());
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(5, obj->ints.size());
         for ( auto i : obj->ints )
             EXPECT_EQ(3, i);
         EXPECT_EQ(0, obj.view.ints.sel().size());
     }
 
-    TEST(OpSelSync, AssignDefault)
+    TEST(op_sel_sync, assign_default)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         const auto values = std::vector{0, 1, 2, 3, 4};
         obj()->ints = values;
         auto selections = std::vector<std::size_t>{2, 4, 0};
         obj()->ints.select(selections);
-        obj()->ints.assignDefault(10);
+        obj()->ints.assign_default(10);
         EXPECT_EQ(10, obj->ints.size());
         EXPECT_EQ(0, obj.view.ints.sel().size());
         
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(10, obj->ints.size());
         EXPECT_EQ(0, obj.view.ints.sel().size());
     }
 
-    TEST(OpSelSync, Set)
+    TEST(op_sel_sync, set)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         const auto values = std::vector{0, 1, 2, 3, 4};
         obj()->ints = values;
@@ -3239,48 +3308,48 @@ namespace EditorCumulative
         obj()->ints.select(selections);
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        const auto newValues = std::vector{0, 1, 2, 3};
-        obj()->ints = newValues;
-        EXPECT_EQ(newValues, obj->ints);
+        const auto new_values = std::vector{0, 1, 2, 3};
+        obj()->ints = new_values;
+        EXPECT_EQ(new_values, obj->ints);
         EXPECT_EQ(0, obj.view.ints.sel().size());
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
-        EXPECT_EQ(newValues, obj->ints);
+        obj.redo_action();
+        EXPECT_EQ(new_values, obj->ints);
         EXPECT_EQ(0, obj.view.ints.sel().size());
     }
 
-    TEST(OpSelSync, Insert)
+    TEST(op_sel_sync, insert)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         obj()->ints = std::vector{0, 1, 2, 3, 4};
         const auto selection = std::vector<std::size_t>{0, 3, 4};
         obj()->ints.select(selection);
         obj()->ints.insert(4, 11);
-        const auto firstExpected = std::vector{0, 1, 2, 3, 11, 4};
-        const auto firstExpectedSelection = std::vector<std::size_t>{0, 3, 5};
-        EXPECT_EQ(firstExpected, obj->ints);
-        EXPECT_EQ(firstExpectedSelection, obj.view.ints.sel());
+        const auto first_expected = std::vector{0, 1, 2, 3, 11, 4};
+        const auto first_expected_selection = std::vector<std::size_t>{0, 3, 5};
+        EXPECT_EQ(first_expected, obj->ints);
+        EXPECT_EQ(first_expected_selection, obj.view.ints.sel());
         obj()->ints.insert(1, 22);
-        const auto secondExpected = std::vector{0, 22, 1, 2, 3, 11, 4};
-        const auto secondExpectedSelection = std::vector<std::size_t>{0, 4, 6};
-        EXPECT_EQ(secondExpected, obj->ints);
-        EXPECT_EQ(secondExpectedSelection, obj.view.ints.sel());
+        const auto second_expected = std::vector{0, 22, 1, 2, 3, 11, 4};
+        const auto second_expected_selection = std::vector<std::size_t>{0, 4, 6};
+        EXPECT_EQ(second_expected, obj->ints);
+        EXPECT_EQ(second_expected_selection, obj.view.ints.sel());
 
-        obj.undoAction();
-        EXPECT_EQ(firstExpected, obj->ints);
-        EXPECT_EQ(firstExpectedSelection, obj.view.ints.sel());
-        obj.redoAction();
-        EXPECT_EQ(secondExpected, obj->ints);
-        EXPECT_EQ(secondExpectedSelection, obj.view.ints.sel());
+        obj.undo_action();
+        EXPECT_EQ(first_expected, obj->ints);
+        EXPECT_EQ(first_expected_selection, obj.view.ints.sel());
+        obj.redo_action();
+        EXPECT_EQ(second_expected, obj->ints);
+        EXPECT_EQ(second_expected_selection, obj.view.ints.sel());
     }
 
-    TEST(OpSelSync, InsertN)
+    TEST(op_sel_sync, insert_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         auto values = std::vector{0, 1, 2, 3, 4};
         obj()->ints = values;
@@ -3290,21 +3359,21 @@ namespace EditorCumulative
         EXPECT_EQ(selection, obj.view.ints.sel());
         obj()->ints.insert(2, std::vector{11, 12, 13});
         auto expected = std::vector{0, 1, 11, 12, 13, 2, 3, 4};
-        auto expectedSelection = std::vector<std::size_t>{0, 5, 7};
+        auto expected_selection = std::vector<std::size_t>{0, 5, 7};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSelection, obj.view.ints.sel());
+        EXPECT_EQ(expected_selection, obj.view.ints.sel());
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSelection, obj.view.ints.sel());
+        EXPECT_EQ(expected_selection, obj.view.ints.sel());
     }
 
-    TEST(OpSelSync, Remove)
+    TEST(op_sel_sync, remove)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         const auto values = std::vector{0, 11, 22, 33, 44};
         obj()->ints = values;
@@ -3314,22 +3383,22 @@ namespace EditorCumulative
         EXPECT_EQ(selection, obj.view.ints.sel());
         obj()->ints.remove(2);
         const auto expected = std::vector{0, 11, 33, 44};
-        auto expectedSelection = std::vector<std::size_t>{0, 3};
+        auto expected_selection = std::vector<std::size_t>{0, 3};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSelection, obj.view.ints.sel());
+        EXPECT_EQ(expected_selection, obj.view.ints.sel());
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
 
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSelection, obj.view.ints.sel());
+        EXPECT_EQ(expected_selection, obj.view.ints.sel());
     }
 
-    TEST(OpSelSync, RemoveN)
+    TEST(op_sel_sync, remove_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         auto values = std::vector{0, 11, 22, 33, 44};
         obj()->ints = values;
@@ -3338,44 +3407,44 @@ namespace EditorCumulative
         obj()->ints.select(selection);
         obj()->ints.remove(std::vector{0, 2, 4});
         auto expected = std::vector{11, 33};
-        const auto expectedSelection = std::vector<std::size_t>{1};
+        const auto expected_selection = std::vector<std::size_t>{1};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSelection, obj.view.ints.sel());
+        EXPECT_EQ(expected_selection, obj.view.ints.sel());
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
         
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSelection, obj.view.ints.sel());
+        EXPECT_EQ(expected_selection, obj.view.ints.sel());
     }
 
-    TEST(OpSelSync, RemoveL)
+    TEST(op_sel_sync, remove_l)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         const auto values = std::vector{0, 11, 22, 33, 44};
         obj()->ints = values;
         EXPECT_EQ(values, obj->ints);
         const auto selection = std::vector<std::size_t>{1, 3};
         obj()->ints.select(selection);
-        obj()->ints.removeSelection();
+        obj()->ints.remove_selection();
         const auto expected = std::vector{0, 22, 44};
         EXPECT_EQ(expected, obj->ints);
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
 
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
         EXPECT_EQ(0, obj.view.ints.sel().size());
     }
 
-    TEST(OpSelSync, Sort)
+    TEST(op_sel_sync, sort)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         auto values = std::vector{1, 9, 2, 8, 3, 7, 11, 5, 6, 4, 22};
         obj()->ints = values;
@@ -3384,1824 +3453,1824 @@ namespace EditorCumulative
         EXPECT_EQ(values, obj->ints);
         obj()->ints.sort();
         const auto expected = std::vector{1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 22};
-        const auto expectedSel = std::vector<std::size_t>{0, 1, 2};
+        const auto expected_sel = std::vector<std::size_t>{0, 1, 2};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
 
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
     }
 
-    TEST(OpSelSync, SortDesc)
+    TEST(op_sel_sync, sort_desc)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         EXPECT_EQ(0, obj->ints.size());
         auto values = std::vector{1, 9, 2, 8, 3, 7, 11, 5, 6, 4, 22};
         obj()->ints = values;
         auto selection = std::vector<std::size_t>{0, 2, 4};
         obj()->ints.select(selection);
         EXPECT_EQ(values, obj->ints);
-        obj()->ints.sortDesc();
+        obj()->ints.sort_desc();
         const auto expected = std::vector{22, 11, 9, 8, 7, 6, 5, 4, 3, 2, 1};
-        const auto expectedSel = std::vector<std::size_t>{8, 9, 10};
+        const auto expected_sel = std::vector<std::size_t>{8, 9, 10};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
     }
 
-    TEST(OpSelSync, Swap)
+    TEST(op_sel_sync, swap)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto first = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        const auto firstSel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
+        const auto first_sel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         obj()->ints = first;
-        obj()->ints.select(firstSel);
+        obj()->ints.select(first_sel);
         EXPECT_EQ(first, obj->ints);
-        EXPECT_EQ(firstSel, obj.view.ints.sel());
+        EXPECT_EQ(first_sel, obj.view.ints.sel());
 
         obj()->ints.swap(0, 8);
         const auto second = std::vector{88, 11, 22, 33, 44, 55, 66, 77, 0};
-        const auto secondSel = std::vector<std::size_t>{8, 1, 3, 4, 7, 0};
+        const auto second_sel = std::vector<std::size_t>{8, 1, 3, 4, 7, 0};
         EXPECT_EQ(second, obj->ints);
-        EXPECT_EQ(secondSel, obj.view.ints.sel());
+        EXPECT_EQ(second_sel, obj.view.ints.sel());
 
-        obj.undoAction();
+        obj.undo_action();
         EXPECT_EQ(first, obj->ints);
-        EXPECT_EQ(firstSel, obj.view.ints.sel());
-        obj.redoAction();
+        EXPECT_EQ(first_sel, obj.view.ints.sel());
+        obj.redo_action();
         EXPECT_EQ(second, obj->ints);
-        EXPECT_EQ(secondSel, obj.view.ints.sel());
+        EXPECT_EQ(second_sel, obj.view.ints.sel());
     }
 
-    TEST(OpSelSync, MoveUp)
+    TEST(op_sel_sync, move_up)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto first = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        const auto firstSel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
+        const auto first_sel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         obj()->ints = first;
-        obj()->ints.select(firstSel);
+        obj()->ints.select(first_sel);
         EXPECT_EQ(first, obj->ints);
-        EXPECT_EQ(firstSel, obj.view.ints.sel());
+        EXPECT_EQ(first_sel, obj.view.ints.sel());
 
-        obj()->ints.moveUp(4);
+        obj()->ints.move_up(4);
         const auto second = std::vector{0, 11, 22, 44, 33, 55, 66, 77, 88};
-        const auto secondSel = std::vector<std::size_t>{0, 1, 4, 3, 7, 8};
+        const auto second_sel = std::vector<std::size_t>{0, 1, 4, 3, 7, 8};
         EXPECT_EQ(second, obj->ints);
-        EXPECT_EQ(secondSel, obj.view.ints.sel());
+        EXPECT_EQ(second_sel, obj.view.ints.sel());
 
-        obj()->ints.moveUp(0);
+        obj()->ints.move_up(0);
         EXPECT_EQ(second, obj->ints);
-        EXPECT_EQ(secondSel, obj.view.ints.sel());
+        EXPECT_EQ(second_sel, obj.view.ints.sel());
 
-        obj()->ints.moveUp(8);
+        obj()->ints.move_up(8);
         const auto third = std::vector{0, 11, 22, 44, 33, 55, 66, 88, 77};
-        const auto thirdSel = std::vector<std::size_t>{0, 1, 4, 3, 8, 7};
+        const auto third_sel = std::vector<std::size_t>{0, 1, 4, 3, 8, 7};
         EXPECT_EQ(third, obj->ints);
-        EXPECT_EQ(thirdSel, obj.view.ints.sel());
+        EXPECT_EQ(third_sel, obj.view.ints.sel());
 
-        obj.undoAction(); // Undo moveUp(8)
+        obj.undo_action(); // Undo move_up(8)
         EXPECT_EQ(second, obj->ints);
-        EXPECT_EQ(secondSel, obj.view.ints.sel());
-        obj.undoAction(); // Undo moveUp(0)
+        EXPECT_EQ(second_sel, obj.view.ints.sel());
+        obj.undo_action(); // Undo move_up(0)
         EXPECT_EQ(second, obj->ints);
-        EXPECT_EQ(secondSel, obj.view.ints.sel());
-        obj.undoAction(); // Undo moveUp(4)
+        EXPECT_EQ(second_sel, obj.view.ints.sel());
+        obj.undo_action(); // Undo move_up(4)
         EXPECT_EQ(first, obj->ints);
-        EXPECT_EQ(firstSel, obj.view.ints.sel());
-        obj.redoAction();
+        EXPECT_EQ(first_sel, obj.view.ints.sel());
+        obj.redo_action();
         EXPECT_EQ(second, obj->ints);
-        EXPECT_EQ(secondSel, obj.view.ints.sel());
-        obj.redoAction();
+        EXPECT_EQ(second_sel, obj.view.ints.sel());
+        obj.redo_action();
         EXPECT_EQ(second, obj->ints);
-        EXPECT_EQ(secondSel, obj.view.ints.sel());
-        obj.redoAction();
+        EXPECT_EQ(second_sel, obj.view.ints.sel());
+        obj.redo_action();
         EXPECT_EQ(third, obj->ints);
-        EXPECT_EQ(thirdSel, obj.view.ints.sel());
+        EXPECT_EQ(third_sel, obj.view.ints.sel());
     }
 
-    TEST(OpSelSync, MoveUpN)
+    TEST(op_sel_sync, move_up_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto values = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         const auto selection = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         obj()->ints = values;
         obj()->ints.select(selection);
-        obj()->ints.moveUp(std::vector<std::size_t>{3, 4, 6});
+        obj()->ints.move_up(std::vector<std::size_t>{3, 4, 6});
         auto expected = std::vector{0, 11, 33, 44, 22, 66, 55, 77, 88};
-        auto expectedSel = std::vector<std::size_t>{0, 1, 2, 3, 7, 8};
+        auto expected_sel = std::vector<std::size_t>{0, 1, 2, 3, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
 
         obj()->ints = values;
         obj()->ints.select(selection);
-        obj()->ints.moveUp(std::vector<std::size_t>{6, 4, 3});
-        expectedSel = std::vector<std::size_t>{0, 1, 2, 3, 7, 8};
+        obj()->ints.move_up(std::vector<std::size_t>{6, 4, 3});
+        expected_sel = std::vector<std::size_t>{0, 1, 2, 3, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
 
         obj()->ints = values;
         obj()->ints.select(selection);
-        obj()->ints.moveUp(std::vector<std::size_t>{0, 8});
+        obj()->ints.move_up(std::vector<std::size_t>{0, 8});
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 88, 77};
-        expectedSel = std::vector<std::size_t>{0, 1, 3, 4, 8, 7};
+        expected_sel = std::vector<std::size_t>{0, 1, 3, 4, 8, 7};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selection);
-        obj()->ints.moveUp(std::vector<std::size_t>{0, 1});
+        obj()->ints.move_up(std::vector<std::size_t>{0, 1});
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
+        expected_sel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selection);
-        obj()->ints.moveUp(std::vector<std::size_t>{1, 0});
+        obj()->ints.move_up(std::vector<std::size_t>{1, 0});
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
+        expected_sel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
     }
 
-    TEST(OpSelSync, MoveUpL)
+    TEST(op_sel_sync, move_up_l)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto values = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         auto selection = std::vector<std::size_t>{3, 4, 6};
         obj()->ints = values;
         obj()->ints.select(selection);
-        obj()->ints.moveSelectionsUp();
+        obj()->ints.move_selections_up();
         auto expected = std::vector{0, 11, 33, 44, 22, 66, 55, 77, 88};
-        auto expectedSel = std::vector<std::size_t>{2, 3, 5};
+        auto expected_sel = std::vector<std::size_t>{2, 3, 5};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
 
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selection = std::vector<std::size_t>{6, 4, 3};
         obj()->ints.select(selection);
-        obj()->ints.moveSelectionsUp();
-        expectedSel = std::vector<std::size_t>{5, 3, 2};
+        obj()->ints.move_selections_up();
+        expected_sel = std::vector<std::size_t>{5, 3, 2};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selection = std::vector<std::size_t>{0, 8};
         obj()->ints.select(selection);
-        obj()->ints.moveSelectionsUp();
+        obj()->ints.move_selections_up();
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 88, 77};
-        expectedSel = std::vector<std::size_t>{0, 7};
+        expected_sel = std::vector<std::size_t>{0, 7};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selection = std::vector<std::size_t>{0, 1};
         obj()->ints.select(selection);
-        obj()->ints.moveSelectionsUp();
+        obj()->ints.move_selections_up();
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{0, 1};
+        expected_sel = std::vector<std::size_t>{0, 1};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selection = std::vector<std::size_t>{1, 0};
         obj()->ints.select(selection);
-        obj()->ints.moveSelectionsUp();
+        obj()->ints.move_selections_up();
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{1, 0};
+        expected_sel = std::vector<std::size_t>{1, 0};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
     }
 
-    TEST(OpSelSync, MoveTop)
+    TEST(op_sel_sync, move_top)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto values = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         const auto selection = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         obj()->ints = values;
         obj()->ints.select(selection);
-        obj()->ints.moveTop(4);
+        obj()->ints.move_top(4);
         auto expected = std::vector{44, 0, 11, 22, 33, 55, 66, 77, 88};
-        auto expectedSel = std::vector<std::size_t>{1, 2, 4, 0, 7, 8};
+        auto expected_sel = std::vector<std::size_t>{1, 2, 4, 0, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selection);
-        obj()->ints.moveTop(0);
+        obj()->ints.move_top(0);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
+        expected_sel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selection);
-        obj()->ints.moveTop(8);
+        obj()->ints.move_top(8);
         expected = std::vector{88, 0, 11, 22, 33, 44, 55, 66, 77};
-        expectedSel = std::vector<std::size_t>{1, 2, 4, 5, 8, 0};
+        expected_sel = std::vector<std::size_t>{1, 2, 4, 5, 8, 0};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
     }
 
-    TEST(OpSelSync, MoveTopN)
+    TEST(op_sel_sync, move_top_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto values = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         const auto selection = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         obj()->ints = values;
         obj()->ints.select(selection);
-        obj()->ints.moveTop(std::vector<std::size_t>{0, 2, 4, 5, 7});
+        obj()->ints.move_top(std::vector<std::size_t>{0, 2, 4, 5, 7});
         auto expected = std::vector{0, 22, 44, 55, 77, 11, 33, 66, 88};
-        auto expectedSel = std::vector<std::size_t>{0, 5, 6, 2, 4, 8};
+        auto expected_sel = std::vector<std::size_t>{0, 5, 6, 2, 4, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selection);
-        obj()->ints.moveTop(std::vector<std::size_t>{0, 1, 2, 4, 5, 7});
+        obj()->ints.move_top(std::vector<std::size_t>{0, 1, 2, 4, 5, 7});
         expected = std::vector{0, 11, 22, 44, 55, 77, 33, 66, 88};
-        expectedSel = std::vector<std::size_t>{0, 1, 6, 3, 5, 8};
+        expected_sel = std::vector<std::size_t>{0, 1, 6, 3, 5, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selection);
-        obj()->ints.moveTop(std::vector<std::size_t>{0, 8});
+        obj()->ints.move_top(std::vector<std::size_t>{0, 8});
         expected = std::vector{0, 88, 11, 22, 33, 44, 55, 66, 77};
-        expectedSel = std::vector<std::size_t>{0, 2, 4, 5, 8, 1};
+        expected_sel = std::vector<std::size_t>{0, 2, 4, 5, 8, 1};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selection);
-        obj()->ints.moveTop(std::vector<std::size_t>{8, 0});
+        obj()->ints.move_top(std::vector<std::size_t>{8, 0});
         expected = std::vector{0, 88, 11, 22, 33, 44, 55, 66, 77};
-        expectedSel = std::vector<std::size_t>{0, 2, 4, 5, 8, 1};
+        expected_sel = std::vector<std::size_t>{0, 2, 4, 5, 8, 1};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selection);
-        obj()->ints.moveTop(std::vector<std::size_t>{0, 1});
+        obj()->ints.move_top(std::vector<std::size_t>{0, 1});
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
+        expected_sel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selection);
-        obj()->ints.moveTop(std::vector<std::size_t>{1, 0});
+        obj()->ints.move_top(std::vector<std::size_t>{1, 0});
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
+        expected_sel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
     }
 
-    TEST(OpSelSync, MoveTopL)
+    TEST(op_sel_sync, move_top_l)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto values = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         auto selection = std::vector<std::size_t>{0, 2, 4, 5, 7};
         obj()->ints = values;
         obj()->ints.select(selection);
-        obj()->ints.moveSelectionsTop();
+        obj()->ints.move_selections_top();
         auto expected = std::vector{0, 22, 44, 55, 77, 11, 33, 66, 88};
-        auto expectedSel = std::vector<std::size_t>{0, 1, 2, 3, 4};
+        auto expected_sel = std::vector<std::size_t>{0, 1, 2, 3, 4};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selection = std::vector<std::size_t>{0, 8};
         obj()->ints.select(selection);
-        obj()->ints.moveSelectionsTop();
+        obj()->ints.move_selections_top();
         expected = std::vector{0, 88, 11, 22, 33, 44, 55, 66, 77};
-        expectedSel = std::vector<std::size_t>{0, 1};
+        expected_sel = std::vector<std::size_t>{0, 1};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selection = std::vector<std::size_t>{8, 0};
         obj()->ints.select(selection);
-        obj()->ints.moveSelectionsTop();
+        obj()->ints.move_selections_top();
         expected = std::vector{0, 88, 11, 22, 33, 44, 55, 66, 77};
-        expectedSel = std::vector<std::size_t>{1, 0};
+        expected_sel = std::vector<std::size_t>{1, 0};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selection = std::vector<std::size_t>{0, 1};
         obj()->ints.select(selection);
-        obj()->ints.moveSelectionsTop();
+        obj()->ints.move_selections_top();
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{0, 1};
+        expected_sel = std::vector<std::size_t>{0, 1};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selection = std::vector<std::size_t>{1, 0};
         obj()->ints.select(selection);
-        obj()->ints.moveSelectionsTop();
+        obj()->ints.move_selections_top();
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{1, 0};
+        expected_sel = std::vector<std::size_t>{1, 0};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
     }
 
-    TEST(OpSelSync, MoveDown)
+    TEST(op_sel_sync, move_down)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto values = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         const auto selection = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         obj()->ints = values;
         obj()->ints.select(selection);
-        obj()->ints.moveDown(4);
+        obj()->ints.move_down(4);
         auto expected = std::vector{0, 11, 22, 33, 55, 44, 66, 77, 88};
-        auto expectedSel = std::vector<std::size_t>{0, 1, 3, 5, 7, 8};
+        auto expected_sel = std::vector<std::size_t>{0, 1, 3, 5, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selection);
-        obj()->ints.moveDown(0);
+        obj()->ints.move_down(0);
         expected = std::vector{11, 0, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{1, 0, 3, 4, 7, 8};
+        expected_sel = std::vector<std::size_t>{1, 0, 3, 4, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selection);
-        obj()->ints.moveDown(8);
+        obj()->ints.move_down(8);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
+        expected_sel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
     }
 
-    TEST(OpSelSync, MoveDownN)
+    TEST(op_sel_sync, move_down_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto values = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         const auto selection = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         obj()->ints = values;
         obj()->ints.select(selection);
-        obj()->ints.moveDown(std::vector<std::size_t>{3, 4, 6});
+        obj()->ints.move_down(std::vector<std::size_t>{3, 4, 6});
         auto expected = std::vector{0, 11, 22, 55, 33, 44, 77, 66, 88};
-        auto expectedSel = std::vector<std::size_t>{0, 1, 4, 5, 6, 8};
+        auto expected_sel = std::vector<std::size_t>{0, 1, 4, 5, 6, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selection);
-        obj()->ints.moveDown(std::vector<std::size_t>{6, 4, 3});
-        expectedSel = std::vector<std::size_t>{0, 1, 4, 5, 6, 8};
+        obj()->ints.move_down(std::vector<std::size_t>{6, 4, 3});
+        expected_sel = std::vector<std::size_t>{0, 1, 4, 5, 6, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selection);
-        obj()->ints.moveDown(std::vector<std::size_t>{0, 8});
+        obj()->ints.move_down(std::vector<std::size_t>{0, 8});
         expected = std::vector{11, 0, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{1, 0, 3, 4, 7, 8};
+        expected_sel = std::vector<std::size_t>{1, 0, 3, 4, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selection);
-        obj()->ints.moveDown(std::vector<std::size_t>{7, 8});
+        obj()->ints.move_down(std::vector<std::size_t>{7, 8});
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
+        expected_sel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selection);
-        obj()->ints.moveDown(std::vector<std::size_t>{8, 7});
+        obj()->ints.move_down(std::vector<std::size_t>{8, 7});
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
+        expected_sel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
     }
 
-    TEST(OpSelSync, MoveDownL)
+    TEST(op_sel_sync, move_down_l)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto values = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints = values;
         auto selection = std::vector<std::size_t>{3, 4, 6};
         obj()->ints.select(selection);
-        obj()->ints.moveSelectionsDown();
+        obj()->ints.move_selections_down();
         auto expected = std::vector{0, 11, 22, 55, 33, 44, 77, 66, 88};
-        auto expectedSel = std::vector<std::size_t>{4, 5, 7};
+        auto expected_sel = std::vector<std::size_t>{4, 5, 7};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
 
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selection = std::vector<std::size_t>{6, 4, 3};
         obj()->ints.select(selection);
-        obj()->ints.moveSelectionsDown();
-        expectedSel = std::vector<std::size_t>{7, 5, 4};
+        obj()->ints.move_selections_down();
+        expected_sel = std::vector<std::size_t>{7, 5, 4};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selection = std::vector<std::size_t>{0, 8};
         obj()->ints.select(selection);
-        obj()->ints.moveSelectionsDown();
+        obj()->ints.move_selections_down();
         expected = std::vector{11, 0, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{1, 8};
+        expected_sel = std::vector<std::size_t>{1, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selection = std::vector<std::size_t>{7, 8};
         obj()->ints.select(selection);
-        obj()->ints.moveSelectionsDown();
+        obj()->ints.move_selections_down();
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{7, 8};
+        expected_sel = std::vector<std::size_t>{7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selection = std::vector<std::size_t>{8, 7};
         obj()->ints.select(selection);
-        obj()->ints.moveSelectionsDown();
+        obj()->ints.move_selections_down();
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{8, 7};
+        expected_sel = std::vector<std::size_t>{8, 7};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selection, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
     }
 
-    TEST(OpSelSync, MoveBottom)
+    TEST(op_sel_sync, move_bottom)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto values = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         const auto selections = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveBottom(4);
+        obj()->ints.move_bottom(4);
         auto expected = std::vector{0, 11, 22, 33, 55, 66, 77, 88, 44};
-        auto expectedSel = std::vector<std::size_t>{0, 1, 3, 8, 6, 7};
+        auto expected_sel = std::vector<std::size_t>{0, 1, 3, 8, 6, 7};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveBottom(0);
+        obj()->ints.move_bottom(0);
         expected = std::vector{11, 22, 33, 44, 55, 66, 77, 88, 0};
-        expectedSel = std::vector<std::size_t>{8, 0, 2, 3, 6, 7};
+        expected_sel = std::vector<std::size_t>{8, 0, 2, 3, 6, 7};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveBottom(8);
+        obj()->ints.move_bottom(8);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
+        expected_sel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
     }
 
-    TEST(OpSelSync, MoveBottomN)
+    TEST(op_sel_sync, move_bottom_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto values = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         const auto selections = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveBottom(std::vector<std::size_t>{0, 2, 4, 5, 7});
+        obj()->ints.move_bottom(std::vector<std::size_t>{0, 2, 4, 5, 7});
         auto expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
-        auto expectedSel = std::vector<std::size_t>{4, 0, 1, 6, 8, 3};
+        auto expected_sel = std::vector<std::size_t>{4, 0, 1, 6, 8, 3};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveBottom(std::vector<std::size_t>{0, 8});
+        obj()->ints.move_bottom(std::vector<std::size_t>{0, 8});
         expected = std::vector{11, 22, 33, 44, 55, 66, 77, 0, 88};
-        expectedSel = std::vector<std::size_t>{7, 0, 2, 3, 6, 8};
+        expected_sel = std::vector<std::size_t>{7, 0, 2, 3, 6, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveBottom(std::vector<std::size_t>{8, 0});
+        obj()->ints.move_bottom(std::vector<std::size_t>{8, 0});
         expected = std::vector{11, 22, 33, 44, 55, 66, 77, 0, 88};
-        expectedSel = std::vector<std::size_t>{7, 0, 2, 3, 6, 8};
+        expected_sel = std::vector<std::size_t>{7, 0, 2, 3, 6, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveBottom(std::vector<std::size_t>{7, 8});
+        obj()->ints.move_bottom(std::vector<std::size_t>{7, 8});
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
+        expected_sel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveBottom(std::vector<std::size_t>{8, 7});
+        obj()->ints.move_bottom(std::vector<std::size_t>{8, 7});
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
+        expected_sel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
     }
 
-    TEST(OpSelSync, MoveBottomL)
+    TEST(op_sel_sync, move_bottom_l)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto values = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints = values;
         auto selections = std::vector<std::size_t>{0, 2, 4, 5, 7};
         obj()->ints.select(selections);
-        obj()->ints.moveSelectionsBottom();
+        obj()->ints.move_selections_bottom();
         auto expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
-        auto expectedSel = std::vector<std::size_t>{4, 5, 6, 7, 8};
+        auto expected_sel = std::vector<std::size_t>{4, 5, 6, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
 
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selections = std::vector<std::size_t>{0, 8};
         obj()->ints.select(selections);
-        obj()->ints.moveSelectionsBottom();
+        obj()->ints.move_selections_bottom();
         expected = std::vector{11, 22, 33, 44, 55, 66, 77, 0, 88};
-        expectedSel = std::vector<std::size_t>{7, 8};
+        expected_sel = std::vector<std::size_t>{7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
 
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selections = std::vector<std::size_t>{8, 0};
         obj()->ints.select(selections);
-        obj()->ints.moveSelectionsBottom();
+        obj()->ints.move_selections_bottom();
         expected = std::vector{11, 22, 33, 44, 55, 66, 77, 0, 88};
-        expectedSel = std::vector<std::size_t>{8, 7};
+        expected_sel = std::vector<std::size_t>{8, 7};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selections = std::vector<std::size_t>{7, 8};
         obj()->ints.select(selections);
-        obj()->ints.moveSelectionsBottom();
+        obj()->ints.move_selections_bottom();
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{7, 8};
+        expected_sel = std::vector<std::size_t>{7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selections = std::vector<std::size_t>{8, 7};
         obj()->ints.select(selections);
-        obj()->ints.moveSelectionsBottom();
+        obj()->ints.move_selections_bottom();
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{8, 7};
+        expected_sel = std::vector<std::size_t>{8, 7};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
     }
 
-    TEST(OpSelSync, MoveTo)
+    TEST(op_sel_sync, move_to)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto values = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         const auto selections = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveTo(4, 6);
+        obj()->ints.move_to(4, 6);
         auto expected = std::vector{0, 11, 22, 33, 55, 66, 44, 77, 88};
-        auto expectedSel = std::vector<std::size_t>{0, 1, 3, 6, 7, 8};
+        auto expected_sel = std::vector<std::size_t>{0, 1, 3, 6, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveTo(0, 0);
+        obj()->ints.move_to(0, 0);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
+        expected_sel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveTo(8, 8);
+        obj()->ints.move_to(8, 8);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
+        expected_sel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveTo(0, 1);
+        obj()->ints.move_to(0, 1);
         expected = std::vector{11, 0, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{1, 0, 3, 4, 7, 8};
+        expected_sel = std::vector<std::size_t>{1, 0, 3, 4, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveTo(1, 0);
+        obj()->ints.move_to(1, 0);
         expected = std::vector{11, 0, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{1, 0, 3, 4, 7, 8};
+        expected_sel = std::vector<std::size_t>{1, 0, 3, 4, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveTo(8, 7);
+        obj()->ints.move_to(8, 7);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 88, 77};
-        expectedSel = std::vector<std::size_t>{0, 1, 3, 4, 8, 7};
+        expected_sel = std::vector<std::size_t>{0, 1, 3, 4, 8, 7};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveTo(7, 8);
+        obj()->ints.move_to(7, 8);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 88, 77};
-        expectedSel = std::vector<std::size_t>{0, 1, 3, 4, 8, 7};
+        expected_sel = std::vector<std::size_t>{0, 1, 3, 4, 8, 7};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
     }
 
-    TEST(OpSelSync, MoveToN)
+    TEST(op_sel_sync, move_to_n)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto values = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         const auto selections = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 2, 4, 5, 7}, 0);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 2, 4, 5, 7}, 0);
         auto expected = std::vector{0, 22, 44, 55, 77, 11, 33, 66, 88};
-        auto expectedSel = std::vector<std::size_t>{0, 5, 6, 2, 4, 8};
+        auto expected_sel = std::vector<std::size_t>{0, 5, 6, 2, 4, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 2, 4, 5, 7}, 1);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 2, 4, 5, 7}, 1);
         expected = std::vector{11, 0, 22, 44, 55, 77, 33, 66, 88};
-        expectedSel = std::vector<std::size_t>{1, 0, 6, 3, 5, 8};
+        expected_sel = std::vector<std::size_t>{1, 0, 6, 3, 5, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 2, 4, 5, 7}, 2);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 2, 4, 5, 7}, 2);
         expected = std::vector{11, 33, 0, 22, 44, 55, 77, 66, 88};
-        expectedSel = std::vector<std::size_t>{2, 0, 1, 4, 6, 8};
+        expected_sel = std::vector<std::size_t>{2, 0, 1, 4, 6, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 2, 4, 5, 7}, 3);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 2, 4, 5, 7}, 3);
         expected = std::vector{11, 33, 66, 0, 22, 44, 55, 77, 88};
-        expectedSel = std::vector<std::size_t>{3, 0, 1, 5, 7, 8};
+        expected_sel = std::vector<std::size_t>{3, 0, 1, 5, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 2, 4, 5, 7}, 4);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 2, 4, 5, 7}, 4);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
-        expectedSel = std::vector<std::size_t>{4, 0, 1, 6, 8, 3};
+        expected_sel = std::vector<std::size_t>{4, 0, 1, 6, 8, 3};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 2, 4, 5, 7}, 5);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 2, 4, 5, 7}, 5);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
-        expectedSel = std::vector<std::size_t>{4, 0, 1, 6, 8, 3};
+        expected_sel = std::vector<std::size_t>{4, 0, 1, 6, 8, 3};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 2, 4, 5, 7}, 6);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 2, 4, 5, 7}, 6);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
-        expectedSel = std::vector<std::size_t>{4, 0, 1, 6, 8, 3};
+        expected_sel = std::vector<std::size_t>{4, 0, 1, 6, 8, 3};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 2, 4, 5, 7}, 7);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 2, 4, 5, 7}, 7);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
-        expectedSel = std::vector<std::size_t>{4, 0, 1, 6, 8, 3};
+        expected_sel = std::vector<std::size_t>{4, 0, 1, 6, 8, 3};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 2, 4, 5, 7}, 8);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 2, 4, 5, 7}, 8);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
-        expectedSel = std::vector<std::size_t>{4, 0, 1, 6, 8, 3};
+        expected_sel = std::vector<std::size_t>{4, 0, 1, 6, 8, 3};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 1}, 0);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 1}, 0);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
+        expected_sel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveTo(std::vector<std::size_t>{1, 0}, 0);
+        obj()->ints.move_to(std::vector<std::size_t>{1, 0}, 0);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
+        expected_sel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveTo(std::vector<std::size_t>{0, 1, 3}, 0);
+        obj()->ints.move_to(std::vector<std::size_t>{0, 1, 3}, 0);
         expected = std::vector{0, 11, 33, 22, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{0, 1, 2, 4, 7, 8};
+        expected_sel = std::vector<std::size_t>{0, 1, 2, 4, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveTo(std::vector<std::size_t>{3, 1, 0}, 0);
+        obj()->ints.move_to(std::vector<std::size_t>{3, 1, 0}, 0);
         expected = std::vector{0, 11, 33, 22, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{0, 1, 2, 4, 7, 8};
+        expected_sel = std::vector<std::size_t>{0, 1, 2, 4, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveTo(std::vector<std::size_t>{7, 8}, 8);
+        obj()->ints.move_to(std::vector<std::size_t>{7, 8}, 8);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
+        expected_sel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveTo(std::vector<std::size_t>{8, 7}, 8);
+        obj()->ints.move_to(std::vector<std::size_t>{8, 7}, 8);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
+        expected_sel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveTo(std::vector<std::size_t>{5, 7, 8}, 8);
+        obj()->ints.move_to(std::vector<std::size_t>{5, 7, 8}, 8);
         expected = std::vector{0, 11, 22, 33, 44, 66, 55, 77, 88};
-        expectedSel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
+        expected_sel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
         obj()->ints = values;
         obj()->ints.select(selections);
-        obj()->ints.moveTo(std::vector<std::size_t>{8, 7, 5}, 8);
+        obj()->ints.move_to(std::vector<std::size_t>{8, 7, 5}, 8);
         expected = std::vector{0, 11, 22, 33, 44, 66, 55, 77, 88};
-        expectedSel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
+        expected_sel = std::vector<std::size_t>{0, 1, 3, 4, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
     }
 
-    TEST(OpSelSync, MoveToL)
+    TEST(op_sel_sync, move_to_l)
     {
-        TrackDoOp obj {};
+        Track_do_op obj {};
         const auto values = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
         obj()->ints = values;
         auto selections = std::vector<std::size_t>{0, 2, 4, 5, 7};
         obj()->ints.select(selections);
-        obj()->ints.moveSelectionsTo(0);
+        obj()->ints.move_selections_to(0);
         auto expected = std::vector{0, 22, 44, 55, 77, 11, 33, 66, 88};
-        auto expectedSel = std::vector<std::size_t>{0, 1, 2, 3, 4};
+        auto expected_sel = std::vector<std::size_t>{0, 1, 2, 3, 4};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selections = std::vector<std::size_t>{0, 2, 4, 5, 7};
         obj()->ints.select(selections);
-        obj()->ints.moveSelectionsTo(1);
+        obj()->ints.move_selections_to(1);
         expected = std::vector{11, 0, 22, 44, 55, 77, 33, 66, 88};
-        expectedSel = std::vector<std::size_t>{1, 2, 3, 4, 5};
+        expected_sel = std::vector<std::size_t>{1, 2, 3, 4, 5};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selections = std::vector<std::size_t>{0, 2, 4, 5, 7};
         obj()->ints.select(selections);
-        obj()->ints.moveSelectionsTo(2);
+        obj()->ints.move_selections_to(2);
         expected = std::vector{11, 33, 0, 22, 44, 55, 77, 66, 88};
-        expectedSel = std::vector<std::size_t>{2, 3, 4, 5, 6};
+        expected_sel = std::vector<std::size_t>{2, 3, 4, 5, 6};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selections = std::vector<std::size_t>{0, 2, 4, 5, 7};
         obj()->ints.select(selections);
-        obj()->ints.moveSelectionsTo(3);
+        obj()->ints.move_selections_to(3);
         expected = std::vector{11, 33, 66, 0, 22, 44, 55, 77, 88};
-        expectedSel = std::vector<std::size_t>{3, 4, 5, 6, 7};
+        expected_sel = std::vector<std::size_t>{3, 4, 5, 6, 7};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selections = std::vector<std::size_t>{0, 2, 4, 5, 7};
         obj()->ints.select(selections);
-        obj()->ints.moveSelectionsTo(4);
+        obj()->ints.move_selections_to(4);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
-        expectedSel = std::vector<std::size_t>{4, 5, 6, 7, 8};
+        expected_sel = std::vector<std::size_t>{4, 5, 6, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selections = std::vector<std::size_t>{0, 2, 4, 5, 7};
         obj()->ints.select(selections);
-        obj()->ints.moveSelectionsTo(5);
+        obj()->ints.move_selections_to(5);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
-        expectedSel = std::vector<std::size_t>{4, 5, 6, 7, 8};
+        expected_sel = std::vector<std::size_t>{4, 5, 6, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selections = std::vector<std::size_t>{0, 2, 4, 5, 7};
         obj()->ints.select(selections);
-        obj()->ints.moveSelectionsTo(6);
+        obj()->ints.move_selections_to(6);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
-        expectedSel = std::vector<std::size_t>{4, 5, 6, 7, 8};
+        expected_sel = std::vector<std::size_t>{4, 5, 6, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selections = std::vector<std::size_t>{0, 2, 4, 5, 7};
         obj()->ints.select(selections);
-        obj()->ints.moveSelectionsTo(7);
+        obj()->ints.move_selections_to(7);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
-        expectedSel = std::vector<std::size_t>{4, 5, 6, 7, 8};
+        expected_sel = std::vector<std::size_t>{4, 5, 6, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selections = std::vector<std::size_t>{0, 2, 4, 5, 7};
         obj()->ints.select(selections);
-        obj()->ints.moveSelectionsTo(8);
+        obj()->ints.move_selections_to(8);
         expected = std::vector{11, 33, 66, 88, 0, 22, 44, 55, 77};
-        expectedSel = std::vector<std::size_t>{4, 5, 6, 7, 8};
+        expected_sel = std::vector<std::size_t>{4, 5, 6, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selections = std::vector<std::size_t>{0, 1};
         obj()->ints.select(selections);
-        obj()->ints.moveSelectionsTo(0);
+        obj()->ints.move_selections_to(0);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{0, 1};
+        expected_sel = std::vector<std::size_t>{0, 1};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selections = std::vector<std::size_t>{1, 0};
         obj()->ints.select(selections);
-        obj()->ints.moveSelectionsTo(0);
+        obj()->ints.move_selections_to(0);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{1, 0};
+        expected_sel = std::vector<std::size_t>{1, 0};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selections = std::vector<std::size_t>{0, 1, 3};
         obj()->ints.select(selections);
-        obj()->ints.moveSelectionsTo(0);
+        obj()->ints.move_selections_to(0);
         expected = std::vector{0, 11, 33, 22, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{0, 1, 2};
+        expected_sel = std::vector<std::size_t>{0, 1, 2};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selections = std::vector<std::size_t>{3, 1, 0};
         obj()->ints.select(selections);
-        obj()->ints.moveSelectionsTo(0);
+        obj()->ints.move_selections_to(0);
         expected = std::vector{0, 11, 33, 22, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{2, 1, 0};
+        expected_sel = std::vector<std::size_t>{2, 1, 0};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selections = std::vector<std::size_t>{7, 8};
         obj()->ints.select(selections);
-        obj()->ints.moveSelectionsTo(8);
+        obj()->ints.move_selections_to(8);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{7, 8};
+        expected_sel = std::vector<std::size_t>{7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selections = std::vector<std::size_t>{8, 7};
         obj()->ints.select(selections);
-        obj()->ints.moveSelectionsTo(8);
+        obj()->ints.move_selections_to(8);
         expected = std::vector{0, 11, 22, 33, 44, 55, 66, 77, 88};
-        expectedSel = std::vector<std::size_t>{8, 7};
+        expected_sel = std::vector<std::size_t>{8, 7};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selections = std::vector<std::size_t>{5, 7, 8};
         obj()->ints.select(selections);
-        obj()->ints.moveSelectionsTo(8);
+        obj()->ints.move_selections_to(8);
         expected = std::vector{0, 11, 22, 33, 44, 66, 55, 77, 88};
-        expectedSel = std::vector<std::size_t>{6, 7, 8};
+        expected_sel = std::vector<std::size_t>{6, 7, 8};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
         
-        obj()->ints.clearSelections();
+        obj()->ints.clear_selections();
         obj()->ints = values;
         selections = std::vector<std::size_t>{8, 7, 5};
         obj()->ints.select(selections);
-        obj()->ints.moveSelectionsTo(8);
+        obj()->ints.move_selections_to(8);
         expected = std::vector{0, 11, 22, 33, 44, 66, 55, 77, 88};
-        expectedSel = std::vector<std::size_t>{8, 7, 6};
+        expected_sel = std::vector<std::size_t>{8, 7, 6};
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
-        obj.undoAction();
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
+        obj.undo_action();
         EXPECT_EQ(values, obj->ints);
         EXPECT_EQ(selections, obj.view.ints.sel());
-        obj.redoAction();
+        obj.redo_action();
         EXPECT_EQ(expected, obj->ints);
-        EXPECT_EQ(expectedSel, obj.view.ints.sel());
+        EXPECT_EQ(expected_sel, obj.view.ints.sel());
     }
 
-    struct MdArrayTest
+    struct Md_array_test
     {
-        int twoD[3][2] {{11, 22}, {33, 44}, {55, 66}};
-        int threeD[4][3][2] {
+        int two_d[3][2] {{11, 22}, {33, 44}, {55, 66}};
+        int three_d[4][3][2] {
             {{11, 22}, {33, 44}, {55, 66}},
             {{111, 222}, {333, 444}, {555, 666}},
             {{1111, 2222}, {3333, 4444}, {5555, 6666}},
             {{11111, 22222}, {33333, 44444}, {55555, 66666}}
         };
 
-        REFLECT(MdArrayTest, twoD, threeD)
+        REFLECT(Md_array_test, two_d, three_d)
     };
 
-    struct EditMdArrayTest : Tracked<MdArrayTest, EditMdArrayTest>
+    struct Edit_md_array_test : nf::tracked<Md_array_test, Edit_md_array_test>
     {
-        EditMdArrayTest() : Tracked{this} {}
+        Edit_md_array_test() : tracked{this} {}
     };
     
-    TEST(MdArray, Reset)
+    TEST(md_array, reset)
     {
-        EditMdArrayTest myObj {};
-        EXPECT_EQ(myObj->twoD[0][0], 11);
-        EXPECT_EQ(myObj->twoD[0][1], 22);
-        EXPECT_EQ(myObj->twoD[1][0], 33);
-        EXPECT_EQ(myObj->twoD[1][1], 44);
-        EXPECT_EQ(myObj->twoD[2][0], 55);
-        EXPECT_EQ(myObj->twoD[2][1], 66);
-        EXPECT_EQ(myObj->threeD[0][0][0], 11);
-        EXPECT_EQ(myObj->threeD[0][0][1], 22);
-        EXPECT_EQ(myObj->threeD[0][1][0], 33);
-        EXPECT_EQ(myObj->threeD[0][1][1], 44);
-        EXPECT_EQ(myObj->threeD[0][2][0], 55);
-        EXPECT_EQ(myObj->threeD[0][2][1], 66);
-        EXPECT_EQ(myObj->threeD[1][0][0], 111);
-        EXPECT_EQ(myObj->threeD[1][0][1], 222);
-        EXPECT_EQ(myObj->threeD[1][1][0], 333);
-        EXPECT_EQ(myObj->threeD[1][1][1], 444);
-        EXPECT_EQ(myObj->threeD[1][2][0], 555);
-        EXPECT_EQ(myObj->threeD[1][2][1], 666);
-        EXPECT_EQ(myObj->threeD[2][0][0], 1111);
-        EXPECT_EQ(myObj->threeD[2][0][1], 2222);
-        EXPECT_EQ(myObj->threeD[2][1][0], 3333);
-        EXPECT_EQ(myObj->threeD[2][1][1], 4444);
-        EXPECT_EQ(myObj->threeD[2][2][0], 5555);
-        EXPECT_EQ(myObj->threeD[2][2][1], 6666);
-        EXPECT_EQ(myObj->threeD[3][0][0], 11111);
-        EXPECT_EQ(myObj->threeD[3][0][1], 22222);
-        EXPECT_EQ(myObj->threeD[3][1][0], 33333);
-        EXPECT_EQ(myObj->threeD[3][1][1], 44444);
-        EXPECT_EQ(myObj->threeD[3][2][0], 55555);
-        EXPECT_EQ(myObj->threeD[3][2][1], 66666);
+        Edit_md_array_test my_obj {};
+        EXPECT_EQ(my_obj->two_d[0][0], 11);
+        EXPECT_EQ(my_obj->two_d[0][1], 22);
+        EXPECT_EQ(my_obj->two_d[1][0], 33);
+        EXPECT_EQ(my_obj->two_d[1][1], 44);
+        EXPECT_EQ(my_obj->two_d[2][0], 55);
+        EXPECT_EQ(my_obj->two_d[2][1], 66);
+        EXPECT_EQ(my_obj->three_d[0][0][0], 11);
+        EXPECT_EQ(my_obj->three_d[0][0][1], 22);
+        EXPECT_EQ(my_obj->three_d[0][1][0], 33);
+        EXPECT_EQ(my_obj->three_d[0][1][1], 44);
+        EXPECT_EQ(my_obj->three_d[0][2][0], 55);
+        EXPECT_EQ(my_obj->three_d[0][2][1], 66);
+        EXPECT_EQ(my_obj->three_d[1][0][0], 111);
+        EXPECT_EQ(my_obj->three_d[1][0][1], 222);
+        EXPECT_EQ(my_obj->three_d[1][1][0], 333);
+        EXPECT_EQ(my_obj->three_d[1][1][1], 444);
+        EXPECT_EQ(my_obj->three_d[1][2][0], 555);
+        EXPECT_EQ(my_obj->three_d[1][2][1], 666);
+        EXPECT_EQ(my_obj->three_d[2][0][0], 1111);
+        EXPECT_EQ(my_obj->three_d[2][0][1], 2222);
+        EXPECT_EQ(my_obj->three_d[2][1][0], 3333);
+        EXPECT_EQ(my_obj->three_d[2][1][1], 4444);
+        EXPECT_EQ(my_obj->three_d[2][2][0], 5555);
+        EXPECT_EQ(my_obj->three_d[2][2][1], 6666);
+        EXPECT_EQ(my_obj->three_d[3][0][0], 11111);
+        EXPECT_EQ(my_obj->three_d[3][0][1], 22222);
+        EXPECT_EQ(my_obj->three_d[3][1][0], 33333);
+        EXPECT_EQ(my_obj->three_d[3][1][1], 44444);
+        EXPECT_EQ(my_obj->three_d[3][2][0], 55555);
+        EXPECT_EQ(my_obj->three_d[3][2][1], 66666);
         
-        myObj()->twoD.reset();
-        myObj()->threeD.reset();
-        EXPECT_EQ(myObj->twoD[0][0], 0);
-        EXPECT_EQ(myObj->twoD[0][1], 0);
-        EXPECT_EQ(myObj->twoD[1][0], 0);
-        EXPECT_EQ(myObj->twoD[1][1], 0);
-        EXPECT_EQ(myObj->twoD[2][0], 0);
-        EXPECT_EQ(myObj->twoD[2][1], 0);
-        EXPECT_EQ(myObj->threeD[0][0][0], 0);
-        EXPECT_EQ(myObj->threeD[0][0][1], 0);
-        EXPECT_EQ(myObj->threeD[0][1][0], 0);
-        EXPECT_EQ(myObj->threeD[0][1][1], 0);
-        EXPECT_EQ(myObj->threeD[0][2][0], 0);
-        EXPECT_EQ(myObj->threeD[0][2][1], 0);
-        EXPECT_EQ(myObj->threeD[1][0][0], 0);
-        EXPECT_EQ(myObj->threeD[1][0][1], 0);
-        EXPECT_EQ(myObj->threeD[1][1][0], 0);
-        EXPECT_EQ(myObj->threeD[1][1][1], 0);
-        EXPECT_EQ(myObj->threeD[1][2][0], 0);
-        EXPECT_EQ(myObj->threeD[1][2][1], 0);
-        EXPECT_EQ(myObj->threeD[2][0][0], 0);
-        EXPECT_EQ(myObj->threeD[2][0][1], 0);
-        EXPECT_EQ(myObj->threeD[2][1][0], 0);
-        EXPECT_EQ(myObj->threeD[2][1][1], 0);
-        EXPECT_EQ(myObj->threeD[2][2][0], 0);
-        EXPECT_EQ(myObj->threeD[2][2][1], 0);
-        EXPECT_EQ(myObj->threeD[3][0][0], 0);
-        EXPECT_EQ(myObj->threeD[3][0][1], 0);
-        EXPECT_EQ(myObj->threeD[3][1][0], 0);
-        EXPECT_EQ(myObj->threeD[3][1][1], 0);
-        EXPECT_EQ(myObj->threeD[3][2][0], 0);
-        EXPECT_EQ(myObj->threeD[3][2][1], 0);
+        my_obj()->two_d.reset();
+        my_obj()->three_d.reset();
+        EXPECT_EQ(my_obj->two_d[0][0], 0);
+        EXPECT_EQ(my_obj->two_d[0][1], 0);
+        EXPECT_EQ(my_obj->two_d[1][0], 0);
+        EXPECT_EQ(my_obj->two_d[1][1], 0);
+        EXPECT_EQ(my_obj->two_d[2][0], 0);
+        EXPECT_EQ(my_obj->two_d[2][1], 0);
+        EXPECT_EQ(my_obj->three_d[0][0][0], 0);
+        EXPECT_EQ(my_obj->three_d[0][0][1], 0);
+        EXPECT_EQ(my_obj->three_d[0][1][0], 0);
+        EXPECT_EQ(my_obj->three_d[0][1][1], 0);
+        EXPECT_EQ(my_obj->three_d[0][2][0], 0);
+        EXPECT_EQ(my_obj->three_d[0][2][1], 0);
+        EXPECT_EQ(my_obj->three_d[1][0][0], 0);
+        EXPECT_EQ(my_obj->three_d[1][0][1], 0);
+        EXPECT_EQ(my_obj->three_d[1][1][0], 0);
+        EXPECT_EQ(my_obj->three_d[1][1][1], 0);
+        EXPECT_EQ(my_obj->three_d[1][2][0], 0);
+        EXPECT_EQ(my_obj->three_d[1][2][1], 0);
+        EXPECT_EQ(my_obj->three_d[2][0][0], 0);
+        EXPECT_EQ(my_obj->three_d[2][0][1], 0);
+        EXPECT_EQ(my_obj->three_d[2][1][0], 0);
+        EXPECT_EQ(my_obj->three_d[2][1][1], 0);
+        EXPECT_EQ(my_obj->three_d[2][2][0], 0);
+        EXPECT_EQ(my_obj->three_d[2][2][1], 0);
+        EXPECT_EQ(my_obj->three_d[3][0][0], 0);
+        EXPECT_EQ(my_obj->three_d[3][0][1], 0);
+        EXPECT_EQ(my_obj->three_d[3][1][0], 0);
+        EXPECT_EQ(my_obj->three_d[3][1][1], 0);
+        EXPECT_EQ(my_obj->three_d[3][2][0], 0);
+        EXPECT_EQ(my_obj->three_d[3][2][1], 0);
 
-        myObj.undoAction();
-        myObj.undoAction();
-        EXPECT_EQ(myObj->twoD[0][0], 11);
-        EXPECT_EQ(myObj->twoD[0][1], 22);
-        EXPECT_EQ(myObj->twoD[1][0], 33);
-        EXPECT_EQ(myObj->twoD[1][1], 44);
-        EXPECT_EQ(myObj->twoD[2][0], 55);
-        EXPECT_EQ(myObj->twoD[2][1], 66);
-        EXPECT_EQ(myObj->threeD[0][0][0], 11);
-        EXPECT_EQ(myObj->threeD[0][0][1], 22);
-        EXPECT_EQ(myObj->threeD[0][1][0], 33);
-        EXPECT_EQ(myObj->threeD[0][1][1], 44);
-        EXPECT_EQ(myObj->threeD[0][2][0], 55);
-        EXPECT_EQ(myObj->threeD[0][2][1], 66);
-        EXPECT_EQ(myObj->threeD[1][0][0], 111);
-        EXPECT_EQ(myObj->threeD[1][0][1], 222);
-        EXPECT_EQ(myObj->threeD[1][1][0], 333);
-        EXPECT_EQ(myObj->threeD[1][1][1], 444);
-        EXPECT_EQ(myObj->threeD[1][2][0], 555);
-        EXPECT_EQ(myObj->threeD[1][2][1], 666);
-        EXPECT_EQ(myObj->threeD[2][0][0], 1111);
-        EXPECT_EQ(myObj->threeD[2][0][1], 2222);
-        EXPECT_EQ(myObj->threeD[2][1][0], 3333);
-        EXPECT_EQ(myObj->threeD[2][1][1], 4444);
-        EXPECT_EQ(myObj->threeD[2][2][0], 5555);
-        EXPECT_EQ(myObj->threeD[2][2][1], 6666);
-        EXPECT_EQ(myObj->threeD[3][0][0], 11111);
-        EXPECT_EQ(myObj->threeD[3][0][1], 22222);
-        EXPECT_EQ(myObj->threeD[3][1][0], 33333);
-        EXPECT_EQ(myObj->threeD[3][1][1], 44444);
-        EXPECT_EQ(myObj->threeD[3][2][0], 55555);
-        EXPECT_EQ(myObj->threeD[3][2][1], 66666);
+        my_obj.undo_action();
+        my_obj.undo_action();
+        EXPECT_EQ(my_obj->two_d[0][0], 11);
+        EXPECT_EQ(my_obj->two_d[0][1], 22);
+        EXPECT_EQ(my_obj->two_d[1][0], 33);
+        EXPECT_EQ(my_obj->two_d[1][1], 44);
+        EXPECT_EQ(my_obj->two_d[2][0], 55);
+        EXPECT_EQ(my_obj->two_d[2][1], 66);
+        EXPECT_EQ(my_obj->three_d[0][0][0], 11);
+        EXPECT_EQ(my_obj->three_d[0][0][1], 22);
+        EXPECT_EQ(my_obj->three_d[0][1][0], 33);
+        EXPECT_EQ(my_obj->three_d[0][1][1], 44);
+        EXPECT_EQ(my_obj->three_d[0][2][0], 55);
+        EXPECT_EQ(my_obj->three_d[0][2][1], 66);
+        EXPECT_EQ(my_obj->three_d[1][0][0], 111);
+        EXPECT_EQ(my_obj->three_d[1][0][1], 222);
+        EXPECT_EQ(my_obj->three_d[1][1][0], 333);
+        EXPECT_EQ(my_obj->three_d[1][1][1], 444);
+        EXPECT_EQ(my_obj->three_d[1][2][0], 555);
+        EXPECT_EQ(my_obj->three_d[1][2][1], 666);
+        EXPECT_EQ(my_obj->three_d[2][0][0], 1111);
+        EXPECT_EQ(my_obj->three_d[2][0][1], 2222);
+        EXPECT_EQ(my_obj->three_d[2][1][0], 3333);
+        EXPECT_EQ(my_obj->three_d[2][1][1], 4444);
+        EXPECT_EQ(my_obj->three_d[2][2][0], 5555);
+        EXPECT_EQ(my_obj->three_d[2][2][1], 6666);
+        EXPECT_EQ(my_obj->three_d[3][0][0], 11111);
+        EXPECT_EQ(my_obj->three_d[3][0][1], 22222);
+        EXPECT_EQ(my_obj->three_d[3][1][0], 33333);
+        EXPECT_EQ(my_obj->three_d[3][1][1], 44444);
+        EXPECT_EQ(my_obj->three_d[3][2][0], 55555);
+        EXPECT_EQ(my_obj->three_d[3][2][1], 66666);
 
-        myObj.redoAction();
-        myObj.redoAction();
-        EXPECT_EQ(myObj->twoD[0][0], 0);
-        EXPECT_EQ(myObj->twoD[0][1], 0);
-        EXPECT_EQ(myObj->twoD[1][0], 0);
-        EXPECT_EQ(myObj->twoD[1][1], 0);
-        EXPECT_EQ(myObj->twoD[2][0], 0);
-        EXPECT_EQ(myObj->twoD[2][1], 0);
-        EXPECT_EQ(myObj->threeD[0][0][0], 0);
-        EXPECT_EQ(myObj->threeD[0][0][1], 0);
-        EXPECT_EQ(myObj->threeD[0][1][0], 0);
-        EXPECT_EQ(myObj->threeD[0][1][1], 0);
-        EXPECT_EQ(myObj->threeD[0][2][0], 0);
-        EXPECT_EQ(myObj->threeD[0][2][1], 0);
-        EXPECT_EQ(myObj->threeD[1][0][0], 0);
-        EXPECT_EQ(myObj->threeD[1][0][1], 0);
-        EXPECT_EQ(myObj->threeD[1][1][0], 0);
-        EXPECT_EQ(myObj->threeD[1][1][1], 0);
-        EXPECT_EQ(myObj->threeD[1][2][0], 0);
-        EXPECT_EQ(myObj->threeD[1][2][1], 0);
-        EXPECT_EQ(myObj->threeD[2][0][0], 0);
-        EXPECT_EQ(myObj->threeD[2][0][1], 0);
-        EXPECT_EQ(myObj->threeD[2][1][0], 0);
-        EXPECT_EQ(myObj->threeD[2][1][1], 0);
-        EXPECT_EQ(myObj->threeD[2][2][0], 0);
-        EXPECT_EQ(myObj->threeD[2][2][1], 0);
-        EXPECT_EQ(myObj->threeD[3][0][0], 0);
-        EXPECT_EQ(myObj->threeD[3][0][1], 0);
-        EXPECT_EQ(myObj->threeD[3][1][0], 0);
-        EXPECT_EQ(myObj->threeD[3][1][1], 0);
-        EXPECT_EQ(myObj->threeD[3][2][0], 0);
-        EXPECT_EQ(myObj->threeD[3][2][1], 0);
+        my_obj.redo_action();
+        my_obj.redo_action();
+        EXPECT_EQ(my_obj->two_d[0][0], 0);
+        EXPECT_EQ(my_obj->two_d[0][1], 0);
+        EXPECT_EQ(my_obj->two_d[1][0], 0);
+        EXPECT_EQ(my_obj->two_d[1][1], 0);
+        EXPECT_EQ(my_obj->two_d[2][0], 0);
+        EXPECT_EQ(my_obj->two_d[2][1], 0);
+        EXPECT_EQ(my_obj->three_d[0][0][0], 0);
+        EXPECT_EQ(my_obj->three_d[0][0][1], 0);
+        EXPECT_EQ(my_obj->three_d[0][1][0], 0);
+        EXPECT_EQ(my_obj->three_d[0][1][1], 0);
+        EXPECT_EQ(my_obj->three_d[0][2][0], 0);
+        EXPECT_EQ(my_obj->three_d[0][2][1], 0);
+        EXPECT_EQ(my_obj->three_d[1][0][0], 0);
+        EXPECT_EQ(my_obj->three_d[1][0][1], 0);
+        EXPECT_EQ(my_obj->three_d[1][1][0], 0);
+        EXPECT_EQ(my_obj->three_d[1][1][1], 0);
+        EXPECT_EQ(my_obj->three_d[1][2][0], 0);
+        EXPECT_EQ(my_obj->three_d[1][2][1], 0);
+        EXPECT_EQ(my_obj->three_d[2][0][0], 0);
+        EXPECT_EQ(my_obj->three_d[2][0][1], 0);
+        EXPECT_EQ(my_obj->three_d[2][1][0], 0);
+        EXPECT_EQ(my_obj->three_d[2][1][1], 0);
+        EXPECT_EQ(my_obj->three_d[2][2][0], 0);
+        EXPECT_EQ(my_obj->three_d[2][2][1], 0);
+        EXPECT_EQ(my_obj->three_d[3][0][0], 0);
+        EXPECT_EQ(my_obj->three_d[3][0][1], 0);
+        EXPECT_EQ(my_obj->three_d[3][1][0], 0);
+        EXPECT_EQ(my_obj->three_d[3][1][1], 0);
+        EXPECT_EQ(my_obj->three_d[3][2][0], 0);
+        EXPECT_EQ(my_obj->three_d[3][2][1], 0);
     }
 
-    TEST(MdArray, Set)
+    TEST(md_array, set)
     {
-        EditMdArrayTest myObj {};
-        EXPECT_EQ(myObj->twoD[0][0], 11);
-        EXPECT_EQ(myObj->twoD[0][1], 22);
-        EXPECT_EQ(myObj->twoD[1][0], 33);
-        EXPECT_EQ(myObj->twoD[1][1], 44);
-        EXPECT_EQ(myObj->twoD[2][0], 55);
-        EXPECT_EQ(myObj->twoD[2][1], 66);
-        EXPECT_EQ(myObj->threeD[0][0][0], 11);
-        EXPECT_EQ(myObj->threeD[0][0][1], 22);
-        EXPECT_EQ(myObj->threeD[0][1][0], 33);
-        EXPECT_EQ(myObj->threeD[0][1][1], 44);
-        EXPECT_EQ(myObj->threeD[0][2][0], 55);
-        EXPECT_EQ(myObj->threeD[0][2][1], 66);
-        EXPECT_EQ(myObj->threeD[1][0][0], 111);
-        EXPECT_EQ(myObj->threeD[1][0][1], 222);
-        EXPECT_EQ(myObj->threeD[1][1][0], 333);
-        EXPECT_EQ(myObj->threeD[1][1][1], 444);
-        EXPECT_EQ(myObj->threeD[1][2][0], 555);
-        EXPECT_EQ(myObj->threeD[1][2][1], 666);
-        EXPECT_EQ(myObj->threeD[2][0][0], 1111);
-        EXPECT_EQ(myObj->threeD[2][0][1], 2222);
-        EXPECT_EQ(myObj->threeD[2][1][0], 3333);
-        EXPECT_EQ(myObj->threeD[2][1][1], 4444);
-        EXPECT_EQ(myObj->threeD[2][2][0], 5555);
-        EXPECT_EQ(myObj->threeD[2][2][1], 6666);
-        EXPECT_EQ(myObj->threeD[3][0][0], 11111);
-        EXPECT_EQ(myObj->threeD[3][0][1], 22222);
-        EXPECT_EQ(myObj->threeD[3][1][0], 33333);
-        EXPECT_EQ(myObj->threeD[3][1][1], 44444);
-        EXPECT_EQ(myObj->threeD[3][2][0], 55555);
-        EXPECT_EQ(myObj->threeD[3][2][1], 66666);
+        Edit_md_array_test my_obj {};
+        EXPECT_EQ(my_obj->two_d[0][0], 11);
+        EXPECT_EQ(my_obj->two_d[0][1], 22);
+        EXPECT_EQ(my_obj->two_d[1][0], 33);
+        EXPECT_EQ(my_obj->two_d[1][1], 44);
+        EXPECT_EQ(my_obj->two_d[2][0], 55);
+        EXPECT_EQ(my_obj->two_d[2][1], 66);
+        EXPECT_EQ(my_obj->three_d[0][0][0], 11);
+        EXPECT_EQ(my_obj->three_d[0][0][1], 22);
+        EXPECT_EQ(my_obj->three_d[0][1][0], 33);
+        EXPECT_EQ(my_obj->three_d[0][1][1], 44);
+        EXPECT_EQ(my_obj->three_d[0][2][0], 55);
+        EXPECT_EQ(my_obj->three_d[0][2][1], 66);
+        EXPECT_EQ(my_obj->three_d[1][0][0], 111);
+        EXPECT_EQ(my_obj->three_d[1][0][1], 222);
+        EXPECT_EQ(my_obj->three_d[1][1][0], 333);
+        EXPECT_EQ(my_obj->three_d[1][1][1], 444);
+        EXPECT_EQ(my_obj->three_d[1][2][0], 555);
+        EXPECT_EQ(my_obj->three_d[1][2][1], 666);
+        EXPECT_EQ(my_obj->three_d[2][0][0], 1111);
+        EXPECT_EQ(my_obj->three_d[2][0][1], 2222);
+        EXPECT_EQ(my_obj->three_d[2][1][0], 3333);
+        EXPECT_EQ(my_obj->three_d[2][1][1], 4444);
+        EXPECT_EQ(my_obj->three_d[2][2][0], 5555);
+        EXPECT_EQ(my_obj->three_d[2][2][1], 6666);
+        EXPECT_EQ(my_obj->three_d[3][0][0], 11111);
+        EXPECT_EQ(my_obj->three_d[3][0][1], 22222);
+        EXPECT_EQ(my_obj->three_d[3][1][0], 33333);
+        EXPECT_EQ(my_obj->three_d[3][1][1], 44444);
+        EXPECT_EQ(my_obj->three_d[3][2][0], 55555);
+        EXPECT_EQ(my_obj->three_d[3][2][1], 66666);
         
-        myObj()->twoD[2][1] = 77;
-        myObj()->threeD[3][2][1] = 77777;
-        EXPECT_EQ(myObj->twoD[2][1], 77);
-        EXPECT_EQ(myObj->threeD[3][2][1], 77777);
+        my_obj()->two_d[2][1] = 77;
+        my_obj()->three_d[3][2][1] = 77777;
+        EXPECT_EQ(my_obj->two_d[2][1], 77);
+        EXPECT_EQ(my_obj->three_d[3][2][1], 77777);
 
-        myObj.undoAction();
-        myObj.undoAction();
-        EXPECT_EQ(myObj->twoD[2][1], 66);
-        EXPECT_EQ(myObj->threeD[3][2][1], 66666);
+        my_obj.undo_action();
+        my_obj.undo_action();
+        EXPECT_EQ(my_obj->two_d[2][1], 66);
+        EXPECT_EQ(my_obj->three_d[3][2][1], 66666);
 
-        myObj.redoAction();
-        myObj.redoAction();
-        EXPECT_EQ(myObj->twoD[2][1], 77);
-        EXPECT_EQ(myObj->threeD[3][2][1], 77777);
+        my_obj.redo_action();
+        my_obj.redo_action();
+        EXPECT_EQ(my_obj->two_d[2][1], 77);
+        EXPECT_EQ(my_obj->three_d[3][2][1], 77777);
     }
 
-    struct InitDataTest
+    struct Init_data_test
     {
         int a = 1;
         std::vector<int> b = {2, 3};
 
-        REFLECT(InitDataTest, a, b)
+        REFLECT(Init_data_test, a, b)
     };
 
-    struct EditInitDataTest : Tracked<InitDataTest, EditInitDataTest>
+    struct Edit_init_data_test : nf::tracked<Init_data_test, Edit_init_data_test>
     {
-        EditInitDataTest() : Tracked{this} {}
+        Edit_init_data_test() : tracked{this} {}
     };
 
-    TEST(MiscEdits, InitData)
+    TEST(misc_edits, init_data)
     {
-        EditInitDataTest myObj {};
-        EXPECT_EQ(1, myObj->a);
-        std::vector<int> expectedVec {2, 3};
-        EXPECT_EQ(expectedVec, myObj->b);
+        Edit_init_data_test my_obj {};
+        EXPECT_EQ(1, my_obj->a);
+        std::vector<int> expected_vec {2, 3};
+        EXPECT_EQ(expected_vec, my_obj->b);
 
-        myObj.initData<false>(InitDataTest {
+        my_obj.init_data<false>(Init_data_test {
             .a = 4,
             .b = {5, 6}
         });
-        EXPECT_EQ(0, myObj.getCursorIndex());
-        EXPECT_EQ(4, myObj->a);
-        expectedVec = {5, 6};
-        EXPECT_EQ(expectedVec, myObj->b);
+        EXPECT_EQ(0, my_obj.get_cursor_index());
+        EXPECT_EQ(4, my_obj->a);
+        expected_vec = {5, 6};
+        EXPECT_EQ(expected_vec, my_obj->b);
 
-        myObj.initData<true>(InitDataTest {
+        my_obj.init_data<true>(Init_data_test {
             .a = 7,
             .b = {8, 9}
         });
-        EXPECT_EQ(1, myObj.getCursorIndex());
-        EXPECT_EQ(7, myObj->a);
-        expectedVec = {8, 9};
-        EXPECT_EQ(expectedVec, myObj->b);
+        EXPECT_EQ(1, my_obj.get_cursor_index());
+        EXPECT_EQ(7, my_obj->a);
+        expected_vec = {8, 9};
+        EXPECT_EQ(expected_vec, my_obj->b);
 
-        myObj.undoAction();
-        EXPECT_EQ(0, myObj.getCursorIndex());
-        EXPECT_EQ(4, myObj->a);
-        expectedVec = {5, 6};
-        EXPECT_EQ(expectedVec, myObj->b);
+        my_obj.undo_action();
+        EXPECT_EQ(0, my_obj.get_cursor_index());
+        EXPECT_EQ(7, my_obj->a);
+        expected_vec = {8, 9};
+        EXPECT_EQ(expected_vec, my_obj->b);
 
-        myObj.redoAction();
-        EXPECT_EQ(1, myObj.getCursorIndex());
-        EXPECT_EQ(7, myObj->a);
-        expectedVec = {8, 9};
-        EXPECT_EQ(expectedVec, myObj->b);
+        my_obj.redo_action();
+        EXPECT_EQ(1, my_obj.get_cursor_index());
+        EXPECT_EQ(7, my_obj->a);
+        expected_vec = {8, 9};
+        EXPECT_EQ(expected_vec, my_obj->b);
         
-        EXPECT_ANY_THROW(myObj.initData<false>(InitDataTest{}));
-        EXPECT_ANY_THROW(myObj.initData<true>(InitDataTest{}));
+        EXPECT_ANY_THROW(my_obj.init_data<false>(Init_data_test{}));
+        EXPECT_ANY_THROW(my_obj.init_data<true>(Init_data_test{}));
 
-        myObj.clearHistory();
-        myObj.initData<true>(InitDataTest{
+        my_obj.clear_history();
+        my_obj.init_data<true>(Init_data_test{
             .a = 10,
             .b = {11, 12}
         });
-        EXPECT_EQ(1, myObj.getCursorIndex());
-        EXPECT_EQ(10, myObj->a);
-        expectedVec = {11, 12};
-        EXPECT_EQ(expectedVec, myObj->b);
+        EXPECT_EQ(1, my_obj.get_cursor_index());
+        EXPECT_EQ(10, my_obj->a);
+        expected_vec = {11, 12};
+        EXPECT_EQ(expected_vec, my_obj->b);
 
-        myObj.undoAction();
-        EXPECT_EQ(0, myObj.getCursorIndex());
-        EXPECT_EQ(7, myObj->a);
-        expectedVec = {8, 9};
-        EXPECT_EQ(expectedVec, myObj->b);
+        my_obj.undo_action();
+        EXPECT_EQ(0, my_obj.get_cursor_index());
+        EXPECT_EQ(10, my_obj->a);
+        expected_vec = {11, 12};
+        EXPECT_EQ(expected_vec, my_obj->b);
 
-        myObj.redoAction();
-        EXPECT_EQ(1, myObj.getCursorIndex());
-        EXPECT_EQ(10, myObj->a);
-        expectedVec = {11, 12};
-        EXPECT_EQ(expectedVec, myObj->b);
+        my_obj.redo_action();
+        EXPECT_EQ(1, my_obj.get_cursor_index());
+        EXPECT_EQ(10, my_obj->a);
+        expected_vec = {11, 12};
+        EXPECT_EQ(expected_vec, my_obj->b);
 
-        myObj.clearHistory();
-        myObj.initData<false>(InitDataTest{
+        my_obj.clear_history();
+        my_obj.init_data<false>(Init_data_test{
             .a = 13,
             .b = {14, 15}
         });
-        EXPECT_EQ(0, myObj.getCursorIndex());
-        EXPECT_EQ(13, myObj->a);
-        expectedVec = {14, 15};
-        EXPECT_EQ(expectedVec, myObj->b);
+        EXPECT_EQ(0, my_obj.get_cursor_index());
+        EXPECT_EQ(13, my_obj->a);
+        expected_vec = {14, 15};
+        EXPECT_EQ(expected_vec, my_obj->b);
     }
 
     struct Code_
     {
         enum uint8_t_ : std::uint8_t
         {
-            _U = 5, // Undo
-            _R = 6, // Redo
+            _u = 5, // Undo
+            _r = 6, // Redo
             _1 = 1,
             _2 = (1 << 1),
             _3 = (1 << 2),
@@ -5215,49 +5284,49 @@ namespace EditorCumulative
     {
         std::vector<Code> codes {};
         std::uint8_t result = 0;
-        std::vector<std::uint8_t> priorStates {}; // Records the value just prior to running code [i]
+        std::vector<std::uint8_t> prior_states {}; // Records the value just prior to running code [i]
         std::vector<std::uint8_t> states {}; // Records the current value after running codes up to [i]
-        std::vector<std::uint64_t> netSize {}; // Records the netSize after running codes up to [i]
-        std::vector<std::size_t> actionIndex {}; // Records the actionIndex at which code [i] starts
-        std::size_t maxActions {}; // Records the totalActions after running all codes
+        std::vector<std::uint64_t> net_size {}; // Records the net_size after running codes up to [i]
+        std::vector<std::size_t> action_index {}; // Records the action_index at which code [i] starts
+        std::size_t max_actions {}; // Records the total_actions after running all codes
     };
-    struct TrimCaseData
+    struct Trim_case_data
     {
         std::uint8_t value = 0;
 
-        REFLECT(TrimCaseData, value)
+        REFLECT(Trim_case_data, value)
     };
-    struct TrimCaseEditor : Tracked<TrimCaseData, TrimCaseEditor>
+    struct Trim_case_editor : nf::tracked<Trim_case_data, Trim_case_editor>
     {
-        TrimCaseEditor() : Tracked(this) {}
+        Trim_case_editor() : tracked(this) {}
     };
 
-    TEST(MiscEdits, TrimHistory)
+    TEST(misc_edits, trim_history)
     {
-        constexpr auto _U = Code::_U; // Undo
+        constexpr auto _u = Code::_u; // Undo
         constexpr auto _1 = Code::_1; // Bit 1
         constexpr auto _2 = Code::_2; // Bit 2
         constexpr auto _3 = Code::_3; // Bit 3
         constexpr auto _4 = Code::_4; // Bit 4
         constexpr auto _5 = Code::_5; // Bit 5
         constexpr auto _6 = Code::_6; // Bit 6
-        std::vector<Case> testCases {
+        std::vector<Case> test_cases {
             Case { .codes = {}, .result = 0 },
             Case { .codes = {_1}, .result = _1 }, // A
-            Case { .codes = {_1, _U, _2}, .result = _2 }, // AUA
+            Case { .codes = {_1, _u, _2}, .result = _2 }, // AUA
             Case { .codes = {_1, _2}, .result = _1|_2 }, // AA
-            Case { .codes = {_1, _2, _U, _3}, .result = _1|_3 }, // AAUA
-            Case { .codes = {_1, _2, _U, _3, _U, _U, _4}, .result = _4 }, // AAUAUUA
-            Case { .codes = {_1, _2, _U, _3, _U, _4}, .result = _1|_4 }, // AAUAUA
-            Case { .codes = {_1, _2, _U, _3, _U, _4, _U, _U, _5 }, .result = _5 }, // AAUAUAUUA
-            Case { .codes = {_1, _2, _U, _4, _5}, .result = _1|_4|_5 }, // AAUAA
-            Case { .codes = {_1, _2, _U, _3, _4, _U, _5}, .result = _1|_3|_5 }, // AAUAAUA
-            Case { .codes = {_1, _2, _U, _3, _4, _U, _5, _U, _U, _U, _6}, .result = _6 } // AAUAAUAUUUA
+            Case { .codes = {_1, _2, _u, _3}, .result = _1|_3 }, // AAUA
+            Case { .codes = {_1, _2, _u, _3, _u, _u, _4}, .result = _4 }, // AAUAUUA
+            Case { .codes = {_1, _2, _u, _3, _u, _4}, .result = _1|_4 }, // AAUAUA
+            Case { .codes = {_1, _2, _u, _3, _u, _4, _u, _u, _5 }, .result = _5 }, // AAUAUAUUA
+            Case { .codes = {_1, _2, _u, _4, _5}, .result = _1|_4|_5 }, // AAUAA
+            Case { .codes = {_1, _2, _u, _3, _4, _u, _5}, .result = _1|_3|_5 }, // AAUAAUA
+            Case { .codes = {_1, _2, _u, _3, _4, _u, _5, _u, _u, _u, _6}, .result = _6 } // AAUAAUAUUUA
         };
-        auto runCode = [](auto & obj, auto code) {
+        auto run_code = [](auto & obj, auto code) {
             switch ( code )
             {
-                case Code::_U: obj.undoAction(); break;
+                case Code::_u: obj.undo_action(); break;
                 case Code::_1: obj()->value |= Code::_1; break;
                 case Code::_2: obj()->value |= Code::_2; break;
                 case Code::_3: obj()->value |= Code::_3; break;
@@ -5267,210 +5336,210 @@ namespace EditorCumulative
                 default: throw std::logic_error("Unrecognized code!"); break;
             }
         };
-        auto getHistSize = [](auto & obj) -> std::uint64_t {
-            auto changeHistory = obj.renderChangeHistory(false);
-            std::uint64_t netSize = 0;
-            for ( auto & action : changeHistory )
-                netSize += static_cast<std::uint64_t>(action.byteCount);
+        auto get_hist_size = [](auto & obj) -> std::uint64_t {
+            auto change_history = obj.render_change_history(false);
+            std::uint64_t net_size = 0;
+            for ( auto & action : change_history )
+                net_size += static_cast<std::uint64_t>(action.byte_count);
 
-            return netSize;
+            return net_size;
         };
         
-        for ( auto & testCase : testCases )
+        for ( auto & test_case : test_cases )
         {
-            TrimCaseEditor myObj {};
-            for ( auto & code : testCase.codes )
+            Trim_case_editor my_obj {};
+            for ( auto & code : test_case.codes )
             {
-                testCase.priorStates.push_back(myObj->value);
-                runCode(myObj, code);
-                testCase.actionIndex.push_back(code == Code::_U ? std::numeric_limits<std::size_t>::max() : myObj.getCursorIndex()-1);
-                testCase.states.push_back(myObj->value);
-                testCase.netSize.push_back(getHistSize(myObj));
+                test_case.prior_states.push_back(my_obj->value);
+                run_code(my_obj, code);
+                test_case.action_index.push_back(code == Code::_u ? std::numeric_limits<std::size_t>::max() : my_obj.get_cursor_index()-1);
+                test_case.states.push_back(my_obj->value);
+                test_case.net_size.push_back(get_hist_size(my_obj));
             }
-            testCase.maxActions = myObj.getCursorIndex();
-            EXPECT_EQ(std::size(testCase.codes), std::size(testCase.netSize));
-            EXPECT_EQ(myObj->value, testCase.result);
+            test_case.max_actions = my_obj.get_cursor_index();
+            EXPECT_EQ(std::size(test_case.codes), std::size(test_case.net_size));
+            EXPECT_EQ(my_obj->value, test_case.result);
         }
 
-        std::size_t countValidSims = 0;
-        for ( auto & testCase : testCases )
+        std::size_t count_valid_sims = 0;
+        for ( auto & test_case : test_cases )
         {
-            auto maxActions = testCase.maxActions;
-            for ( std::size_t trimTo=0; trimTo<=maxActions; ++trimTo )
+            auto max_actions = test_case.max_actions;
+            for ( std::size_t trim_to=0; trim_to<=max_actions; ++trim_to )
             {
-                TrimCaseEditor applyTrim {};
-                TrimCaseEditor simulateTrim {};
-                auto checkApplyTrim = RareTs::whitebox((Tracked<Simple, SimpleEditor> &)applyTrim);
-                auto checkSimulateTrim = RareTs::whitebox((Tracked<Simple, SimpleEditor> &)simulateTrim);
+                Trim_case_editor apply_trim {};
+                Trim_case_editor simulate_trim {};
+                auto check_apply_trim = RareTs::whitebox((nf::tracked<Simple, Simple_editor> &)apply_trim);
+                auto check_simulate_trim = RareTs::whitebox((nf::tracked<Simple, Simple_editor> &)simulate_trim);
 
-                for ( auto & code : testCase.codes )
-                    runCode(applyTrim, code);
+                for ( auto & code : test_case.codes )
+                    run_code(apply_trim, code);
 
-                std::size_t prevActionCount = checkApplyTrim.actions.size();
-                auto trueTrimTo = applyTrim.trimHistory(trimTo);
-                if ( prevActionCount == checkApplyTrim.actions.size() )
+                std::size_t prev_action_count = check_apply_trim.actions.size();
+                auto true_trim_to = apply_trim.trim_history(trim_to);
+                if ( prev_action_count == check_apply_trim.actions.size() )
                     continue; // No change, could maybe test against prev hist state of apply trim
 
-                std::size_t firstCodeIndex = trueTrimTo == 0 ? testCase.codes.size() : 0;
-                while ( firstCodeIndex < std::size(testCase.codes) )
+                std::size_t first_code_index = true_trim_to == 0 ? test_case.codes.size() : 0;
+                while ( first_code_index < std::size(test_case.codes) )
                 {
-                    while ( testCase.actionIndex[firstCodeIndex] == std::numeric_limits<std::size_t>::max() )
-                        ++firstCodeIndex;
+                    while ( test_case.action_index[first_code_index] == std::numeric_limits<std::size_t>::max() )
+                        ++first_code_index;
 
-                    if ( testCase.actionIndex[firstCodeIndex] >= trueTrimTo )
+                    if ( test_case.action_index[first_code_index] >= true_trim_to )
                         break;
                     else
-                        ++firstCodeIndex;
+                        ++first_code_index;
                 }
 
-                if ( firstCodeIndex < testCase.codes.size() )
-                    simulateTrim.initData(TrimCaseData{testCase.priorStates[firstCodeIndex]});
-                else if ( !testCase.codes.empty() )
-                    simulateTrim.initData(TrimCaseData{testCase.states[testCase.codes.size()-1]});
+                if ( first_code_index < test_case.codes.size() )
+                    simulate_trim.init_data(Trim_case_data{test_case.prior_states[first_code_index]});
+                else if ( !test_case.codes.empty() )
+                    simulate_trim.init_data(Trim_case_data{test_case.states[test_case.codes.size()-1]});
 
                 // Run first code index and onwards
-                bool validSim = true;
-                for ( std::size_t i=firstCodeIndex; i<std::size(testCase.codes); ++i )
+                bool valid_sim = true;
+                for ( std::size_t i=first_code_index; i<std::size(test_case.codes); ++i )
                 {
-                    auto prevCursor = simulateTrim.getCursorIndex();
-                    runCode(simulateTrim, testCase.codes[i]);
-                    if ( simulateTrim.getCursorIndex() == prevCursor ) // Invalid sim: required undoing past sim hist start
+                    auto prev_cursor = simulate_trim.get_cursor_index();
+                    run_code(simulate_trim, test_case.codes[i]);
+                    if ( simulate_trim.get_cursor_index() == prev_cursor ) // Invalid sim: required undoing past sim hist start
                     {
-                        validSim = false;
+                        valid_sim = false;
                         break;
                     }
                 }
 
-                // Compare applyTrim and simulateTrim values and history states
-                if ( validSim )
+                // Compare apply_trim and simulate_trim values and history states
+                if ( valid_sim )
                 {
-                    ++countValidSims;
-                    EXPECT_EQ(applyTrim->value, simulateTrim->value);
-                    EXPECT_EQ(checkApplyTrim.pendingActionStart, checkSimulateTrim.pendingActionStart);
-                    EXPECT_EQ(checkApplyTrim.actions.size(), checkSimulateTrim.actions.size());
-                    if ( checkApplyTrim.actions.size() == checkSimulateTrim.actions.size() )
+                    ++count_valid_sims;
+                    EXPECT_EQ(apply_trim->value, simulate_trim->value);
+                    EXPECT_EQ(check_apply_trim.pending_action_start, check_simulate_trim.pending_action_start);
+                    EXPECT_EQ(check_apply_trim.actions.size(), check_simulate_trim.actions.size());
+                    if ( check_apply_trim.actions.size() == check_simulate_trim.actions.size() )
                     {
-                        for ( std::size_t i=0; i<checkApplyTrim.actions.size(); ++i )
-                            EXPECT_EQ(checkApplyTrim.actions[i].firstEventIndex, checkSimulateTrim.actions[i].firstEventIndex);
+                        for ( std::size_t i=0; i<check_apply_trim.actions.size(); ++i )
+                            EXPECT_EQ(check_apply_trim.actions[i].first_event_index, check_simulate_trim.actions[i].first_event_index);
                     }
-                    EXPECT_EQ(checkApplyTrim.actionReferenceCount, checkSimulateTrim.actionReferenceCount);
-                    EXPECT_EQ(checkApplyTrim.redoCount, checkSimulateTrim.redoCount);
-                    EXPECT_EQ(checkApplyTrim.redoSize, checkSimulateTrim.redoSize);
-                    EXPECT_EQ(checkApplyTrim.history.eventOffsets.size(), checkSimulateTrim.history.eventOffsets.size());
-                    if ( checkApplyTrim.history.eventOffsets.size() == checkSimulateTrim.history.eventOffsets.size() )
+                    EXPECT_EQ(check_apply_trim.action_reference_count, check_simulate_trim.action_reference_count);
+                    EXPECT_EQ(check_apply_trim.redo_count, check_simulate_trim.redo_count);
+                    EXPECT_EQ(check_apply_trim.redo_size, check_simulate_trim.redo_size);
+                    EXPECT_EQ(check_apply_trim.history.event_offsets.size(), check_simulate_trim.history.event_offsets.size());
+                    if ( check_apply_trim.history.event_offsets.size() == check_simulate_trim.history.event_offsets.size() )
                     {
-                        for ( std::size_t i=0; i<checkApplyTrim.history.eventOffsets.size(); ++i )
-                            EXPECT_EQ(checkApplyTrim.history.eventOffsets[i], checkSimulateTrim.history.eventOffsets[i]);
+                        for ( std::size_t i=0; i<check_apply_trim.history.event_offsets.size(); ++i )
+                            EXPECT_EQ(check_apply_trim.history.event_offsets[i], check_simulate_trim.history.event_offsets[i]);
                     }
-                    EXPECT_EQ(checkApplyTrim.history.events.size(), checkSimulateTrim.history.events.size());
-                    if ( checkApplyTrim.history.events.size() == checkSimulateTrim.history.events.size() )
+                    EXPECT_EQ(check_apply_trim.history.events.size(), check_simulate_trim.history.events.size());
+                    if ( check_apply_trim.history.events.size() == check_simulate_trim.history.events.size() )
                     {
-                        for ( std::size_t i=0; i<checkApplyTrim.history.events.size(); ++i )
-                            EXPECT_EQ(checkApplyTrim.history.events[i], checkSimulateTrim.history.events[i]);
+                        for ( std::size_t i=0; i<check_apply_trim.history.events.size(); ++i )
+                            EXPECT_EQ(check_apply_trim.history.events[i], check_simulate_trim.history.events[i]);
                     }
                 }
             }
         }
-        EXPECT_EQ(countValidSims, 23);
+        EXPECT_EQ(count_valid_sims, 23);
 
-        for ( auto & testCase : testCases )
+        for ( auto & test_case : test_cases )
         {
-            auto numCodes = testCase.codes.size();
-            auto maxActions = testCase.maxActions;
-            for ( std::size_t codeIndex=0; codeIndex<numCodes; ++codeIndex )
+            auto num_codes = test_case.codes.size();
+            auto max_actions = test_case.max_actions;
+            for ( std::size_t code_index=0; code_index<num_codes; ++code_index )
             {
-                TrimCaseEditor applyTrim {};
+                Trim_case_editor apply_trim {};
                 
-                for ( auto & code : testCase.codes )
-                    runCode(applyTrim, code);
+                for ( auto & code : test_case.codes )
+                    run_code(apply_trim, code);
 
-                auto maxSize = testCase.netSize.size() > 0 ? testCase.netSize[testCase.netSize.size()-1] : 0;
-                auto sizeTrimTo = codeIndex == 0 ? maxSize : maxSize - testCase.netSize[codeIndex-1];
-                applyTrim.trimHistoryToSize(sizeTrimTo);
-                auto newHistSize = getHistSize(applyTrim);
+                auto max_size = test_case.net_size.size() > 0 ? test_case.net_size[test_case.net_size.size()-1] : 0;
+                auto size_trim_to = code_index == 0 ? max_size : max_size - test_case.net_size[code_index-1];
+                apply_trim.trim_history_to_size(size_trim_to);
+                auto new_hist_size = get_hist_size(apply_trim);
 
-                EXPECT_TRUE(newHistSize <= maxSize);
+                EXPECT_TRUE(new_hist_size <= max_size);
 
-                // Ensure there's no possible size between newHistSize and sizeTrimTo
-                for ( std::size_t trimTo=0; trimTo<=maxActions; ++trimTo )
+                // Ensure there's no possible size between new_hist_size and size_trim_to
+                for ( std::size_t trim_to=0; trim_to<=max_actions; ++trim_to )
                 {
-                    TrimCaseEditor simulateTrim {};
+                    Trim_case_editor simulate_trim {};
                     
-                    for ( auto & code : testCase.codes )
-                        runCode(simulateTrim, code);
+                    for ( auto & code : test_case.codes )
+                        run_code(simulate_trim, code);
 
-                    simulateTrim.trimHistory(trimTo);
-                    auto simHistSize = getHistSize(simulateTrim);
+                    simulate_trim.trim_history(trim_to);
+                    auto sim_hist_size = get_hist_size(simulate_trim);
 
-                    EXPECT_FALSE(simHistSize > newHistSize && simHistSize < sizeTrimTo);
+                    EXPECT_FALSE(sim_hist_size > new_hist_size && sim_hist_size < size_trim_to);
                 }
             }
         }
     }
 
-    TEST(MiscEdits, RootAssign)
+    TEST(misc_edits, root_assign)
     {
-        EditInitDataTest myObj {};
-        EXPECT_EQ(1, myObj->a);
-        std::vector<int> expectedVec {2, 3};
-        EXPECT_EQ(expectedVec, myObj->b);
+        Edit_init_data_test my_obj {};
+        EXPECT_EQ(1, my_obj->a);
+        std::vector<int> expected_vec {2, 3};
+        EXPECT_EQ(expected_vec, my_obj->b);
 
-        myObj()->assign(InitDataTest{
+        my_obj()->assign(Init_data_test{
             .a = 4,
             .b = {5, 6}
         });
-        EXPECT_EQ(4, myObj->a);
-        expectedVec = {5, 6};
-        EXPECT_EQ(expectedVec, myObj->b);
+        EXPECT_EQ(4, my_obj->a);
+        expected_vec = {5, 6};
+        EXPECT_EQ(expected_vec, my_obj->b);
 
-        myObj.undoAction();
-        EXPECT_EQ(1, myObj->a);
-        expectedVec = {2, 3};
-        EXPECT_EQ(expectedVec, myObj->b);
+        my_obj.undo_action();
+        EXPECT_EQ(1, my_obj->a);
+        expected_vec = {2, 3};
+        EXPECT_EQ(expected_vec, my_obj->b);
 
-        myObj.redoAction();
-        EXPECT_EQ(4, myObj->a);
-        expectedVec = {5, 6};
-        EXPECT_EQ(expectedVec, myObj->b);
+        my_obj.redo_action();
+        EXPECT_EQ(4, my_obj->a);
+        expected_vec = {5, 6};
+        EXPECT_EQ(expected_vec, my_obj->b);
     }
 
-    struct OptionalTest
+    struct Optional_test
     {
         std::optional<int> a = 1;
 
-        REFLECT(OptionalTest, a)
+        REFLECT(Optional_test, a)
     };
 
-    struct EditOptionalTest : Tracked<OptionalTest, EditOptionalTest>
+    struct Edit_optional_test : nf::tracked<Optional_test, Edit_optional_test>
     {
-        EditOptionalTest() : Tracked{this} {}
+        Edit_optional_test() : tracked{this} {}
     };
 
-    TEST(MiscEdits, OptionalTest)
+    TEST(misc_edits, optional_test)
     {
-        EditOptionalTest myObj {};
-        EXPECT_EQ(myObj->a.value(), 1);
-        myObj()->a = std::nullopt;
-        EXPECT_EQ(myObj->a, std::nullopt);
-        myObj()->a = 2;
-        EXPECT_EQ(myObj->a.value(), 2);
+        Edit_optional_test my_obj {};
+        EXPECT_EQ(my_obj->a.value(), 1);
+        my_obj()->a = std::nullopt;
+        EXPECT_EQ(my_obj->a, std::nullopt);
+        my_obj()->a = 2;
+        EXPECT_EQ(my_obj->a.value(), 2);
 
-        myObj.undoAction();
-        EXPECT_EQ(myObj->a, std::nullopt);
-        myObj.undoAction();
-        EXPECT_EQ(myObj->a, 1);
+        my_obj.undo_action();
+        EXPECT_EQ(my_obj->a, std::nullopt);
+        my_obj.undo_action();
+        EXPECT_EQ(my_obj->a, 1);
 
-        myObj.redoAction();
-        EXPECT_EQ(myObj->a, std::nullopt);
-        myObj.redoAction();
-        EXPECT_EQ(myObj->a, 2);
+        my_obj.redo_action();
+        EXPECT_EQ(my_obj->a, std::nullopt);
+        my_obj.redo_action();
+        EXPECT_EQ(my_obj->a, 2);
     }
 
     struct Item
     {
-        int hitCount;
+        int hit_count;
 
-        REFLECT(Item, hitCount)
+        REFLECT(Item, hit_count)
     };
 
     struct Actor
@@ -5482,99 +5551,99 @@ namespace EditorCumulative
         REFLECT(Actor, xc, yc, items)
     };
 
-    struct MyObj
+    struct My_obj
     {
         std::vector<Actor> actors {};
 
-        REFLECT(MyObj, actors)
+        REFLECT(My_obj, actors)
     };
 
-    struct TracedObj : Tracked<MyObj, TracedObj>
+    struct Traced_obj : nf::tracked<My_obj, Traced_obj>
     {
-        struct ItemElem : TrackedElement<Item, PATH(root->actors[0].items[0])>
+        struct Item_elem : nf::tracked_element<Item, NF_PATH(root->actors[0].items[0])>
         {
-            using TrackedElement::TrackedElement;
-            void hit() { edit.hitCount = read.hitCount+1; }
+            using tracked_element::tracked_element;
+            void hit() { edit.hit_count = read.hit_count+1; }
         };
 
-        struct ActorElem : TrackedElement<Actor, PATH(root->actors[0])>
+        struct Actor_elem : nf::tracked_element<Actor, NF_PATH(root->actors[0])>
         {
-            using TrackedElement::TrackedElement;
+            using tracked_element::tracked_element;
             void act() { edit.xc = read.xc+2; }
-            auto getItemElem(std::size_t i) { return ItemElem(this, view.items[i]); }
+            auto get_item_elem(std::size_t i) { return Item_elem(this, view.items[i]); }
         };
 
-        TracedObj() : Tracked{this} {}
+        Traced_obj() : tracked{this} {}
 
-        ActorElem getActorElem(std::size_t i) {
-            return ActorElem(this, view.actors[i]);
+        Actor_elem get_actor_elem(std::size_t i) {
+            return Actor_elem(this, view.actors[i]);
         }
     };
 
-    TEST(MiscEdits, SubElemTest)
+    TEST(misc_edits, sub_elem_test)
     {
-        TracedObj myObj {};
-        myObj.initData<false>(MyObj{
+        Traced_obj my_obj {};
+        my_obj.init_data<false>(My_obj{
             .actors = {
                 Actor{.xc = 11, .yc = 33, .items = {{0}, {0}}},
                 Actor{.xc = 22, .yc = 44, .items = {{0}, {0}, {0}}}
             }
         });
         {
-            auto editActor = myObj.getActorElem(1);
-            EXPECT_EQ(myObj->actors[1].xc, 22);
-            editActor.act();
-            EXPECT_EQ(myObj->actors[1].xc, 24);
+            auto edit_actor = my_obj.get_actor_elem(1);
+            EXPECT_EQ(my_obj->actors[1].xc, 22);
+            edit_actor.act();
+            EXPECT_EQ(my_obj->actors[1].xc, 24);
 
-            auto editItem = editActor.getItemElem(2);
-            EXPECT_EQ(myObj->actors[1].items[2].hitCount, 0);
-            editItem.hit();
-            EXPECT_EQ(myObj->actors[1].items[2].hitCount, 1);
+            auto edit_item = edit_actor.get_item_elem(2);
+            EXPECT_EQ(my_obj->actors[1].items[2].hit_count, 0);
+            edit_item.hit();
+            EXPECT_EQ(my_obj->actors[1].items[2].hit_count, 1);
         }
-        myObj.undoAction();
-        EXPECT_EQ(myObj->actors[1].xc, 22);
-        EXPECT_EQ(myObj->actors[1].items[2].hitCount, 0);
+        my_obj.undo_action();
+        EXPECT_EQ(my_obj->actors[1].xc, 22);
+        EXPECT_EQ(my_obj->actors[1].items[2].hit_count, 0);
         
-        myObj.redoAction();
-        EXPECT_EQ(myObj->actors[1].xc, 24);
-        EXPECT_EQ(myObj->actors[1].items[2].hitCount, 1);
+        my_obj.redo_action();
+        EXPECT_EQ(my_obj->actors[1].xc, 24);
+        EXPECT_EQ(my_obj->actors[1].items[2].hit_count, 1);
     }
 
-    struct UserDefinedData
+    struct User_defined_data
     {
         std::string descr = "";
 
-        inline bool operator==(const UserDefinedData & other) const { return descr == other.descr; }
+        inline bool operator==(const User_defined_data & other) const { return descr == other.descr; }
     };
 
-    struct UserDefinedTest
+    struct User_defined_test
     {
         int a = 0;
 
-        REFLECT(UserDefinedTest, a)
+        REFLECT(User_defined_test, a)
     };
 
-    struct EditUserDefinedTest : Tracked<UserDefinedTest, EditUserDefinedTest, UserDefinedData>
+    struct Edit_user_defined_test : nf::tracked<User_defined_test, Edit_user_defined_test, User_defined_data>
     {
-        EditUserDefinedTest() : Tracked{this} {}
+        Edit_user_defined_test() : tracked{this} {}
     };
 
-    TEST(MiscEdits, UserDefinedActionData)
+    TEST(misc_edits, user_defined_action_data)
     {
-        EditUserDefinedTest myObj {};
+        Edit_user_defined_test my_obj {};
         {
-            auto edit = myObj.operator()({"labeled action"});
+            auto edit = my_obj.operator()({"labeled action"});
             edit->a = 1;
         }
-        RareEdit::RenderAction<UserDefinedData> renderAction {};
-        myObj.renderAction(0, renderAction, false);
-        EXPECT_STREQ(renderAction.userData.descr.c_str(), "labeled action");
+        nf::rendered_action<User_defined_data> render_action {};
+        my_obj.render_action(0, render_action, false);
+        EXPECT_STREQ(render_action.user_data.descr.c_str(), "labeled action");
         {
-            auto edit = myObj.operator()({"another action"});
+            auto edit = my_obj.operator()({"another action"});
             edit->a = 2;
         }
-        myObj.renderAction(1, renderAction, false);
-        EXPECT_STREQ(renderAction.userData.descr.c_str(), "another action");
+        my_obj.render_action(1, render_action, false);
+        EXPECT_STREQ(render_action.user_data.descr.c_str(), "another action");
     }
 
 }
