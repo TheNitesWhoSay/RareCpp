@@ -473,7 +473,7 @@ namespace nf_hist
     };
 
     template <class Input>
-    using make_path = path_tagged_keys<typename Input::keys, typename Input::path, typename Input::editor_type>;
+    using make_path = path_tagged_keys<typename Input::nf_keys, typename Input::nf_path, typename Input::nf_editor_type>;
 
     struct rotation
     {
@@ -669,9 +669,9 @@ namespace nf_hist
         Agent & agent;
 
     public:
-        using keys = Keys;
-        using path = type_tags<Pathway...>;
-        using editor_type = typename Agent::editor_type;
+        using nf_keys = Keys;
+        using nf_path = type_tags<Pathway...>;
+        using nf_editor_type = typename Agent::editor_type;
         using type = T;
 
         edit_primitive(Agent & agent, Keys keys) :
@@ -706,9 +706,9 @@ namespace nf_hist
         template <class Agent, class Default_index_type, class Root_data, class T, class Keys, std::size_t ... Is>
         struct membs : Keys, RareTs::Class::adapt_member<edit_member<Agent, Default_index_type, Root_data, T, Keys, Pathway...>::template type, T, Is>...
         {
-            using keys = Keys;
-            using path = type_tags<Pathway...>;
-            using editor_type = typename Agent::editor_type;
+            using nf_keys = Keys;
+            using nf_path = type_tags<Pathway...>;
+            using nf_editor_type = typename Agent::editor_type;
 
             membs(Agent & agent, Keys keys) :
                 Keys {keys},
@@ -865,10 +865,10 @@ namespace nf_hist
             constexpr auto & member_ref() { return agent.template get_member_reference<Pathway...>(agent.t, (Keys &)(*this)); }
 
         public:
-            using keys = Keys;
-            using path = type_tags<Pathway...>;
-            using editor_type = typename Agent::editor_type;
-            using route = path_tagged_keys<Keys, path, typename Agent::editor_type>;
+            using nf_keys = Keys;
+            using nf_path = type_tags<Pathway...>;
+            using nf_editor_type = typename Agent::editor_type;
+            using route = path_tagged_keys<Keys, nf_path, typename Agent::editor_type>;
 
             using selection_op_type = Sub_element<Agent, Default_index_type, Root_data, T, Keys, Pathway..., path_selections>;
             using array_op_type = decltype(array_op_typer(std::make_index_sequence<std::tuple_size_v<Keys>>()));
@@ -1215,9 +1215,9 @@ namespace nf_hist
     template <class Agent, class Default_index_type, class Root_data, class T, class Keys, class ... Pathway>
     struct edit_optional : Keys
     {
-        using keys = Keys;
-        using path = type_tags<Pathway...>;
-        using editor_type = typename Agent::editor_type;
+        using nf_keys = Keys;
+        using nf_path = type_tags<Pathway...>;
+        using nf_editor_type = typename Agent::editor_type;
         using type = T;
         using optional_value_type = typename std::remove_cvref_t<type>::value_type;
 
