@@ -97,9 +97,9 @@ namespace Json
     {
         enum class Statics
         {
-            Excluded = 0,
-            Included = 1,
-            Only = 2
+            Excluded = 0, //!< Do not include statics members when serializing this to json (default)
+            Included = 1, //!< Include static members when serializing this to json
+            Only = 2 //!< Only include statics when serializing this to json
         };
 
         template <Statics statics> struct StaticType : std::integral_constant<Statics, statics> {};
@@ -240,9 +240,9 @@ namespace Json
         {
             enum class Type
             {
-                Regular,
-                SuperClass,
-                FieldCluster
+                Regular, //!< Refers to a regular member in a class
+                SuperClass, //!< Refers to a particular superclass of the class
+                FieldCluster //!< Refers to a member which is not defined in a class but which is present in a field cluster
             };
         
             JsonField() : index(0), type(Type::Regular), name("") {}
@@ -258,22 +258,22 @@ namespace Json
 
             enum class Type
             {
-                None,
-                Null,
-                Boolean,
-                Number,
-                String,
-                Object,
-                OrderedObject,
-                Array,
-                NullArray,
-                BoolArray,
-                NumberArray,
-                StringArray,
-                ObjectArray,
-                OrderedObjectArray,
-                MixedArray,
-                FieldCluster
+                None, //!< No json value type
+                Null, //!< Json null 
+                Boolean, //!< Json bool
+                Number, //!< Json number
+                String, //!< Json string
+                Object, //!< Json object
+                OrderedObject, //!< Json object explicitly maintaining the order of fields
+                Array, //!< Json array (empty array or yet to determine a specific type or deem it a mixed array)
+                NullArray, //!< Json array of nulls
+                BoolArray, //!< Json array of bools
+                NumberArray, //!< Json array of numbers
+                StringArray, //!< Json array of strings
+                ObjectArray, //!< Json array of objects
+                OrderedObjectArray, //!< Json array of objects explicitly maintaining the order of fields
+                MixedArray, //!< Json array containing multiple types of elements
+                FieldCluster //!< Json fields which are not otherwise part of a struct
             };
             
             class TypeMismatch : public Exception
