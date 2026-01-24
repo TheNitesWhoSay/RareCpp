@@ -849,9 +849,9 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
         }
         
         enum class AccessMod {
-            Public,
-            Protected,
-            Private
+            Public,  //!< member accessible anywhere
+            Protected,  //!< member accessible to sub-classes
+            Private  //!< inaccesible member
         };
         
         template <typename T> struct Proxy;
