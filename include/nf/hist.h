@@ -29,10 +29,19 @@ namespace nf_hist
 
     template <typename Size_type> struct index_size_type { using type = Size_type; };
 
+    /// Optional annotation used to specify the index size type used in serialized history,
+    /// specifying an index size smaller than std::size_t reduces history size, appropriate when there's a known limit to a given containers size e.g.
+    /// NOTE(my_vec, nf::index_size<uint16_t>)
+    /// std::vector<int> my_vec;
+    /// @tparam Size_type the index size you wish to use, should be capable of holding the index: container size limit-1
     template <typename Size_type> inline constexpr index_size_type<Size_type> index_size;
 
     template <typename Attached_type> struct attach_data_type { using type = Attached_type; };
 
+    /// Optional annotation specifying that a collection of the supplied type should be maintained as a parallel array to the type annotated e.g.
+    /// NOTE(my_units, nf::attach_data<my_graphics>)
+    /// std::vector<my_unit> my_units;
+    /// @tparam Attached_type the type of the elements to use in the parallel array
     template <typename Attached_type> inline constexpr attach_data_type<Attached_type> attach_data;
 
     inline constexpr std::nullopt_t ref_null_opt = std::nullopt;
@@ -477,6 +486,11 @@ namespace nf_hist
         template <std::size_t I> constexpr const auto & index() { return std::get<I>((Keys &)(*this));}
     };
 
+    /// Used to create a path to some element within the source data class, typically used for creating notification methods or tracked sub-elements e.g.
+    /// using my_path = nf::make_path<decltype(root->my_collection[0].my_field)>; or...
+    /// using my_path = NF_PATH(root->my_collection[0].my_field);
+    /// @tparam Input the path to a given element within the source data class (represented as a type stored at compile time),
+    /// from within a tracked type use decltype(root->my_path_to_elem)
     template <class Input>
     using make_path = path_tagged_keys<typename Input::nf_keys, typename Input::nf_path, typename Input::nf_editor_type>;
 
@@ -7833,6 +7847,8 @@ namespace nf_hist
         constexpr bool is_sel_change_event() const { return is_sel_change_op(operation); }
     };
 
+    /// A reasonably user-friendly rendering of an action
+    /// @tparam Action_user_data the type of the user-defined data associated with all actions in a given tracked type (may be nf_hist::no_user_data)
     template <class Action_user_data = no_user_data>
     struct rendered_action {
         action_status status {};
@@ -7864,6 +7880,11 @@ namespace nf_hist
         constexpr action_record(std::size_t first_event_index, const User_data & user_data) noexcept : User_data(user_data), first_event_index(first_event_index) {}
     };
 
+    /// The parent class for your tracked type, stores your source data class, provides const ref access to it,
+    /// and capabilities to make tracked changes to all members/sub-elements, as well as the ability to undo/redo, traverse and manage history
+    /// @tparam Data your source data class, which is some regular struct/class that has been reflected and which you want tracked to manage/track changes to
+    /// @tparam User the class you're defining when extending tracked, e.g. class my_thing : tracked<my_data, my_thing> { ... };
+    /// @tparam User_data (optional) any user-defined data you wish to be associated with every action in the change history
     template <class Data, class User, class User_data>
     requires RareTs::is_macro_reflected_v<Data> && std::is_object_v<User>
     class tracked
@@ -8716,8 +8737,12 @@ namespace nf_hist
             print_event<U, Member>(ss, offset, operation, std::make_index_sequence<reflected_member_count<U>()>());
             data_change_event.operation = op(operation);
             data_change_event.summary += ss.str();
-        }   
+        }
 
+        /// Renders the bytewise data of an action into a user-friendly representation
+        /// @param action_index the index of the action you wish to render
+        /// @param action the struct to fill with the data of the action
+        /// @param include_events (optional) whether to include event details with this action
         void render_action(std::size_t action_index, rendered_action<User_data> & action, bool include_events = false) const
         {
             action.user_data = (User_data &)(actions[action_index]);
@@ -8781,7 +8806,12 @@ namespace nf_hist
         REFLECT(tracked, flag_elided_redos, mask_elided_redo_size, mod_root, pending_action_user_data, pending_action_start,
             actions, action_reference_count, redo_count, redo_size, history)
     };
-
+    
+    /// Extended to provide mutable/returnable tracked sub-elements from your source data
+    /// @tparam T the type of the sub-element from the source data
+    /// @tparam Path_to_elem a path to the sub-element from the source data
+    /// @tparam Editor_type (leave as default, evaluates to Path_to_elem::editor_type)
+    /// @tparam Read_edit_pair (leave as default, evaluates to struct { const T & read; an_editor & edit; })
     template <typename T, typename Path_to_elem, typename Editor_type, typename Read_edit_pair>
     class tracked_element : public Read_edit_pair
     {
@@ -8849,6 +8879,10 @@ namespace nf
 
     using nf_hist::make_path;
 };
+
+/// Shorthand for nf::make_path, used to create a path to some element within the source data class,
+/// typically used for creating notification methods or tracked sub-elements e.g. from within a tracked type:
+/// using my_path = NF_PATH(root->my_collection[0].my_field);
 #define NF_PATH(...) nf::make_path<decltype(__VA_ARGS__)>
 
 #endif
