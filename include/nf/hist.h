@@ -4565,7 +4565,7 @@ namespace nf_hist
                                 notify_value_changed(user, elem_route{std::tuple_cat(keys, std::tuple<index_type>{index})}, prev_value, ref[index]);
                             }
                         }
-                        else if constexpr ( is_iterable_element && has_element_removed_op<route> )
+                        else if constexpr ( is_iterable_element && has_element_removed_op<route> && requires { std::size(ref[0]); } )
                         {
                             for ( auto index : set_indexes )
                             {
@@ -4586,7 +4586,7 @@ namespace nf_hist
                             for ( auto index : set_indexes )
                             {
                                 ref[index] = read_value<element_type, Member>(offset);
-                                if constexpr ( is_iterable_element && has_element_added_op<route> )
+                                if constexpr ( is_iterable_element && has_element_added_op<route> && requires { std::size(ref[0]); } )
                                 {
                                     for ( std::size_t i=0; i<std::size(ref[index]); ++i )
                                         notify_element_added(user, elem_route{std::tuple_cat(keys, std::tuple<index_type>{index})}, i);
@@ -6276,7 +6276,7 @@ namespace nf_hist
                                 notify_value_changed(user, elem_route{std::tuple_cat(keys, std::tuple<index_type>{index})}, prev_value, ref[index]);
                             }
                         }
-                        else if constexpr ( is_iterable_element && has_element_removed_op<route> )
+                        else if constexpr ( is_iterable_element && has_element_removed_op<route> && requires { std::size(ref[0]); } )
                         {
                             for ( auto index : set_indexes )
                             {
@@ -6297,7 +6297,7 @@ namespace nf_hist
                             for ( auto index : set_indexes )
                             {
                                 ref[index] = new_value;
-                                if constexpr ( is_iterable_element && has_element_added_op<route> )
+                                if constexpr ( is_iterable_element && has_element_added_op<route> && requires { std::size(ref[0]); } )
                                 {
                                     for ( std::size_t i=0; i<std::size(ref[index]); ++i )
                                         notify_element_added(user, elem_route{std::tuple_cat(keys, std::tuple<index_type>{index})}, i);
