@@ -8447,8 +8447,8 @@ namespace nf_hist
                 if constexpr ( !std::is_void_v<element> )
                 {
                     std::size_t size = static_cast<std::size_t>(mod_root.template read_index<index_type>(offset));
-                    put(os, ".set_n(").template put_index<index_type>(os, offset).put(os, ", ").template put_indexes<index_type>(os, offset, size).put(os, ")").put(os, " = ").template put_value<type, member_type>(os, offset)
-                        .put(os, ") // ").template put_values<type, member_type>(os, offset, size);
+                    put(os, ".set_n(").put(os, size).put(os, ", ").template put_indexes<index_type>(os, offset, size).put(os, ") = ")
+                        .template put_value<element, member_type>(os, offset).put(os, ") // ").template put_values<element, member_type>(os, offset, size);
                 }
                 break;
                 case op::set_l:
