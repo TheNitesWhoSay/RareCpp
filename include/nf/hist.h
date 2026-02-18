@@ -2289,7 +2289,7 @@ namespace nf_hist
                         serialize_value<Member>(value); // Value set to
 
                         for ( auto set_index : set_indexes )
-                            serialize_value<Member>(ref[set_index]); // Value before changing
+                            serialize_value<Member>(ref[static_cast<std::size_t>(set_index)]); // Value before changing
 
                         if constexpr ( is_iterable_element )
                         {
@@ -2312,7 +2312,7 @@ namespace nf_hist
                         else if constexpr ( requires{ref[0] = value;} )
                         {
                             for ( auto set_index : set_indexes )
-                                ref[set_index] = value; // Make the change
+                                ref[static_cast<std::size_t>(set_index)] = value; // Make the change
                         }
                     }
                 }
