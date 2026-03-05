@@ -1185,7 +1185,7 @@ namespace nf_hist
                     random_access::agent.template insert<Pathway...>(insertion_index, std::forward<Value>(value), (Keys &)(*this));
             }
             template <class Index> void remove(Index removal_index) {
-                if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<Index>> )
+                if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<Index>> && !RareTs::is_optional_v<std::remove_cvref_t<Index>> )
                     random_access::agent.template remove_n<Pathway...>(removal_index, (Keys &)(*this));
                 else
                     random_access::agent.template remove<Pathway...>(removal_index, (Keys &)(*this));
@@ -1198,31 +1198,31 @@ namespace nf_hist
                 random_access::agent.template swap<Pathway...>(std::forward<U>(first_index), std::forward<U>(second_index), (Keys &)(*this));
             }
             template <class U> void move_up(U && moved_index) {
-                if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> )
+                if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> && !RareTs::is_optional_v<std::remove_cvref_t<U>> )
                     random_access::agent.template move_up_n<Pathway...>(std::forward<U>(moved_index), (Keys &)(*this));
                 else
                     random_access::agent.template move_up<Pathway...>(std::forward<U>(moved_index), (Keys &)(*this));
             }
             template <class U> void move_top(U && moved_index) {
-                if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> )
+                if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> && !RareTs::is_optional_v<std::remove_cvref_t<U>> )
                     random_access::agent.template move_top_n<Pathway...>(std::forward<U>(moved_index), (Keys &)(*this));
                 else
                     random_access::agent.template move_top<Pathway...>(std::forward<U>(moved_index), (Keys &)(*this));
             }
             template <class U> void move_down(U && moved_index) {
-                if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> )
+                if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> && !RareTs::is_optional_v<std::remove_cvref_t<U>> )
                     random_access::agent.template move_down_n<Pathway...>(std::forward<U>(moved_index), (Keys &)(*this));
                 else
                     random_access::agent.template move_down<Pathway...>(std::forward<U>(moved_index), (Keys &)(*this));
             }
             template <class U> void move_bottom(U && moved_index) {
-                if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> )
+                if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> && !RareTs::is_optional_v<std::remove_cvref_t<U>> )
                     random_access::agent.template move_bottom_n<Pathway...>(std::forward<U>(moved_index), (Keys &)(*this));
                 else
                     random_access::agent.template move_bottom<Pathway...>(std::forward<U>(moved_index), (Keys &)(*this));
             }
             template <class I, class U> void move_to(U && moved_index, I index_moved_to) {
-                if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> )
+                if constexpr ( RareTs::is_iterable_v<std::remove_cvref_t<U>> && !RareTs::is_optional_v<std::remove_cvref_t<U>> )
                     random_access::agent.template move_to_n<Pathway...>(std::forward<U>(moved_index), index_moved_to, (Keys &)(*this));
                 else
                     random_access::agent.template move_to<Pathway...>(std::forward<U>(moved_index), index_moved_to, (Keys &)(*this));
@@ -2016,7 +2016,7 @@ namespace nf_hist
 
             operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
                 using value_type = std::remove_cvref_t<decltype(ref)>;
-                constexpr bool is_iterable = RareTs::is_iterable_v<value_type>;
+                constexpr bool is_iterable = RareTs::is_iterable_v<value_type> && !RareTs::is_optional_v<value_type>;
                 if constexpr ( is_iterable && has_element_removed_op<Route> ) // Iterable
                 {
                     std::ptrdiff_t i = static_cast<std::ptrdiff_t>(std::size(ref))-1;
@@ -2202,7 +2202,7 @@ namespace nf_hist
 
             operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
                 using value_type = std::remove_cvref_t<decltype(ref)>;
-                constexpr bool is_iterable = !RareTs::is_optional_v<value_type> && RareTs::is_iterable_v<value_type>;
+                constexpr bool is_iterable = RareTs::is_iterable_v<value_type> && !RareTs::is_optional_v<value_type>;
                 if constexpr ( !is_iterable && has_value_changed_op<Route, value_type> )
                 {
                     auto prev_value = ref;
@@ -2259,7 +2259,7 @@ namespace nf_hist
                 using elem_path = type_tags<Pathway..., path_index<std::tuple_size_v<std::remove_cvref_t<decltype(keys)>>>>;
                 using elem_keys = std::remove_cvref_t<decltype(std::tuple_cat(keys, std::tuple<index_type>{0}))>;
                 using elem_route = path_tagged_keys<elem_keys, elem_path, Editor_type>;
-                constexpr bool is_iterable_element = RareTs::is_iterable_v<element_type>;
+                constexpr bool is_iterable_element = RareTs::is_iterable_v<element_type> && !RareTs::is_optional_v<element_type>;
                 if constexpr ( !std::is_void_v<element_type> )
                 {
                     if constexpr ( !is_iterable_element && has_value_changed_op<Route, element_type> )
@@ -2329,7 +2329,7 @@ namespace nf_hist
             bool first = true;
             operate_thru_sel<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>, auto & new_keys) {
                 using value_type = std::remove_cvref_t<decltype(ref)>;
-                constexpr bool is_iterable = RareTs::is_iterable_v<value_type>;
+                constexpr bool is_iterable = RareTs::is_iterable_v<value_type> && !RareTs::is_optional_v<value_type>;
                 if ( first )
                 {
                     first = false;
@@ -4197,7 +4197,7 @@ namespace nf_hist
             constexpr bool has_attached_data = agent::has_attached_data<Pathway...>();
             constexpr bool has_selections = !std::is_null_pointer_v<sel_type> && RareTs::is_specialization_v<sel_type, std::vector>;
             constexpr bool has_sel_change_op = has_selections && has_selections_changed_op<route>;
-            constexpr bool is_iterable = RareTs::is_iterable_v<Value_type>;
+            constexpr bool is_iterable = RareTs::is_iterable_v<Value_type> && !RareTs::is_optional_v<Value_type>;
             constexpr bool has_move_ops = !std::is_void_v<element_type> && requires { ref.begin(); };
 
             switch ( op(operation) )
@@ -4550,7 +4550,7 @@ namespace nf_hist
                 {
                     if constexpr ( requires{ref[0];} && requires{ref[0] = std::declval<decltype(ref[0])>();} )
                     {
-                        constexpr bool is_iterable_element = RareTs::is_iterable_v<element_type>;
+                        constexpr bool is_iterable_element = RareTs::is_iterable_v<element_type> && !RareTs::is_optional_v<element_type>;
                         auto count = static_cast<std::size_t>(read_index<index_type>(offset));
                         auto set_indexes = read_indexes<index_type>(offset, count);
 
@@ -5903,7 +5903,7 @@ namespace nf_hist
             constexpr bool has_attached_data = agent::has_attached_data<Pathway...>();
             constexpr bool has_selections = !std::is_null_pointer_v<sel_type> && RareTs::is_specialization_v<sel_type, std::vector>;
             constexpr bool has_sel_change_op = has_selections && has_selections_changed_op<route>;
-            constexpr bool is_iterable = RareTs::is_iterable_v<Value_type>;
+            constexpr bool is_iterable = RareTs::is_iterable_v<Value_type> && !RareTs::is_optional_v<Value_type>;
             constexpr bool has_move_ops = !std::is_void_v<element_type> && requires { ref.begin(); };
 
             switch ( op(operation) )
@@ -6261,7 +6261,7 @@ namespace nf_hist
                 {
                     if constexpr ( !std::is_void_v<element_type> && requires{ref[0] = std::declval<element_type>();} )
                     {
-                        constexpr bool is_iterable_element = RareTs::is_iterable_v<element_type>;
+                        constexpr bool is_iterable_element = RareTs::is_iterable_v<element_type> && !RareTs::is_optional_v<element_type>;
                         auto count = static_cast<std::size_t>(read_index<index_type>(offset));
                         auto set_indexes = read_indexes<index_type>(offset, count);
 
