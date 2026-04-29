@@ -1925,7 +1925,7 @@ i0,i1,i2,i3,i4,i5,i6,i7,i8,i9,j0,j1,j2,j3,j4,j5,j6,j7,j8,argAtArgMax,...) argAtA
                         return Class::MemberAnnotationsType<T, MemberIndex>::template getNote<AccessMod>();
                     else if constexpr ( RareTs::op_exists<void, U::template t, T>::value || RareTs::op_exists<void, U::template p, T>::value )
                         return AccessMod::Public;
-                    else if constexpr ( detail::is_private_member<std::remove_cvref_t<T>, MemberIndex>::template value<> ) // this actually detects not protected/defaults to true
+                    else if constexpr ( detail::is_private_member<remove_cvref_t<T>, MemberIndex>::template value<> ) // this actually detects not protected/defaults to true
                         return AccessMod::Private;
                     else
                         return AccessMod::Protected;
