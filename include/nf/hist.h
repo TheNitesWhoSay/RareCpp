@@ -2111,7 +2111,12 @@ namespace nf_hist
             
             operate_on<Pathway...>(t, keys, [&]<class Member, class Route>(auto & ref, type_tags<Member, Route>) {
                 serialize_index<Member>(size);
-                serialize_value<Member>(value);
+                using element_type = typename std::remove_cvref_t<decltype(ref)>::value_type;
+                if ( !std::is_same_v<std::remove_cvref_t<Value>, std::remove_cvref_t<element_type>> )
+                    serialize_value<Member>(static_cast<element_type>(value));
+                else
+                    serialize_value<Member>(value);
+
                 serialize_value<Member>(ref);
                 if constexpr ( has_element_removed_op<Route> )
                 {
